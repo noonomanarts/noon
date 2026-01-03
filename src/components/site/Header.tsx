@@ -3,6 +3,8 @@ import Link from "next/link";
 import { headers } from "next/headers";
 
 import { otherLocale, type Locale } from "@/lib/locale";
+import ThemeToggle from "@/components/site/ThemeToggle";
+import { Dropdown } from "@/components/site/Dropdown";
 
 function Icon({
   children,
@@ -13,53 +15,12 @@ function Icon({
 }) {
   return (
     <span
-      className="inline-flex size-10 items-center justify-center rounded-full border border-black/10 bg-white text-zinc-900 shadow-sm transition hover:bg-zinc-50 focus-within:ring-2 focus-within:ring-zinc-900/30 dark:border-white/15 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900/30"
+      className="noon-card noon-text inline-flex size-10 items-center justify-center rounded-full border shadow-sm transition hover:bg-[var(--muted)] focus-within:ring-2 focus-within:ring-[var(--focus)]"
       aria-hidden="true"
       title={title}
     >
       {children}
     </span>
-  );
-}
-
-function Dropdown({
-  label,
-  children,
-  align = "start",
-}: {
-  label: string;
-  children: React.ReactNode;
-  align?: "start" | "end";
-}) {
-  const alignClass = align === "end" ? "end-0" : "start-0";
-
-  return (
-    <details className="group relative">
-      <summary className="cursor-pointer list-none select-none rounded-full px-4 py-2 text-sm font-medium text-zinc-900 transition hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900/40 dark:text-zinc-50 dark:hover:bg-zinc-900/30">
-        <span className="inline-flex items-center gap-2">
-          {label}
-          <svg
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="size-4 transition group-open:rotate-180"
-            aria-hidden="true"
-          >
-            <path
-              fillRule="evenodd"
-              d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </span>
-      </summary>
-      <div
-        className={`absolute ${alignClass} top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-black/10 bg-white p-2 shadow-lg dark:border-white/15 dark:bg-zinc-950`}
-      >
-        <div className="max-h-[70vh] overflow-auto">
-        {children}
-        </div>
-      </div>
-    </details>
   );
 }
 
@@ -73,7 +34,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className="block rounded-xl px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100 dark:text-zinc-50 dark:hover:bg-zinc-900/30"
+      className="noon-text block rounded-xl px-3 py-2 text-sm font-medium transition hover:bg-[var(--muted)]"
     >
       {children}
     </Link>
@@ -89,19 +50,23 @@ export default async function Header({ locale }: { locale: Locale }) {
     : `/${nextLocale}`;
 
   const t = {
-    classes: locale === "ar" ? "الدورات" : "Classes",
+    classes: locale === "ar" ? "دورات" : "Classes",
     cooking: locale === "ar" ? "دورات الطبخ" : "Cooking classes",
     arts: locale === "ar" ? "الفنون والأشغال" : "Arts & crafts classes",
-    group: locale === "ar" ? "حجوزات المجموعات والفعاليات" : "Group Booking & Events",
+    group: locale === "ar" ? "فعاليات" : "Events",
     competition: locale === "ar" ? "مسابقة الطبخ" : "Cooking competition",
     privateClasses: locale === "ar" ? "دروس خاصة" : "Private classes",
     birthday: locale === "ar" ? "حفلات أعياد الميلاد" : "Birthday parties",
-    recommends: locale === "ar" ? "نون يوصي" : "Noon Recommends",
-    contact: locale === "ar" ? "تواصل معنا" : "Contact Us",
-    account: locale === "ar" ? "حسابي" : "My Account",
+    recommends: locale === "ar" ? "توصيات" : "Recommends",
+    contact: locale === "ar" ? "تواصل" : "Contact",
+    account: locale === "ar" ? "حساب" : "Account",
     login: locale === "ar" ? "تسجيل الدخول" : "Login",
     cart: locale === "ar" ? "السلة" : "Cart",
     langShort: nextLocale.toUpperCase(),
+    theme: locale === "ar" ? "المظهر" : "Theme",
+    themeLight: locale === "ar" ? "فاتح" : "Light",
+    themeDark: locale === "ar" ? "داكن" : "Dark",
+    themeSystem: locale === "ar" ? "حسب النظام" : "System",
   };
 
   return (
@@ -109,7 +74,7 @@ export default async function Header({ locale }: { locale: Locale }) {
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
         <Link
           href={`/${locale}`}
-          className="inline-flex items-center gap-3 rounded-xl px-2 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900/40"
+          className="inline-flex items-center gap-3 rounded-xl px-2 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900/40"
           aria-label="Noon"
         >
           <Image
@@ -145,9 +110,16 @@ export default async function Header({ locale }: { locale: Locale }) {
         </nav>
 
         <div className="ms-auto flex items-center gap-2">
+          <ThemeToggle
+            label={t.theme}
+            lightLabel={t.themeLight}
+            darkLabel={t.themeDark}
+            systemLabel={t.themeSystem}
+          />
+
           <Link
             href={switchedPath}
-            className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900/40 dark:border-white/15 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900/30"
+            className="noon-card noon-text inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
             aria-label={locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}
           >
             {t.langShort}

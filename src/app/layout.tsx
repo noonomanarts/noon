@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Cairo, Inter } from "next/font/google";
 import { headers } from "next/headers";
+import ThemeInitScript from "@/components/site/ThemeInitScript";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Using Inter as a professional geometric sans-serif (similar to Orkney)
+// Replace with Orkney local font files when available
+const inter = Inter({
+  variable: "--font-english",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const cairo = Cairo({
+  variable: "--font-arabic",
+  subsets: ["arabic", "latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -50,9 +55,17 @@ export default async function RootLayout({
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <html lang={locale} dir={dir}>
+    <html lang={locale} dir={dir} suppressHydrationWarning>
+      <head>
+        <ThemeInitScript />
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${cairo.variable} antialiased`}
+        style={{
+          fontFamily: locale === "ar" 
+            ? "var(--font-arabic), system-ui, sans-serif"
+            : "var(--font-english), system-ui, sans-serif"
+        }}
       >
         <div className="min-h-dvh">{children}</div>
       </body>

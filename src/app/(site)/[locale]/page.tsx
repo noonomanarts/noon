@@ -15,7 +15,7 @@ function Section({
     <section className="py-12">
       <div className="mx-auto w-full max-w-6xl px-4">
         <div className="mb-6">
-          <h2 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          <h2 className="noon-text text-xl font-semibold tracking-tight">
             {title}
           </h2>
         </div>
@@ -44,35 +44,35 @@ export default async function HomePage({
             alt=""
             fill
             priority
-            className="object-cover opacity-25"
+            className="object-cover opacity-15"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/70 via-white/80 to-white dark:from-zinc-950/70 dark:via-zinc-950/80 dark:to-zinc-950" />
+          <div className="absolute inset-0 bg-linear-to-b from-white/90 via-white/95 to-white dark:from-zinc-950/70 dark:via-zinc-950/80 dark:to-zinc-950" />
         </div>
 
         <div className="relative">
           <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-4 py-16 lg:grid-cols-2 lg:items-center">
             <div className="space-y-5">
-              <p className="inline-flex w-fit items-center rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 shadow-sm dark:border-white/15 dark:bg-zinc-950 dark:text-zinc-200">
+              <p className="noon-pill px-4 py-2 text-xs font-semibold">
                 Noon · Oman
               </p>
-              <h1 className="text-4xl font-semibold leading-tight tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-5xl">
+              <h1 className="noon-text text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
                 {content.hero.headline}
               </h1>
               {content.hero.subheadline ? (
-                <p className="max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-300">
+                <p className="noon-text-muted max-w-xl text-base leading-7">
                   {content.hero.subheadline}
                 </p>
               ) : null}
               <div className="flex flex-wrap gap-3">
                 <Link
                   href={`/${locale}/classes/cooking`}
-                  className="inline-flex items-center justify-center rounded-full bg-zinc-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900/50 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-white"
+                  className="noon-btn noon-btn-lg noon-btn-primary"
                 >
                   {content.hero.ctaExploreClasses}
                 </Link>
                 <Link
                   href={`/${locale}/group-booking-events/cooking-competition`}
-                  className="inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:border-white/15 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900/30"
+                  className="noon-btn noon-btn-lg noon-btn-secondary"
                 >
                   {locale === "ar" ? "حجز فعالية" : "Book an event"}
                 </Link>
@@ -80,7 +80,7 @@ export default async function HomePage({
             </div>
 
             <div className="relative">
-              <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-black/10 bg-zinc-100 shadow-lg dark:border-white/15 dark:bg-zinc-900">
+              <div className="relative aspect-4/3 overflow-hidden rounded-3xl border noon-border noon-muted shadow-lg">
                 <Image
                   src={content.hero.backgroundImageSrc ?? "/og-image.png"}
                   alt=""
@@ -98,20 +98,20 @@ export default async function HomePage({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Link
             href={`/${locale}/classes/cooking`}
-            className="group rounded-3xl border border-black/10 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/15 dark:bg-zinc-950"
+            className="noon-card group rounded-3xl border p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                <div className="noon-text text-sm font-semibold">
                   {content.courses.cookingLabel}
                 </div>
-                <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                <div className="noon-text-muted mt-1 text-sm">
                   {locale === "ar"
                     ? "وصفات، مهارات، وتجربة ممتعة."
                     : "Recipes, skills, and a great experience."}
                 </div>
               </div>
-              <span className="inline-flex items-center rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition group-hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950">
+              <span className="noon-btn noon-btn-sm noon-btn-primary">
                 {locale === "ar" ? "عرض" : "Explore"}
               </span>
             </div>
@@ -119,20 +119,20 @@ export default async function HomePage({
 
           <Link
             href={`/${locale}/classes/arts-crafts`}
-            className="group rounded-3xl border border-black/10 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-white/15 dark:bg-zinc-950"
+            className="noon-card group rounded-3xl border p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                <div className="noon-text text-sm font-semibold">
                   {content.courses.artsLabel}
                 </div>
-                <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                <div className="noon-text-muted mt-1 text-sm">
                   {locale === "ar"
                     ? "حِرف، فنون، ووقت إبداعي."
                     : "Crafts, art, and creative time."}
                 </div>
               </div>
-              <span className="inline-flex items-center rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition group-hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950">
+              <span className="noon-btn noon-btn-sm noon-btn-primary">
                 {locale === "ar" ? "عرض" : "Explore"}
               </span>
             </div>
@@ -146,12 +146,12 @@ export default async function HomePage({
           {content.numbers.items.map((item) => (
             <div
               key={`${item.value}-${item.label}`}
-              className="rounded-3xl border border-black/10 bg-white p-6 text-center shadow-sm dark:border-white/15 dark:bg-zinc-950"
+              className="noon-card rounded-3xl border p-6 text-center shadow-sm"
             >
-              <div className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+              <div className="noon-text text-2xl font-semibold tracking-tight">
                 {item.value}
               </div>
-              <div className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="noon-text-muted mt-1 text-sm">
                 {item.label}
               </div>
             </div>
@@ -165,27 +165,27 @@ export default async function HomePage({
           {content.upcoming.items.slice(0, 3).map((c) => (
             <article
               key={c.id}
-              className="overflow-hidden rounded-3xl border border-black/10 bg-white shadow-sm dark:border-white/15 dark:bg-zinc-950"
+              className="noon-card overflow-hidden rounded-3xl border shadow-sm"
             >
-              <div className="relative aspect-[16/10] bg-zinc-100 dark:bg-zinc-900">
+              <div className="noon-muted relative aspect-16/10">
                 <Image src={c.imageSrc} alt="" fill className="object-cover" />
               </div>
               <div className="space-y-3 p-6">
                 <div>
-                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+                  <h3 className="noon-text text-base font-semibold">
                     {c.title}
                   </h3>
-                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                  <p className="noon-text-muted mt-1 text-sm">
                     {c.datetimeText}
                   </p>
                 </div>
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                  <div className="noon-text text-sm font-semibold">
                     {c.priceText}
                   </div>
                   <Link
                     href={`/${locale}/classes/cooking`}
-                    className="inline-flex items-center rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-950 dark:hover:bg-white"
+                    className="noon-btn noon-btn-sm noon-btn-primary"
                   >
                     {content.upcoming.bookNowLabel}
                   </Link>
@@ -202,12 +202,12 @@ export default async function HomePage({
           {content.whyNoon.items.map((item) => (
             <div
               key={item.title}
-              className="rounded-3xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/15 dark:bg-zinc-950"
+              className="noon-card rounded-3xl border p-6 shadow-sm"
             >
-              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+              <div className="noon-text text-sm font-semibold">
                 {item.title}
               </div>
-              <div className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+              <div className="noon-text-muted mt-2 text-sm leading-6">
                 {item.description}
               </div>
             </div>
@@ -217,14 +217,14 @@ export default async function HomePage({
 
       {/* Partners */}
       <Section title={content.partners.title}>
-        <p className="max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+        <p className="noon-text-muted max-w-3xl text-sm leading-6">
           {content.partners.description}
         </p>
         <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {content.partners.items.map((p) => (
             <div
               key={p.id}
-              className="flex items-center justify-center rounded-2xl border border-black/10 bg-white px-4 py-6 text-center text-sm font-semibold text-zinc-700 shadow-sm dark:border-white/15 dark:bg-zinc-950 dark:text-zinc-200"
+              className="noon-card noon-text-muted flex items-center justify-center rounded-2xl border px-4 py-6 text-center text-sm font-semibold shadow-sm"
             >
               {p.logoText ?? p.name}
             </div>

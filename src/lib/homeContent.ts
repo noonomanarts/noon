@@ -8,9 +8,9 @@ const DEFAULT_HOME_CONTENT: Record<Locale, HomeContent> = {
   en: {
     locale: "en",
     hero: {
-      headline: "where cooking becomes an experience.",
+      headline: "cooking is an experience",
       subheadline:
-        "Hands-on classes, memorable events, and a community that loves to create.",
+        "Learn, create, and celebrate with Noon.",
       ctaExploreClasses: "Explore classes",
       backgroundImageSrc: "/og-image.png",
     },
@@ -86,8 +86,8 @@ const DEFAULT_HOME_CONTENT: Record<Locale, HomeContent> = {
   ar: {
     locale: "ar",
     hero: {
-      headline: "حيث يتحوّل الطبخ إلى تجربة.",
-      subheadline: "ورش عملية، فعاليات ممتعة، ومجتمع يحب الإبداع.",
+      headline: "الطبخ تجربة",
+      subheadline: "تعلّم وابدع واحتفل مع نون.",
       ctaExploreClasses: "استكشف الدورات",
       backgroundImageSrc: "/og-image.png",
     },
