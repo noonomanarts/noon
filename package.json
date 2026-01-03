@@ -9,9 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "cbor-x": "^1.6.0",
+    "lmdb": "^3.4.2",
     "next": "16.1.1",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
