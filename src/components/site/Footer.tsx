@@ -18,7 +18,7 @@ export default function Footer({ locale }: { locale: Locale }) {
   };
 
   return (
-    <footer className="noon-surface border-t border-black/5 dark:border-white/10">
+    <footer className="border-t border-zinc-800/60 bg-zinc-950">
       <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-3">
           <Link href={`/${locale}`} className="inline-flex items-center gap-3">
@@ -28,12 +28,12 @@ export default function Footer({ locale }: { locale: Locale }) {
               width={44}
               height={44}
             />
-            <span className="noon-text text-sm font-semibold">
+            <span className="text-sm font-semibold text-zinc-100">
               Noon
             </span>
           </Link>
-          <div className="noon-text-muted text-sm">
-            <div className="noon-text font-medium">
+          <div className="text-sm text-zinc-400">
+            <div className="font-medium text-zinc-100">
               {t.location}
             </div>
             <div>Muscat, Oman</div>
@@ -41,14 +41,14 @@ export default function Footer({ locale }: { locale: Locale }) {
         </div>
 
         <div className="space-y-3">
-          <div className="noon-text text-sm font-semibold">
+          <div className="text-sm font-semibold text-zinc-100">
             {t.quickLinks}
           </div>
           <ul className="space-y-2 text-sm">
             <li>
               <Link
                 href={`/${locale}/faqs`}
-                className="noon-text-muted hover:text-[var(--text)] transition"
+                className="text-zinc-400 transition hover:text-zinc-100"
               >
                 {t.faq}
               </Link>
@@ -56,7 +56,7 @@ export default function Footer({ locale }: { locale: Locale }) {
             <li>
               <Link
                 href={`/${locale}/terms`}
-                className="noon-text-muted hover:text-[var(--text)] transition"
+                className="text-zinc-400 transition hover:text-zinc-100"
               >
                 {t.terms}
               </Link>
@@ -65,31 +65,31 @@ export default function Footer({ locale }: { locale: Locale }) {
         </div>
 
         <div className="space-y-3">
-          <div className="noon-text text-sm font-semibold">
+          <div className="text-sm font-semibold text-zinc-100">
             {t.contact}
           </div>
-          <div className="noon-text-muted text-sm">
+          <div className="text-sm text-zinc-400">
             <div>
-              Phone: <a className="underline" href="tel:+96898199508">+968 98199508</a>
+              Phone: <a className="underline hover:text-zinc-100" href="tel:+96898199508">+968 98199508</a>
             </div>
-            <div>Email: <a className="underline" href="mailto:info@noonoman.com">info@noonoman.com</a></div>
+            <div>Email: <a className="underline hover:text-zinc-100" href="mailto:info@noonoman.com">info@noonoman.com</a></div>
           </div>
         </div>
 
         <div className="space-y-3">
-          <div className="noon-text text-sm font-semibold">
+          <div className="text-sm font-semibold text-zinc-100">
             {t.follow}
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
             <a
               href="#"
-              className="noon-card noon-text-muted rounded-full border px-4 py-2 transition hover:bg-[var(--muted)]"
+              className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
             >
               Instagram
             </a>
             <a
               href="#"
-              className="noon-card noon-text-muted rounded-full border px-4 py-2 transition hover:bg-[var(--muted)]"
+              className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
             >
               Facebook
             </a>
@@ -97,7 +97,7 @@ export default function Footer({ locale }: { locale: Locale }) {
         </div>
       </div>
 
-      <div className="border-t border-black/5 py-6 text-center text-xs noon-text-subtle dark:border-white/10">
+      <div className="border-t border-zinc-800/60 py-6 text-center text-xs text-zinc-500">
         {t.copyright}
       </div>
     </footer>

@@ -1,14 +1,16 @@
 @import "tailwindcss";
 
 :root {
+  /* Light theme - clean and professional */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #18181b;
   --surface: #ffffff;
   --muted: #f4f4f5;
-  --border: rgba(0, 0, 0, 0.08);
+  --muted-foreground: #71717a;
+  --border: #e4e4e7;
 
   /* Typography tokens */
-  --text: var(--foreground);
+  --text: #18181b;
   --text-muted: #52525b;
   --text-subtle: #71717a;
 
@@ -16,26 +18,36 @@
   --primary: #18181b;
   --primary-hover: #27272a;
   --primary-foreground: #ffffff;
-  --focus: rgba(24, 24, 27, 0.5);
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --focus: rgba(24, 24, 27, 0.2);
 
   color-scheme: light;
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --surface: #0f0f10;
-  --muted: rgba(255, 255, 255, 0.06);
-  --border: rgba(255, 255, 255, 0.12);
+  /* Dark theme - elegant and modern */
+  --background: #09090b;
+  --foreground: #fafafa;
+  --surface: #18181b;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --border: #27272a;
 
-  --text: var(--foreground);
+  --text: #fafafa;
   --text-muted: #a1a1aa;
-  --text-subtle: #d4d4d8;
+  --text-subtle: #71717a;
 
   --primary: #fafafa;
   --primary-hover: #ffffff;
   --primary-foreground: #09090b;
-  --focus: rgba(250, 250, 250, 0.35);
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --focus: rgba(250, 250, 250, 0.2);
 
   color-scheme: dark;
 }
@@ -55,103 +67,122 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* RTL Support - Simple and effective */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left;
+}
+
 @layer utilities {
   /* Theme-aware surfaces for cards/boxes/popovers */
   .noon-surface {
-    background-color: var(--surface);
+    background-color: var(--surface) !important;
   }
 
   .noon-muted {
-    background-color: var(--muted);
+    background-color: var(--muted) !important;
   }
 
   .noon-border {
-    border-color: var(--border);
+    border-color: var(--border) !important;
   }
 
   .noon-card {
-    background-color: var(--surface);
-    border-color: var(--border);
+    background-color: var(--surface) !important;
+    border-color: var(--border) !important;
   }
 
   /* Typography helpers */
   .noon-text {
-    color: var(--text);
+    color: var(--text) !important;
   }
 
   .noon-text-muted {
-    color: var(--text-muted);
+    color: var(--text-muted) !important;
   }
 
   .noon-text-subtle {
-    color: var(--text-subtle);
+    color: var(--text-subtle) !important;
   }
 }
 
 @layer components {
-  /* Buttons */
-  .noon-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 9999px;
-    font-weight: 600;
-    transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
-    outline: none;
-  }
-
-  .noon-btn:focus-visible {
-    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--focus);
-  }
-
-  .noon-btn-lg {
-    padding: 0.75rem 1.5rem;
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-  }
-
-  .noon-btn-sm {
-    padding: 0.5rem 1rem;
-    font-size: 0.75rem;
-    line-height: 1rem;
-  }
-
-  .noon-btn-primary {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.12);
-  }
-
-  .noon-btn-primary:hover {
-    background-color: var(--primary-hover);
-  }
-
-  .noon-btn-secondary {
-    background-color: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-  }
-
-  .noon-btn-secondary:hover {
-    background-color: var(--muted);
-  }
-
   /* Pills / badges */
   .noon-pill {
     display: inline-flex;
     align-items: center;
     border-radius: 9999px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    background-color: #ffffff;
-    color: #52525b;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    color: var(--text-muted);
     box-shadow: 0 1px 2px rgba(0,0,0,0.08);
   }
 
   .dark .noon-pill {
-    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+}
+
+@layer components {
+  .admin-panel input,
+  .admin-panel select,
+  .admin-panel textarea {
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
     background-color: var(--surface);
+    color: var(--text);
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .admin-panel input:focus,
+  .admin-panel select:focus,
+  .admin-panel textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--focus);
+  }
+
+  .admin-panel input,
+  .admin-panel select,
+  .admin-panel textarea {
+    padding: 0.55rem 0.85rem;
+    font-size: 0.875rem;
+  }
+
+  /* Admin tables */
+  .admin-panel table {
+    color: var(--text);
+  }
+
+  .admin-panel thead {
     color: var(--text-muted);
+  }
+
+  .admin-panel tbody {
+    border-color: var(--border);
+  }
+
+  .admin-panel tbody tr {
+    border-color: var(--border);
+  }
+
+  .admin-panel tbody td {
+    color: var(--text);
+  }
+
+  /* Admin modals */
+  .admin-panel dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .dark .admin-panel dialog::backdrop {
+    background-color: rgba(0, 0, 0, 0.7);
   }
 }
 

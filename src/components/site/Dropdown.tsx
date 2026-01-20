@@ -46,7 +46,7 @@ export function Dropdown({
     <div ref={detailsRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="noon-text cursor-pointer list-none select-none rounded-full px-4 py-2 text-sm font-medium transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+        className="cursor-pointer list-none select-none rounded-full px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900/50 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:focus-visible:outline-zinc-100/50"
       >
         <span className="inline-flex items-center gap-2">
           {label}
@@ -66,7 +66,7 @@ export function Dropdown({
       </button>
       {isOpen && (
         <div
-          className={`noon-card absolute ${alignClass} top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border p-2 shadow-lg`}
+          className={`absolute ${alignClass} top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-800 dark:bg-zinc-900`}
           onClick={() => setIsOpen(false)}
         >
           <div className="max-h-[70vh] overflow-auto">{children}</div>

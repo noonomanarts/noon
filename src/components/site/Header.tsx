@@ -5,24 +5,7 @@ import { headers } from "next/headers";
 import { otherLocale, type Locale } from "@/lib/locale";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import { Dropdown } from "@/components/site/Dropdown";
-
-function Icon({
-  children,
-  title,
-}: {
-  children: React.ReactNode;
-  title: string;
-}) {
-  return (
-    <span
-      className="noon-card noon-text inline-flex size-10 items-center justify-center rounded-full border shadow-sm transition hover:bg-[var(--muted)] focus-within:ring-2 focus-within:ring-[var(--focus)]"
-      aria-hidden="true"
-      title={title}
-    >
-      {children}
-    </span>
-  );
-}
+import { getCurrentUser } from "@/lib/session";
 
 function NavLink({
   href,
@@ -34,7 +17,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className="noon-text block rounded-xl px-3 py-2 text-sm font-medium transition hover:bg-[var(--muted)]"
+      className="block rounded-xl px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
     >
       {children}
     </Link>
@@ -49,6 +32,8 @@ export default async function Header({ locale }: { locale: Locale }) {
     ? pathname.replace(`/${locale}`, `/${nextLocale}`)
     : `/${nextLocale}`;
 
+  const currentUser = await getCurrentUser();
+
   const t = {
     classes: locale === "ar" ? "دورات" : "Classes",
     cooking: locale === "ar" ? "دورات الطبخ" : "Cooking classes",
@@ -59,6 +44,7 @@ export default async function Header({ locale }: { locale: Locale }) {
     birthday: locale === "ar" ? "حفلات أعياد الميلاد" : "Birthday parties",
     recommends: locale === "ar" ? "توصيات" : "Recommends",
     contact: locale === "ar" ? "تواصل" : "Contact",
+    dashboard: locale === "ar" ? "لوحة التحكم" : "Dashboard",
     account: locale === "ar" ? "حساب" : "Account",
     login: locale === "ar" ? "تسجيل الدخول" : "Login",
     cart: locale === "ar" ? "السلة" : "Cart",
@@ -70,7 +56,7 @@ export default async function Header({ locale }: { locale: Locale }) {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-black/5 bg-white/80 backdrop-blur dark:border-white/10 dark:bg-zinc-950/70">
+    <header className="sticky top-0 z-40 border-b border-zinc-200/70 bg-white/90 backdrop-blur-lg shadow-sm dark:border-zinc-800/60 dark:bg-zinc-950/90">
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
         <Link
           href={`/${locale}`}
@@ -119,31 +105,35 @@ export default async function Header({ locale }: { locale: Locale }) {
 
           <Link
             href={switchedPath}
-            className="noon-card noon-text inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold shadow-sm transition hover:bg-[var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+            className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
             aria-label={locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}
           >
             {t.langShort}
           </Link>
 
-          <Link href={`/${locale}/cart`} aria-label={t.cart}>
-            <Icon title={t.cart}>
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
+          <Link href={`/${locale}/cart`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800">
+            <span className="inline-flex items-center gap-2">
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 6h15l-1.5 9h-12z" />
                 <path d="M6 6l-2-2H1" />
                 <path d="M9 22a1 1 0 100-2 1 1 0 000 2zM18 22a1 1 0 100-2 1 1 0 000 2z" />
               </svg>
-            </Icon>
+              <span>{t.cart}</span>
+            </span>
           </Link>
 
-          <Link href={`/${locale}/login`} aria-label={t.login}>
-            <Icon title={t.login}>
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M15 3H7a2 2 0 00-2 2v14a2 2 0 002 2h8" />
-                <path d="M10 17l5-5-5-5" />
-                <path d="M15 12H9" />
-              </svg>
-            </Icon>
-          </Link>
+          {currentUser ? (
+            <Link 
+              href={currentUser.role === "admin" ? `/${locale}/admin` : `/${locale}/account`}
+              className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+            >
+              {t.dashboard}
+            </Link>
+          ) : (
+            <Link href={`/${locale}/login`} className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">
+              {t.login}
+            </Link>
+          )}
 
           <div className="md:hidden">
             <Dropdown label={locale === "ar" ? "القائمة" : "Menu"} align="end">

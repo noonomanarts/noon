@@ -17,6 +17,7 @@
     "sharp": "^0.34.5"
   },
   "devDependencies": {
+    "@headlessui/react": "^2.2.9",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

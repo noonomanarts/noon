@@ -15,7 +15,7 @@ function Section({
     <section className="py-12">
       <div className="mx-auto w-full max-w-6xl px-4">
         <div className="mb-6">
-          <h2 className="noon-text text-xl font-semibold tracking-tight">
+          <h2 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100" style={{ color: 'var(--text)' }}>
             {title}
           </h2>
         </div>
@@ -37,29 +37,29 @@ export default async function HomePage({
   return (
     <div>
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-black/5 dark:border-white/10">
+      <section className="relative overflow-hidden border-b border-zinc-200/70 dark:border-zinc-800/60">
         <div className="absolute inset-0">
           <Image
             src={content.hero.backgroundImageSrc ?? "/og-image.png"}
             alt=""
             fill
             priority
-            className="object-cover opacity-15"
+            className="object-cover opacity-[0.08] dark:opacity-15"
           />
-          <div className="absolute inset-0 bg-linear-to-b from-white/90 via-white/95 to-white dark:from-zinc-950/70 dark:via-zinc-950/80 dark:to-zinc-950" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-white/98 to-white dark:from-zinc-950/70 dark:via-zinc-950/85 dark:to-zinc-950" />
         </div>
 
         <div className="relative">
           <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-10 px-4 py-16 lg:grid-cols-2 lg:items-center">
             <div className="space-y-5">
-              <p className="noon-pill px-4 py-2 text-xs font-semibold">
+              <p className="inline-flex items-center rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-xs font-semibold text-zinc-900 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">
                 Noon · Oman
               </p>
-              <h1 className="noon-text text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+              <h1 className="text-4xl font-semibold leading-tight tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-5xl">
                 {content.hero.headline}
               </h1>
               {content.hero.subheadline ? (
-                <p className="noon-text-muted max-w-xl text-base leading-7">
+                <p className="max-w-xl text-base leading-7 text-zinc-600 dark:text-zinc-400">
                   {content.hero.subheadline}
                 </p>
               ) : null}
@@ -80,7 +80,7 @@ export default async function HomePage({
             </div>
 
             <div className="relative">
-              <div className="relative aspect-4/3 overflow-hidden rounded-3xl border noon-border noon-muted shadow-lg">
+              <div className="relative aspect-4/3 overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-50 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
                 <Image
                   src={content.hero.backgroundImageSrc ?? "/og-image.png"}
                   alt=""

@@ -45,19 +45,27 @@ export default function ThemeToggle({
   systemLabel,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  const [preference, setPreference] = useState<ThemePreference>(() => {
-    // Initialize from localStorage on first client render (avoids setState-in-effect).
+  const [preference, setPreference] = useState<ThemePreference>("system");
+  const resolved = useMemo(() => {
+    if (!mounted) return "light"; // Always return light for SSR
+    return resolveTheme(preference);
+  }, [preference, mounted]);
+
+  useEffect(() => {
+    // Initialize from localStorage after mount
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === "light" || stored === "dark" || stored === "system") return stored;
+      if (stored === "light" || stored === "dark" || stored === "system") {
+        setPreference(stored);
+      }
     } catch {
       // ignore
     }
-    return "system";
-  });
-  const resolved = useMemo(() => resolveTheme(preference), [preference]);
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // Sync React state to the outside world (DOM + storage).
@@ -131,7 +139,7 @@ export default function ThemeToggle({
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="noon-card noon-text inline-flex size-10 cursor-pointer list-none items-center justify-center rounded-full border shadow-sm transition hover:bg-[var(--muted)]"
+        className="inline-flex size-10 cursor-pointer list-none items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
         aria-label={label}
         title={label}
       >
@@ -139,8 +147,8 @@ export default function ThemeToggle({
       </button>
 
       {isOpen && (
-        <div className="noon-card absolute end-0 top-full z-50 mt-2 w-56 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border p-2 shadow-lg">
-          <div className="space-y-1">
+        <div className="absolute end-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="space-y-0.5">
             <Option
               label={lightLabel}
               isActive={preference === "light"}
@@ -177,15 +185,15 @@ function Option({
       type="button"
       onClick={onSelect}
       className={
-        "noon-text flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition " +
+        "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition " +
         (isActive
-          ? "bg-[var(--muted)]"
-          : "noon-text-muted hover:bg-[var(--muted)]")
+          ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+          : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100")
       }
     >
       <span>{label}</span>
       {isActive ? (
-        <svg viewBox="0 0 20 20" className="size-4" fill="currentColor" aria-hidden="true">
+        <svg viewBox="0 0 20 20" className="size-4 text-zinc-900 dark:text-zinc-100" fill="currentColor" aria-hidden="true">
           <path
             fillRule="evenodd"
             d="M16.704 5.29a1 1 0 010 1.42l-7.25 7.25a1 1 0 01-1.415 0l-3.25-3.25a1 1 0 011.414-1.414l2.543 2.543 6.543-6.543a1 1 0 011.415-.006z"
