@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getUserById } from "@/lib/db/users";
 import { isLocale, type Locale } from "@/lib/locale";
+import ThemeToggle from "@/components/site/ThemeToggle";
 
 export default async function AdminLayout({
   children,
@@ -58,6 +59,10 @@ export default async function AdminLayout({
     logout: locale === "ar" ? "تسجيل خروج" : "Logout",
     viewSite: locale === "ar" ? "عرض الموقع" : "View Site",
     welcomeBack: locale === "ar" ? "مرحباً بعودتك" : "Welcome back",
+    theme: locale === "ar" ? "المظهر" : "Theme",
+    themeLight: locale === "ar" ? "فاتح" : "Light",
+    themeDark: locale === "ar" ? "داكن" : "Dark",
+    themeSystem: locale === "ar" ? "حسب النظام" : "System",
   };
 
   const menuItems = [
@@ -104,11 +109,9 @@ export default async function AdminLayout({
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <html lang={locale} dir={dir} suppressHydrationWarning>
-      <body className="bg-zinc-50 dark:bg-zinc-950">
-        <div className="flex h-screen overflow-hidden">
-          {/* Sidebar */}
-          <aside className={`hidden w-64 flex-shrink-0 border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 lg:block ${locale === "ar" ? "border-l" : "border-r"}`}>
+    <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950" lang={locale} dir={dir}>
+      {/* Sidebar */}
+      <aside className={`hidden w-64 flex-shrink-0 border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 lg:block ${locale === "ar" ? "border-l" : "border-r"}`}>
             <div className="flex h-full flex-col">
               {/* Logo */}
               <div className={`flex h-16 items-center gap-3 border-b border-zinc-200 px-6 dark:border-zinc-800 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
@@ -190,6 +193,13 @@ export default async function AdminLayout({
               </div>
 
               <div className={`flex items-center gap-3 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+                <ThemeToggle
+                  label={t.theme}
+                  lightLabel={t.themeLight}
+                  darkLabel={t.themeDark}
+                  systemLabel={t.themeSystem}
+                />
+
                 <button className="relative rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800">
                   <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -210,7 +220,5 @@ export default async function AdminLayout({
             <div className="flex-1 overflow-y-auto p-6">{children}</div>
           </main>
         </div>
-      </body>
-    </html>
-  );
+    );
 }

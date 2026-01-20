@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { isLocale, type Locale } from "@/lib/locale";
 import { ensureDefaultAdmin, verifyLogin } from "@/lib/authStore";
+import ThemeToggle from "@/components/site/ThemeToggle";
 
 export default async function LoginPage({
   params,
@@ -60,10 +61,22 @@ export default async function LoginPage({
     createAccount: locale === "ar" ? "إنشاء حساب" : "Create one",
     errorMessage: locale === "ar" ? "بيانات الدخول غير صحيحة" : "Invalid email or password",
     adminNote: locale === "ar" ? "ملاحظة: استخدم admin@noon.com / admin123 للتجربة" : "Note: Use admin@noon.com / admin123 for testing",
+    theme: locale === "ar" ? "المظهر" : "Theme",
+    themeLight: locale === "ar" ? "فاتح" : "Light",
+    themeDark: locale === "ar" ? "داكن" : "Dark",
+    themeSystem: locale === "ar" ? "حسب النظام" : "System",
   };
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-12">
+      <div className="mb-4 flex justify-end">
+        <ThemeToggle
+          label={t.theme}
+          lightLabel={t.themeLight}
+          darkLabel={t.themeDark}
+          systemLabel={t.themeSystem}
+        />
+      </div>
       <div className="mx-auto w-full max-w-xl">
         <div className="rounded-3xl border border-zinc-200/70 bg-white p-8 shadow-lg dark:border-zinc-800/60 dark:bg-zinc-950">
           {/* Header */}
