@@ -5,7 +5,6 @@ import { headers } from "next/headers";
 import { otherLocale, type Locale } from "@/lib/locale";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import { Dropdown } from "@/components/site/Dropdown";
-import { getCurrentUser } from "@/lib/session";
 
 function NavLink({
   href,
@@ -32,7 +31,6 @@ export default async function Header({ locale }: { locale: Locale }) {
     ? pathname.replace(`/${locale}`, `/${nextLocale}`)
     : `/${nextLocale}`;
 
-  const currentUser = await getCurrentUser();
 
   const t = {
     classes: locale === "ar" ? "دورات" : "Classes",
@@ -122,18 +120,11 @@ export default async function Header({ locale }: { locale: Locale }) {
             </span>
           </Link>
 
-          {currentUser ? (
-            <Link 
-              href={currentUser.role === "admin" ? `/${locale}/admin` : `/${locale}/account`}
-              className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
-            >
-              {t.dashboard}
-            </Link>
-          ) : (
+
             <Link href={`/${locale}/login`} className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">
               {t.login}
             </Link>
-          )}
+
 
           <div className="md:hidden">
             <Dropdown label={locale === "ar" ? "القائمة" : "Menu"} align="end">

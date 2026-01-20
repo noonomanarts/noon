@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cbor-x": "^1.6.0",
     "lmdb": "^3.4.2",
     "next": "16.1.1",
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@headlessui/react": "^2.2.9",
     "@tailwindcss/postcss": "^4",
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
