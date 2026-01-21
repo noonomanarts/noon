@@ -5,6 +5,7 @@ import { getUserById } from "@/lib/db/users";
 import { isLocale, type Locale } from "@/lib/locale";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
+import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
 import OverlayScrollArea from "@/components/site/OverlayScrollArea";
 import {
   FiBell,
@@ -74,6 +75,8 @@ export default async function AdminLayout({
     settings: locale === "ar" ? "الإعدادات" : "Settings",
     notifications: locale === "ar" ? "الإشعارات" : "Notifications",
     logout: locale === "ar" ? "تسجيل خروج" : "Logout",
+    profile: locale === "ar" ? "الملف الشخصي" : "Profile",
+    accountSettings: locale === "ar" ? "إعدادات الحساب" : "Account Settings",
     viewSite: locale === "ar" ? "عرض الموقع" : "View Site",
     welcomeBack: locale === "ar" ? "مرحباً بعودتك" : "Welcome back",
     theme: locale === "ar" ? "المظهر" : "Theme",
@@ -172,27 +175,18 @@ export default async function AdminLayout({
                 </nav>
               </OverlayScrollArea>
 
-              {/* User Profile & Logout */}
-              <div className="border-t border-zinc-200 p-4 dark:border-zinc-800" dir={dir}>
-                <div className="flex items-center gap-3 rounded-lg bg-zinc-100 px-3 py-2 dark:bg-zinc-800">
-                  <div className="flex size-8 items-center justify-center rounded-full bg-zinc-900 text-sm font-semibold text-white dark:bg-white dark:text-zinc-900">
-                    {user.firstName.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">
-                      {user.firstName} {user.lastName}
-                    </p>
-                    <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">{user.email}</p>
-                  </div>
-                </div>
-                <form action={handleLogout} className="mt-2">
-                  <button
-                    type="submit"
-                    className="w-full rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
-                  >
-                    {t.logout}
-                  </button>
-                </form>
+              {/* User Profile Menu */}
+              <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
+                <AdminProfileMenu
+                  userName={`${user.firstName} ${user.lastName}`}
+                  userEmail={user.email}
+                  userInitial={user.firstName.charAt(0)}
+                  logoutLabel={t.logout}
+                  profileLabel={t.profile}
+                  settingsLabel={t.accountSettings}
+                  onLogout={handleLogout}
+                  locale={locale}
+                />
               </div>
             </div>
           </aside>
