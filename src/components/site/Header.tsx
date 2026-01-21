@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 
 import { otherLocale, type Locale } from "@/lib/locale";
+import { getUserById } from "@/lib/db/users";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import { Dropdown } from "@/components/site/Dropdown";
 
@@ -31,6 +32,10 @@ export default async function Header({ locale }: { locale: Locale }) {
     ? pathname.replace(`/${locale}`, `/${nextLocale}`)
     : `/${nextLocale}`;
 
+  // Check if user is logged in
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get("noon_session")?.value;
+  const user = sessionId ? getUserById(sessionId) : null;
 
   const t = {
     classes: locale === "ar" ? "دورات" : "Classes",
@@ -120,11 +125,21 @@ export default async function Header({ locale }: { locale: Locale }) {
             </span>
           </Link>
 
-
-            <Link href={`/${locale}/login`} className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">
+          {user ? (
+            <Link 
+              href={user.role === "admin" ? `/${locale}/admin` : `/${locale}/account`}
+              className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+            >
+              {user.role === "admin" ? t.dashboard : t.account}
+            </Link>
+          ) : (
+            <Link 
+              href={`/${locale}/login`} 
+              className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+            >
               {t.login}
             </Link>
-
+          )}
 
           <div className="md:hidden">
             <Dropdown label={locale === "ar" ? "القائمة" : "Menu"} align="end">
