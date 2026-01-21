@@ -53,9 +53,9 @@ type MenuSection = {
 type Props = {
   menuItems: MenuSection[];
   user: {
-    firstName: string;
-    lastName: string;
+    fullName: string;
     email: string;
+    profileImage?: string;
   };
   locale: "en" | "ar";
   translations: {
@@ -180,9 +180,10 @@ export default function MobileSidebar({
           {/* User Profile Menu */}
           <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
             <AdminProfileMenu
-              userName={`${user.firstName} ${user.lastName}`}
+              userName={user.fullName}
               userEmail={user.email}
-              userInitial={user.firstName.charAt(0)}
+              userInitial={user.fullName.charAt(0)}
+              profileImage={user.profileImage}
               logoutLabel={translations.logout}
               profileLabel={translations.profile}
               settingsLabel={translations.accountSettings}

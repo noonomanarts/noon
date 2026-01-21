@@ -1,0 +1,422 @@
+"use client";
+
+import { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+
+interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  phone?: string;
+  dob?: string;
+  preferredLanguage: "en" | "ar";
+  role: "admin" | "trainer" | "customer";
+  profileImage?: string;
+}
+
+type FormRole = "admin" | "trainer" | "user";
+
+function mapRoleToForm(role: "admin" | "trainer" | "customer"): FormRole {
+  return role === "customer" ? "user" : role;
+}
+
+export default function EditUserPage({
+  params,
+}: {
+  params: Promise<{ locale: string; userId: string }>;
+}) {
+  const router = useRouter();
+  const { locale, userId } = use(params);
+  
+  const [user, setUser] = useState<User | null>(null);
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    role: "user" as "admin" | "trainer" | "user",
+    dob: "",
+    preferredLanguage: "en" as "en" | "ar",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [previewImage, setPreviewImage] = useState<string>("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+
+  const t = {
+    title: locale === "ar" ? "تعديل المستخدم" : "Edit User",
+    subtitle: locale === "ar" ? "تحديث معلومات المستخدم" : "Update user information",
+    personalInfo: locale === "ar" ? "المعلومات الشخصية" : "Personal Information",
+    profileImage: locale === "ar" ? "صورة الملف الشخصي" : "Profile Image",
+    changeImage: locale === "ar" ? "تغيير الصورة" : "Change Image",
+    fullName: locale === "ar" ? "الاسم الكامل" : "Full Name",
+    email: locale === "ar" ? "البريد الإلكتروني" : "Email",
+    phone: locale === "ar" ? "رقم الهاتف" : "Phone Number",
+    dob: locale === "ar" ? "تاريخ الميلاد" : "Date of Birth",
+    accountSettings: locale === "ar" ? "إعدادات الحساب" : "Account Settings",
+    role: locale === "ar" ? "الدور" : "Role",
+    language: locale === "ar" ? "اللغة المفضلة" : "Preferred Language",
+    admin: locale === "ar" ? "مدير" : "Admin",
+    trainer: locale === "ar" ? "مدرب" : "Trainer",
+    user: locale === "ar" ? "مستخدم" : "User",
+    english: locale === "ar" ? "الإنجليزية" : "English",
+    arabic: locale === "ar" ? "العربية" : "Arabic",
+    changePassword: locale === "ar" ? "تغيير كلمة المرور" : "Change Password",
+    newPassword: locale === "ar" ? "كلمة المرور الجديدة" : "New Password",
+    confirmPassword: locale === "ar" ? "تأكيد كلمة المرور" : "Confirm Password",
+    leaveBlank: locale === "ar" ? "اتركه فارغًا إذا كنت لا تريد التغيير" : "Leave blank if you don't want to change",
+    cancel: locale === "ar" ? "إلغاء" : "Cancel",
+    deleteUser: locale === "ar" ? "حذف المستخدم" : "Delete User",
+    saveChanges: locale === "ar" ? "حفظ التغييرات" : "Save Changes",
+    saving: locale === "ar" ? "جارٍ الحفظ..." : "Saving...",
+    loading: locale === "ar" ? "جارٍ التحميل..." : "Loading...",
+  };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch(`/api/admin/users/${userId}`);
+        if (!response.ok) throw new Error("Failed to fetch user");
+        const data = await response.json();
+        setUser(data);
+        setFormData({
+          fullName: data.fullName || "",
+          email: data.email,
+          phone: data.phone || "",
+          role: mapRoleToForm(data.role),
+          dob: data.dob || "",
+          preferredLanguage: data.preferredLanguage,
+          newPassword: "",
+          confirmPassword: "",
+        });
+        if (data.profileImage) {
+          setPreviewImage(data.profileImage);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    fetchUser();
+  }, [userId]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfileImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    // Validation
+    if (!formData.fullName || !formData.email) {
+      setError(locale === "ar" ? "يرجى ملء جميع الحقول المطلوبة" : "Please fill all required fields");
+      return;
+    }
+
+    if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
+      setError(locale === "ar" ? "كلمات المرور غير متطابقة" : "Passwords do not match");
+      return;
+    }
+
+    if (formData.newPassword && formData.newPassword.length < 6) {
+      setError(locale === "ar" ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل" : "Password must be at least 6 characters");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append("fullName", formData.fullName);
+      formDataToSend.append("email", formData.email);
+      formDataToSend.append("phone", formData.phone);
+      formDataToSend.append("role", formData.role);
+      formDataToSend.append("dob", formData.dob);
+      formDataToSend.append("preferredLanguage", formData.preferredLanguage);
+      if (formData.newPassword) {
+        formDataToSend.append("password", formData.newPassword);
+      }
+      if (profileImage) {
+        formDataToSend.append("profileImage", profileImage);
+      }
+
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "PUT",
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to update user");
+      }
+
+      router.push(`/${locale}/admin/users`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(locale === "ar" ? "هل أنت متأكد من حذف هذا المستخدم؟" : "Are you sure you want to delete this user?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete user");
+      }
+
+      router.push(`/${locale}/admin/users`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    }
+  };
+
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-zinc-600 dark:text-zinc-400">{t.loading}</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-red-600 dark:text-red-400">User not found</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+          {t.title}
+        </h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          {t.subtitle}
+        </p>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400">
+            {error}
+          </div>
+        )}
+
+        {/* Profile Image */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            {t.profileImage}
+          </h2>
+          <div className="flex items-center gap-6">
+            <div className="relative size-24 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+              {previewImage ? (
+                <Image
+                  src={previewImage}
+                  alt="Profile"
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex size-full items-center justify-center text-3xl font-bold text-zinc-400">
+                  {formData.fullName.charAt(0)}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="cursor-pointer rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700">
+                {t.changeImage}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Personal Information */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            {t.personalInfo}
+          </h2>
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              {t.fullName} <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.fullName}
+              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
+            />
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {t.email} <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {t.phone}
+              </label>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              {t.dob}
+            </label>
+            <input
+              type="date"
+              value={formData.dob}
+              onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+              className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
+            />
+          </div>
+        </div>
+
+        {/* Account Settings */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            {t.accountSettings}
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {t.role} <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as "admin" | "trainer" | "user" })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
+              >
+                <option value="user">{t.user}</option>
+                <option value="trainer">{t.trainer}</option>
+                <option value="admin">{t.admin}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {t.language}
+              </label>
+              <select
+                value={formData.preferredLanguage}
+                onChange={(e) => setFormData({ ...formData, preferredLanguage: e.target.value as "en" | "ar" })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
+              >
+                <option value="en">{t.english}</option>
+                <option value="ar">{t.arabic}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Change Password */}
+        <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            {t.changePassword}
+          </h2>
+          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+            {t.leaveBlank}
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {t.newPassword}
+              </label>
+              <input
+                type="password"
+                value={formData.newPassword}
+                onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {t.confirmPassword}
+              </label>
+              <input
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+          >
+            {t.deleteUser}
+          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/${locale}/admin/users`}
+              className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              {t.cancel}
+            </Link>
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+            >
+              {loading ? t.saving : t.saveChanges}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}

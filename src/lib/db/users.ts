@@ -8,9 +8,7 @@ export type User = {
   id: string;
   email: string;
   passwordHash: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
+  fullName: string;
   role: "admin" | "trainer" | "customer";
   phone?: string;
   dateOfBirth?: string;
@@ -18,6 +16,7 @@ export type User = {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+  profileImage?: string;
 };
 
 export type PublicUser = Omit<User, "passwordHash">;
@@ -74,13 +73,12 @@ export function getUserByEmail(email: string): User | null {
 export async function createUser(data: {
   email: string;
   password: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
+  fullName: string;
   role?: "admin" | "trainer" | "customer";
   phone?: string;
   dateOfBirth?: string;
   preferredLanguage: "en" | "ar";
+  profileImage?: string;
 }): Promise<PublicUser | null> {
   const db = getDb();
   if (!db) return null;
@@ -101,13 +99,12 @@ export async function createUser(data: {
     id,
     email: normalizedEmail,
     passwordHash,
-    firstName: data.firstName.trim(),
-    middleName: data.middleName?.trim(),
-    lastName: data.lastName.trim(),
+    fullName: data.fullName.trim(),
     role: data.role || "customer",
     phone: data.phone?.trim(),
     dateOfBirth: data.dateOfBirth,
     preferredLanguage: data.preferredLanguage,
+    profileImage: data.profileImage,
     createdAt: now,
     updatedAt: now,
     isActive: true,
@@ -198,6 +195,95 @@ export async function changePassword(
 }
 
 /**
+ * Get all users
+ */
+export function getAllUsers(): PublicUser[] {
+  const db = getDb();
+  if (!db) return [];
+
+  const users: PublicUser[] = [];
+  
+  for (const { key, value } of db.getRange({ 
+    start: USERS_KEY_PREFIX, 
+    end: `${USERS_KEY_PREFIX}\xFF` 
+  })) {
+    if (typeof key === "string" && key.startsWith(USERS_KEY_PREFIX)) {
+      const user = value as User;
+      const { passwordHash, ...publicUser } = user;
+      users.push(publicUser);
+    }
+  }
+  
+  return users;
+}
+
+/**
+ * Delete user
+ */
+export function deleteUser(id: string): boolean {
+  const db = getDb();
+  if (!db) return false;
+
+  const user = db.get(`${USERS_KEY_PREFIX}${id}`) as User | undefined;
+  if (!user) return false;
+
+  // Remove user
+  db.remove(`${USERS_KEY_PREFIX}${id}`);
+  // Remove email index
+  db.remove(`${USER_EMAIL_INDEX}${user.email}`);
+
+  return true;
+}
+
+/**
+ * Update user with password
+ */
+export async function updateUserWithPassword(
+  id: string,
+  data: Partial<Omit<User, "id" | "passwordHash" | "createdAt">> & { password?: string }
+): Promise<PublicUser | null> {
+  const db = getDb();
+  if (!db) return null;
+
+  const existingUser = db.get(`${USERS_KEY_PREFIX}${id}`) as User | undefined;
+  if (!existingUser) return null;
+
+  // If email is changing, update the index
+  if (data.email && data.email !== existingUser.email) {
+    const normalizedNewEmail = data.email.toLowerCase().trim();
+    
+    // Check if new email already exists
+    if (getUserByEmail(normalizedNewEmail)) {
+      return null;
+    }
+    
+    // Remove old email index
+    db.remove(`${USER_EMAIL_INDEX}${existingUser.email}`);
+    // Create new email index
+    db.put(`${USER_EMAIL_INDEX}${normalizedNewEmail}`, id);
+  }
+
+  let passwordHash = existingUser.passwordHash;
+  if (data.password) {
+    passwordHash = await hashPassword(data.password);
+  }
+
+  const updatedUser: User = {
+    ...existingUser,
+    ...data,
+    id,
+    passwordHash,
+    email: data.email?.toLowerCase().trim() || existingUser.email,
+    updatedAt: new Date().toISOString(),
+  };
+
+  db.put(`${USERS_KEY_PREFIX}${id}`, updatedUser);
+
+  const { passwordHash: _, ...publicUser } = updatedUser;
+  return publicUser;
+}
+
+/**
  * Initialize default admin user
  */
 export async function ensureDefaultAdmin(): Promise<void> {
@@ -212,8 +298,7 @@ export async function ensureDefaultAdmin(): Promise<void> {
   await createUser({
     email: adminEmail,
     password: "admin123",
-    firstName: "Admin",
-    lastName: "Noon",
+    fullName: "Admin Noon",
     role: "admin",
     preferredLanguage: "en",
   });

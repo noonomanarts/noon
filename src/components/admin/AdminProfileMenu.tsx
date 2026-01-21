@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FiLogOut, FiUser, FiSettings } from "react-icons/fi";
+import Image from "next/image";
 
 type Props = {
   userName: string;
   userEmail: string;
   userInitial: string;
+  profileImage?: string;
   logoutLabel: string;
   profileLabel: string;
   settingsLabel: string;
@@ -18,6 +20,7 @@ export default function AdminProfileMenu({
   userName,
   userEmail,
   userInitial,
+  profileImage,
   logoutLabel,
   profileLabel,
   settingsLabel,
@@ -62,8 +65,19 @@ export default function AdminProfileMenu({
         onClick={() => setIsOpen(!isOpen)}
         className="flex w-full items-center gap-3 rounded-lg bg-zinc-100 px-3 py-2 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
       >
-        <div className="flex size-8 items-center justify-center rounded-full bg-zinc-900 text-sm font-semibold text-white dark:bg-white dark:text-zinc-900">
-          {userInitial}
+        <div className="relative size-8 overflow-hidden rounded-full bg-zinc-900 text-sm font-semibold text-white dark:bg-white dark:text-zinc-900">
+          {profileImage ? (
+            <Image
+              src={profileImage}
+              alt={userName}
+              fill
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex size-full items-center justify-center">
+              {userInitial}
+            </div>
+          )}
         </div>
         <div className="flex-1 min-w-0 text-start">
           <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">

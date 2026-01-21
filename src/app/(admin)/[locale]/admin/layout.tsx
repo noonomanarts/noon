@@ -112,7 +112,7 @@ export default async function AdminLayout({
     {
       section: t.users,
       items: [
-        { iconName: "FiUsers" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.customers, href: `/${locale}/admin/customers` },
+        { iconName: "FiUsers" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.users, href: `/${locale}/admin/users` },
         { iconName: "FiUserCheck" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.trainers, href: `/${locale}/admin/trainers` },
         { iconName: "FiCreditCard" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.payments, href: `/${locale}/admin/payments` },
       ],
@@ -209,9 +209,10 @@ export default async function AdminLayout({
               {/* User Profile Menu */}
               <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
                 <AdminProfileMenu
-                  userName={`${user.firstName} ${user.lastName}`}
+                  userName={user.fullName}
                   userEmail={user.email}
-                  userInitial={user.firstName.charAt(0)}
+                  userInitial={user.fullName.charAt(0)}
+                  profileImage={user.profileImage}
                   logoutLabel={t.logout}
                   profileLabel={t.profile}
                   settingsLabel={t.accountSettings}
@@ -243,7 +244,7 @@ export default async function AdminLayout({
                 <div className={locale === "ar" ? "text-right" : "text-left"}>
                   <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">{t.dashboard}</h1>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    {t.welcomeBack}, {user.firstName}
+                    {t.welcomeBack}, {user.fullName}
                   </p>
                 </div>
               </div>
