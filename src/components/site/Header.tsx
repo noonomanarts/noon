@@ -41,6 +41,7 @@ export default async function Header({ locale }: { locale: Locale }) {
     classes: locale === "ar" ? "دورات" : "Classes",
     cooking: locale === "ar" ? "دورات الطبخ" : "Cooking classes",
     arts: locale === "ar" ? "الفنون والأشغال" : "Arts & crafts classes",
+    shop: locale === "ar" ? "المتجر" : "Shop",
     group: locale === "ar" ? "فعاليات" : "Events",
     competition: locale === "ar" ? "مسابقة الطبخ" : "Cooking competition",
     privateClasses: locale === "ar" ? "دروس خاصة" : "Private classes",
@@ -80,6 +81,8 @@ export default async function Header({ locale }: { locale: Locale }) {
             <NavLink href={`/${locale}/classes/cooking`}>{t.cooking}</NavLink>
             <NavLink href={`/${locale}/classes/arts-crafts`}>{t.arts}</NavLink>
           </Dropdown>
+
+          <NavLink href={`/${locale}/shop`}>{t.shop}</NavLink>
 
           <Dropdown label={t.group}>
             <NavLink href={`/${locale}/group-booking-events/cooking-competition`}>
@@ -145,6 +148,7 @@ export default async function Header({ locale }: { locale: Locale }) {
             <Dropdown label={locale === "ar" ? "القائمة" : "Menu"} align="end">
               <NavLink href={`/${locale}/classes/cooking`}>{t.cooking}</NavLink>
               <NavLink href={`/${locale}/classes/arts-crafts`}>{t.arts}</NavLink>
+              <NavLink href={`/${locale}/shop`}>{t.shop}</NavLink>
               <NavLink href={`/${locale}/group-booking-events/cooking-competition`}>
                 {t.competition}
               </NavLink>

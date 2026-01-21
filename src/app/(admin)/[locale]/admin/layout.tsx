@@ -22,6 +22,7 @@ import {
   FiFileText,
   FiAward,
   FiCreditCard,
+  FiPackage,
 } from "react-icons/fi";
 
 export default async function AdminLayout({
@@ -70,6 +71,10 @@ export default async function AdminLayout({
     trainers: locale === "ar" ? "المدربون" : "Trainers",
     payments: locale === "ar" ? "المدفوعات" : "Payments",
     content: locale === "ar" ? "المحتوى" : "Content",
+    shop: locale === "ar" ? "المتجر" : "Shop",
+    shopCategories: locale === "ar" ? "تصنيفات المتجر" : "Shop Categories",
+    shopProducts: locale === "ar" ? "منتجات المتجر" : "Shop Products",
+    shopOrders: locale === "ar" ? "طلبات المتجر" : "Shop Orders",
     recommendations: locale === "ar" ? "التوصيات" : "Recommendations",
     products: locale === "ar" ? "المنتجات" : "Products",
     recipes: locale === "ar" ? "الوصفات" : "Recipes",
@@ -110,6 +115,14 @@ export default async function AdminLayout({
         { iconName: "FiUsers" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.customers, href: `/${locale}/admin/customers` },
         { iconName: "FiUserCheck" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.trainers, href: `/${locale}/admin/trainers` },
         { iconName: "FiCreditCard" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.payments, href: `/${locale}/admin/payments` },
+      ],
+    },
+    {
+      section: t.shop,
+      items: [
+        { iconName: "FiPackage" as const, iconColor: "text-blue-600 dark:text-blue-400", label: t.shopCategories, href: `/${locale}/admin/shop/categories` },
+        { iconName: "FiShoppingBag" as const, iconColor: "text-purple-600 dark:text-purple-400", label: t.shopProducts, href: `/${locale}/admin/shop/products` },
+        { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: t.shopOrders, href: `/${locale}/admin/shop/orders` },
       ],
     },
     {
@@ -170,6 +183,7 @@ export default async function AdminLayout({
                             : item.iconName === "FiShoppingBag" ? FiShoppingBag
                             : item.iconName === "FiFileText" ? FiFileText
                             : item.iconName === "FiSettings" ? FiSettings
+                            : item.iconName === "FiPackage" ? FiPackage
                             : FiBell;
                           
                           return (

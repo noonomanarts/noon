@@ -18,6 +18,7 @@ import {
   FiFileText,
   FiAward,
   FiCreditCard,
+  FiPackage,
 } from "react-icons/fi";
 
 const iconMap = {
@@ -34,6 +35,7 @@ const iconMap = {
   FiFileText,
   FiSettings,
   FiBell,
+  FiPackage,
 } as const;
 
 type MenuItem = {
