@@ -68,7 +68,8 @@ export default async function LoginPage({
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-12">
+    <div className="min-h-dvh bg-zinc-50 px-4 py-12 dark:bg-zinc-950">
+      <div className="mx-auto w-full max-w-6xl">
       <div className="mb-4 flex justify-end">
         <ThemeToggle
           label={t.theme}
@@ -77,8 +78,8 @@ export default async function LoginPage({
           systemLabel={t.themeSystem}
         />
       </div>
-      <div className="mx-auto w-full max-w-xl">
-        <div className="rounded-3xl border border-zinc-200/70 bg-white p-8 shadow-lg dark:border-zinc-800/60 dark:bg-zinc-950">
+        <div className="mx-auto w-full max-w-xl">
+          <div className="rounded-3xl border border-zinc-200/70 bg-white p-8 shadow-lg dark:border-zinc-800/60 dark:bg-zinc-950">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
@@ -157,6 +158,7 @@ export default async function LoginPage({
             >
               {t.createAccount}
             </Link>
+          </div>
           </div>
         </div>
       </div>

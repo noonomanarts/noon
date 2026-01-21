@@ -3,6 +3,7 @@ import { Cairo, Inter } from "next/font/google";
 import { headers } from "next/headers";
 import ThemeInitScript from "@/components/site/ThemeInitScript";
 import LocaleSync from "@/components/site/LocaleSync";
+import OverlayScrollbarsProvider from "@/components/site/OverlayScrollbarsProvider";
 import "./globals.css";
 
 // Using Inter as a professional geometric sans-serif (similar to Orkney)
@@ -96,6 +97,7 @@ export default async function RootLayout({
         }}
       >
         <LocaleSync />
+        <OverlayScrollbarsProvider />
         <div className="min-h-dvh">{children}</div>
       </body>
     </html>
