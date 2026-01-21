@@ -6,6 +6,7 @@ import { isLocale, type Locale } from "@/lib/locale";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
+import MobileSidebar from "@/components/admin/MobileSidebar";
 import OverlayScrollArea from "@/components/site/OverlayScrollArea";
 import {
   FiBell,
@@ -91,39 +92,39 @@ export default async function AdminLayout({
     {
       section: t.overview,
       items: [
-        { icon: FiGrid, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.dashboard, href: `/${locale}/admin` },
-        { icon: FiTrendingUp, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.analytics, href: `/${locale}/admin/analytics` },
+        { iconName: "FiGrid" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.dashboard, href: `/${locale}/admin` },
+        { iconName: "FiTrendingUp" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.analytics, href: `/${locale}/admin/analytics` },
       ],
     },
     {
       section: t.classesEvents,
       items: [
-        { icon: FiBookOpen, iconColor: "text-orange-600 dark:text-orange-400", label: t.classes, href: `/${locale}/admin/classes` },
-        { icon: FiCalendar, iconColor: "text-sky-600 dark:text-sky-400", label: t.timetable, href: `/${locale}/admin/timetable` },
-        { icon: FiAward, iconColor: "text-rose-600 dark:text-rose-400", label: t.events, href: `/${locale}/admin/events` },
+        { iconName: "FiBookOpen" as const, iconColor: "text-orange-600 dark:text-orange-400", label: t.classes, href: `/${locale}/admin/classes` },
+        { iconName: "FiCalendar" as const, iconColor: "text-sky-600 dark:text-sky-400", label: t.timetable, href: `/${locale}/admin/timetable` },
+        { iconName: "FiAward" as const, iconColor: "text-rose-600 dark:text-rose-400", label: t.events, href: `/${locale}/admin/events` },
       ],
     },
     {
       section: t.users,
       items: [
-        { icon: FiUsers, iconColor: "text-violet-600 dark:text-violet-400", label: t.customers, href: `/${locale}/admin/customers` },
-        { icon: FiUserCheck, iconColor: "text-teal-600 dark:text-teal-400", label: t.trainers, href: `/${locale}/admin/trainers` },
-        { icon: FiCreditCard, iconColor: "text-amber-600 dark:text-amber-400", label: t.payments, href: `/${locale}/admin/payments` },
+        { iconName: "FiUsers" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.customers, href: `/${locale}/admin/customers` },
+        { iconName: "FiUserCheck" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.trainers, href: `/${locale}/admin/trainers` },
+        { iconName: "FiCreditCard" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.payments, href: `/${locale}/admin/payments` },
       ],
     },
     {
       section: t.content,
       items: [
-        { icon: FiThumbsUp, iconColor: "text-lime-600 dark:text-lime-400", label: t.recommendations, href: `/${locale}/admin/recommendations` },
-        { icon: FiShoppingBag, iconColor: "text-fuchsia-600 dark:text-fuchsia-400", label: t.products, href: `/${locale}/admin/products` },
-        { icon: FiFileText, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.recipes, href: `/${locale}/admin/recipes` },
+        { iconName: "FiThumbsUp" as const, iconColor: "text-lime-600 dark:text-lime-400", label: t.recommendations, href: `/${locale}/admin/recommendations` },
+        { iconName: "FiShoppingBag" as const, iconColor: "text-fuchsia-600 dark:text-fuchsia-400", label: t.products, href: `/${locale}/admin/products` },
+        { iconName: "FiFileText" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.recipes, href: `/${locale}/admin/recipes` },
       ],
     },
     {
       section: t.settings,
       items: [
-        { icon: FiSettings, iconColor: "text-slate-600 dark:text-slate-300", label: t.settings, href: `/${locale}/admin/settings` },
-        { icon: FiBell, iconColor: "text-pink-600 dark:text-pink-400", label: t.notifications, href: `/${locale}/admin/notifications` },
+        { iconName: "FiSettings" as const, iconColor: "text-slate-600 dark:text-slate-300", label: t.settings, href: `/${locale}/admin/settings` },
+        { iconName: "FiBell" as const, iconColor: "text-pink-600 dark:text-pink-400", label: t.notifications, href: `/${locale}/admin/notifications` },
       ],
     },
   ];
@@ -156,18 +157,34 @@ export default async function AdminLayout({
                         {section.section}
                       </h3>
                       <div className="space-y-1">
-                        {section.items.map((item) => (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
-                          >
-                            <span className={`flex size-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 ${item.iconColor}`}>
-                              <item.icon className="size-4" />
-                            </span>
-                            <span className="flex-1">{item.label}</span>
-                          </Link>
-                        ))}
+                        {section.items.map((item) => {
+                          const IconComponent = item.iconName === "FiGrid" ? FiGrid
+                            : item.iconName === "FiTrendingUp" ? FiTrendingUp
+                            : item.iconName === "FiBookOpen" ? FiBookOpen
+                            : item.iconName === "FiCalendar" ? FiCalendar
+                            : item.iconName === "FiAward" ? FiAward
+                            : item.iconName === "FiUsers" ? FiUsers
+                            : item.iconName === "FiUserCheck" ? FiUserCheck
+                            : item.iconName === "FiCreditCard" ? FiCreditCard
+                            : item.iconName === "FiThumbsUp" ? FiThumbsUp
+                            : item.iconName === "FiShoppingBag" ? FiShoppingBag
+                            : item.iconName === "FiFileText" ? FiFileText
+                            : item.iconName === "FiSettings" ? FiSettings
+                            : FiBell;
+                          
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
+                            >
+                              <span className={`flex size-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 ${item.iconColor}`}>
+                                <IconComponent className="size-4" />
+                              </span>
+                              <span className="flex-1">{item.label}</span>
+                            </Link>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -196,11 +213,19 @@ export default async function AdminLayout({
             {/* Top Bar */}
             <header className="flex h-16 items-center justify-between border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-900" dir={dir}>
               <div className="flex items-center gap-4">
-                <button className="lg:hidden">
-                  <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
+                <MobileSidebar
+                  menuItems={menuItems}
+                  user={user}
+                  locale={locale}
+                  translations={{
+                    adminPanel: t.adminPanel,
+                    management: t.management,
+                    logout: t.logout,
+                    profile: t.profile,
+                    accountSettings: t.accountSettings,
+                  }}
+                  onLogout={handleLogout}
+                />
                 <div className={locale === "ar" ? "text-right" : "text-left"}>
                   <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">{t.dashboard}</h1>
                   <p className="text-sm text-zinc-500 dark:text-zinc-400">
