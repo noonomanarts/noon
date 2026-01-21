@@ -3,6 +3,41 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* OverlayScrollbars Theme Customization */
+.os-theme-light .os-scrollbar-handle {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+.os-theme-light .os-scrollbar-handle:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.os-theme-light .os-scrollbar-handle:active {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.os-theme-light .os-scrollbar-track {
+  background: transparent;
+}
+
+.os-theme-dark .os-scrollbar-handle {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.os-theme-dark .os-scrollbar-handle:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.os-theme-dark .os-scrollbar-handle:active {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.os-theme-dark .os-scrollbar-track {
+  background: transparent;
+}
+
 :root {
   /* Light theme - clean and professional */
   --background: #ffffff;

@@ -15,6 +15,7 @@ const BASE_OPTIONS: OverlayScrollbarsOptions = {
 };
 
 function resolveTheme() {
+  if (typeof window === "undefined") return "os-theme-light";
   return document.documentElement.classList.contains("dark")
     ? "os-theme-dark"
     : "os-theme-light";
@@ -29,9 +30,16 @@ export default function OverlayScrollArea({
   className?: string;
   options?: OverlayScrollbarsOptions;
 }) {
-  const [theme, setTheme] = useState("os-theme-light");
+  const [theme, setTheme] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return resolveTheme();
+    }
+    return "os-theme-light";
+  });
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     setTheme(resolveTheme());
 
     const observer = new MutationObserver(() => {
@@ -57,6 +65,10 @@ export default function OverlayScrollArea({
       },
     };
   }, [options, theme]);
+
+  if (!mounted) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
     <OverlayScrollbarsComponent
