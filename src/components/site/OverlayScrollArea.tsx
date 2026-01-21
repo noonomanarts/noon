@@ -2,10 +2,10 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import type { OverlayScrollbarsOptions } from "overlayscrollbars";
+import type { PartialOptions } from "overlayscrollbars";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-react";
 
-const BASE_OPTIONS: OverlayScrollbarsOptions = {
+const BASE_OPTIONS: PartialOptions = {
   scrollbars: {
     autoHide: "leave",
     autoHideDelay: 600,
@@ -28,7 +28,7 @@ export default function OverlayScrollArea({
 }: {
   children: ReactNode;
   className?: string;
-  options?: OverlayScrollbarsOptions;
+  options?: PartialOptions;
 }) {
   const [theme, setTheme] = useState<string>(() => {
     if (typeof window !== "undefined") {
@@ -54,7 +54,7 @@ export default function OverlayScrollArea({
     return () => observer.disconnect();
   }, []);
 
-  const mergedOptions = useMemo<OverlayScrollbarsOptions>(() => {
+  const mergedOptions = useMemo<PartialOptions>(() => {
     return {
       ...BASE_OPTIONS,
       ...options,
@@ -66,15 +66,16 @@ export default function OverlayScrollArea({
     };
   }, [options, theme]);
 
-  if (!mounted) {
-    return <div className={className}>{children}</div>;
-  }
-
+  // Always render OverlayScrollbarsComponent but defer initialization
   return (
     <OverlayScrollbarsComponent
       defer
       options={mergedOptions}
       className={className}
+      style={{
+        scrollbarWidth: "none",
+        msOverflowStyle: "none",
+      } as React.CSSProperties}
     >
       {children}
     </OverlayScrollbarsComponent>

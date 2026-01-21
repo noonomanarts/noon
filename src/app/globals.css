@@ -105,6 +105,30 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Smooth scrollbar transition */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* Hide default scrollbar for OverlayScrollbars containers */
+[data-overlayscrollbars-initialize],
+[data-overlayscrollbars] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+[data-overlayscrollbars-initialize]::-webkit-scrollbar,
+[data-overlayscrollbars]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* RTL Support - Simple and effective */
 [dir="rtl"] {
   text-align: right;
