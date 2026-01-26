@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  ADMIN
+  TRAINER
+  CUSTOMER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum PreferredLanguage {
+  ENGLISH
+  ARABIC
+}
+
+// Models
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      UserRole @default(CUSTOMER)
+  status    UserStatus @default(ACTIVE)
+  
+  // Profile Information
+  fullName      String
+  phoneNumber   String    @unique
+  dateOfBirth   DateTime?
+  gender        Gender?
+  preferredLanguage PreferredLanguage @default(ENGLISH)
+  
+  // Avatar/Profile Image
+  profileImage  String?
+  
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLoginAt DateTime?
+  
+  // Relations
+  // TODO: Add relations for bookings, wallet, loyalty, etc.
+  
+  @@index([email])
+  @@index([phoneNumber])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}

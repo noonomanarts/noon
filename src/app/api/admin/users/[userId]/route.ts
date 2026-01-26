@@ -19,12 +19,12 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUser = getUserById(sessionId);
-    if (!currentUser || currentUser.role !== "admin") {
+    const currentUser = await getUserById(sessionId);
+    if (!currentUser || currentUser.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const user = getUserById(userId);
+    const user = await getUserById(userId);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -51,8 +51,8 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUser = getUserById(sessionId);
-    if (!currentUser || currentUser.role !== "admin") {
+    const currentUser = await getUserById(sessionId);
+    if (!currentUser || currentUser.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -60,7 +60,7 @@ export async function PUT(
     
     const fullName = formData.get("fullName") as string;
     const email = formData.get("email") as string;
-    const phone = formData.get("phone") as string;
+    const phoneNumber = formData.get("phone") as string;
     const formRole = formData.get("role") as string;
     const dob = formData.get("dob") as string;
     const preferredLanguage = formData.get("preferredLanguage") as "en" | "ar";
@@ -68,8 +68,8 @@ export async function PUT(
     const profileImageFile = formData.get("profileImage") as File | null;
 
     // Map form role to database role
-    const role: "admin" | "trainer" | "customer" = 
-      formRole === "user" ? "customer" : (formRole as "admin" | "trainer" | "customer");
+    const role: "ADMIN" | "TRAINER" | "CUSTOMER" = 
+      formRole === "user" ? "CUSTOMER" : (formRole.toUpperCase() as "ADMIN" | "TRAINER" | "CUSTOMER");
 
     let profileImagePath: string | undefined;
 
@@ -98,10 +98,10 @@ export async function PUT(
     const updateData: any = {
       fullName,
       email,
-      phone,
+      phoneNumber,
       role,
-      dateOfBirth: dob,
-      preferredLanguage,
+      dateOfBirth: dob ? new Date(dob) : undefined,
+      preferredLanguage: preferredLanguage === "ar" ? "ARABIC" : "ENGLISH",
     };
 
     if (password) {
@@ -143,8 +143,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUser = getUserById(sessionId);
-    if (!currentUser || currentUser.role !== "admin") {
+    const currentUser = await getUserById(sessionId);
+    if (!currentUser || currentUser.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -156,7 +156,7 @@ export async function DELETE(
       );
     }
 
-    const success = deleteUser(userId);
+    const success = await deleteUser(userId);
 
     if (!success) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

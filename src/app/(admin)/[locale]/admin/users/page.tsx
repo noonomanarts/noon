@@ -3,11 +3,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getUserById, getAllUsers } from "@/lib/db/users";
+import type { UserRole } from "@/generated/prisma";
 
 type DisplayRole = "admin" | "trainer" | "user";
 
-function mapRoleToDisplay(role: "admin" | "trainer" | "customer"): DisplayRole {
-  return role === "customer" ? "user" : role;
+function mapRoleToDisplay(role: UserRole): DisplayRole {
+  return role === "CUSTOMER" ? "user" : role === "ADMIN" ? "admin" : "trainer";
 }
 
 export default async function AdminUsersPage({
@@ -26,12 +27,12 @@ export default async function AdminUsersPage({
     redirect(`/${locale}/login`);
   }
 
-  const currentUser = getUserById(sessionId);
-  if (!currentUser || currentUser.role !== "admin") {
+  const currentUser = await getUserById(sessionId);
+  if (!currentUser || currentUser.role !== "ADMIN") {
     redirect(`/${locale}/account`);
   }
 
-  const users = getAllUsers();
+  const users = await getAllUsers();
 
   const t = {
     title: locale === "ar" ? "إدارة المستخدمين" : "User Management",
@@ -62,9 +63,9 @@ export default async function AdminUsersPage({
 
   const stats = {
     total: users.length,
-    admins: users.filter((u) => u.role === "admin").length,
-    trainers: users.filter((u) => u.role === "trainer").length,
-    users: users.filter((u) => u.role === "customer").length,
+    admins: users.filter((u) => u.role === "ADMIN").length,
+    trainers: users.filter((u) => u.role === "TRAINER").length,
+    users: users.filter((u) => u.role === "CUSTOMER").length,
   };
 
   return (
@@ -185,9 +186,9 @@ export default async function AdminUsersPage({
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                        user.role === "admin"
+                        user.role === "ADMIN"
                           ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
-                          : user.role === "trainer"
+                          : user.role === "TRAINER"
                             ? "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
                             : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
                       }`}

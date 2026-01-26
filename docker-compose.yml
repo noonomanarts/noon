@@ -1,0 +1,118 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: noon-postgres
+    mem_limit: 1024m
+    cpus: 0.500
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-noonomanarts}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - noon-network
+
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_APP_URL: https://noonomanarts.com
+        NEXT_PUBLIC_API_URL: https://noonomanarts.com
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-BBwPCSbvgHK9ex7FxdAqNiHffoMP-2QqpTl8i5WL9LFVxqryLQbqzTkr5l7n4vROyvCa2WFsmE2uBXU6Qm3Ixlc}
+    container_name: noon-app
+    mem_limit: 2048m
+    cpus: 1.000
+    restart: unless-stopped
+    environment:
+      # Nginx Proxy Configuration
+      VIRTUAL_HOST: noonomanarts.com
+      VIRTUAL_PORT: 3000
+      VIRTUAL_PROTO: http
+      VIRTUAL_NETWORK: proxy
+      LETSENCRYPT_HOST: noonomanarts.com
+      LETSENCRYPT_EMAIL: admin@sbc.om
+      
+      # Application Configuration
+      NODE_ENV: production
+      PORT: 3000
+      
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-noonomanarts}
+      
+      # Application URLs
+      NEXT_PUBLIC_APP_URL: https://noonomanarts.com
+      NEXT_PUBLIC_API_URL: https://noonomanarts.com
+      
+      # Security (CHANGE THESE IN PRODUCTION!)
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CRON_SECRET: ${CRON_SECRET:-your-cron-secret-change-this}
+      
+      # VAPID Keys for Push Notifications
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-BBwPCSbvgHK9ex7FxdAqNiHffoMP-2QqpTl8i5WL9LFVxqryLQbqzTkr5l7n4vROyvCa2WFsmE2uBXU6Qm3Ixlc}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-BBwPCSbvgHK9ex7FxdAqNiHffoMP-2QqpTl8i5WL9LFVxqryLQbqzTkr5l7n4vROyvCa2WFsmE2uBXU6Qm3Ixlc}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-EPGEEoe5klW3HIqFg0MW2X_5jPFCfsqAYJpXo1r-0xA}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@noonomanarts.com}
+      
+      # File Upload
+      MAX_FILE_SIZE: 10485760
+      UPLOAD_DIR: /app/public/uploads
+    expose:
+      - "3000"
+    volumes:
+      # Persist uploads (images, files, etc.)
+      - uploads-data:/app/public/uploads
+      # Persist application data
+      - app-data:/app/data
+      # Persist logs
+      - logs-data:/app/logs
+      # Persist backups
+      - backups-data:/app/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - noon-network
+      - proxy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  noon-network:
+    external: false
+    name: noon-network
+  proxy:
+    external: true
+    name: proxy
+
+volumes:
+  postgres-data:
+    driver: local
+    name: noon-postgres-data
+  uploads-data:
+    driver: local
+    name: noon-uploads-data
+  app-data:
+    driver: local
+    name: noon-app-data
+  logs-data:
+    driver: local
+    name: noon-logs-data
+  backups-data:
+    driver: local
+    name: noon-backups-data

@@ -12,12 +12,12 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUser = getUserById(sessionId);
-    if (!currentUser || currentUser.role !== "admin") {
+    const currentUser = await getUserById(sessionId);
+    if (!currentUser || currentUser.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const users = getAllUsers();
+    const users = await getAllUsers();
     return NextResponse.json(users);
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -35,15 +35,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUser = getUserById(sessionId);
-    if (!currentUser || currentUser.role !== "admin") {
+    const currentUser = await getUserById(sessionId);
+    if (!currentUser || currentUser.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const data = await request.json();
 
     // Validate required fields
-    if (!data.email || !data.password || !data.fullName) {
+    if (!data.email || !data.password || !data.fullName || !data.phoneNumber) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -55,10 +55,10 @@ export async function POST(request: NextRequest) {
       email: data.email,
       password: data.password,
       fullName: data.fullName,
-      role: data.role === "user" ? "customer" : data.role,
-      phone: data.phone,
+      role: data.role === "user" ? "CUSTOMER" : (data.role?.toUpperCase() || "CUSTOMER"),
+      phoneNumber: data.phoneNumber,
       dateOfBirth: data.dob,
-      preferredLanguage: data.preferredLanguage || "en",
+      preferredLanguage: data.preferredLanguage === "ar" ? "ARABIC" : "ENGLISH",
     });
 
     if (!newUser) {

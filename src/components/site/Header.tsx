@@ -35,7 +35,7 @@ export default async function Header({ locale }: { locale: Locale }) {
   // Check if user is logged in
   const cookieStore = await cookies();
   const sessionId = cookieStore.get("noon_session")?.value;
-  const user = sessionId ? getUserById(sessionId) : null;
+  const user = sessionId ? await getUserById(sessionId) : null;
 
   const t = {
     classes: locale === "ar" ? "دورات" : "Classes",
@@ -130,10 +130,10 @@ export default async function Header({ locale }: { locale: Locale }) {
 
           {user ? (
             <Link 
-              href={user.role === "admin" ? `/${locale}/admin` : `/${locale}/account`}
+              href={user.role === "ADMIN" ? `/${locale}/admin` : `/${locale}/account`}
               className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
             >
-              {user.role === "admin" ? t.dashboard : t.account}
+              {user.role === "ADMIN" ? t.dashboard : t.account}
             </Link>
           ) : (
             <Link 

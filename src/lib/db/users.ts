@@ -1,29 +1,13 @@
 /**
- * User database operations with secure password hashing
- * Using in-memory storage (replace with actual database in production)
+ * User database operations with Prisma and secure password hashing
  */
 import * as bcrypt from "bcryptjs";
+import prisma from "./prisma";
+import type { User as PrismaUser, UserRole, UserStatus, Gender, PreferredLanguage } from "@/generated/prisma";
 
-export type User = {
-  id: string;
-  email: string;
-  passwordHash: string;
-  fullName: string;
-  role: "admin" | "trainer" | "customer";
-  phone?: string;
-  dateOfBirth?: string;
-  preferredLanguage: "en" | "ar";
-  createdAt: string;
-  updatedAt: string;
-  isActive: boolean;
-  profileImage?: string;
-};
+export type User = PrismaUser;
 
-export type PublicUser = Omit<User, "passwordHash">;
-
-// In-memory storage (replace with actual database in production)
-const users = new Map<string, User>();
-const emailIndex = new Map<string, string>();
+export type PublicUser = Omit<User, "password">;
 
 /**
  * Hash a password securely
@@ -42,24 +26,36 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 /**
  * Get user by ID
  */
-export function getUserById(id: string): PublicUser | null {
-  const user = users.get(id);
+export async function getUserById(id: string): Promise<PublicUser | null> {
+  const user = await prisma.user.findUnique({
+    where: { id },
+  });
+  
   if (!user) return null;
 
-  const { passwordHash, ...publicUser } = user;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { password, ...publicUser } = user;
   return publicUser;
 }
 
 /**
  * Get user by email
  */
-export function getUserByEmail(email: string): User | null {
+export async function getUserByEmail(email: string): Promise<User | null> {
   const normalizedEmail = email.toLowerCase().trim();
-  const userId = emailIndex.get(normalizedEmail);
   
-  if (!userId) return null;
+  return await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+  });
+}
 
-  return users.get(userId) || null;
+/**
+ * Get user by phone number
+ */
+export async function getUserByPhone(phoneNumber: string): Promise<User | null> {
+  return await prisma.user.findUnique({
+    where: { phoneNumber },
+  });
 }
 
 /**
@@ -69,45 +65,46 @@ export async function createUser(data: {
   email: string;
   password: string;
   fullName: string;
-  role?: "admin" | "trainer" | "customer";
-  phone?: string;
-  dateOfBirth?: string;
-  preferredLanguage: "en" | "ar";
+  role?: UserRole;
+  phoneNumber: string;
+  dateOfBirth?: Date | string;
+  gender?: Gender;
+  preferredLanguage?: PreferredLanguage;
   profileImage?: string;
 }): Promise<PublicUser | null> {
   const normalizedEmail = data.email.toLowerCase().trim();
 
   // Check if email already exists
-  if (getUserByEmail(normalizedEmail)) {
+  const existingUser = await getUserByEmail(normalizedEmail);
+  if (existingUser) {
     return null;
   }
 
-  const id = `usr_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  const now = new Date().toISOString();
+  // Check if phone already exists
+  const existingPhone = await getUserByPhone(data.phoneNumber);
+  if (existingPhone) {
+    return null;
+  }
 
   const passwordHash = await hashPassword(data.password);
 
-  const user: User = {
-    id,
-    email: normalizedEmail,
-    passwordHash,
-    fullName: data.fullName.trim(),
-    role: data.role || "customer",
-    phone: data.phone?.trim(),
-    dateOfBirth: data.dateOfBirth,
-    preferredLanguage: data.preferredLanguage,
-    profileImage: data.profileImage,
-    createdAt: now,
-    updatedAt: now,
-    isActive: true,
-  };
+  const user = await prisma.user.create({
+    data: {
+      email: normalizedEmail,
+      password: passwordHash,
+      fullName: data.fullName.trim(),
+      role: data.role || "CUSTOMER",
+      phoneNumber: data.phoneNumber.trim(),
+      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
+      gender: data.gender,
+      preferredLanguage: data.preferredLanguage || "ENGLISH",
+      profileImage: data.profileImage,
+      status: "ACTIVE",
+    },
+  });
 
-  // Store user
-  users.set(id, user);
-  // Create email index
-  emailIndex.set(normalizedEmail, id);
-
-  const { passwordHash: _, ...publicUser } = user;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { password: _, ...publicUser } = user;
   return publicUser;
 }
 
@@ -121,18 +118,25 @@ export async function verifyLogin(
   const normalizedIdentifier = identifier.toLowerCase().trim();
   
   // Try to find user by email
-  const user = getUserByEmail(normalizedIdentifier);
+  const user = await getUserByEmail(normalizedIdentifier);
   
-  if (!user || !user.isActive) {
+  if (!user || user.status !== "ACTIVE") {
     return null;
   }
 
-  const isValid = await verifyPassword(password, user.passwordHash);
+  const isValid = await verifyPassword(password, user.password);
   if (!isValid) {
     return null;
   }
 
-  const { passwordHash, ...publicUser } = user;
+  // Update last login
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { password: _, ...publicUser } = user;
   return publicUser;
 }
 
@@ -141,21 +145,20 @@ export async function verifyLogin(
  */
 export async function updateUser(
   id: string,
-  data: Partial<Omit<User, "id" | "email" | "passwordHash" | "createdAt">>
+  data: Partial<Omit<User, "id" | "email" | "password" | "createdAt">>
 ): Promise<PublicUser | null> {
-  const existingUser = users.get(id);
-  if (!existingUser) return null;
+  try {
+    const user = await prisma.user.update({
+      where: { id },
+      data,
+    });
 
-  const updatedUser: User = {
-    ...existingUser,
-    ...data,
-    updatedAt: new Date().toISOString(),
-  };
-
-  users.set(id, updatedUser);
-
-  const { passwordHash, ...publicUser } = updatedUser;
-  return publicUser;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...publicUser } = user;
+    return publicUser;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -165,48 +168,55 @@ export async function changePassword(
   userId: string,
   newPassword: string
 ): Promise<boolean> {
-  const user = users.get(userId);
-  if (!user) return false;
+  try {
+    const passwordHash = await hashPassword(newPassword);
+    
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: passwordHash },
+    });
 
-  const passwordHash = await hashPassword(newPassword);
-
-  const updatedUser: User = {
-    ...user,
-    passwordHash,
-    updatedAt: new Date().toISOString(),
-  };
-
-  users.set(userId, updatedUser);
-  return true;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Get all users
  */
-export function getAllUsers(): PublicUser[] {
-  const allUsers: PublicUser[] = [];
+export async function getAllUsers(options?: {
+  role?: UserRole;
+  status?: UserStatus;
+  skip?: number;
+  take?: number;
+}): Promise<PublicUser[]> {
+  const users = await prisma.user.findMany({
+    where: {
+      role: options?.role,
+      status: options?.status,
+    },
+    skip: options?.skip,
+    take: options?.take,
+    orderBy: { createdAt: "desc" },
+  });
   
-  for (const user of users.values()) {
-    const { passwordHash, ...publicUser } = user;
-    allUsers.push(publicUser);
-  }
-  
-  return allUsers;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  return users.map(({ password, ...publicUser }) => publicUser);
 }
 
 /**
  * Delete user
  */
-export function deleteUser(id: string): boolean {
-  const user = users.get(id);
-  if (!user) return false;
-
-  // Remove user
-  users.delete(id);
-  // Remove email index
-  emailIndex.delete(user.email);
-
-  return true;
+export async function deleteUser(id: string): Promise<boolean> {
+  try {
+    await prisma.user.delete({
+      where: { id },
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -214,44 +224,53 @@ export function deleteUser(id: string): boolean {
  */
 export async function updateUserWithPassword(
   id: string,
-  data: Partial<Omit<User, "id" | "passwordHash" | "createdAt">> & { password?: string }
+  data: Partial<Omit<User, "id" | "password" | "createdAt">> & { password?: string }
 ): Promise<PublicUser | null> {
-  const existingUser = users.get(id);
-  if (!existingUser) return null;
-
-  // If email is changing, update the index
-  if (data.email && data.email !== existingUser.email) {
-    const normalizedNewEmail = data.email.toLowerCase().trim();
-    
-    // Check if new email already exists
-    if (getUserByEmail(normalizedNewEmail)) {
-      return null;
+  try {
+    // If email is changing, check if it already exists
+    if (data.email) {
+      const normalizedNewEmail = data.email.toLowerCase().trim();
+      const existingUser = await getUserByEmail(normalizedNewEmail);
+      
+      if (existingUser && existingUser.id !== id) {
+        return null;
+      }
+      
+      data.email = normalizedNewEmail;
     }
+
+    // If phone is changing, check if it already exists
+    if (data.phoneNumber) {
+      const existingPhone = await getUserByPhone(data.phoneNumber);
+      
+      if (existingPhone && existingPhone.id !== id) {
+        return null;
+      }
+    }
+
+    let passwordHash: string | undefined;
+    if (data.password) {
+      passwordHash = await hashPassword(data.password);
+    }
+
+    const updateData: Record<string, unknown> = { ...data };
+    delete updateData.password;
     
-    // Remove old email index
-    emailIndex.delete(existingUser.email);
-    // Create new email index
-    emailIndex.set(normalizedNewEmail, id);
+    if (passwordHash) {
+      updateData.password = passwordHash;
+    }
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: updateData,
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...publicUser } = user;
+    return publicUser;
+  } catch {
+    return null;
   }
-
-  let passwordHash = existingUser.passwordHash;
-  if (data.password) {
-    passwordHash = await hashPassword(data.password);
-  }
-
-  const updatedUser: User = {
-    ...existingUser,
-    ...data,
-    id,
-    passwordHash,
-    email: data.email?.toLowerCase().trim() || existingUser.email,
-    updatedAt: new Date().toISOString(),
-  };
-
-  users.set(id, updatedUser);
-
-  const { passwordHash: _, ...publicUser } = updatedUser;
-  return publicUser;
 }
 
 /**
@@ -261,7 +280,8 @@ export async function ensureDefaultAdmin(): Promise<void> {
   const adminEmail = "admin@noon.com";
   
   // Check if admin already exists
-  if (getUserByEmail(adminEmail)) {
+  const existingAdmin = await getUserByEmail(adminEmail);
+  if (existingAdmin) {
     return;
   }
 
@@ -270,7 +290,23 @@ export async function ensureDefaultAdmin(): Promise<void> {
     email: adminEmail,
     password: "admin123",
     fullName: "Admin Noon",
-    role: "admin",
-    preferredLanguage: "en",
+    role: "ADMIN",
+    phoneNumber: "+96812345678",
+    preferredLanguage: "ENGLISH",
   });
+}
+
+/**
+ * Count users by role
+ */
+export async function countUsersByRole(): Promise<Record<string, number>> {
+  const counts = await prisma.user.groupBy({
+    by: ["role"],
+    _count: true,
+  });
+
+  return counts.reduce((acc, { role, _count }) => {
+    acc[role] = _count;
+    return acc;
+  }, {} as Record<string, number>);
 }

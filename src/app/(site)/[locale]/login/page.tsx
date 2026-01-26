@@ -45,7 +45,7 @@ export default async function LoginPage({
       path: "/",
     });
 
-    const target = user.role === "admin" ? "admin" : "account";
+    const target = user.role === "ADMIN" ? "admin" : "account";
     redirect(`/${localeValue ?? "en"}/${target}`);
   }
 

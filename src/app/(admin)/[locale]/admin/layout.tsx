@@ -43,8 +43,8 @@ export default async function AdminLayout({
     redirect(`/${locale}/login`);
   }
 
-  const user = getUserById(sessionId);
-  if (!user || user.role !== "admin") {
+  const user = await getUserById(sessionId);
+  if (!user || user.role !== "ADMIN") {
     redirect(`/${locale}/account`);
   }
 
@@ -212,7 +212,7 @@ export default async function AdminLayout({
                   userName={user.fullName}
                   userEmail={user.email}
                   userInitial={user.fullName.charAt(0)}
-                  profileImage={user.profileImage}
+                  profileImage={user.profileImage ?? undefined}
                   logoutLabel={t.logout}
                   profileLabel={t.profile}
                   settingsLabel={t.accountSettings}
@@ -230,7 +230,11 @@ export default async function AdminLayout({
               <div className="flex items-center gap-4">
                 <MobileSidebar
                   menuItems={menuItems}
-                  user={user}
+                  user={{
+                    fullName: user.fullName,
+                    email: user.email,
+                    profileImage: user.profileImage ?? undefined,
+                  }}
                   locale={locale}
                   translations={{
                     adminPanel: t.adminPanel,

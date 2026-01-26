@@ -40,7 +40,7 @@ export async function requireAuth(locale: string = "en"): Promise<PublicUser> {
 export async function requireAdmin(locale: string = "en"): Promise<PublicUser> {
   const user = await requireAuth(locale);
   
-  if (user.role !== "admin") {
+  if (user.role !== "ADMIN") {
     const { redirect } = await import("next/navigation");
     redirect(`/${locale}/account`);
   }

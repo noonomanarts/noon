@@ -67,9 +67,9 @@ export default async function RegisterPage({
         email: email.trim(),
         password,
         fullName,
-        phone: phone.trim(),
+        phoneNumber: phone.trim(),
         dateOfBirth,
-        preferredLanguage: preferredLanguage || "en",
+        preferredLanguage: preferredLanguage === "ar" ? "ARABIC" : "ENGLISH",
       });
 
       if (!user) {
