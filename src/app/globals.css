@@ -3,6 +3,29 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Noon Brand Colors */
+:root {
+  /* Coral */
+  --noon-coral: #FF6B6B;
+  --noon-coral-light: #FF9999;
+  --noon-coral-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF9999 100%);
+  
+  /* Yellow */
+  --noon-yellow: #FFD93D;
+  --noon-yellow-light: #FFC93C;
+  --noon-yellow-gradient: linear-gradient(135deg, #FFD93D 0%, #FFC93C 100%);
+  
+  /* Purple */
+  --noon-purple: #8E44AD;
+  --noon-purple-dark: #6C3483;
+  --noon-purple-gradient: linear-gradient(135deg, #8E44AD 0%, #6C3483 100%);
+  
+  /* Teal */
+  --noon-teal: #17A2B8;
+  --noon-teal-light: #1ABC9C;
+  --noon-teal-gradient: linear-gradient(135deg, #17A2B8 0%, #1ABC9C 100%);
+}
+
 /* OverlayScrollbars Theme Customization */
 .os-theme-light .os-scrollbar-handle {
   background: rgba(0, 0, 0, 0.2);

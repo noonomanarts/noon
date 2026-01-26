@@ -1,5 +1,9 @@
 import { isLocale, type Locale } from "@/lib/locale";
 import Link from "next/link";
+import { MdGroup, MdSchedule, MdRestaurant } from "react-icons/md";
+import { GiCookingPot, GiChefToque, GiPalette } from "react-icons/gi";
+import { IoColorPalette, IoCalendar } from "react-icons/io5";
+import { HiSparkles } from "react-icons/hi2";
 
 export default async function PrivateClassesPage({
   params,
@@ -14,11 +18,8 @@ export default async function PrivateClassesPage({
       <div className="mx-auto w-full max-w-7xl px-4 py-12">
         {/* Hero */}
         <div className="mb-16 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 14l9-5-9-5-9 5 9 5z" />
-              <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-            </svg>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold" style={{ backgroundColor: '#17A2B820', color: '#17A2B8' }}>
+            <MdGroup className="h-5 w-5" />
             {locale === "ar" ? "فعاليات المجموعات" : "Group Events"}
           </div>
           <h1 className="mb-6 text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
@@ -35,8 +36,8 @@ export default async function PrivateClassesPage({
         <div className="mb-16 grid gap-8 lg:grid-cols-2">
           {/* Private Cooking */}
           <div className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl transition-all hover:-translate-y-1 hover:shadow-2xl dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="bg-gradient-to-r from-orange-100 to-red-100 p-8 dark:from-orange-950/30 dark:to-red-950/30">
-              <div className="mb-4 text-6xl">👨‍🍳</div>
+            <div className="p-8" style={{ background: 'linear-gradient(135deg, #FF6B6B20 0%, #FF999920 100%)' }}>
+              <GiChefToque className="mb-4 h-16 w-16" style={{ color: '#FF6B6B' }} />
               <h3 className="mb-3 text-2xl font-bold text-zinc-900 dark:text-white">
                 {locale === "ar" ? "درس طبخ خاص" : "Private Cooking Class"}
               </h3>
@@ -47,24 +48,23 @@ export default async function PrivateClassesPage({
             <div className="p-8">
               <div className="mb-6 space-y-3">
                 {[
-                  { icon: "👥", text: locale === "ar" ? "8-32 مشارك" : "8-32 participants" },
-                  { icon: "⏱️", text: locale === "ar" ? "2-3 ساعات" : "2-3 hours" },
-                  { icon: "🍽️", text: locale === "ar" ? "اختر طبقك المفضل" : "Choose your dish" },
-                  { icon: "👨‍🍳", text: locale === "ar" ? "إشراف فريق نون" : "Guided by Noon team" },
+                  { Icon: MdGroup, color: "#17A2B8", text: locale === "ar" ? "8-32 مشارك" : "8-32 participants" },
+                  { Icon: MdSchedule, color: "#FFD93D", text: locale === "ar" ? "2-3 ساعات" : "2-3 hours" },
+                  { Icon: MdRestaurant, color: "#8E44AD", text: locale === "ar" ? "اختر طبقك المفضل" : "Choose your dish" },
+                  { Icon: GiChefToque, color: "#FF6B6B", text: locale === "ar" ? "إشراف فريق نون" : "Guided by Noon team" },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="text-2xl">{item.icon}</span>
+                    <item.Icon className="h-8 w-8" style={{ color: item.color }} />
                     <span className="font-semibold text-zinc-700 dark:text-zinc-300">{item.text}</span>
                   </div>
                 ))}
               </div>
               <Link
                 href={`/${locale}/group-booking-events/private-classes/book?type=cooking`}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 py-4 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+                className="flex w-full items-center justify-center gap-2 rounded-xl py-4 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+                style={{ background: 'linear-gradient(135deg, #FF6B6B 0%, #FF9999 100%)' }}
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+                <IoCalendar className="h-5 w-5" />
                 {locale === "ar" ? "احجز درس طبخ" : "Book Cooking Class"}
               </Link>
             </div>
@@ -72,8 +72,8 @@ export default async function PrivateClassesPage({
 
           {/* Private Arts & Crafts */}
           <div className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl transition-all hover:-translate-y-1 hover:shadow-2xl dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-8 dark:from-purple-950/30 dark:to-pink-950/30">
-              <div className="mb-4 text-6xl">🎨</div>
+            <div className="p-8" style={{ background: 'linear-gradient(135deg, #8E44AD20 0%, #6C348320 100%)' }}>
+              <IoColorPalette className="mb-4 h-16 w-16" style={{ color: '#8E44AD' }} />
               <h3 className="mb-3 text-2xl font-bold text-zinc-900 dark:text-white">
                 {locale === "ar" ? "درس فنون وأشغال خاص" : "Private Arts & Crafts Class"}
               </h3>
@@ -84,24 +84,23 @@ export default async function PrivateClassesPage({
             <div className="p-8">
               <div className="mb-6 space-y-3">
                 {[
-                  { icon: "👥", text: locale === "ar" ? "8-32 مشارك" : "8-32 participants" },
-                  { icon: "⏱️", text: locale === "ar" ? "2-3 ساعات" : "2-3 hours" },
-                  { icon: "🎨", text: locale === "ar" ? "اختر مشروعك الفني" : "Choose your project" },
-                  { icon: "✨", text: locale === "ar" ? "إشراف فريق نون" : "Guided by Noon team" },
+                  { Icon: MdGroup, color: "#17A2B8", text: locale === "ar" ? "8-32 مشارك" : "8-32 participants" },
+                  { Icon: MdSchedule, color: "#FFD93D", text: locale === "ar" ? "2-3 ساعات" : "2-3 hours" },
+                  { Icon: GiPalette, color: "#8E44AD", text: locale === "ar" ? "اختر مشروعك الفني" : "Choose your project" },
+                  { Icon: HiSparkles, color: "#FF6B6B", text: locale === "ar" ? "إشراف فريق نون" : "Guided by Noon team" },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="text-2xl">{item.icon}</span>
+                    <item.Icon className="h-8 w-8" style={{ color: item.color }} />
                     <span className="font-semibold text-zinc-700 dark:text-zinc-300">{item.text}</span>
                   </div>
                 ))}
               </div>
               <Link
                 href={`/${locale}/group-booking-events/private-classes/book?type=arts-crafts`}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 py-4 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+                className="flex w-full items-center justify-center gap-2 rounded-xl py-4 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+                style={{ background: 'linear-gradient(135deg, #8E44AD 0%, #6C3483 100%)' }}
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+                <IoCalendar className="h-5 w-5" />
                 {locale === "ar" ? "احجز درس فنون" : "Book Arts Class"}
               </Link>
             </div>

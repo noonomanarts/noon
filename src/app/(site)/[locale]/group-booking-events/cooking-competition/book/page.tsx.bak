@@ -614,7 +614,6 @@ export default function CookingCompetitionBookingPage() {
             </button>
           </div>
         )}
-        </div>
 
         {/* Navigation Buttons */}
         {currentStep < 4 && (
