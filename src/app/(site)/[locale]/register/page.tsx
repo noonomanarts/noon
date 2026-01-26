@@ -58,12 +58,15 @@ export default async function RegisterPage({
     }
 
     try {
+      const fullName = [firstName, middleName, lastName]
+        .filter(Boolean)
+        .map((part) => part.trim())
+        .join(" ");
+      
       const user = await registerUser({
         email: email.trim(),
         password,
-        firstName: firstName.trim(),
-        middleName: middleName?.trim() || undefined,
-        lastName: lastName.trim(),
+        fullName,
         phone: phone.trim(),
         dateOfBirth,
         preferredLanguage: preferredLanguage || "en",

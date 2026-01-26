@@ -1,8 +1,8 @@
 /**
  * User database operations with secure password hashing
+ * Using in-memory storage (replace with actual database in production)
  */
 import * as bcrypt from "bcryptjs";
-import { getDb } from "@/lib/lmdb";
 
 export type User = {
   id: string;
@@ -21,8 +21,9 @@ export type User = {
 
 export type PublicUser = Omit<User, "passwordHash">;
 
-const USERS_KEY_PREFIX = "user:";
-const USER_EMAIL_INDEX = "user_email:";
+// In-memory storage (replace with actual database in production)
+const users = new Map<string, User>();
+const emailIndex = new Map<string, string>();
 
 /**
  * Hash a password securely
@@ -42,10 +43,7 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
  * Get user by ID
  */
 export function getUserById(id: string): PublicUser | null {
-  const db = getDb();
-  if (!db) return null;
-
-  const user = db.get(`${USERS_KEY_PREFIX}${id}`) as User | undefined;
+  const user = users.get(id);
   if (!user) return null;
 
   const { passwordHash, ...publicUser } = user;
@@ -56,15 +54,12 @@ export function getUserById(id: string): PublicUser | null {
  * Get user by email
  */
 export function getUserByEmail(email: string): User | null {
-  const db = getDb();
-  if (!db) return null;
-
   const normalizedEmail = email.toLowerCase().trim();
-  const userId = db.get(`${USER_EMAIL_INDEX}${normalizedEmail}`) as string | undefined;
+  const userId = emailIndex.get(normalizedEmail);
   
   if (!userId) return null;
 
-  return db.get(`${USERS_KEY_PREFIX}${userId}`) as User | null;
+  return users.get(userId) || null;
 }
 
 /**
@@ -80,9 +75,6 @@ export async function createUser(data: {
   preferredLanguage: "en" | "ar";
   profileImage?: string;
 }): Promise<PublicUser | null> {
-  const db = getDb();
-  if (!db) return null;
-
   const normalizedEmail = data.email.toLowerCase().trim();
 
   // Check if email already exists
@@ -111,9 +103,9 @@ export async function createUser(data: {
   };
 
   // Store user
-  db.put(`${USERS_KEY_PREFIX}${id}`, user);
+  users.set(id, user);
   // Create email index
-  db.put(`${USER_EMAIL_INDEX}${normalizedEmail}`, id);
+  emailIndex.set(normalizedEmail, id);
 
   const { passwordHash: _, ...publicUser } = user;
   return publicUser;
@@ -151,10 +143,7 @@ export async function updateUser(
   id: string,
   data: Partial<Omit<User, "id" | "email" | "passwordHash" | "createdAt">>
 ): Promise<PublicUser | null> {
-  const db = getDb();
-  if (!db) return null;
-
-  const existingUser = db.get(`${USERS_KEY_PREFIX}${id}`) as User | undefined;
+  const existingUser = users.get(id);
   if (!existingUser) return null;
 
   const updatedUser: User = {
@@ -163,7 +152,7 @@ export async function updateUser(
     updatedAt: new Date().toISOString(),
   };
 
-  db.put(`${USERS_KEY_PREFIX}${id}`, updatedUser);
+  users.set(id, updatedUser);
 
   const { passwordHash, ...publicUser } = updatedUser;
   return publicUser;
@@ -176,10 +165,7 @@ export async function changePassword(
   userId: string,
   newPassword: string
 ): Promise<boolean> {
-  const db = getDb();
-  if (!db) return false;
-
-  const user = db.get(`${USERS_KEY_PREFIX}${userId}`) as User | undefined;
+  const user = users.get(userId);
   if (!user) return false;
 
   const passwordHash = await hashPassword(newPassword);
@@ -190,7 +176,7 @@ export async function changePassword(
     updatedAt: new Date().toISOString(),
   };
 
-  db.put(`${USERS_KEY_PREFIX}${userId}`, updatedUser);
+  users.set(userId, updatedUser);
   return true;
 }
 
@@ -198,39 +184,27 @@ export async function changePassword(
  * Get all users
  */
 export function getAllUsers(): PublicUser[] {
-  const db = getDb();
-  if (!db) return [];
-
-  const users: PublicUser[] = [];
+  const allUsers: PublicUser[] = [];
   
-  for (const { key, value } of db.getRange({ 
-    start: USERS_KEY_PREFIX, 
-    end: `${USERS_KEY_PREFIX}\xFF` 
-  })) {
-    if (typeof key === "string" && key.startsWith(USERS_KEY_PREFIX)) {
-      const user = value as User;
-      const { passwordHash, ...publicUser } = user;
-      users.push(publicUser);
-    }
+  for (const user of users.values()) {
+    const { passwordHash, ...publicUser } = user;
+    allUsers.push(publicUser);
   }
   
-  return users;
+  return allUsers;
 }
 
 /**
  * Delete user
  */
 export function deleteUser(id: string): boolean {
-  const db = getDb();
-  if (!db) return false;
-
-  const user = db.get(`${USERS_KEY_PREFIX}${id}`) as User | undefined;
+  const user = users.get(id);
   if (!user) return false;
 
   // Remove user
-  db.remove(`${USERS_KEY_PREFIX}${id}`);
+  users.delete(id);
   // Remove email index
-  db.remove(`${USER_EMAIL_INDEX}${user.email}`);
+  emailIndex.delete(user.email);
 
   return true;
 }
@@ -242,10 +216,7 @@ export async function updateUserWithPassword(
   id: string,
   data: Partial<Omit<User, "id" | "passwordHash" | "createdAt">> & { password?: string }
 ): Promise<PublicUser | null> {
-  const db = getDb();
-  if (!db) return null;
-
-  const existingUser = db.get(`${USERS_KEY_PREFIX}${id}`) as User | undefined;
+  const existingUser = users.get(id);
   if (!existingUser) return null;
 
   // If email is changing, update the index
@@ -258,9 +229,9 @@ export async function updateUserWithPassword(
     }
     
     // Remove old email index
-    db.remove(`${USER_EMAIL_INDEX}${existingUser.email}`);
+    emailIndex.delete(existingUser.email);
     // Create new email index
-    db.put(`${USER_EMAIL_INDEX}${normalizedNewEmail}`, id);
+    emailIndex.set(normalizedNewEmail, id);
   }
 
   let passwordHash = existingUser.passwordHash;
@@ -277,7 +248,7 @@ export async function updateUserWithPassword(
     updatedAt: new Date().toISOString(),
   };
 
-  db.put(`${USERS_KEY_PREFIX}${id}`, updatedUser);
+  users.set(id, updatedUser);
 
   const { passwordHash: _, ...publicUser } = updatedUser;
   return publicUser;

@@ -1,6 +1,8 @@
 import type { Locale } from "@/lib/locale";
-import { getJson, putJson } from "@/lib/lmdb";
 import type { HomeContent } from "@/types/siteContent";
+
+// In-memory storage for home content
+const contentStore = new Map<string, HomeContent>();
 
 const KEY_PREFIX = "content:home:";
 
@@ -164,10 +166,11 @@ const DEFAULT_HOME_CONTENT: Record<Locale, HomeContent> = {
 
 export function getHomeContent(locale: Locale): HomeContent {
   const key = `${KEY_PREFIX}${locale}`;
-  const fromDb = getJson<HomeContent>(key);
-  if (fromDb) return fromDb;
+  const fromStore = contentStore.get(key);
+  if (fromStore) return fromStore;
 
-  // Seed LMDB with defaults when possible (non-fatal if LMDB is unavailable).
-  putJson(key, DEFAULT_HOME_CONTENT[locale]);
-  return DEFAULT_HOME_CONTENT[locale];
+  // Use default content and store it
+  const defaultContent = DEFAULT_HOME_CONTENT[locale];
+  contentStore.set(key, defaultContent);
+  return defaultContent;
 }
