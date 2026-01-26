@@ -47,7 +47,7 @@ export default async function AdminDashboard({
     },
     {
       label: t.revenueMonth,
-      value: locale === "ar" ? "٤٥,٢٨٠ ر.س" : "SAR 45,280",
+      value: locale === "ar" ? "٤٥,٢٨٠ ر.ع" : "OMR 45,280",
       change: "+8.2%",
       trend: "up",
       icon: "💰",

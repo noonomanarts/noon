@@ -118,6 +118,16 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-english);
   --font-arabic: var(--font-arabic);
+  
+  /* Noon Brand Colors for Tailwind */
+  --color-coral: #FF6B6B;
+  --color-coral-light: #FF9999;
+  --color-yellow: #FFD93D;
+  --color-yellow-light: #FFC93C;
+  --color-purple: #8E44AD;
+  --color-purple-dark: #6C3483;
+  --color-teal: #17A2B8;
+  --color-teal-light: #1ABC9C;
 }
 
 body {

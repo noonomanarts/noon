@@ -192,7 +192,7 @@ export default function CookingCompetitionBookingPage() {
       <div className="mx-auto w-full max-w-5xl px-4 py-12">
         {/* Header */}
         <div className="mb-12 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold" style={{ backgroundColor: 'var(--noon-coral-light)20', color: 'var(--noon-coral)' }}>
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-coral-light/10 px-4 py-2 text-sm font-semibold text-coral">
             <IoTrophy className="h-5 w-5" />
             {t.title}
           </div>
@@ -214,9 +214,8 @@ export default function CookingCompetitionBookingPage() {
                 {step < 3 && (
                   <div 
                     className={`h-1 w-16 rounded transition-all ${
-                      currentStep > step ? '' : 'bg-zinc-200 dark:bg-zinc-800'
+                      currentStep > step ? 'bg-coral' : 'bg-zinc-200 dark:bg-zinc-800'
                     }`}
-                    style={currentStep > step ? { background: 'var(--noon-coral)' } : {}}
                   />
                 )}
               </div>
@@ -230,14 +229,14 @@ export default function CookingCompetitionBookingPage() {
           {currentStep === 1 && (
             <div className="space-y-6 p-8">
               <div className="mb-6 flex items-center gap-3">
-                <IoCalendar className="h-8 w-8" style={{ color: 'var(--noon-teal)' }} />
+                <IoCalendar className="h-8 w-8 text-teal" />
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.step1Title}</h2>
               </div>
               
               {/* Brief */}
-              <div className="rounded-xl border p-6" style={{ backgroundColor: 'var(--noon-coral)10', borderColor: 'var(--noon-coral)30' }}>
+              <div className="rounded-xl border-2 border-coral/20 bg-coral/5 p-6 dark:border-coral/30 dark:bg-coral/10">
                 <div className="mb-3 flex items-center gap-2">
-                  <GiCookingPot className="h-6 w-6" style={{ color: 'var(--noon-coral)' }} />
+                  <GiCookingPot className="h-6 w-6 text-coral" />
                   <h3 className="font-bold text-zinc-900 dark:text-white">{t.briefTitle}</h3>
                 </div>
                 <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{t.briefText}</p>
@@ -246,13 +245,12 @@ export default function CookingCompetitionBookingPage() {
               {/* Date Selection */}
               <div>
                 <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
-                  <IoCalendar className="h-5 w-5" style={{ color: 'var(--noon-yellow)' }} />
+                  <IoCalendar className="h-5 w-5 text-yellow" />
                   {t.selectDate}
                 </label>
                 <input
                   type="date"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                  style={{ '--tw-ring-color': 'var(--noon-coral)' } as React.CSSProperties}
+                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.selectedDate || ''}
                   onChange={(e) =>
                     setBookingData({ ...bookingData, selectedDate: e.target.value })
@@ -264,12 +262,11 @@ export default function CookingCompetitionBookingPage() {
               {/* Time Selection */}
               <div>
                 <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
-                  <MdSchedule className="h-5 w-5" style={{ color: 'var(--noon-purple)' }} />
+                  <MdSchedule className="h-5 w-5 text-purple" />
                   {t.selectTime}
                 </label>
                 <select
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                  style={{ '--tw-ring-color': 'var(--noon-coral)' } as React.CSSProperties}
+                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.selectedTime || ''}
                   onChange={(e) =>
                   setBookingData({ ...bookingData, selectedTime: e.target.value })
@@ -290,7 +287,7 @@ export default function CookingCompetitionBookingPage() {
         {currentStep === 2 && (
           <div className="space-y-8 p-8">
             <div className="mb-6 flex items-center gap-3">
-              <BiSolidGift className="h-8 w-8" style={{ color: 'var(--noon-purple)' }} />
+              <BiSolidGift className="h-8 w-8 text-purple" />
               <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.step2Title}</h2>
             </div>
 
@@ -324,7 +321,7 @@ export default function CookingCompetitionBookingPage() {
                     { Icon: BiSolidGift, label: t.gifts, value: t.notIncluded },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-3">
-                      <item.Icon className="h-6 w-6" style={{ color: 'var(--noon-teal)' }} />
+                      <item.Icon className="h-6 w-6 text-teal" />
                       <span className="text-sm text-zinc-700 dark:text-zinc-300">
                         <strong>{item.label}:</strong> {item.value}
                       </span>
@@ -368,7 +365,7 @@ export default function CookingCompetitionBookingPage() {
                     { Icon: HiSparkles, label: t.gifts, value: t.included },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-3">
-                      <item.Icon className="h-6 w-6" style={{ color: 'var(--noon-purple)' }} />
+                      <item.Icon className="h-6 w-6 text-purple" />
                       <span className="text-sm font-semibold text-zinc-900 dark:text-white">
                         <strong>{item.label}:</strong> {item.value}
                       </span>
@@ -390,14 +387,14 @@ export default function CookingCompetitionBookingPage() {
                     <div className="flex items-start gap-6">
                       <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30">
                         <div className="flex h-full w-full items-center justify-center">
-                          <BiSolidGift className="h-12 w-12" style={{ color: 'var(--noon-yellow)' }} />
+                          <BiSolidGift className="h-12 w-12 text-yellow" />
                         </div>
                       </div>
                       <div className="flex-1">
                         <h4 className="mb-2 text-lg font-bold text-zinc-900 dark:text-white">
                           {locale === 'ar' ? gift.nameAr : gift.name}
                         </h4>
-                        <p className="mb-4 text-2xl font-bold" style={{ color: 'var(--noon-coral)' }}>
+                        <p className="mb-4 text-2xl font-bold text-coral">
                           {gift.price} OMR
                         </p>
                         <div className="flex flex-wrap gap-3">
@@ -447,20 +444,19 @@ export default function CookingCompetitionBookingPage() {
         {currentStep === 3 && (
           <div className="space-y-6 p-8">
             <div className="mb-6 flex items-center gap-3">
-              <MdBusiness className="h-8 w-8" style={{ color: 'var(--noon-yellow)' }} />
+              <MdBusiness className="h-8 w-8 text-yellow" />
               <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.step3Title}</h2>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               <div>
                 <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
-                  <MdGroup className="h-5 w-5" style={{ color: 'var(--noon-teal)' }} />
+                  <MdGroup className="h-5 w-5 text-teal" />
                   {t.fullName} *
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                  style={{ '--tw-ring-color': 'var(--noon-coral)' } as React.CSSProperties}
+                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.fullName || ''}
                   onChange={(e) =>
                     setBookingData({ ...bookingData, fullName: e.target.value })
@@ -471,13 +467,12 @@ export default function CookingCompetitionBookingPage() {
 
               <div>
                 <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
-                  <MdEmail className="h-5 w-5" style={{ color: 'var(--noon-purple)' }} />
+                  <MdEmail className="h-5 w-5 text-purple" />
                   {t.email} *
                 </label>
                 <input
                   type="email"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                  style={{ '--tw-ring-color': 'var(--noon-coral)' } as React.CSSProperties}
+                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.email || ''}
                   onChange={(e) =>
                     setBookingData({ ...bookingData, email: e.target.value })
@@ -488,13 +483,12 @@ export default function CookingCompetitionBookingPage() {
 
               <div>
                 <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
-                  <MdPhone className="h-5 w-5" style={{ color: 'var(--noon-yellow)' }} />
+                  <MdPhone className="h-5 w-5 text-yellow" />
                   {t.phoneNumber} *
                 </label>
                 <input
                   type="tel"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                  style={{ '--tw-ring-color': 'var(--noon-coral)' } as React.CSSProperties}
+                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.phoneNumber || ''}
                   onChange={(e) =>
                     setBookingData({ ...bookingData, phoneNumber: e.target.value })
@@ -505,13 +499,12 @@ export default function CookingCompetitionBookingPage() {
 
               <div>
                 <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
-                  <MdBusiness className="h-5 w-5" style={{ color: 'var(--noon-teal)' }} />
+                  <MdBusiness className="h-5 w-5 text-teal" />
                   {t.companyName}
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                  style={{ '--tw-ring-color': 'var(--noon-coral)' } as React.CSSProperties}
+                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.companyOrGroupName || ''}
                   onChange={(e) =>
                     setBookingData({
@@ -524,15 +517,14 @@ export default function CookingCompetitionBookingPage() {
 
               <div>
                 <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
-                  <MdGroup className="h-5 w-5" style={{ color: 'var(--noon-purple)' }} />
+                  <MdGroup className="h-5 w-5 text-purple" />
                   {t.numberOfParticipants} *
                 </label>
                 <input
                   type="number"
                   min="8"
                   max="40"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                  style={{ '--tw-ring-color': 'var(--noon-coral)' } as React.CSSProperties}
+                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.numberOfParticipants || ''}
                   onChange={(e) =>
                     setBookingData({
@@ -547,12 +539,11 @@ export default function CookingCompetitionBookingPage() {
 
             <div>
               <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
-                <HiSparkles className="h-5 w-5" style={{ color: 'var(--noon-yellow)' }} />
+                <HiSparkles className="h-5 w-5 text-yellow" />
                 {t.specialRequests}
               </label>
               <textarea
-                className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                style={{ '--tw-ring-color': 'var(--noon-coral)' } as React.CSSProperties}
+                className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                 rows={4}
                 value={bookingData.specialRequests || ''}
                 onChange={(e) =>
@@ -565,22 +556,22 @@ export default function CookingCompetitionBookingPage() {
             </div>
 
             {/* Summary */}
-            <div className="rounded-xl border p-6" style={{ backgroundColor: 'var(--noon-coral)10', borderColor: 'var(--noon-coral)30' }}>
+            <div className="rounded-xl border-2 border-coral/20 bg-coral/5 p-6 dark:border-coral/30 dark:bg-coral/10">
               <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-zinc-900 dark:text-white">
-                <IoCheckmarkCircle className="h-6 w-6" style={{ color: 'var(--noon-coral)' }} />
+                <IoCheckmarkCircle className="h-6 w-6 text-coral" />
                 Booking Summary
               </h3>
               <div className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
                 <div className="flex items-center gap-2">
-                  <IoCalendar className="h-4 w-4" style={{ color: 'var(--noon-teal)' }} />
+                  <IoCalendar className="h-4 w-4 text-teal" />
                   <strong>Date:</strong> {bookingData.selectedDate}
                 </div>
                 <div className="flex items-center gap-2">
-                  <MdSchedule className="h-4 w-4" style={{ color: 'var(--noon-purple)' }} />
+                  <MdSchedule className="h-4 w-4 text-purple" />
                   <strong>Time:</strong> {bookingData.selectedTime}
                 </div>
                 <div className="flex items-center gap-2">
-                  <BiSolidGift className="h-4 w-4" style={{ color: 'var(--noon-yellow)' }} />
+                  <BiSolidGift className="h-4 w-4 text-yellow" />
                   <strong>Package:</strong> {bookingData.packageType}
                 </div>
                 {bookingData.gifts && bookingData.gifts.length > 0 && (
@@ -622,8 +613,7 @@ export default function CookingCompetitionBookingPage() {
             <button
               onClick={handleBack}
               disabled={currentStep === 1}
-              className="flex items-center gap-2 rounded-xl border-2 px-6 py-3 font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
-              style={{ borderColor: 'var(--noon-coral)' }}
+              className="flex items-center gap-2 rounded-xl border-2 border-coral px-6 py-3 font-bold text-coral transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
             >
               <IoClose className="h-5 w-5" />
               {t.back}
