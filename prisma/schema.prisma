@@ -35,6 +35,83 @@ enum PreferredLanguage {
   ARABIC
 }
 
+enum ClassCategory {
+  COOKING
+  ARTS_CRAFTS
+}
+
+enum ClassSubCategory {
+  // Cooking
+  APPETIZERS_SNACKS
+  MAIN_DISHES
+  DESSERTS_BAKING
+  MOM_AND_KID
+  // Arts & Crafts
+  PAINTING
+  POTTERY
+  CRAFTS
+  MIXED
+}
+
+enum ClassStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+enum EventType {
+  COOKING_COMPETITION
+  PRIVATE_CLASS
+  BIRTHDAY_PARTY
+}
+
+enum EventStatus {
+  NEW
+  IN_PROGRESS
+  PENDING_CLIENT_CONFIRMATION
+  CLIENT_CONFIRMED
+  PENDING_PAYMENT
+  COMPLETED
+  CANCELLED
+}
+
+enum PackageType {
+  STANDARD
+  PREMIUM
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum PaymentMethod {
+  ONLINE
+  BANK_TRANSFER
+  CASH
+  WALLET
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum CalendarEventType {
+  CLASS
+  PRIVATE_SESSION
+  COMPETITION
+  BIRTHDAY_PARTY
+  BLOCKED
+  CLEANING
+}
+
 // Models
 model User {
   id        String   @id @default(cuid())
@@ -59,11 +136,356 @@ model User {
   lastLoginAt DateTime?
   
   // Relations
-  // TODO: Add relations for bookings, wallet, loyalty, etc.
+  trainedClasses    Class[]         @relation("TrainerClasses")
+  bookings          Booking[]
+  eventBookings     EventBooking[]
+  wallet            Wallet?
+  loyaltyCard       LoyaltyCard?
   
   @@index([email])
   @@index([phoneNumber])
   @@index([role])
   @@index([status])
   @@map("users")
+}
+
+// Trainers (extended user info)
+model TrainerProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  bio         String?  @db.Text
+  expertise   String[] // ["Italian Cuisine", "Baking", "Kids Classes"]
+  experience  Int?     // years of experience
+  socialLinks Json?    // {instagram: "", twitter: "", etc.}
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("trainer_profiles")
+}
+
+// Classes Model
+model Class {
+  id              String            @id @default(cuid())
+  slug            String            @unique
+  
+  // Basic Info
+  title           String
+  titleAr         String?
+  description     String            @db.Text
+  descriptionAr   String?           @db.Text
+  
+  // Category
+  category        ClassCategory
+  subCategory     ClassSubCategory
+  
+  // Media
+  image           String?
+  images          String[]          // Additional images
+  
+  // Trainer
+  trainerId       String
+  trainer         User              @relation("TrainerClasses", fields: [trainerId], references: [id])
+  
+  // Pricing & Capacity
+  price           Float
+  currency        String            @default("OMR")
+  seatsTotal      Int
+  seatsAvailable  Int
+  
+  // Duration
+  durationMinutes Int
+  
+  // Status
+  status          ClassStatus       @default(DRAFT)
+  
+  // SEO & Meta
+  metaTitle       String?
+  metaDescription String?
+  
+  // Metadata
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  publishedAt     DateTime?
+  
+  // Relations
+  sessions        ClassSession[]
+  bookings        Booking[]
+  reviews         Review[]
+  
+  @@index([slug])
+  @@index([category])
+  @@index([subCategory])
+  @@index([status])
+  @@index([trainerId])
+  @@map("classes")
+}
+
+// Class Sessions (Specific dates/times for a class)
+model ClassSession {
+  id              String            @id @default(cuid())
+  classId         String
+  class           Class             @relation(fields: [classId], references: [id], onDelete: Cascade)
+  
+  // DateTime
+  startDateTime   DateTime
+  endDateTime     DateTime
+  
+  // Capacity (can override class defaults)
+  seatsTotal      Int?
+  seatsBooked     Int               @default(0)
+  
+  // Status
+  isCancelled     Boolean           @default(false)
+  cancellationReason String?
+  
+  // Recipe & Materials
+  recipeSubmitted Boolean           @default(false)
+  recipePDF       String?
+  groceryList     String?           @db.Text
+  workshopBrief   String?           @db.Text
+  photos          String[]
+  
+  // Metadata
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  bookings        Booking[]
+  calendarEvent   CalendarEvent?
+  
+  @@index([classId])
+  @@index([startDateTime])
+  @@map("class_sessions")
+}
+
+// Bookings
+model Booking {
+  id                String          @id @default(cuid())
+  bookingNumber     String          @unique // e.g., "BK-20260126-0001"
+  
+  // User
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+  
+  // Class & Session
+  classId           String
+  class             Class           @relation(fields: [classId], references: [id])
+  sessionId         String
+  session           ClassSession    @relation(fields: [sessionId], references: [id])
+  
+  // Participants
+  participants      Json            // Array of participant details
+  numberOfParticipants Int
+  
+  // Pricing
+  totalAmount       Float
+  currency          String          @default("OMR")
+  
+  // Status
+  status            BookingStatus   @default(PENDING)
+  
+  // Payment
+  paymentMethod     PaymentMethod?
+  paymentStatus     PaymentStatus   @default(PENDING)
+  paidAt            DateTime?
+  
+  // Terms acceptance
+  termsAccepted     Boolean         @default(false)
+  termsAcceptedAt   DateTime?
+  
+  // Special requests
+  specialRequests   String?         @db.Text
+  
+  // Metadata
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  @@index([userId])
+  @@index([classId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([bookingNumber])
+  @@map("bookings")
+}
+
+// Event Bookings (Competition, Private, Birthday)
+model EventBooking {
+  id                  String          @id @default(cuid())
+  bookingNumber       String          @unique
+  
+  // User
+  userId              String
+  user                User            @relation(fields: [userId], references: [id])
+  
+  // Event Type
+  eventType           EventType
+  
+  // Selected Slot
+  selectedDate        DateTime
+  selectedTime        String
+  
+  // Package
+  packageType         PackageType?
+  numberOfParticipants Int
+  numberOfGroups      Int?
+  
+  // Gift Add-ons
+  gifts               Json?           // [{name, price, scope, quantity}]
+  
+  // Contact & Details
+  fullName            String
+  email               String
+  phoneNumber         String
+  companyOrGroupName  String?
+  
+  // For Private Classes
+  preferredDish       String?
+  
+  // Special Requests
+  specialRequests     String?         @db.Text
+  
+  // Status
+  status              EventStatus     @default(NEW)
+  
+  // Confirmation
+  clientConfirmed     Boolean         @default(false)
+  clientConfirmedAt   DateTime?
+  digitalSignature    String?
+  agreementAccepted   Boolean         @default(false)
+  
+  // Payment
+  totalAmount         Float?
+  currency            String          @default("OMR")
+  paymentMethod       PaymentMethod?
+  paymentStatus       PaymentStatus   @default(PENDING)
+  paidAt              DateTime?
+  paymentProof        String?         // For bank transfer
+  
+  // Admin Notes
+  adminNotes          String?         @db.Text
+  
+  // Metadata
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  
+  // Relations
+  calendarEvent       CalendarEvent?
+  
+  @@index([userId])
+  @@index([eventType])
+  @@index([status])
+  @@index([bookingNumber])
+  @@map("event_bookings")
+}
+
+// Calendar/Timetable
+model CalendarEvent {
+  id                String              @id @default(cuid())
+  
+  // Type
+  type              CalendarEventType
+  
+  // DateTime
+  startDateTime     DateTime
+  endDateTime       DateTime
+  
+  // Title & Description
+  title             String
+  description       String?             @db.Text
+  
+  // Relations
+  classSessionId    String?             @unique
+  classSession      ClassSession?       @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+  
+  eventBookingId    String?             @unique
+  eventBooking      EventBooking?       @relation(fields: [eventBookingId], references: [id], onDelete: Cascade)
+  
+  // Blocking Info
+  isBlocked         Boolean             @default(false)
+  blockReason       String?
+  internalNotes     String?             @db.Text
+  visibleToTrainers Boolean             @default(false) // or only admin
+  visibleTrainerIds String[]            // Specific trainers who can see this
+  
+  // Color coding (optional, for UI)
+  color             String?
+  
+  // Metadata
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  @@index([type])
+  @@index([startDateTime])
+  @@index([endDateTime])
+  @@map("calendar_events")
+}
+
+// Reviews
+model Review {
+  id          String   @id @default(cuid())
+  classId     String
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  
+  rating      Int      // 1-5
+  comment     String?  @db.Text
+  
+  isApproved  Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([classId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+// Wallet
+model Wallet {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  balance     Float    @default(0)
+  currency    String   @default("OMR")
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  transactions WalletTransaction[]
+  
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id          String   @id @default(cuid())
+  walletId    String
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  
+  amount      Float
+  type        String   // CREDIT, DEBIT
+  reason      String?  // "Cancellation refund", "Manual adjustment", etc.
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([walletId])
+  @@map("wallet_transactions")
+}
+
+// Loyalty Card
+model LoyaltyCard {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  points      Int      @default(0)
+  stamps      Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("loyalty_cards")
 }
