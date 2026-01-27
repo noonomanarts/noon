@@ -88,7 +88,77 @@ export async function POST(request: NextRequest) {
       status,
       metaTitle,
       metaDescription,
+      currency,
     } = body;
+
+    if (!title || !description || !category || !subCategory || !trainerId) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    if (typeof price !== 'number' || price < 0) {
+      return NextResponse.json(
+        { error: 'Invalid price' },
+        { status: 400 }
+      );
+    }
+
+    if (!Number.isInteger(seatsTotal) || seatsTotal < 1) {
+      return NextResponse.json(
+        { error: 'Invalid seats total' },
+        { status: 400 }
+      );
+    }
+
+    if (!Number.isInteger(durationMinutes) || durationMinutes < 1) {
+      return NextResponse.json(
+        { error: 'Invalid duration' },
+        { status: 400 }
+      );
+    }
+
+    const validCategories = ['COOKING', 'ARTS_CRAFTS'];
+    const validSubCategories = [
+      'APPETIZERS_SNACKS',
+      'MAIN_DISHES',
+      'DESSERTS_BAKING',
+      'MOM_AND_KID',
+      'PAINTING',
+      'POTTERY',
+      'CRAFTS',
+      'MIXED',
+    ];
+    const validStatuses = ['DRAFT', 'PUBLISHED', 'CANCELLED', 'COMPLETED'];
+
+    if (!validCategories.includes(category)) {
+      return NextResponse.json(
+        { error: 'Invalid category' },
+        { status: 400 }
+      );
+    }
+
+    if (!validSubCategories.includes(subCategory)) {
+      return NextResponse.json(
+        { error: 'Invalid sub-category' },
+        { status: 400 }
+      );
+    }
+
+    if (status && !validStatuses.includes(status)) {
+      return NextResponse.json(
+        { error: 'Invalid status' },
+        { status: 400 }
+      );
+    }
+
+    if (currency && currency !== 'OMR') {
+      return NextResponse.json(
+        { error: 'Invalid currency' },
+        { status: 400 }
+      );
+    }
 
     // Generate slug from title
     const slug = title
@@ -137,6 +207,7 @@ export async function POST(request: NextRequest) {
         image,
         images: images || [],
         status: status || 'DRAFT',
+        currency: currency || undefined,
         metaTitle,
         metaDescription,
       },
@@ -154,8 +225,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newClass, { status: 201 });
   } catch (error) {
     console.error('Error creating class:', error);
+    const message =
+      error instanceof Error ? error.message : 'Failed to create class';
     return NextResponse.json(
-      { error: 'Failed to create class' },
+      { error: message },
       { status: 500 }
     );
   }

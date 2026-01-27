@@ -19,8 +19,15 @@ import {
 } from 'react-icons/md';
 
 type ClassCategory = 'COOKING' | 'ARTS_CRAFTS';
-type ClassSubCategory = 'APPETIZERS' | 'MAIN_DISHES' | 'DESSERTS' | 'MOM_AND_KID' | 'PAINTING' | 'CRAFTS' | 'POTTERY';
-type ClassStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+type ClassSubCategory =
+  | 'APPETIZERS_SNACKS'
+  | 'MAIN_DISHES'
+  | 'DESSERTS_BAKING'
+  | 'MOM_AND_KID'
+  | 'PAINTING'
+  | 'CRAFTS'
+  | 'POTTERY';
+type ClassStatus = 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED';
 
 interface Trainer {
   id: string;
@@ -154,7 +161,7 @@ export default function EditClassPage() {
       const res = await fetch('/api/admin/users?role=TRAINER&status=ACTIVE&limit=100');
       if (!res.ok) throw new Error('Failed to fetch trainers');
       const data = await res.json();
-      setTrainers(data.users || []);
+      setTrainers(Array.isArray(data) ? data : data.users || []);
     } catch (error) {
       console.error('Error fetching trainers:', error);
       showNotification('error', 'Failed to load trainers');
@@ -620,9 +627,9 @@ export default function EditClassPage() {
                 <option value="">{isRTL ? 'اختر الفئة الفرعية' : 'Select sub-category'}</option>
                 {formData.category === 'COOKING' && (
                   <>
-                    <option value="APPETIZERS">{isRTL ? 'المقبلات' : 'Appetizers'}</option>
+                    <option value="APPETIZERS_SNACKS">{isRTL ? 'المقبلات والوجبات الخفيفة' : 'Appetizers & Snacks'}</option>
                     <option value="MAIN_DISHES">{isRTL ? 'أطباق رئيسية' : 'Main Dishes'}</option>
-                    <option value="DESSERTS">{isRTL ? 'حلويات' : 'Desserts'}</option>
+                    <option value="DESSERTS_BAKING">{isRTL ? 'حلويات ومخبوزات' : 'Desserts & Baking'}</option>
                     <option value="MOM_AND_KID">{isRTL ? 'أم وطفل' : 'Mom & Kid'}</option>
                   </>
                 )}
@@ -684,7 +691,8 @@ export default function EditClassPage() {
               >
                 <option value="DRAFT">{isRTL ? '📝 مسودة' : '📝 Draft'}</option>
                 <option value="PUBLISHED">{isRTL ? '✅ منشور' : '✅ Published'}</option>
-                <option value="ARCHIVED">{isRTL ? '📦 مؤرشف' : '📦 Archived'}</option>
+                <option value="CANCELLED">{isRTL ? '⛔ ملغي' : '⛔ Cancelled'}</option>
+                <option value="COMPLETED">{isRTL ? '✅ مكتمل' : '✅ Completed'}</option>
               </select>
             </div>
           </div>
@@ -739,9 +747,7 @@ export default function EditClassPage() {
                 onChange={handleInputChange}
                 className={selectBase}
               >
-                <option value="AED">AED</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
+                <option value="OMR">OMR</option>
               </select>
             </div>
 

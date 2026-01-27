@@ -1,8 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getUserById, getAllUsers, createUser } from "@/lib/db/users";
+import type { UserRole, UserStatus } from "@/generated/prisma";
 
-export async function GET() {
+const mapRole = (value: string | null): UserRole | undefined => {
+  if (!value) return undefined;
+  const normalized = value.toUpperCase();
+  if (normalized === "ADMIN") return "ADMIN";
+  if (normalized === "TRAINER") return "TRAINER";
+  if (normalized === "CUSTOMER") return "CUSTOMER";
+  if (normalized === "USER") return "CUSTOMER";
+  return undefined;
+};
+
+const mapStatus = (value: string | null): UserStatus | undefined => {
+  if (!value) return undefined;
+  const normalized = value.toUpperCase();
+  if (normalized === "ACTIVE") return "ACTIVE";
+  if (normalized === "INACTIVE") return "INACTIVE";
+  if (normalized === "SUSPENDED") return "SUSPENDED";
+  return undefined;
+};
+
+export async function GET(request: NextRequest) {
   try {
     // Auth check
     const cookieStore = await cookies();
@@ -17,8 +37,19 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const users = await getAllUsers();
-    return NextResponse.json(users);
+    const { searchParams } = request.nextUrl;
+    const role = mapRole(searchParams.get("role"));
+    const status = mapStatus(searchParams.get("status"));
+    const take = searchParams.get("limit") ? Number(searchParams.get("limit")) : undefined;
+    const skip = searchParams.get("skip") ? Number(searchParams.get("skip")) : undefined;
+
+    const users = await getAllUsers({
+      role,
+      status,
+      take: Number.isFinite(take) ? take : undefined,
+      skip: Number.isFinite(skip) ? skip : undefined,
+    });
+    return NextResponse.json({ users });
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
