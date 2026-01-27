@@ -9,7 +9,7 @@ export default function ThemeInitScript() {
   /** @type {'light'|'dark'|'system'} */
   const preference = stored === 'light' || stored === 'dark' || stored === 'system'
     ? stored
-    : 'system';
+    : 'light';
 
   const mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
   const systemDark = !!(mql && mql.matches);

@@ -48,7 +48,7 @@ export default function ThemeToggle({
   const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
-  const [preference, setPreference] = useState<ThemePreference>("system");
+  const [preference, setPreference] = useState<ThemePreference>("light");
   const resolved = useMemo(() => {
     if (!mounted) return "light"; // Always return light for SSR
     return resolveTheme(preference);
