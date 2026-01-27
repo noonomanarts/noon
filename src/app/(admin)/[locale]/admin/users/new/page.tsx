@@ -54,7 +54,7 @@ export default function NewUserPage({
     setError("");
 
     // Validation
-    if (!formData.fullName || !formData.email || !formData.password) {
+    if (!formData.fullName || !formData.email || !formData.password || !formData.phone) {
       setError(locale === "ar" ? "يرجى ملء جميع الحقول المطلوبة" : "Please fill all required fields");
       return;
     }
@@ -78,7 +78,7 @@ export default function NewUserPage({
         body: JSON.stringify({
           fullName: formData.fullName,
           email: formData.email,
-          phone: formData.phone,
+          phoneNumber: formData.phone,
           password: formData.password,
           role: formData.role,
           dob: formData.dob,
@@ -156,6 +156,7 @@ export default function NewUserPage({
               </label>
               <input
                 type="tel"
+                required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"
