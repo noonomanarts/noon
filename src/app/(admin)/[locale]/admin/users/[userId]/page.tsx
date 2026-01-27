@@ -9,17 +9,21 @@ interface User {
   id: string;
   email: string;
   fullName: string;
-  phone?: string;
-  dob?: string;
-  preferredLanguage: "en" | "ar";
-  role: "admin" | "trainer" | "customer";
+  phoneNumber?: string;
+  dateOfBirth?: string | null;
+  preferredLanguage: "ENGLISH" | "ARABIC";
+  role: "ADMIN" | "TRAINER" | "CUSTOMER";
   profileImage?: string;
 }
 
 type FormRole = "admin" | "trainer" | "user";
 
-function mapRoleToForm(role: "admin" | "trainer" | "customer"): FormRole {
-  return role === "customer" ? "user" : role;
+function mapRoleToForm(role: User["role"]): FormRole {
+  return role === "CUSTOMER" ? "user" : role === "TRAINER" ? "trainer" : "admin";
+}
+
+function mapLanguageToForm(lang: User["preferredLanguage"]): "en" | "ar" {
+  return lang === "ARABIC" ? "ar" : "en";
 }
 
 export default function EditUserPage({
@@ -84,13 +88,17 @@ export default function EditUserPage({
         if (!response.ok) throw new Error("Failed to fetch user");
         const data = await response.json();
         setUser(data);
+        const dobValue = data.dateOfBirth
+          ? new Date(data.dateOfBirth).toISOString().slice(0, 10)
+          : "";
+
         setFormData({
           fullName: data.fullName || "",
           email: data.email,
-          phone: data.phone || "",
+          phone: data.phoneNumber || "",
           role: mapRoleToForm(data.role),
-          dob: data.dob || "",
-          preferredLanguage: data.preferredLanguage,
+          dob: dobValue,
+          preferredLanguage: mapLanguageToForm(data.preferredLanguage),
           newPassword: "",
           confirmPassword: "",
         });
@@ -124,7 +132,7 @@ export default function EditUserPage({
     setError("");
 
     // Validation
-    if (!formData.fullName || !formData.email) {
+    if (!formData.fullName || !formData.email || !formData.phone) {
       setError(locale === "ar" ? "يرجى ملء جميع الحقول المطلوبة" : "Please fill all required fields");
       return;
     }
@@ -145,7 +153,7 @@ export default function EditUserPage({
       const formDataToSend = new FormData();
       formDataToSend.append("fullName", formData.fullName);
       formDataToSend.append("email", formData.email);
-      formDataToSend.append("phone", formData.phone);
+      formDataToSend.append("phoneNumber", formData.phone);
       formDataToSend.append("role", formData.role);
       formDataToSend.append("dob", formData.dob);
       formDataToSend.append("preferredLanguage", formData.preferredLanguage);
@@ -301,6 +309,7 @@ export default function EditUserPage({
               </label>
               <input
                 type="tel"
+                required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400"

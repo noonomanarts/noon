@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getUserById, updateUserWithPassword, deleteUser } from "@/lib/db/users";
+import { getUserById, getUserByEmail, getUserByPhone, updateUserWithPassword, deleteUser } from "@/lib/db/users";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
@@ -60,12 +60,40 @@ export async function PUT(
     
     const fullName = formData.get("fullName") as string;
     const email = formData.get("email") as string;
-    const phoneNumber = formData.get("phone") as string;
+    const phoneNumber =
+      (formData.get("phoneNumber") as string) ||
+      (formData.get("phone") as string);
     const formRole = formData.get("role") as string;
     const dob = formData.get("dob") as string;
     const preferredLanguage = formData.get("preferredLanguage") as "en" | "ar";
     const password = formData.get("password") as string;
     const profileImageFile = formData.get("profileImage") as File | null;
+
+    if (!fullName || !email || !phoneNumber) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedPhone = phoneNumber.trim();
+
+    const existingEmail = await getUserByEmail(normalizedEmail);
+    if (existingEmail && existingEmail.id !== userId) {
+      return NextResponse.json(
+        { error: "Email already exists" },
+        { status: 400 }
+      );
+    }
+
+    const existingPhone = await getUserByPhone(normalizedPhone);
+    if (existingPhone && existingPhone.id !== userId) {
+      return NextResponse.json(
+        { error: "Phone number already exists" },
+        { status: 400 }
+      );
+    }
 
     // Map form role to database role
     const role: "ADMIN" | "TRAINER" | "CUSTOMER" = 
@@ -97,8 +125,8 @@ export async function PUT(
 
     const updateData: any = {
       fullName,
-      email,
-      phoneNumber,
+      email: normalizedEmail,
+      phoneNumber: normalizedPhone,
       role,
       dateOfBirth: dob ? new Date(dob) : undefined,
       preferredLanguage: preferredLanguage === "ar" ? "ARABIC" : "ENGLISH",
