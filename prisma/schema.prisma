@@ -4,6 +4,7 @@
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
+  binaryTargets = ["debian-openssl-1.1.x"]
 }
 
 datasource db {
@@ -103,6 +104,11 @@ enum PaymentStatus {
   FAILED
 }
 
+enum ContactMessageStatus {
+  NEW
+  READ
+}
+
 enum CalendarEventType {
   CLASS
   PRIVATE_SESSION
@@ -163,6 +169,21 @@ model TrainerProfile {
   updatedAt   DateTime @updatedAt
   
   @@map("trainer_profiles")
+}
+
+model ContactMessage {
+  id        String               @id @default(cuid())
+  fullName  String
+  email     String
+  phone     String
+  subject   String
+  message   String              @db.Text
+  status    ContactMessageStatus @default(NEW)
+  createdAt DateTime             @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("contact_messages")
 }
 
 // Classes Model
