@@ -107,6 +107,15 @@ export default function NewClassPage() {
 
   const [errors, setErrors] = useState<FormErrors>({});
 
+  const inputBase =
+    'mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400';
+  const textareaBase =
+    'mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400 resize-none';
+  const selectBase =
+    'mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition focus:border-zinc-900 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:ring-zinc-400';
+  const sectionCard =
+    'rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900';
+
   useEffect(() => {
     fetchTrainers();
   }, []);
@@ -347,7 +356,7 @@ export default function NewClassPage() {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="mx-auto max-w-5xl space-y-6 p-6">
       {/* Notification */}
       {notification.show && (
         <div
@@ -373,7 +382,7 @@ export default function NewClassPage() {
       )}
 
       {/* Header */}
-      <div className="mb-8">
+      <div>
         <button
           onClick={() => router.back()}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4 group"
@@ -391,23 +400,23 @@ export default function NewClassPage() {
           )}
         </button>
 
-        <h1 className="text-3xl font-bold text-foreground mb-2">
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
           {isRTL ? 'إضافة صف جديد' : 'Create New Class'}
         </h1>
-        <p className="text-muted-foreground">
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           {isRTL ? 'أدخل تفاصيل الصف الجديد' : 'Fill in the details to create a new class'}
         </p>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-card border border-border rounded-2xl shadow-lg p-8">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
-        <div className="mb-8 pb-8 border-b border-border">
-          <div className="flex items-center gap-3 mb-6">
+        <div className={sectionCard}>
+          <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-teal-500/10 dark:bg-teal-500/20 rounded-lg">
               <MdTitle className="text-2xl text-teal-600 dark:text-teal-400" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {isRTL ? 'المعلومات الأساسية' : 'Basic Information'}
             </h2>
           </div>
@@ -415,7 +424,7 @@ export default function NewClassPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* English Title */}
             <div>
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'العنوان (إنجليزي)' : 'Title (English)'}
                 <span className="text-red-500">*</span>
               </label>
@@ -425,9 +434,9 @@ export default function NewClassPage() {
                 value={formData.title}
                 onChange={handleInputChange}
                 placeholder="e.g. Italian Pasta Making"
-                className={`w-full px-4 py-3 bg-background border-2 ${
-                  errors.title ? 'border-red-500 dark:border-red-400' : 'border-border'
-                } hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground placeholder:text-muted-foreground transition-all`}
+                className={`${inputBase} ${
+                  errors.title ? 'border-red-500 dark:border-red-400' : ''
+                }`}
               />
               {errors.title && (
                 <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
@@ -439,7 +448,7 @@ export default function NewClassPage() {
 
             {/* Arabic Title */}
             <div>
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'العنوان (عربي)' : 'Title (Arabic)'}
                 <span className="text-red-500">*</span>
               </label>
@@ -450,9 +459,9 @@ export default function NewClassPage() {
                 onChange={handleInputChange}
                 placeholder="مثال: صنع المعكرونة الإيطالية"
                 dir="rtl"
-                className={`w-full px-4 py-3 bg-background border-2 ${
-                  errors.titleAr ? 'border-red-500 dark:border-red-400' : 'border-border'
-                } hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground placeholder:text-muted-foreground transition-all`}
+                className={`${inputBase} ${
+                  errors.titleAr ? 'border-red-500 dark:border-red-400' : ''
+                }`}
               />
               {errors.titleAr && (
                 <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
@@ -464,7 +473,7 @@ export default function NewClassPage() {
 
             {/* English Description */}
             <div className="md:col-span-2">
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'الوصف (إنجليزي)' : 'Description (English)'}
                 <span className="text-red-500">*</span>
               </label>
@@ -474,9 +483,9 @@ export default function NewClassPage() {
                 onChange={handleInputChange}
                 rows={4}
                 placeholder="Detailed description of the class..."
-                className={`w-full px-4 py-3 bg-background border-2 ${
-                  errors.description ? 'border-red-500 dark:border-red-400' : 'border-border'
-                } hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground placeholder:text-muted-foreground transition-all resize-none`}
+                className={`${textareaBase} ${
+                  errors.description ? 'border-red-500 dark:border-red-400' : ''
+                }`}
               />
               {errors.description && (
                 <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
@@ -488,7 +497,7 @@ export default function NewClassPage() {
 
             {/* Arabic Description */}
             <div className="md:col-span-2">
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'الوصف (عربي)' : 'Description (Arabic)'}
                 <span className="text-red-500">*</span>
               </label>
@@ -499,9 +508,9 @@ export default function NewClassPage() {
                 rows={4}
                 placeholder="وصف تفصيلي للصف..."
                 dir="rtl"
-                className={`w-full px-4 py-3 bg-background border-2 ${
-                  errors.descriptionAr ? 'border-red-500 dark:border-red-400' : 'border-border'
-                } hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground placeholder:text-muted-foreground transition-all resize-none`}
+                className={`${textareaBase} ${
+                  errors.descriptionAr ? 'border-red-500 dark:border-red-400' : ''
+                }`}
               />
               {errors.descriptionAr && (
                 <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
@@ -514,12 +523,12 @@ export default function NewClassPage() {
         </div>
 
         {/* Category & Details */}
-        <div className="mb-8 pb-8 border-b border-border">
-          <div className="flex items-center gap-3 mb-6">
+        <div className={sectionCard}>
+          <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-purple-500/10 dark:bg-purple-500/20 rounded-lg">
               <MdCategory className="text-2xl text-purple-600 dark:text-purple-400" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {isRTL ? 'التصنيف والتفاصيل' : 'Category & Details'}
             </h2>
           </div>
@@ -527,28 +536,26 @@ export default function NewClassPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Category */}
             <div>
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'الفئة' : 'Category'}
                 <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleInputChange}
-                  className={`w-full px-4 py-3 bg-background border-2 ${
-                    errors.category ? 'border-red-500 dark:border-red-400' : 'border-border'
-                  } hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground appearance-none cursor-pointer transition-all`}
-                >
-                  <option value="">{isRTL ? 'اختر الفئة' : 'Select category'}</option>
-                  <option value="COOKING">
-                    {isRTL ? '🍳 طبخ' : '🍳 Cooking'}
-                  </option>
-                  <option value="ARTS_CRAFTS">
-                    {isRTL ? '🎨 فنون وحرف' : '🎨 Arts & Crafts'}
-                  </option>
-                </select>
-              </div>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleInputChange}
+                className={`${selectBase} ${
+                  errors.category ? 'border-red-500 dark:border-red-400' : ''
+                }`}
+              >
+                <option value="">{isRTL ? 'اختر الفئة' : 'Select category'}</option>
+                <option value="COOKING">
+                  {isRTL ? '🍳 طبخ' : '🍳 Cooking'}
+                </option>
+                <option value="ARTS_CRAFTS">
+                  {isRTL ? '🎨 فنون وحرف' : '🎨 Arts & Crafts'}
+                </option>
+              </select>
               {errors.category && (
                 <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
                   <IoAlertCircle />
@@ -559,7 +566,7 @@ export default function NewClassPage() {
 
             {/* Sub Category */}
             <div>
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'الفئة الفرعية' : 'Sub Category'}
                 <span className="text-red-500">*</span>
               </label>
@@ -568,9 +575,9 @@ export default function NewClassPage() {
                 value={formData.subCategory}
                 onChange={handleInputChange}
                 disabled={!formData.category}
-                className={`w-full px-4 py-3 bg-background border-2 ${
-                  errors.subCategory ? 'border-red-500 dark:border-red-400' : 'border-border'
-                } hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground appearance-none cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`${selectBase} ${
+                  errors.subCategory ? 'border-red-500 dark:border-red-400' : ''
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <option value="">{isRTL ? 'اختر الفئة الفرعية' : 'Select sub-category'}</option>
                 {formData.category === 'COOKING' && (
@@ -599,7 +606,7 @@ export default function NewClassPage() {
 
             {/* Trainer */}
             <div>
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'المدرب' : 'Trainer'}
                 <span className="text-red-500">*</span>
               </label>
@@ -607,9 +614,9 @@ export default function NewClassPage() {
                 name="trainerId"
                 value={formData.trainerId}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-3 bg-background border-2 ${
-                  errors.trainerId ? 'border-red-500 dark:border-red-400' : 'border-border'
-                } hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground appearance-none cursor-pointer transition-all`}
+                className={`${selectBase} ${
+                  errors.trainerId ? 'border-red-500 dark:border-red-400' : ''
+                }`}
               >
                 <option value="">{isRTL ? 'اختر المدرب' : 'Select trainer'}</option>
                 {trainers.map((trainer) => (
@@ -628,14 +635,14 @@ export default function NewClassPage() {
 
             {/* Status */}
             <div>
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'الحالة' : 'Status'}
               </label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-background border-2 border-border hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground appearance-none cursor-pointer transition-all"
+                className={selectBase}
               >
                 <option value="DRAFT">{isRTL ? '📝 مسودة' : '📝 Draft'}</option>
                 <option value="PUBLISHED">{isRTL ? '✅ منشور' : '✅ Published'}</option>
@@ -646,12 +653,12 @@ export default function NewClassPage() {
         </div>
 
         {/* Pricing & Capacity */}
-        <div className="mb-8 pb-8 border-b border-border">
-          <div className="flex items-center gap-3 mb-6">
+        <div className={sectionCard}>
+          <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-green-500/10 dark:bg-green-500/20 rounded-lg">
               <MdAttachMoney className="text-2xl text-green-600 dark:text-green-400" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {isRTL ? 'السعر والسعة' : 'Pricing & Capacity'}
             </h2>
           </div>
@@ -659,7 +666,7 @@ export default function NewClassPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Price */}
             <div>
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'السعر' : 'Price'}
                 <span className="text-red-500">*</span>
               </label>
@@ -671,9 +678,9 @@ export default function NewClassPage() {
                 min="0"
                 step="0.01"
                 placeholder="0.00"
-                className={`w-full px-4 py-3 bg-background border-2 ${
-                  errors.price ? 'border-red-500 dark:border-red-400' : 'border-border'
-                } hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground placeholder:text-muted-foreground transition-all`}
+                className={`${inputBase} ${
+                  errors.price ? 'border-red-500 dark:border-red-400' : ''
+                }`}
               />
               {errors.price && (
                 <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
@@ -685,14 +692,14 @@ export default function NewClassPage() {
 
             {/* Currency */}
             <div>
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'العملة' : 'Currency'}
               </label>
               <select
                 name="currency"
                 value={formData.currency}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-background border-2 border-border hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground appearance-none cursor-pointer transition-all"
+                className={selectBase}
               >
                 <option value="AED">AED</option>
                 <option value="USD">USD</option>
@@ -702,7 +709,7 @@ export default function NewClassPage() {
 
             {/* Total Seats */}
             <div>
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'عدد المقاعد' : 'Total Seats'}
                 <span className="text-red-500">*</span>
               </label>
@@ -713,9 +720,9 @@ export default function NewClassPage() {
                 onChange={handleInputChange}
                 min="1"
                 placeholder="e.g. 12"
-                className={`w-full px-4 py-3 bg-background border-2 ${
-                  errors.seatsTotal ? 'border-red-500 dark:border-red-400' : 'border-border'
-                } hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground placeholder:text-muted-foreground transition-all`}
+                className={`${inputBase} ${
+                  errors.seatsTotal ? 'border-red-500 dark:border-red-400' : ''
+                }`}
               />
               {errors.seatsTotal && (
                 <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
@@ -727,7 +734,7 @@ export default function NewClassPage() {
 
             {/* Duration */}
             <div className="md:col-span-3">
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'المدة (بالدقائق)' : 'Duration (minutes)'}
                 <span className="text-red-500">*</span>
               </label>
@@ -738,9 +745,9 @@ export default function NewClassPage() {
                 onChange={handleInputChange}
                 min="1"
                 placeholder="e.g. 120"
-                className={`w-full px-4 py-3 bg-background border-2 ${
-                  errors.durationMinutes ? 'border-red-500 dark:border-red-400' : 'border-border'
-                } hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground placeholder:text-muted-foreground transition-all`}
+                className={`${inputBase} ${
+                  errors.durationMinutes ? 'border-red-500 dark:border-red-400' : ''
+                }`}
               />
               {errors.durationMinutes && (
                 <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
@@ -753,19 +760,19 @@ export default function NewClassPage() {
         </div>
 
         {/* Images */}
-        <div className="mb-8 pb-8 border-b border-border">
-          <div className="flex items-center gap-3 mb-6">
+        <div className={sectionCard}>
+          <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-blue-500/10 dark:bg-blue-500/20 rounded-lg">
               <IoImage className="text-2xl text-blue-600 dark:text-blue-400" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {isRTL ? 'الصور' : 'Images'}
             </h2>
           </div>
 
           {/* Main Image */}
           <div className="mb-6">
-            <label className="block text-foreground font-medium mb-3">
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
               {isRTL ? 'الصورة الرئيسية' : 'Main Image'}
               <span className="text-red-500">*</span>
             </label>
@@ -777,7 +784,7 @@ export default function NewClassPage() {
                   alt="Main"
                   width={300}
                   height={200}
-                  className="rounded-xl border-2 border-border object-cover"
+                  className="rounded-lg border border-zinc-200 object-cover"
                 />
                 <button
                   type="button"
@@ -798,15 +805,17 @@ export default function NewClassPage() {
                 />
                 <label
                   htmlFor="main-image-upload"
-                  className={`flex flex-col items-center justify-center w-full h-48 border-2 border-dashed ${
-                    errors.image ? 'border-red-500 dark:border-red-400' : 'border-border'
-                  } hover:border-teal-500 dark:hover:border-teal-400 rounded-xl cursor-pointer transition-all bg-background`}
+                  className={`flex flex-col items-center justify-center w-full h-48 rounded-lg border border-dashed ${
+                    errors.image
+                      ? 'border-red-500 dark:border-red-400'
+                      : 'border-zinc-300 dark:border-zinc-700'
+                  } cursor-pointer bg-white transition hover:border-zinc-400 dark:bg-zinc-900 dark:hover:border-zinc-500`}
                 >
                   <IoCloudUpload className="text-5xl text-muted-foreground mb-2" />
-                  <p className="text-foreground font-medium">
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
                     {isRTL ? 'انقر لتحميل الصورة الرئيسية' : 'Click to upload main image'}
                   </p>
-                  <p className="text-muted-foreground text-sm mt-1">
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                     {isRTL ? 'الحد الأقصى 5 ميجابايت' : 'Max 5MB'}
                   </p>
                 </label>
@@ -822,7 +831,7 @@ export default function NewClassPage() {
 
           {/* Gallery Images */}
           <div>
-            <label className="block text-foreground font-medium mb-3">
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
               {isRTL ? 'صور إضافية (اختياري)' : 'Gallery Images (Optional)'}
             </label>
 
@@ -834,7 +843,7 @@ export default function NewClassPage() {
                     alt={`Gallery ${index + 1}`}
                     width={200}
                     height={150}
-                    className="rounded-xl border-2 border-border object-cover w-full h-32"
+                    className="rounded-lg border border-zinc-200 object-cover w-full h-32"
                   />
                   <button
                     type="button"
@@ -858,7 +867,7 @@ export default function NewClassPage() {
               />
               <label
                 htmlFor="gallery-images-upload"
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-background border-2 border-border hover:border-teal-500 dark:hover:border-teal-400 rounded-xl cursor-pointer transition-all text-foreground font-medium"
+                className="flex items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500"
               >
                 <IoCloudUpload className="text-xl" />
                 {isRTL ? 'إضافة صور' : 'Add Images'}
@@ -868,19 +877,19 @@ export default function NewClassPage() {
         </div>
 
         {/* SEO (Optional) */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-6">
+        <div className={sectionCard}>
+          <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-orange-500/10 dark:bg-orange-500/20 rounded-lg">
               <MdDescription className="text-2xl text-orange-600 dark:text-orange-400" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
               {isRTL ? 'تحسين محركات البحث (اختياري)' : 'SEO (Optional)'}
             </h2>
           </div>
 
           <div className="grid grid-cols-1 gap-6">
             <div>
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'عنوان الميتا' : 'Meta Title'}
               </label>
               <input
@@ -889,12 +898,12 @@ export default function NewClassPage() {
                 value={formData.metaTitle}
                 onChange={handleInputChange}
                 placeholder={isRTL ? 'يترك فارغاً لاستخدام العنوان' : 'Leave blank to use title'}
-                className="w-full px-4 py-3 bg-background border-2 border-border hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground placeholder:text-muted-foreground transition-all"
+                className={inputBase}
               />
             </div>
 
             <div>
-              <label className="block text-foreground font-medium mb-2">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'وصف الميتا' : 'Meta Description'}
               </label>
               <textarea
@@ -903,25 +912,25 @@ export default function NewClassPage() {
                 onChange={handleInputChange}
                 rows={3}
                 placeholder={isRTL ? 'يترك فارغاً لاستخدام الوصف' : 'Leave blank to use description'}
-                className="w-full px-4 py-3 bg-background border-2 border-border hover:border-border/80 focus:border-teal-500 dark:focus:border-teal-400 focus:ring-2 focus:ring-teal-500/20 rounded-xl shadow-sm text-foreground placeholder:text-muted-foreground transition-all resize-none"
+                className={textareaBase}
               />
             </div>
           </div>
         </div>
 
         {/* Submit Buttons */}
-        <div className="flex items-center justify-end gap-4 pt-6">
+        <div className="flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-6 py-3 border-2 border-border text-foreground hover:bg-accent rounded-xl font-medium transition-colors"
+            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             {isRTL ? 'إلغاء' : 'Cancel'}
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="px-8 py-3 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
           >
             {saving ? (
               <>
