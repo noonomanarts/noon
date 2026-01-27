@@ -514,6 +514,7 @@ export default function BirthdayPartyBookingPage() {
             )}
           </div>
         )}
+        </div>
       </div>
     </div>
   );
