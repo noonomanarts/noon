@@ -38,6 +38,7 @@ export default async function Header({ locale }: { locale: Locale }) {
   const user = sessionId ? await getUserById(sessionId) : null;
 
   const t = {
+    about: locale === "ar" ? "من نحن" : "About",
     classes: locale === "ar" ? "دورات" : "Classes",
     cooking: locale === "ar" ? "دورات الطبخ" : "Cooking classes",
     arts: locale === "ar" ? "الفنون والأشغال" : "Arts & crafts classes",
@@ -77,6 +78,7 @@ export default async function Header({ locale }: { locale: Locale }) {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+          <NavLink href={`/${locale}/about`}>{t.about}</NavLink>
           <Dropdown label={t.classes}>
             <NavLink href={`/${locale}/classes/cooking`}>{t.cooking}</NavLink>
             <NavLink href={`/${locale}/classes/arts-crafts`}>{t.arts}</NavLink>
@@ -146,6 +148,7 @@ export default async function Header({ locale }: { locale: Locale }) {
 
           <div className="md:hidden">
             <Dropdown label={locale === "ar" ? "القائمة" : "Menu"} align="end">
+              <NavLink href={`/${locale}/about`}>{t.about}</NavLink>
               <NavLink href={`/${locale}/classes/cooking`}>{t.cooking}</NavLink>
               <NavLink href={`/${locale}/classes/arts-crafts`}>{t.arts}</NavLink>
               <NavLink href={`/${locale}/shop`}>{t.shop}</NavLink>

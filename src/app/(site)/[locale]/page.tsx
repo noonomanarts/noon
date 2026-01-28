@@ -5,6 +5,7 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { getHomeContent } from "@/lib/homeContent";
 import HeroAnimation from "@/components/site/HeroAnimation";
 import AnimatedCounter from "@/components/site/AnimatedCounter";
+import BubblesAnimation from "@/components/site/BubblesAnimation";
 
 function Section({
   title,
@@ -55,7 +56,10 @@ export default async function HomePage({
           <div className="absolute inset-0 bg-gradient-to-b from-[#f9f1e6]/95 via-[#f7edde]/98 to-[#f3e7d4] dark:from-[#060606]/90 dark:via-[#050505]/95 dark:to-[#040404]" />
         </div>
 
-        <div className="relative">
+        {/* Bubbles Animation */}
+        <BubblesAnimation count={25} className="z-0" />
+
+        <div className="relative z-10">
           <div className="mx-auto w-full max-w-5xl px-4 py-16">
             <div className="flex flex-col items-center gap-8 text-center">
               <HeroAnimation
