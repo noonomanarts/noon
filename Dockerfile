@@ -4,8 +4,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-cert
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm directly via npm (avoids corepack network issues)
+RUN npm install -g pnpm@9
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
@@ -15,8 +15,8 @@ RUN pnpm install --frozen-lockfile
 FROM node:20-bullseye-slim AS builder
 WORKDIR /app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm directly via npm
+RUN npm install -g pnpm@9
 
 # Copy dependencies and source
 COPY --from=deps /app/node_modules ./node_modules
