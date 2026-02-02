@@ -1,9 +1,8 @@
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install pnpm via npm (avoids corepack network issues)
+# Install pnpm via npm
 RUN npm install -g pnpm
 
 # Copy package files
