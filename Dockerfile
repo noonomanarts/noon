@@ -1,10 +1,10 @@
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install pnpm directly via npm
-RUN npm install -g pnpm@9
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
@@ -12,11 +12,10 @@ RUN pnpm install --frozen-lockfile
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
-RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
-# Install pnpm directly via npm
-RUN npm install -g pnpm@9
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy dependencies and source
 COPY --from=deps /app/node_modules ./node_modules
@@ -36,7 +35,6 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_VAPID_PUBLIC_KEY=$NEXT_PUBLIC_VAPID_PUBLIC_KEY
 
 # Generate Prisma client and build the application
-ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x
 RUN pnpm db:generate
 RUN pnpm build
 
@@ -47,7 +45,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN apk add --no-cache libc6-compat openssl
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -62,8 +59,8 @@ COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 COPY --from=builder /app/scripts/migrate-and-start.sh ./scripts/migrate-and-start.sh
 
 # Create directories for persistent data (will be mounted as volumes)
-RUN mkdir -p /app/public/uploads /app/data /app/logs /app/backups \
-    && chown -R nextjs:nodejs /app/public/uploads /app/data /app/logs /app/backups
+RUN mkdir -p /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache \
+    && chown -R nextjs:nodejs /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache
 
 RUN chmod +x /app/scripts/migrate-and-start.sh
 
