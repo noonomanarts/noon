@@ -26,6 +26,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
       args:
         NEXT_PUBLIC_APP_URL: https://noonomanarts.com
         NEXT_PUBLIC_API_URL: https://noonomanarts.com

@@ -1,13 +1,10 @@
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat curl
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install pnpm using standalone installer
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN curl -fsSL https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - || \
-    npm install -g pnpm@9
+# Install pnpm globally
+RUN npm install -g pnpm@9
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
@@ -17,11 +14,10 @@ RUN pnpm install --frozen-lockfile
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Install pnpm using standalone installer
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN curl -fsSL https://get.pnpm.io/install.sh | ENV="$HOME/.shrc" SHELL="$(which sh)" sh - || \
-    npm install -g pnpm@9
+# Copy pnpm from deps stage
+COPY --from=deps /usr/local/lib/node_modules/pnpm /usr/local/lib/node_modules/pnpm
+COPY --from=deps /usr/local/bin/pnpm /usr/local/bin/pnpm
+COPY --from=deps /usr/local/bin/pnpx /usr/local/bin/pnpx
 
 # Copy dependencies and source
 COPY --from=deps /app/node_modules ./node_modules
