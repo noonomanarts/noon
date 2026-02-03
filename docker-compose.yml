@@ -26,7 +26,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      network: host
       args:
         NEXT_PUBLIC_APP_URL: https://noonomanarts.com
         NEXT_PUBLIC_API_URL: https://noonomanarts.com
@@ -114,4 +113,4 @@ volumes:
     name: noon-logs-data
   backups-data:
     driver: local
-    name: noon-backups-data
+    name: dna-backups-data
