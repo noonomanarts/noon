@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { findUniqueClass, findClassSessions, createClassSession } from '@/lib/db/classes';
+import { createCalendarEvent } from '@/lib/db/events';
+import { query } from '@/lib/db/pool';
 
 type Params = {
   params: Promise<{ classId: string }>;
@@ -9,22 +11,39 @@ type Params = {
 export async function GET(request: NextRequest, props: Params) {
   const params = await props.params;
   try {
-    const sessions = await prisma.classSession.findMany({
-      where: { classId: params.classId },
-      include: {
-        bookings: {
-          select: {
-            id: true,
-            status: true,
-            numberOfParticipants: true,
-          },
-        },
-        calendarEvent: true,
-      },
-      orderBy: { startDateTime: 'asc' },
-    });
+    const sessions = await findClassSessions(params.classId, { includeCancelled: true });
 
-    return NextResponse.json(sessions);
+    // Get bookings and calendar events for each session
+    const sessionsWithDetails = await Promise.all(
+      sessions.map(async (session) => {
+        const bookingsResult = await query(
+          `SELECT id, status, number_of_participants FROM bookings WHERE session_id = $1`,
+          [session.id]
+        );
+
+        const calendarResult = await query(
+          `SELECT * FROM calendar_events WHERE class_session_id = $1`,
+          [session.id]
+        );
+
+        return {
+          ...session,
+          bookings: bookingsResult.rows.map(b => ({
+            id: b.id,
+            status: b.status,
+            numberOfParticipants: b.number_of_participants,
+          })),
+          calendarEvent: calendarResult.rows[0] ? {
+            id: calendarResult.rows[0].id,
+            type: calendarResult.rows[0].type,
+            startDateTime: calendarResult.rows[0].start_date_time,
+            endDateTime: calendarResult.rows[0].end_date_time,
+          } : null,
+        };
+      })
+    );
+
+    return NextResponse.json(sessionsWithDetails);
   } catch (error) {
     console.error('Error fetching sessions:', error);
     return NextResponse.json(
@@ -42,9 +61,7 @@ export async function POST(request: NextRequest, props: Params) {
     const { startDateTime, endDateTime, seatsTotal } = body;
 
     // Verify class exists
-    const classData = await prisma.class.findUnique({
-      where: { id: params.classId },
-    });
+    const classData = await findUniqueClass({ id: params.classId });
 
     if (!classData) {
       return NextResponse.json({ error: 'Class not found' }, { status: 404 });
@@ -54,28 +71,24 @@ export async function POST(request: NextRequest, props: Params) {
     const start = new Date(startDateTime);
     const end = endDateTime
       ? new Date(endDateTime)
-      : new Date(start.getTime() + classData.durationMinutes * 60000);
+      : new Date(start.getTime() + (classData.durationMinutes as number) * 60000);
 
     // Create session
-    const session = await prisma.classSession.create({
-      data: {
-        classId: params.classId,
-        startDateTime: start,
-        endDateTime: end,
-        seatsTotal: seatsTotal || classData.seatsTotal,
-      },
+    const session = await createClassSession({
+      classId: params.classId,
+      startDateTime: start,
+      endDateTime: end,
+      seatsTotal: seatsTotal || (classData.seatsTotal as number),
     });
 
     // Create calendar event
-    await prisma.calendarEvent.create({
-      data: {
-        type: 'CLASS',
-        startDateTime: start,
-        endDateTime: end,
-        title: classData.title,
-        description: classData.description,
-        classSessionId: session.id,
-      },
+    await createCalendarEvent({
+      type: 'CLASS',
+      startDateTime: start,
+      endDateTime: end,
+      title: classData.title as string,
+      description: classData.description as string,
+      classSessionId: session.id as string,
     });
 
     // If cooking class, add 3-hour cleaning block
@@ -83,15 +96,13 @@ export async function POST(request: NextRequest, props: Params) {
       const cleaningStart = new Date(end);
       const cleaningEnd = new Date(cleaningStart.getTime() + 3 * 60 * 60000);
 
-      await prisma.calendarEvent.create({
-        data: {
-          type: 'CLEANING',
-          startDateTime: cleaningStart,
-          endDateTime: cleaningEnd,
-          title: 'Cleaning - ' + classData.title,
-          isBlocked: true,
-          blockReason: 'Post-cooking class cleaning',
-        },
+      await createCalendarEvent({
+        type: 'CLEANING',
+        startDateTime: cleaningStart,
+        endDateTime: cleaningEnd,
+        title: 'Cleaning - ' + classData.title,
+        isBlocked: true,
+        blockReason: 'Post-cooking class cleaning',
       });
     }
 

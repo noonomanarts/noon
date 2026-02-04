@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { updateClass } from '@/lib/db/classes';
 
 export async function PATCH(
   request: Request,
@@ -10,17 +10,21 @@ export async function PATCH(
     const body = await request.json();
     const { status } = body;
 
-    if (!['PUBLISHED', 'DRAFT', 'ARCHIVED'].includes(status)) {
+    if (!['PUBLISHED', 'DRAFT', 'ARCHIVED', 'CANCELLED', 'COMPLETED'].includes(status)) {
       return NextResponse.json(
         { error: 'Invalid status' },
         { status: 400 }
       );
     }
 
-    const updatedClass = await prisma.class.update({
-      where: { id: classId },
-      data: { status },
-    });
+    const updatedClass = await updateClass(classId, { status });
+
+    if (!updatedClass) {
+      return NextResponse.json(
+        { error: 'Class not found' },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json(updatedClass);
   } catch (error) {

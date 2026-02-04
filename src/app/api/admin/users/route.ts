@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getUserById, getAllUsers, createUser } from "@/lib/db/users";
-import type { UserRole, UserStatus } from "@/generated/prisma";
+import type { UserRole, UserStatus } from "@/lib/db/types";
 
 const mapRole = (value: string | null): UserRole | undefined => {
   if (!value) return undefined;
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(newUser, { status: 201 });
+    return NextResponse.json({ user: newUser }, { status: 201 });
   } catch (error) {
     console.error("Error creating user:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

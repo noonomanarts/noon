@@ -3,12 +3,12 @@
  */
 import { cookies } from "next/headers";
 import { getUserById } from "@/lib/db/users";
-import type { PublicUser } from "@/lib/db/users";
+import type { UserPublic } from "@/lib/db/users";
 
 /**
  * Get the current logged-in user from session
  */
-export async function getCurrentUser(): Promise<PublicUser | null> {
+export async function getCurrentUser(): Promise<UserPublic | null> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get("noon_session")?.value;
 
@@ -22,7 +22,7 @@ export async function getCurrentUser(): Promise<PublicUser | null> {
 /**
  * Require a logged-in user, redirect to login if not authenticated
  */
-export async function requireAuth(locale: string = "en"): Promise<PublicUser> {
+export async function requireAuth(locale: string = "en"): Promise<UserPublic> {
   const user = await getCurrentUser();
   
   if (!user) {
@@ -31,13 +31,13 @@ export async function requireAuth(locale: string = "en"): Promise<PublicUser> {
   }
 
   // TypeScript doesn't know that redirect() never returns
-  return user as PublicUser;
+  return user as UserPublic;
 }
 
 /**
  * Require admin role, redirect if not admin
  */
-export async function requireAdmin(locale: string = "en"): Promise<PublicUser> {
+export async function requireAdmin(locale: string = "en"): Promise<UserPublic> {
   const user = await requireAuth(locale);
   
   if (user.role !== "ADMIN") {
@@ -46,7 +46,7 @@ export async function requireAdmin(locale: string = "en"): Promise<PublicUser> {
   }
 
   // TypeScript doesn't know that redirect() never returns
-  return user as PublicUser;
+  return user as UserPublic;
 }
 
 /**

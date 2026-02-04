@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { findManyClassesPaginated, createClass, findUniqueClass } from '@/lib/db/classes';
+import { verifyTrainer } from '@/lib/db/trainers';
+import { query } from '@/lib/db/pool';
 
 // GET: List all classes
 export async function GET(request: NextRequest) {
@@ -11,46 +13,59 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Record<string, string> = {};
     if (category) where.category = category;
     if (status) where.status = status;
 
-    const [classes, total] = await Promise.all([
-      prisma.class.findMany({
-        where,
-        include: {
-          trainer: {
-            select: {
-              id: true,
-              fullName: true,
-              profileImage: true,
-            },
-          },
-          sessions: {
-            where: {
-              startDateTime: { gte: new Date() },
-              isCancelled: false,
-            },
-            orderBy: { startDateTime: 'asc' },
-            take: 5,
-          },
+    const { classes, total } = await findManyClassesPaginated({
+      where: where as { category?: 'COOKING' | 'ARTS_CRAFTS'; status?: 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED' },
+      include: { trainer: true, sessions: true },
+      orderBy: { created_at: 'desc' },
+      skip,
+      take: limit,
+    });
+
+    // For each class, get sessions and counts
+    const classesWithDetails = await Promise.all(
+      classes.map(async (cls) => {
+        // Get upcoming sessions
+        const sessionsResult = await query(
+          `SELECT * FROM class_sessions 
+           WHERE class_id = $1 AND start_date_time >= $2 AND is_cancelled = false
+           ORDER BY start_date_time ASC LIMIT 5`,
+          [cls.id, new Date()]
+        );
+
+        // Get counts
+        const countsResult = await query(
+          `SELECT 
+            (SELECT COUNT(*)::int FROM bookings WHERE class_id = $1) as bookings_count,
+            (SELECT COUNT(*)::int FROM reviews WHERE class_id = $1) as reviews_count,
+            (SELECT COUNT(*)::int FROM class_sessions WHERE class_id = $1) as sessions_count`,
+          [cls.id]
+        );
+
+        return {
+          ...cls,
+          sessions: sessionsResult.rows.map(s => ({
+            id: s.id,
+            startDateTime: s.start_date_time,
+            endDateTime: s.end_date_time,
+            seatsTotal: s.seats_total,
+            seatsBooked: s.seats_booked,
+            isCancelled: s.is_cancelled,
+          })),
           _count: {
-            select: {
-              bookings: true,
-              reviews: true,
-              sessions: true,
-            },
+            bookings: countsResult.rows[0]?.bookings_count ?? 0,
+            reviews: countsResult.rows[0]?.reviews_count ?? 0,
+            sessions: countsResult.rows[0]?.sessions_count ?? 0,
           },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      prisma.class.count({ where }),
-    ]);
+        };
+      })
+    );
 
     return NextResponse.json({
-      classes,
+      classes: classesWithDetails,
       pagination: {
         total,
         page,
@@ -167,9 +182,7 @@ export async function POST(request: NextRequest) {
       .replace(/(^-|-$)/g, '');
 
     // Check if slug already exists
-    const existingClass = await prisma.class.findUnique({
-      where: { slug },
-    });
+    const existingClass = await findUniqueClass({ slug });
 
     if (existingClass) {
       return NextResponse.json(
@@ -179,50 +192,49 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify trainer exists
-    const trainer = await prisma.user.findFirst({
-      where: { id: trainerId, role: 'TRAINER' },
-    });
+    const isTrainer = await verifyTrainer(trainerId);
 
-    if (!trainer) {
+    if (!isTrainer) {
       return NextResponse.json(
         { error: 'Invalid trainer ID' },
         { status: 400 }
       );
     }
 
-    const newClass = await prisma.class.create({
-      data: {
-        slug,
-        title,
-        titleAr,
-        description,
-        descriptionAr,
-        category,
-        subCategory,
-        trainerId,
-        price,
-        seatsTotal,
-        seatsAvailable: seatsTotal,
-        durationMinutes,
-        image,
-        images: images || [],
-        status: status || 'DRAFT',
-        currency: currency || undefined,
-        metaTitle,
-        metaDescription,
-      },
-      include: {
-        trainer: {
-          select: {
-            id: true,
-            fullName: true,
-            profileImage: true,
-          },
-        },
-      },
+    const newClass = await createClass({
+      slug,
+      title,
+      titleAr,
+      description,
+      descriptionAr,
+      category,
+      subCategory,
+      trainerId,
+      price,
+      seatsTotal,
+      durationMinutes,
+      image,
+      images: images || [],
+      status: status || 'DRAFT',
+      currency: currency || 'OMR',
+      metaTitle,
+      metaDescription,
     });
 
-    return NextResponse.json(newClass, { status: 201 });
+    // Get trainer info
+    const trainerResult = await query(
+      `SELECT id, full_name, profile_image FROM users WHERE id = $1`,
+      [trainerId]
+    );
+
+    return NextResponse.json({
+      ...newClass,
+      trainer: trainerResult.rows[0] ? {
+        id: trainerResult.rows[0].id,
+        fullName: trainerResult.rows[0].full_name,
+        profileImage: trainerResult.rows[0].profile_image,
+      } : null,
+    }, { status: 201 });
   } catch (error) {
     console.error('Error creating class:', error);
     const message =

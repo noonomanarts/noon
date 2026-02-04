@@ -1,0 +1,593 @@
+/**
+ * Database queries for events and calendar
+ */
+import { query, transaction } from "./pool";
+import type { EventType, EventStatus, PackageType, PaymentStatus, CalendarEventType } from "./types";
+
+// Helper to generate CUID-like IDs
+function generateId(): string {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 15);
+  return `c${timestamp}${randomPart}`;
+}
+
+/**
+ * Find many event bookings
+ */
+export async function findManyEventBookings(options: {
+  where?: {
+    eventType?: EventType;
+    status?: EventStatus;
+    userId?: string;
+  };
+  orderBy?: { [key: string]: 'asc' | 'desc' };
+  skip?: number;
+  take?: number;
+}): Promise<{ events: Record<string, unknown>[]; total: number }> {
+  const conditions: string[] = [];
+  const values: unknown[] = [];
+  let paramIndex = 1;
+
+  if (options.where?.eventType) {
+    conditions.push(`e.event_type = $${paramIndex++}`);
+    values.push(options.where.eventType);
+  }
+  if (options.where?.status) {
+    conditions.push(`e.status = $${paramIndex++}`);
+    values.push(options.where.status);
+  }
+  if (options.where?.userId) {
+    conditions.push(`e.user_id = $${paramIndex++}`);
+    values.push(options.where.userId);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  // Count total
+  const countResult = await query(
+    `SELECT COUNT(*)::int as count FROM event_bookings e ${whereClause}`,
+    values
+  );
+  const total = countResult.rows[0]?.count ?? 0;
+
+  // Build main query
+  let sql = `
+    SELECT e.*,
+           u.id as user_id, u.full_name as user_full_name, u.email as user_email, u.phone_number as user_phone
+    FROM event_bookings e
+    LEFT JOIN users u ON e.user_id = u.id
+    ${whereClause}
+  `;
+
+  // Order by
+  const orderBy = options.orderBy || { created_at: 'desc' };
+  const orderParts = Object.entries(orderBy).map(([key, dir]) => `e.${key} ${dir.toUpperCase()}`);
+  sql += ` ORDER BY ${orderParts.join(', ')}`;
+
+  // Pagination
+  if (options.take) {
+    sql += ` LIMIT $${paramIndex++}`;
+    values.push(options.take);
+  }
+  if (options.skip) {
+    sql += ` OFFSET $${paramIndex++}`;
+    values.push(options.skip);
+  }
+
+  const result = await query(sql, values);
+
+  const events = result.rows.map(row => ({
+    id: row.id,
+    bookingNumber: row.booking_number,
+    userId: row.user_id,
+    eventType: row.event_type,
+    selectedDate: row.selected_date,
+    selectedTime: row.selected_time,
+    packageType: row.package_type,
+    numberOfParticipants: row.number_of_participants,
+    numberOfGroups: row.number_of_groups,
+    gifts: row.gifts,
+    fullName: row.full_name,
+    email: row.email,
+    phoneNumber: row.phone_number,
+    companyOrGroupName: row.company_or_group_name,
+    preferredDish: row.preferred_dish,
+    specialRequests: row.special_requests,
+    status: row.status,
+    clientConfirmed: row.client_confirmed,
+    clientConfirmedAt: row.client_confirmed_at,
+    digitalSignature: row.digital_signature,
+    agreementAccepted: row.agreement_accepted,
+    totalAmount: row.total_amount ? parseFloat(row.total_amount) : null,
+    currency: row.currency,
+    paymentMethod: row.payment_method,
+    paymentStatus: row.payment_status,
+    paidAt: row.paid_at,
+    paymentProof: row.payment_proof,
+    adminNotes: row.admin_notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    user: row.user_id ? {
+      id: row.user_id,
+      fullName: row.user_full_name,
+      email: row.user_email,
+      phoneNumber: row.user_phone,
+    } : null,
+  }));
+
+  return { events, total };
+}
+
+/**
+ * Find unique event booking
+ */
+export async function findUniqueEventBooking(
+  where: { id?: string; bookingNumber?: string }
+): Promise<Record<string, unknown> | null> {
+  const conditions: string[] = [];
+  const values: unknown[] = [];
+  let paramIndex = 1;
+
+  if (where.id) {
+    conditions.push(`e.id = $${paramIndex++}`);
+    values.push(where.id);
+  }
+  if (where.bookingNumber) {
+    conditions.push(`e.booking_number = $${paramIndex++}`);
+    values.push(where.bookingNumber);
+  }
+
+  if (conditions.length === 0) return null;
+
+  const result = await query(
+    `SELECT e.*,
+            u.id as user_id, u.full_name as user_full_name, u.email as user_email, u.phone_number as user_phone
+     FROM event_bookings e
+     LEFT JOIN users u ON e.user_id = u.id
+     WHERE ${conditions.join(' AND ')}`,
+    values
+  );
+
+  if (result.rows.length === 0) return null;
+
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    bookingNumber: row.booking_number,
+    userId: row.user_id,
+    eventType: row.event_type,
+    selectedDate: row.selected_date,
+    selectedTime: row.selected_time,
+    packageType: row.package_type,
+    numberOfParticipants: row.number_of_participants,
+    numberOfGroups: row.number_of_groups,
+    gifts: row.gifts,
+    fullName: row.full_name,
+    email: row.email,
+    phoneNumber: row.phone_number,
+    companyOrGroupName: row.company_or_group_name,
+    preferredDish: row.preferred_dish,
+    specialRequests: row.special_requests,
+    status: row.status,
+    clientConfirmed: row.client_confirmed,
+    clientConfirmedAt: row.client_confirmed_at,
+    digitalSignature: row.digital_signature,
+    agreementAccepted: row.agreement_accepted,
+    totalAmount: row.total_amount ? parseFloat(row.total_amount) : null,
+    currency: row.currency,
+    paymentMethod: row.payment_method,
+    paymentStatus: row.payment_status,
+    paidAt: row.paid_at,
+    paymentProof: row.payment_proof,
+    adminNotes: row.admin_notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    user: row.user_id ? {
+      id: row.user_id,
+      fullName: row.user_full_name,
+      email: row.user_email,
+      phoneNumber: row.user_phone,
+    } : null,
+  };
+}
+
+/**
+ * Create event booking
+ */
+export async function createEventBooking(data: {
+  userId: string;
+  eventType: EventType;
+  selectedDate: Date;
+  selectedTime: string;
+  packageType?: PackageType;
+  numberOfParticipants: number;
+  numberOfGroups?: number;
+  gifts?: Record<string, unknown>;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  companyOrGroupName?: string;
+  preferredDish?: string;
+  specialRequests?: string;
+  totalAmount?: number;
+}): Promise<Record<string, unknown>> {
+  const id = generateId();
+  const now = new Date();
+  
+  // Generate booking number
+  const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
+  const countResult = await query(`SELECT COUNT(*)::int as count FROM event_bookings`);
+  const count = countResult.rows[0]?.count ?? 0;
+  const bookingNumber = `EVT-${dateStr}-${String(count + 1).padStart(4, '0')}`;
+
+  const result = await query(
+    `INSERT INTO event_bookings (
+      id, booking_number, user_id, event_type, selected_date, selected_time,
+      package_type, number_of_participants, number_of_groups, gifts,
+      full_name, email, phone_number, company_or_group_name, preferred_dish,
+      special_requests, status, total_amount, currency, payment_status,
+      created_at, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+    RETURNING *`,
+    [
+      id,
+      bookingNumber,
+      data.userId,
+      data.eventType,
+      data.selectedDate,
+      data.selectedTime,
+      data.packageType || null,
+      data.numberOfParticipants,
+      data.numberOfGroups || null,
+      data.gifts ? JSON.stringify(data.gifts) : null,
+      data.fullName,
+      data.email,
+      data.phoneNumber,
+      data.companyOrGroupName || null,
+      data.preferredDish || null,
+      data.specialRequests || null,
+      'NEW',
+      data.totalAmount || null,
+      'OMR',
+      'PENDING',
+      now,
+      now,
+    ]
+  );
+
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    bookingNumber: row.booking_number,
+    userId: row.user_id,
+    eventType: row.event_type,
+    selectedDate: row.selected_date,
+    selectedTime: row.selected_time,
+    status: row.status,
+    createdAt: row.created_at,
+  };
+}
+
+/**
+ * Update event booking
+ */
+export async function updateEventBooking(
+  id: string,
+  data: Partial<{
+    status: EventStatus;
+    packageType: PackageType;
+    numberOfParticipants: number;
+    numberOfGroups: number;
+    gifts: Record<string, unknown>;
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    companyOrGroupName: string;
+    preferredDish: string;
+    specialRequests: string;
+    clientConfirmed: boolean;
+    clientConfirmedAt: Date;
+    digitalSignature: string;
+    agreementAccepted: boolean;
+    totalAmount: number;
+    paymentMethod: string;
+    paymentStatus: PaymentStatus;
+    paidAt: Date;
+    paymentProof: string;
+    adminNotes: string;
+  }>
+): Promise<Record<string, unknown> | null> {
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  let paramIndex = 1;
+
+  const fieldMap: Record<string, string> = {
+    status: 'status',
+    packageType: 'package_type',
+    numberOfParticipants: 'number_of_participants',
+    numberOfGroups: 'number_of_groups',
+    gifts: 'gifts',
+    fullName: 'full_name',
+    email: 'email',
+    phoneNumber: 'phone_number',
+    companyOrGroupName: 'company_or_group_name',
+    preferredDish: 'preferred_dish',
+    specialRequests: 'special_requests',
+    clientConfirmed: 'client_confirmed',
+    clientConfirmedAt: 'client_confirmed_at',
+    digitalSignature: 'digital_signature',
+    agreementAccepted: 'agreement_accepted',
+    totalAmount: 'total_amount',
+    paymentMethod: 'payment_method',
+    paymentStatus: 'payment_status',
+    paidAt: 'paid_at',
+    paymentProof: 'payment_proof',
+    adminNotes: 'admin_notes',
+  };
+
+  for (const [key, dbField] of Object.entries(fieldMap)) {
+    const value = (data as Record<string, unknown>)[key];
+    if (value !== undefined) {
+      updates.push(`${dbField} = $${paramIndex++}`);
+      values.push(key === 'gifts' ? JSON.stringify(value) : value);
+    }
+  }
+
+  if (updates.length === 0) {
+    return await findUniqueEventBooking({ id });
+  }
+
+  updates.push(`updated_at = $${paramIndex++}`);
+  values.push(new Date());
+  values.push(id);
+
+  const result = await query(
+    `UPDATE event_bookings SET ${updates.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+    values
+  );
+
+  if (result.rows.length === 0) return null;
+
+  return await findUniqueEventBooking({ id });
+}
+
+/**
+ * Delete event booking
+ */
+export async function deleteEventBooking(id: string): Promise<boolean> {
+  const result = await query(`DELETE FROM event_bookings WHERE id = $1`, [id]);
+  return (result.rowCount ?? 0) > 0;
+}
+
+/**
+ * Count event bookings
+ */
+export async function countEventBookings(): Promise<number> {
+  const result = await query(`SELECT COUNT(*)::int as count FROM event_bookings`);
+  return result.rows[0]?.count ?? 0;
+}
+
+// ==================== Calendar Events ====================
+
+/**
+ * Find calendar events
+ */
+export async function findCalendarEvents(options?: {
+  startDate?: Date;
+  endDate?: Date;
+  type?: CalendarEventType;
+}): Promise<Record<string, unknown>[]> {
+  const conditions: string[] = [];
+  const values: unknown[] = [];
+  let paramIndex = 1;
+
+  if (options?.startDate && options?.endDate) {
+    conditions.push(`start_date_time >= $${paramIndex++}`);
+    values.push(options.startDate);
+    conditions.push(`start_date_time <= $${paramIndex++}`);
+    values.push(options.endDate);
+  }
+
+  if (options?.type) {
+    conditions.push(`type = $${paramIndex++}`);
+    values.push(options.type);
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const result = await query(
+    `SELECT ce.*,
+            cs.id as session_id,
+            c.id as class_id, c.title as class_title, c.category as class_category,
+            t.id as trainer_id, t.full_name as trainer_full_name,
+            eb.id as event_booking_id, eb.booking_number, eb.event_type, eb.full_name as event_full_name, eb.status as event_status
+     FROM calendar_events ce
+     LEFT JOIN class_sessions cs ON ce.class_session_id = cs.id
+     LEFT JOIN classes c ON cs.class_id = c.id
+     LEFT JOIN users t ON c.trainer_id = t.id
+     LEFT JOIN event_bookings eb ON ce.event_booking_id = eb.id
+     ${whereClause}
+     ORDER BY ce.start_date_time ASC`,
+    values
+  );
+
+  return result.rows.map(row => ({
+    id: row.id,
+    type: row.type,
+    startDateTime: row.start_date_time,
+    endDateTime: row.end_date_time,
+    title: row.title,
+    description: row.description,
+    classSessionId: row.class_session_id,
+    eventBookingId: row.event_booking_id,
+    isBlocked: row.is_blocked,
+    blockReason: row.block_reason,
+    internalNotes: row.internal_notes,
+    visibleToTrainers: row.visible_to_trainers,
+    visibleTrainerIds: row.visible_trainer_ids || [],
+    color: row.color,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    classSession: row.session_id ? {
+      id: row.session_id,
+      class: row.class_id ? {
+        id: row.class_id,
+        title: row.class_title,
+        category: row.class_category,
+        trainer: row.trainer_id ? {
+          id: row.trainer_id,
+          fullName: row.trainer_full_name,
+        } : null,
+      } : null,
+    } : null,
+    eventBooking: row.event_booking_id ? {
+      id: row.event_booking_id,
+      bookingNumber: row.booking_number,
+      eventType: row.event_type,
+      fullName: row.event_full_name,
+      status: row.event_status,
+    } : null,
+  }));
+}
+
+/**
+ * Create calendar event
+ */
+export async function createCalendarEvent(data: {
+  type: CalendarEventType;
+  startDateTime: Date;
+  endDateTime: Date;
+  title: string;
+  description?: string;
+  classSessionId?: string;
+  eventBookingId?: string;
+  isBlocked?: boolean;
+  blockReason?: string;
+  internalNotes?: string;
+  visibleToTrainers?: boolean;
+  visibleTrainerIds?: string[];
+  color?: string;
+}): Promise<Record<string, unknown>> {
+  const id = generateId();
+  const now = new Date();
+
+  const result = await query(
+    `INSERT INTO calendar_events (
+      id, type, start_date_time, end_date_time, title, description,
+      class_session_id, event_booking_id, is_blocked, block_reason,
+      internal_notes, visible_to_trainers, visible_trainer_ids, color,
+      created_at, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+    RETURNING *`,
+    [
+      id,
+      data.type,
+      data.startDateTime,
+      data.endDateTime,
+      data.title,
+      data.description || null,
+      data.classSessionId || null,
+      data.eventBookingId || null,
+      data.isBlocked || false,
+      data.blockReason || null,
+      data.internalNotes || null,
+      data.visibleToTrainers || false,
+      data.visibleTrainerIds || [],
+      data.color || null,
+      now,
+      now,
+    ]
+  );
+
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    type: row.type,
+    startDateTime: row.start_date_time,
+    endDateTime: row.end_date_time,
+    title: row.title,
+    description: row.description,
+    isBlocked: row.is_blocked,
+    blockReason: row.block_reason,
+    createdAt: row.created_at,
+  };
+}
+
+// ==================== Wallet Operations ====================
+
+/**
+ * Get or create wallet for user
+ */
+export async function getOrCreateWallet(userId: string): Promise<Record<string, unknown>> {
+  // Try to find existing wallet
+  let result = await query(
+    `SELECT * FROM wallets WHERE user_id = $1`,
+    [userId]
+  );
+
+  if (result.rows.length === 0) {
+    // Create new wallet
+    const id = generateId();
+    const now = new Date();
+    result = await query(
+      `INSERT INTO wallets (id, user_id, balance, currency, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [id, userId, 0, 'OMR', now, now]
+    );
+  }
+
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    userId: row.user_id,
+    balance: parseFloat(row.balance),
+    currency: row.currency,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/**
+ * Add credit to wallet
+ */
+export async function addWalletCredit(
+  userId: string,
+  amount: number,
+  reason: string
+): Promise<void> {
+  await transaction(async (client) => {
+    // Get or create wallet
+    let walletResult = await client.query(
+      `SELECT * FROM wallets WHERE user_id = $1`,
+      [userId]
+    );
+
+    if (walletResult.rows.length === 0) {
+      const walletId = generateId();
+      const now = new Date();
+      walletResult = await client.query(
+        `INSERT INTO wallets (id, user_id, balance, currency, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [walletId, userId, 0, 'OMR', now, now]
+      );
+    }
+
+    const wallet = walletResult.rows[0];
+
+    // Update balance
+    await client.query(
+      `UPDATE wallets SET balance = balance + $1, updated_at = $2 WHERE id = $3`,
+      [amount, new Date(), wallet.id]
+    );
+
+    // Create transaction record
+    const transactionId = generateId();
+    await client.query(
+      `INSERT INTO wallet_transactions (id, wallet_id, amount, type, reason, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [transactionId, wallet.id, amount, 'CREDIT', reason, new Date()]
+    );
+  });
+}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { findManyEventBookings, createEventBooking } from '@/lib/db/events';
 
 // GET: List all event bookings
 export async function GET(request: NextRequest) {
@@ -11,30 +11,19 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Record<string, string> = {};
     if (eventType) where.eventType = eventType;
     if (status) where.status = status;
 
-    const [events, total] = await Promise.all([
-      prisma.eventBooking.findMany({
-        where,
-        include: {
-          user: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              phoneNumber: true,
-            },
-          },
-          calendarEvent: true,
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take: limit,
-      }),
-      prisma.eventBooking.count({ where }),
-    ]);
+    const { events, total } = await findManyEventBookings({
+      where: where as {
+        eventType?: 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY';
+        status?: 'NEW' | 'IN_PROGRESS' | 'PENDING_CLIENT_CONFIRMATION' | 'CLIENT_CONFIRMED' | 'PENDING_PAYMENT' | 'COMPLETED' | 'CANCELLED';
+      },
+      orderBy: { created_at: 'desc' },
+      skip,
+      take: limit,
+    });
 
     return NextResponse.json({
       events,
@@ -77,41 +66,22 @@ export async function POST(request: NextRequest) {
       totalAmount,
     } = body;
 
-    // Generate booking number
-    const date = new Date();
-    const dateStr = date.toISOString().split('T')[0].replace(/-/g, '');
-    const count = await prisma.eventBooking.count();
-    const bookingNumber = `EVT-${dateStr}-${String(count + 1).padStart(4, '0')}`;
-
-    const eventBooking = await prisma.eventBooking.create({
-      data: {
-        bookingNumber,
-        userId,
-        eventType,
-        selectedDate: new Date(selectedDate),
-        selectedTime,
-        packageType,
-        numberOfParticipants,
-        numberOfGroups,
-        gifts,
-        fullName,
-        email,
-        phoneNumber,
-        companyOrGroupName,
-        preferredDish,
-        specialRequests,
-        totalAmount,
-        status: 'NEW',
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-          },
-        },
-      },
+    const eventBooking = await createEventBooking({
+      userId,
+      eventType,
+      selectedDate: new Date(selectedDate),
+      selectedTime,
+      packageType,
+      numberOfParticipants,
+      numberOfGroups,
+      gifts,
+      fullName,
+      email,
+      phoneNumber,
+      companyOrGroupName,
+      preferredDish,
+      specialRequests,
+      totalAmount,
     });
 
     return NextResponse.json(eventBooking, { status: 201 });

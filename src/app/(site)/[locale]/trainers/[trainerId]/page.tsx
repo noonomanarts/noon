@@ -2,12 +2,11 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { MdEmail, MdPhone, MdLocationOn } from "react-icons/md";
-import { IoLogoInstagram, IoLogoFacebook, IoLogoLinkedin } from "react-icons/io5";
-import { GiChefToque, GiCookingPot } from "react-icons/gi";
-import { BiSolidStar } from "react-icons/bi";
+import { MdEmail, MdPhone } from "react-icons/md";
+import { GiChefToque } from "react-icons/gi";
 import { HiSparkles } from "react-icons/hi2";
-import { prisma } from "@/lib/db/prisma";
+import { findTrainerById, findTrainerClasses } from "@/lib/db/trainers";
+import { findClassSessions } from "@/lib/db/classes";
 
 export default async function TrainerProfilePage({
   params,
@@ -18,76 +17,29 @@ export default async function TrainerProfilePage({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
 
   // Fetch trainer data
-  const trainer = await prisma.user.findUnique({
-    where: {
-      id: trainerId,
-      role: "TRAINER",
-      status: "ACTIVE",
-    },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      phoneNumber: true,
-      profileImage: true,
-      dateOfBirth: true,
-      gender: true,
-    },
-  });
+  const trainer = await findTrainerById(trainerId);
 
-  if (!trainer) {
+  if (!trainer || trainer.status !== "ACTIVE") {
     notFound();
   }
 
   // Fetch trainer's classes
-  const classes = await prisma.class.findMany({
-    where: {
-      trainerId: trainerId,
-      status: "PUBLISHED",
-    },
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      titleAr: true,
-      description: true,
-      descriptionAr: true,
-      category: true,
-      subCategory: true,
-      image: true,
-      price: true,
-      currency: true,
-      durationMinutes: true,
-      sessions: {
-        where: {
-          startDateTime: {
-            gte: new Date(),
-          },
-          isCancelled: false,
-        },
-        orderBy: {
-          startDateTime: "asc",
-        },
-        take: 3,
-      },
-      _count: {
-        select: {
-          reviews: {
-            where: {
-              isApproved: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      publishedAt: "desc",
-    },
-  });
+  const classes = await findTrainerClasses(trainerId, { publishedOnly: true });
+
+  // Get sessions for each class
+  const classesWithSessions = await Promise.all(
+    classes.map(async (cls) => {
+      const sessions = await findClassSessions(cls.id as string, {
+        upcomingOnly: true,
+        limit: 3,
+      });
+      return { ...cls, sessions };
+    })
+  );
 
   // Separate upcoming and previous classes
-  const upcomingClasses = classes.filter((c) => c.sessions.length > 0);
-  const previousClasses = classes.filter((c) => c.sessions.length === 0);
+  const upcomingClasses = classesWithSessions.filter((c) => c.sessions.length > 0);
+  const previousClasses = classesWithSessions.filter((c) => c.sessions.length === 0);
 
   const t = {
     trainer: locale === "ar" ? "المدرب" : "Trainer",
@@ -124,8 +76,8 @@ export default async function TrainerProfilePage({
               <div className="relative aspect-square w-full overflow-hidden lg:aspect-[4/5]">
                 {trainer.profileImage ? (
                   <Image
-                    src={trainer.profileImage}
-                    alt={trainer.fullName}
+                    src={trainer.profileImage as string}
+                    alt={trainer.fullName as string}
                     fill
                     className="object-cover"
                   />
@@ -199,10 +151,10 @@ export default async function TrainerProfilePage({
                 </div>
                 <div className="rounded-xl bg-gradient-to-br from-coral-50 to-coral-100 p-4 text-center dark:from-coral-900/30 dark:to-coral-800/30">
                   <div className="mb-1 text-3xl font-bold text-coral">
-                    {classes.reduce((sum, c) => sum + c._count.reviews, 0)}
+                    {previousClasses.length}
                   </div>
                   <div className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                    {t.reviews}
+                    {locale === "ar" ? "سابقة" : "Previous"}
                   </div>
                 </div>
               </div>
@@ -210,145 +162,92 @@ export default async function TrainerProfilePage({
           </div>
         </div>
 
-        {/* Upcoming Classes */}
-        {upcomingClasses.length > 0 && (
-          <section className="mb-12">
-            <div className="mb-6 flex items-center gap-3">
-              <GiCookingPot className="h-8 w-8 text-coral" />
-              <h2 className="text-3xl font-bold text-zinc-900 dark:text-white">
-                {t.upcomingClasses}
-              </h2>
+        {/* Upcoming Classes Section */}
+        <section className="mb-16">
+          <h2 className="mb-8 text-2xl font-bold text-zinc-900 dark:text-white">
+            {t.upcomingClasses}
+          </h2>
+          {upcomingClasses.length === 0 ? (
+            <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-zinc-600 dark:text-zinc-400">{t.noUpcomingClasses}</p>
             </div>
+          ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {upcomingClasses.map((classItem) => (
+              {upcomingClasses.map((cls) => (
                 <Link
-                  key={classItem.id}
-                  href={`/${locale}/classes/${classItem.slug}`}
-                  className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-lg transition-all hover:scale-105 hover:shadow-2xl dark:border-zinc-800 dark:bg-zinc-900"
+                  key={cls.id as string}
+                  href={`/${locale}/classes/${cls.slug}`}
+                  className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
                 >
-                  {/* Image */}
-                  <div className="relative aspect-video w-full overflow-hidden">
-                    {classItem.image ? (
+                  {cls.image && (
+                    <div className="relative h-48 w-full overflow-hidden">
                       <Image
-                        src={classItem.image}
-                        alt={locale === "ar" ? classItem.titleAr || classItem.title : classItem.title}
+                        src={cls.image as string}
+                        alt={cls.title as string}
                         fill
-                        className="object-cover transition-transform group-hover:scale-110"
+                        className="object-cover transition-transform duration-500 group-hover:scale-110"
                       />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900">
-                        <GiCookingPot className="h-16 w-16 text-zinc-400" />
-                      </div>
-                    )}
-                    {/* Category Badge */}
-                    <div className="absolute right-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-bold backdrop-blur-sm dark:bg-zinc-900/90">
-                      <span className="text-coral">
-                        {classItem.category === "COOKING" ? t.cooking : t.artsCrafts}
+                    </div>
+                  )}
+                  <div className="p-5">
+                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                      {locale === "ar" && cls.titleAr ? cls.titleAr : cls.title}
+                    </h3>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-2xl font-bold text-coral">
+                        {cls.price} {cls.currency}
+                      </span>
+                      <span className="rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        {t.bookNow}
                       </span>
                     </div>
                   </div>
-
-                  {/* Content */}
-                  <div className="p-6">
-                    <h3 className="mb-3 text-xl font-bold text-zinc-900 dark:text-white">
-                      {locale === "ar" ? classItem.titleAr || classItem.title : classItem.title}
-                    </h3>
-                    <p className="mb-4 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
-                      {locale === "ar" ? classItem.descriptionAr || classItem.description : classItem.description}
-                    </p>
-
-                    {/* Details */}
-                    <div className="mb-4 space-y-2 text-sm">
-                      <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-                        <BiSolidStar className="h-4 w-4 text-yellow" />
-                        <span>
-                          {classItem._count.reviews} {t.reviews}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-                        <GiCookingPot className="h-4 w-4 text-teal" />
-                        <span>
-                          {classItem.durationMinutes} {t.minutes}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Price & Button */}
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-2xl font-bold text-coral">
-                          {classItem.price} {classItem.currency}
-                        </div>
-                        <div className="text-xs text-zinc-500">{t.perClass}</div>
-                      </div>
-                      <button className="rounded-xl bg-gradient-to-r from-coral to-coral-light px-6 py-3 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl">
-                        {t.bookNow}
-                      </button>
-                    </div>
-                  </div>
                 </Link>
               ))}
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
-        {upcomingClasses.length === 0 && (
-          <div className="mb-12 rounded-2xl border-2 border-zinc-200 bg-zinc-50 p-12 text-center dark:border-zinc-800 dark:bg-zinc-900">
-            <GiCookingPot className="mx-auto mb-4 h-16 w-16 text-zinc-400" />
-            <p className="text-lg text-zinc-600 dark:text-zinc-400">{t.noUpcomingClasses}</p>
-          </div>
-        )}
-
-        {/* Previous Classes */}
-        {previousClasses.length > 0 && (
-          <section>
-            <div className="mb-6 flex items-center gap-3">
-              <HiSparkles className="h-8 w-8 text-purple" />
-              <h2 className="text-3xl font-bold text-zinc-900 dark:text-white">
-                {t.previousClasses}
-              </h2>
+        {/* Previous Classes Section */}
+        <section>
+          <h2 className="mb-8 text-2xl font-bold text-zinc-900 dark:text-white">
+            {t.previousClasses}
+          </h2>
+          {previousClasses.length === 0 ? (
+            <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-zinc-600 dark:text-zinc-400">{t.noPreviousClasses}</p>
             </div>
+          ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {previousClasses.map((classItem) => (
+              {previousClasses.map((cls) => (
                 <Link
-                  key={classItem.id}
-                  href={`/${locale}/classes/${classItem.slug}`}
-                  className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-lg transition-all hover:scale-105 hover:shadow-2xl dark:border-zinc-800 dark:bg-zinc-900"
+                  key={cls.id as string}
+                  href={`/${locale}/classes/${cls.slug}`}
+                  className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
                 >
-                  {/* Image */}
-                  <div className="relative aspect-video w-full overflow-hidden">
-                    {classItem.image ? (
+                  {cls.image && (
+                    <div className="relative h-48 w-full overflow-hidden">
                       <Image
-                        src={classItem.image}
-                        alt={locale === "ar" ? classItem.titleAr || classItem.title : classItem.title}
+                        src={cls.image as string}
+                        alt={cls.title as string}
                         fill
-                        className="object-cover transition-transform group-hover:scale-110"
+                        className="object-cover transition-transform duration-500 group-hover:scale-110"
                       />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-100 to-zinc-200 dark:from-zinc-800 dark:to-zinc-900">
-                        <GiCookingPot className="h-16 w-16 text-zinc-400" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-6">
-                    <h3 className="mb-3 text-xl font-bold text-zinc-900 dark:text-white">
-                      {locale === "ar" ? classItem.titleAr || classItem.title : classItem.title}
+                    </div>
+                  )}
+                  <div className="p-5">
+                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                      {locale === "ar" && cls.titleAr ? cls.titleAr : cls.title}
                     </h3>
-                    <p className="mb-4 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
-                      {locale === "ar" ? classItem.descriptionAr || classItem.description : classItem.description}
-                    </p>
-
-                    <button className="w-full rounded-xl border-2 border-purple px-6 py-3 font-bold text-purple transition-all hover:scale-105 hover:bg-purple hover:text-white">
-                      {t.moreDetails}
-                    </button>
+                    <div className="mt-2 text-sm font-semibold text-coral">
+                      {t.moreDetails} →
+                    </div>
                   </div>
                 </Link>
               ))}
             </div>
-          </section>
-        )}
+          )}
+        </section>
       </div>
     </div>
   );

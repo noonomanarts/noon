@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db/prisma';
+import { findCalendarEvents, createCalendarEvent } from '@/lib/db/events';
 
 // GET: List calendar events
 export async function GET(request: NextRequest) {
@@ -9,50 +9,10 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const type = searchParams.get('type');
 
-    const where: any = {};
-
-    if (startDate && endDate) {
-      where.startDateTime = {
-        gte: new Date(startDate),
-        lte: new Date(endDate),
-      };
-    }
-
-    if (type) {
-      where.type = type;
-    }
-
-    const events = await prisma.calendarEvent.findMany({
-      where,
-      include: {
-        classSession: {
-          include: {
-            class: {
-              select: {
-                id: true,
-                title: true,
-                category: true,
-                trainer: {
-                  select: {
-                    id: true,
-                    fullName: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        eventBooking: {
-          select: {
-            id: true,
-            bookingNumber: true,
-            eventType: true,
-            fullName: true,
-            status: true,
-          },
-        },
-      },
-      orderBy: { startDateTime: 'asc' },
+    const events = await findCalendarEvents({
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+      type: type as 'CLASS' | 'PRIVATE_SESSION' | 'COMPETITION' | 'BIRTHDAY_PARTY' | 'BLOCKED' | 'CLEANING' | undefined,
     });
 
     return NextResponse.json(events);
@@ -79,18 +39,16 @@ export async function POST(request: NextRequest) {
       visibleTrainerIds,
     } = body;
 
-    const calendarEvent = await prisma.calendarEvent.create({
-      data: {
-        type: 'BLOCKED',
-        startDateTime: new Date(startDateTime),
-        endDateTime: new Date(endDateTime),
-        title: title || 'Blocked Time',
-        isBlocked: true,
-        blockReason,
-        internalNotes,
-        visibleToTrainers: visibleToTrainers || false,
-        visibleTrainerIds: visibleTrainerIds || [],
-      },
+    const calendarEvent = await createCalendarEvent({
+      type: 'BLOCKED',
+      startDateTime: new Date(startDateTime),
+      endDateTime: new Date(endDateTime),
+      title: title || 'Blocked Time',
+      isBlocked: true,
+      blockReason,
+      internalNotes,
+      visibleToTrainers: visibleToTrainers || false,
+      visibleTrainerIds: visibleTrainerIds || [],
     });
 
     return NextResponse.json(calendarEvent, { status: 201 });

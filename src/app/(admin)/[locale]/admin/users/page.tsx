@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getUserById, getAllUsers } from "@/lib/db/users";
-import type { UserRole } from "@/generated/prisma";
+import type { UserRole } from "@/lib/db/types";
 
 type DisplayRole = "admin" | "trainer" | "user";
 

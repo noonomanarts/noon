@@ -3,7 +3,7 @@
  */
 
 export {
-  type PublicUser as User,
+  type UserPublic as User,
   getUserById,
   verifyLogin,
   ensureDefaultAdmin,

@@ -1,13 +1,74 @@
 /**
- * User database operations with Prisma and secure password hashing
+ * User database operations with raw SQL and secure password hashing
  */
 import * as bcrypt from "bcryptjs";
-import prisma from "./prisma";
-import type { User as PrismaUser, UserRole, UserStatus, Gender, PreferredLanguage } from "@/generated/prisma";
+import { query } from "./pool";
+import type { User, UserRole, UserStatus, Gender, PreferredLanguage, UserPublic } from "./types";
 
-export type User = PrismaUser;
+// Helper to generate CUID-like IDs
+function generateId(): string {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 15);
+  return `c${timestamp}${randomPart}`;
+}
 
-export type PublicUser = Omit<User, "password">;
+// Convert DB row to User object
+function rowToUser(row: Record<string, unknown>): User {
+  return {
+    id: row.id as string,
+    email: row.email as string,
+    password: row.password as string,
+    role: row.role as UserRole,
+    status: row.status as UserStatus,
+    full_name: row.full_name as string,
+    phone_number: row.phone_number as string,
+    date_of_birth: row.date_of_birth ? new Date(row.date_of_birth as string) : null,
+    gender: row.gender as Gender | null,
+    preferred_language: row.preferred_language as PreferredLanguage,
+    profile_image: row.profile_image as string | null,
+    created_at: new Date(row.created_at as string),
+    updated_at: new Date(row.updated_at as string),
+    last_login_at: row.last_login_at ? new Date(row.last_login_at as string) : null,
+  };
+}
+
+// Convert DB row to UserPublic object (camelCase for frontend)
+function rowToUserPublic(row: Record<string, unknown>): UserPublic {
+  return {
+    id: row.id as string,
+    email: row.email as string,
+    role: row.role as UserRole,
+    status: row.status as UserStatus,
+    fullName: row.full_name as string || '',
+    phoneNumber: row.phone_number as string || '',
+    dateOfBirth: row.date_of_birth ? new Date(row.date_of_birth as string) : null,
+    gender: row.gender as Gender | null,
+    preferredLanguage: (row.preferred_language as PreferredLanguage) || 'ENGLISH',
+    profileImage: row.profile_image as string | null,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: new Date(row.updated_at as string),
+    lastLoginAt: row.last_login_at ? new Date(row.last_login_at as string) : null,
+  };
+}
+
+// Convert User object to UserPublic (camelCase)
+function userToUserPublic(user: User): UserPublic {
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    status: user.status,
+    fullName: user.full_name || '',
+    phoneNumber: user.phone_number || '',
+    dateOfBirth: user.date_of_birth,
+    gender: user.gender,
+    preferredLanguage: user.preferred_language || 'ENGLISH',
+    profileImage: user.profile_image,
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+    lastLoginAt: user.last_login_at,
+  };
+}
 
 /**
  * Hash a password securely
@@ -26,36 +87,45 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
 /**
  * Get user by ID
  */
-export async function getUserById(id: string): Promise<PublicUser | null> {
-  const user = await prisma.user.findUnique({
-    where: { id },
-  });
+export async function getUserById(id: string): Promise<UserPublic | null> {
+  const result = await query(
+    `SELECT id, email, role, status, full_name, phone_number, date_of_birth, 
+            gender, preferred_language, profile_image, created_at, updated_at, last_login_at
+     FROM users WHERE id = $1`,
+    [id]
+  );
   
-  if (!user) return null;
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { password, ...publicUser } = user;
-  return publicUser;
+  if (result.rows.length === 0) return null;
+  
+  return rowToUserPublic(result.rows[0]);
 }
 
 /**
- * Get user by email
+ * Get user by email (includes password for auth)
  */
 export async function getUserByEmail(email: string): Promise<User | null> {
   const normalizedEmail = email.toLowerCase().trim();
   
-  return await prisma.user.findUnique({
-    where: { email: normalizedEmail },
-  });
+  const result = await query(
+    `SELECT * FROM users WHERE email = $1`,
+    [normalizedEmail]
+  );
+  
+  if (result.rows.length === 0) return null;
+  return rowToUser(result.rows[0]);
 }
 
 /**
  * Get user by phone number
  */
 export async function getUserByPhone(phoneNumber: string): Promise<User | null> {
-  return await prisma.user.findUnique({
-    where: { phoneNumber },
-  });
+  const result = await query(
+    `SELECT * FROM users WHERE phone_number = $1`,
+    [phoneNumber]
+  );
+  
+  if (result.rows.length === 0) return null;
+  return rowToUser(result.rows[0]);
 }
 
 /**
@@ -71,7 +141,7 @@ export async function createUser(data: {
   gender?: Gender;
   preferredLanguage?: PreferredLanguage;
   profileImage?: string;
-}): Promise<PublicUser | null> {
+}): Promise<UserPublic | null> {
   const normalizedEmail = data.email.toLowerCase().trim();
 
   // Check if email already exists
@@ -87,25 +157,37 @@ export async function createUser(data: {
   }
 
   const passwordHash = await hashPassword(data.password);
+  const id = generateId();
+  const now = new Date();
 
-  const user = await prisma.user.create({
-    data: {
-      email: normalizedEmail,
-      password: passwordHash,
-      fullName: data.fullName.trim(),
-      role: data.role || "CUSTOMER",
-      phoneNumber: data.phoneNumber.trim(),
-      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : undefined,
-      gender: data.gender,
-      preferredLanguage: data.preferredLanguage || "ENGLISH",
-      profileImage: data.profileImage,
-      status: "ACTIVE",
-    },
-  });
+  const result = await query(
+    `INSERT INTO users (
+      id, email, password, role, status, full_name, phone_number, 
+      date_of_birth, gender, preferred_language, profile_image, 
+      created_at, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    RETURNING id, email, role, status, full_name, phone_number, date_of_birth, 
+              gender, preferred_language, profile_image, created_at, updated_at, last_login_at`,
+    [
+      id,
+      normalizedEmail,
+      passwordHash,
+      data.role || 'CUSTOMER',
+      'ACTIVE',
+      data.fullName.trim(),
+      data.phoneNumber.trim(),
+      data.dateOfBirth ? new Date(data.dateOfBirth) : null,
+      data.gender || null,
+      data.preferredLanguage || 'ENGLISH',
+      data.profileImage || null,
+      now,
+      now,
+    ]
+  );
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { password: _, ...publicUser } = user;
-  return publicUser;
+  if (result.rows.length === 0) return null;
+  
+  return rowToUserPublic(result.rows[0]);
 }
 
 /**
@@ -114,13 +196,13 @@ export async function createUser(data: {
 export async function verifyLogin(
   identifier: string,
   password: string
-): Promise<PublicUser | null> {
+): Promise<UserPublic | null> {
   const normalizedIdentifier = identifier.toLowerCase().trim();
   
   // Try to find user by email
   const user = await getUserByEmail(normalizedIdentifier);
   
-  if (!user || user.status !== "ACTIVE") {
+  if (!user || user.status !== 'ACTIVE') {
     return null;
   }
 
@@ -130,14 +212,12 @@ export async function verifyLogin(
   }
 
   // Update last login
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { lastLoginAt: new Date() },
-  });
+  await query(
+    `UPDATE users SET last_login_at = $1, updated_at = $1 WHERE id = $2`,
+    [new Date(), user.id]
+  );
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { password: _, ...publicUser } = user;
-  return publicUser;
+  return userToUserPublic(user);
 }
 
 /**
@@ -145,17 +225,79 @@ export async function verifyLogin(
  */
 export async function updateUser(
   id: string,
-  data: Partial<Omit<User, "id" | "email" | "password" | "createdAt">>
-): Promise<PublicUser | null> {
+  data: Partial<Omit<User, 'id' | 'email' | 'password' | 'created_at'>>
+): Promise<UserPublic | null> {
   try {
-    const user = await prisma.user.update({
-      where: { id },
-      data,
-    });
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...publicUser } = user;
-    return publicUser;
+    if (data.role !== undefined) {
+      updates.push(`role = $${paramIndex++}`);
+      values.push(data.role);
+    }
+    if (data.status !== undefined) {
+      updates.push(`status = $${paramIndex++}`);
+      values.push(data.status);
+    }
+    if (data.full_name !== undefined) {
+      updates.push(`full_name = $${paramIndex++}`);
+      values.push(data.full_name);
+    }
+    if (data.phone_number !== undefined) {
+      updates.push(`phone_number = $${paramIndex++}`);
+      values.push(data.phone_number);
+    }
+    if (data.date_of_birth !== undefined) {
+      updates.push(`date_of_birth = $${paramIndex++}`);
+      values.push(data.date_of_birth);
+    }
+    if (data.gender !== undefined) {
+      updates.push(`gender = $${paramIndex++}`);
+      values.push(data.gender);
+    }
+    if (data.preferred_language !== undefined) {
+      updates.push(`preferred_language = $${paramIndex++}`);
+      values.push(data.preferred_language);
+    }
+    if (data.profile_image !== undefined) {
+      updates.push(`profile_image = $${paramIndex++}`);
+      values.push(data.profile_image);
+    }
+
+    if (updates.length === 0) {
+      return await getUserById(id);
+    }
+
+    updates.push(`updated_at = $${paramIndex++}`);
+    values.push(new Date());
+    values.push(id);
+
+    const result = await query(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}
+       RETURNING id, email, role, status, full_name, phone_number, date_of_birth, 
+                 gender, preferred_language, profile_image, created_at, updated_at, last_login_at`,
+      values
+    );
+
+    if (result.rows.length === 0) return null;
+    
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      email: row.email,
+      role: row.role,
+      status: row.status,
+      fullName: row.full_name,
+      phoneNumber: row.phone_number,
+      dateOfBirth: row.date_of_birth,
+      gender: row.gender,
+      preferredLanguage: row.preferred_language,
+      profileImage: row.profile_image,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      lastLoginAt: row.last_login_at,
+    };
   } catch {
     return null;
   }
@@ -171,12 +313,12 @@ export async function changePassword(
   try {
     const passwordHash = await hashPassword(newPassword);
     
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: passwordHash },
-    });
+    const result = await query(
+      `UPDATE users SET password = $1, updated_at = $2 WHERE id = $3`,
+      [passwordHash, new Date(), userId]
+    );
 
-    return true;
+    return (result.rowCount ?? 0) > 0;
   } catch {
     return false;
   }
@@ -190,19 +332,44 @@ export async function getAllUsers(options?: {
   status?: UserStatus;
   skip?: number;
   take?: number;
-}): Promise<PublicUser[]> {
-  const users = await prisma.user.findMany({
-    where: {
-      role: options?.role,
-      status: options?.status,
-    },
-    skip: options?.skip,
-    take: options?.take,
-    orderBy: { createdAt: "desc" },
-  });
+}): Promise<UserPublic[]> {
+  const conditions: string[] = [];
+  const values: unknown[] = [];
+  let paramIndex = 1;
+
+  if (options?.role) {
+    conditions.push(`role = $${paramIndex++}`);
+    values.push(options.role);
+  }
+  if (options?.status) {
+    conditions.push(`status = $${paramIndex++}`);
+    values.push(options.status);
+  }
+
+  let sql = `
+    SELECT id, email, role, status, full_name, phone_number, date_of_birth, 
+           gender, preferred_language, profile_image, created_at, updated_at, last_login_at
+    FROM users
+  `;
+
+  if (conditions.length > 0) {
+    sql += ` WHERE ${conditions.join(' AND ')}`;
+  }
+
+  sql += ` ORDER BY created_at DESC`;
+
+  if (options?.take) {
+    sql += ` LIMIT $${paramIndex++}`;
+    values.push(options.take);
+  }
+  if (options?.skip) {
+    sql += ` OFFSET $${paramIndex++}`;
+    values.push(options.skip);
+  }
+
+  const result = await query(sql, values);
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  return users.map(({ password, ...publicUser }) => publicUser);
+  return result.rows.map(row => rowToUserPublic(row));
 }
 
 /**
@@ -210,10 +377,11 @@ export async function getAllUsers(options?: {
  */
 export async function deleteUser(id: string): Promise<boolean> {
   try {
-    await prisma.user.delete({
-      where: { id },
-    });
-    return true;
+    const result = await query(
+      `DELETE FROM users WHERE id = $1`,
+      [id]
+    );
+    return (result.rowCount ?? 0) > 0;
   } catch {
     return false;
   }
@@ -224,8 +392,8 @@ export async function deleteUser(id: string): Promise<boolean> {
  */
 export async function updateUserWithPassword(
   id: string,
-  data: Partial<Omit<User, "id" | "password" | "createdAt">> & { password?: string }
-): Promise<PublicUser | null> {
+  data: Partial<Omit<User, 'id' | 'password' | 'created_at'>> & { password?: string }
+): Promise<UserPublic | null> {
   try {
     // If email is changing, check if it already exists
     if (data.email) {
@@ -240,34 +408,78 @@ export async function updateUserWithPassword(
     }
 
     // If phone is changing, check if it already exists
-    if (data.phoneNumber) {
-      const existingPhone = await getUserByPhone(data.phoneNumber);
+    if (data.phone_number) {
+      const existingPhone = await getUserByPhone(data.phone_number);
       
       if (existingPhone && existingPhone.id !== id) {
         return null;
       }
     }
 
-    let passwordHash: string | undefined;
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    if (data.email !== undefined) {
+      updates.push(`email = $${paramIndex++}`);
+      values.push(data.email);
+    }
     if (data.password) {
-      passwordHash = await hashPassword(data.password);
+      const passwordHash = await hashPassword(data.password);
+      updates.push(`password = $${paramIndex++}`);
+      values.push(passwordHash);
+    }
+    if (data.role !== undefined) {
+      updates.push(`role = $${paramIndex++}`);
+      values.push(data.role);
+    }
+    if (data.status !== undefined) {
+      updates.push(`status = $${paramIndex++}`);
+      values.push(data.status);
+    }
+    if (data.full_name !== undefined) {
+      updates.push(`full_name = $${paramIndex++}`);
+      values.push(data.full_name);
+    }
+    if (data.phone_number !== undefined) {
+      updates.push(`phone_number = $${paramIndex++}`);
+      values.push(data.phone_number);
+    }
+    if (data.date_of_birth !== undefined) {
+      updates.push(`date_of_birth = $${paramIndex++}`);
+      values.push(data.date_of_birth);
+    }
+    if (data.gender !== undefined) {
+      updates.push(`gender = $${paramIndex++}`);
+      values.push(data.gender);
+    }
+    if (data.preferred_language !== undefined) {
+      updates.push(`preferred_language = $${paramIndex++}`);
+      values.push(data.preferred_language);
+    }
+    if (data.profile_image !== undefined) {
+      updates.push(`profile_image = $${paramIndex++}`);
+      values.push(data.profile_image);
     }
 
-    const updateData: Record<string, unknown> = { ...data };
-    delete updateData.password;
+    if (updates.length === 0) {
+      return await getUserById(id);
+    }
+
+    updates.push(`updated_at = $${paramIndex++}`);
+    values.push(new Date());
+    values.push(id);
+
+    const result = await query(
+      `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}
+       RETURNING id, email, role, status, full_name, phone_number, date_of_birth, 
+                 gender, preferred_language, profile_image, created_at, updated_at, last_login_at`,
+      values
+    );
+
+    if (result.rows.length === 0) return null;
     
-    if (passwordHash) {
-      updateData.password = passwordHash;
-    }
-
-    const user = await prisma.user.update({
-      where: { id },
-      data: updateData,
-    });
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...publicUser } = user;
-    return publicUser;
+    return rowToUserPublic(result.rows[0]);
   } catch {
     return null;
   }
@@ -300,13 +512,15 @@ export async function ensureDefaultAdmin(): Promise<void> {
  * Count users by role
  */
 export async function countUsersByRole(): Promise<Record<string, number>> {
-  const counts = await prisma.user.groupBy({
-    by: ["role"],
-    _count: true,
-  });
+  const result = await query(
+    `SELECT role, COUNT(*)::int as count FROM users GROUP BY role`
+  );
 
-  return counts.reduce((acc, { role, _count }) => {
-    acc[role] = _count;
+  return result.rows.reduce((acc, row) => {
+    acc[row.role] = row.count;
     return acc;
   }, {} as Record<string, number>);
 }
+
+// Re-export types for convenience
+export type { User, UserPublic, UserRole, UserStatus, Gender, PreferredLanguage };

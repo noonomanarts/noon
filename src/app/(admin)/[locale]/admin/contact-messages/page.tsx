@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db/prisma";
+import { findContactMessages } from "@/lib/db/contacts";
 import { getUserById } from "@/lib/db/users";
 import { isLocale, type Locale } from "@/lib/locale";
 
@@ -24,32 +24,7 @@ export default async function AdminContactMessagesPage({
     redirect(`/${locale}/account`);
   }
 
-  let messages: Array<{
-    id: string;
-    fullName: string;
-    email: string;
-    phone: string;
-    subject: string;
-    message: string;
-    createdAt: Date;
-  }> = [];
-  let modelUnavailable = false;
-
-  try {
-    const contactMessageModel = (prisma as unknown as { contactMessage?: {
-      findMany: (args: { orderBy: { createdAt: "desc" } }) => Promise<typeof messages>;
-    } }).contactMessage;
-
-    if (!contactMessageModel) {
-      modelUnavailable = true;
-    } else {
-      messages = await contactMessageModel.findMany({
-        orderBy: { createdAt: "desc" },
-      });
-    }
-  } catch {
-    modelUnavailable = true;
-  }
+  const { messages } = await findContactMessages();
 
   const t = {
     title: locale === "ar" ? "رسائل التواصل" : "Contact Messages",
@@ -57,10 +32,6 @@ export default async function AdminContactMessagesPage({
       locale === "ar"
         ? "لا توجد رسائل حتى الآن"
         : "No messages yet",
-    modelMissing:
-      locale === "ar"
-        ? "نموذج الرسائل غير متوفر حالياً. يرجى تشغيل ترحيل قاعدة البيانات."
-        : "Contact messages model is unavailable. Please run database migrations.",
     name: locale === "ar" ? "الاسم" : "Name",
     email: locale === "ar" ? "البريد" : "Email",
     phone: locale === "ar" ? "الهاتف" : "Phone",
@@ -77,11 +48,7 @@ export default async function AdminContactMessagesPage({
         </h1>
       </div>
 
-      {modelUnavailable ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200">
-          {t.modelMissing}
-        </div>
-      ) : messages.length === 0 ? (
+      {messages.length === 0 ? (
         <div className="rounded-lg border border-zinc-200 bg-white p-6 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
           {t.empty}
         </div>
@@ -115,13 +82,13 @@ export default async function AdminContactMessagesPage({
                 {messages.map((msg) => (
                   <tr key={msg.id} className="align-top">
                     <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-100">
-                      {msg.fullName}
+                      {msg.name}
                     </td>
                     <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
                       {msg.email}
                     </td>
                     <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
-                      {msg.phone}
+                      {msg.phone || "-"}
                     </td>
                     <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
                       {msg.subject}
