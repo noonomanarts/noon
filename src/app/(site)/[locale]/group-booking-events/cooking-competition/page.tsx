@@ -1,7 +1,6 @@
 import { isLocale, type Locale } from "@/lib/locale";
 import Link from "next/link";
-import Image from "next/image";
-import { MdGroup, MdSchedule, MdEmojiEvents, MdRestaurant } from "react-icons/md";
+import { MdGroup, MdSchedule } from "react-icons/md";
 import { IoTrophy, IoCafe, IoCheckmarkCircle } from "react-icons/io5";
 import { GiCookingPot, GiChefToque } from "react-icons/gi";
 import { BiSolidGift } from "react-icons/bi";

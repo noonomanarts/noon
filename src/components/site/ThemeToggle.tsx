@@ -59,6 +59,7 @@ export default function ThemeToggle({
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored === "light" || stored === "dark" || stored === "system") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- Hydration from localStorage
         setPreference(stored);
       }
     } catch {

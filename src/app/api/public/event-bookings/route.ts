@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createEventBooking, countEventBookings } from '@/lib/db/events';
+import { createEventBooking } from '@/lib/db/events';
 import { getUserByEmail, createUser } from '@/lib/db/users';
-import { query } from '@/lib/db/pool';
 import { cookies } from 'next/headers';
-import * as bcrypt from 'bcryptjs';
 
 // POST: Create event booking from public (website)
 export async function POST(request: NextRequest) {

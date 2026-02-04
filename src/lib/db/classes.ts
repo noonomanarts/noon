@@ -1,8 +1,8 @@
 /**
  * Database queries for classes and sessions
  */
-import { query, transaction } from "./pool";
-import type { Class, ClassSession, ClassCategory as ClassCategoryType, ClassSubCategory, ClassStatus, ClassPublic, ClassSessionPublic, ReviewPublic, TrainerPublic } from "./types";
+import { query } from "./pool";
+import type { ClassCategory as ClassCategoryType, ClassSubCategory, ClassStatus, ClassPublic } from "./types";
 import { ClassCategory } from "./types";
 
 // Helper to generate CUID-like IDs

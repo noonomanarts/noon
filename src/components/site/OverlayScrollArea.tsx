@@ -36,10 +36,9 @@ export default function OverlayScrollArea({
     }
     return "os-theme-light";
   });
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initial theme sync from DOM
     setTheme(resolveTheme());
 
     const observer = new MutationObserver(() => {

@@ -123,7 +123,7 @@ export async function PUT(
       profileImagePath = `/uploads/profiles/${filename}`;
     }
 
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       fullName,
       email: normalizedEmail,
       phoneNumber: normalizedPhone,

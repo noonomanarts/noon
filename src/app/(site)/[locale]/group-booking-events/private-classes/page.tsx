@@ -1,7 +1,7 @@
 import { isLocale, type Locale } from "@/lib/locale";
 import Link from "next/link";
 import { MdGroup, MdSchedule, MdRestaurant } from "react-icons/md";
-import { GiCookingPot, GiChefToque, GiPalette } from "react-icons/gi";
+import { GiChefToque, GiPalette } from "react-icons/gi";
 import { IoColorPalette, IoCalendar } from "react-icons/io5";
 import { HiSparkles } from "react-icons/hi2";
 

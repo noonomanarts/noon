@@ -25,7 +25,7 @@ export default function LocaleSync() {
     // Save the current locale to localStorage
     try {
       localStorage.setItem(LOCALE_STORAGE_KEY, currentLocale);
-    } catch (error) {
+    } catch {
       // Ignore localStorage errors
     }
   }, [pathname]);

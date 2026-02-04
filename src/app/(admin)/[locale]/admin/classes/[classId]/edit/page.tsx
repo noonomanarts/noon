@@ -121,6 +121,7 @@ export default function EditClassPage() {
 
   useEffect(() => {
     Promise.all([fetchClass(), fetchTrainers()]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId]);
 
   const fetchClass = async () => {

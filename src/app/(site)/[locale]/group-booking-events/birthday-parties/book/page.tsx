@@ -6,7 +6,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { MdCake, MdGroup, MdSchedule, MdEmail, MdPhone, MdPerson } from 'react-icons/md';
 import { IoCalendar, IoCheckmarkCircle, IoClose } from 'react-icons/io5';
 import { GiPartyPopper, GiCupcake } from 'react-icons/gi';
-import { BiSolidGift } from 'react-icons/bi';
 import { HiSparkles } from 'react-icons/hi2';
 
 export default function BirthdayPartyBookingPage() {

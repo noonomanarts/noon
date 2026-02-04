@@ -16,7 +16,6 @@ export default async function RegisterPage({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const queryParams = (await searchParams) ?? {};
   const error = typeof queryParams.error === "string" ? queryParams.error : "";
-  const success = typeof queryParams.success === "string" ? queryParams.success : "";
 
   async function handleRegister(formData: FormData) {
     "use server";
@@ -85,7 +84,7 @@ export default async function RegisterPage({
       });
 
       redirect(`/${localeValue ?? "en"}/account`);
-    } catch (err) {
+    } catch {
       redirect(`/${localeValue ?? "en"}/register?error=server_error`);
     }
   }

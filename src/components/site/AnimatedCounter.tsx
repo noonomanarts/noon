@@ -25,6 +25,7 @@ export default function AnimatedCounter({
     ).matches;
 
     if (prefersReducedMotion) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplay(value);
       return undefined;
     }

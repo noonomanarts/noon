@@ -16,7 +16,6 @@ import {
   IoPencil,
   IoCheckmark,
   IoWarning,
-  IoClose
 } from 'react-icons/io5';
 import { 
   MdSearch,
@@ -85,6 +84,7 @@ export default function AdminClassesPage() {
 
   useEffect(() => {
     filterClasses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, categoryFilter, statusFilter, classes]);
 
   async function fetchClasses() {
@@ -533,7 +533,7 @@ export default function AdminClassesPage() {
               <p className="text-sm text-zinc-700 dark:text-zinc-300">
                 Are you sure you want to delete{' '}
                 <span className="font-semibold text-zinc-900 dark:text-white">
-                  "{deleteModal.title}"
+                  &quot;{deleteModal.title}&quot;
                 </span>
                 ?
               </p>

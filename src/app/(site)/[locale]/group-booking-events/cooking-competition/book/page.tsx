@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import { isLocale, type Locale } from '@/lib/locale';
 import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { MdGroup, MdSchedule, MdEmail, MdPhone, MdBusiness } from 'react-icons/md';
 import { IoTrophy, IoCalendar, IoCheckmarkCircle, IoClose } from 'react-icons/io5';
-import { GiCookingPot, GiChefToque } from 'react-icons/gi';
+import { GiCookingPot } from 'react-icons/gi';
 import { BiSolidGift } from 'react-icons/bi';
 import { HiSparkles } from 'react-icons/hi2';
 
@@ -67,7 +66,6 @@ export default function CookingCompetitionBookingPage() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [bookingData, setBookingData] = useState<BookingData>({});
   const [loading, setLoading] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const t = {
     title: locale === 'ar' ? 'حجز مسابقة الطبخ' : 'Book Cooking Competition',
@@ -147,7 +145,6 @@ export default function CookingCompetitionBookingPage() {
       });
 
       if (response.ok) {
-        setShowConfirmation(true);
         setCurrentStep(4);
       } else {
         alert('Error submitting booking. Please try again.');

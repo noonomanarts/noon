@@ -162,11 +162,9 @@ export default async function AdminUsersPage({
                     <div className="flex items-center gap-3">
                       <div className="relative size-10 overflow-hidden rounded-full bg-zinc-900 text-sm font-semibold text-white dark:bg-white dark:text-zinc-900">
                         {user.profileImage ? (
-                          <img
-                            src={user.profileImage}
-                            alt={user.fullName}
-                            className="size-full object-cover"
-                          />
+                          <div className="size-full relative">
+                            <span className="absolute inset-0" style={{ backgroundImage: `url(${user.profileImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                          </div>
                         ) : (
                           <div className="flex size-full items-center justify-center">
                             {user.fullName?.charAt(0) || "U"}

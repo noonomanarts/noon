@@ -72,7 +72,7 @@ export default function BackupSection({ locale }: BackupSectionProps) {
       setDbStatus("success");
       setMessage(t.success);
       setTimeout(() => setDbStatus("idle"), 3000);
-    } catch (error) {
+    } catch {
       setDbStatus("error");
       setMessage("Error creating backup");
       setTimeout(() => setDbStatus("idle"), 3000);
@@ -101,7 +101,7 @@ export default function BackupSection({ locale }: BackupSectionProps) {
         setDbStatus("idle");
         window.location.reload();
       }, 2000);
-    } catch (error) {
+    } catch {
       setDbStatus("error");
       setMessage("Error restoring backup");
       setTimeout(() => setDbStatus("idle"), 3000);
@@ -134,7 +134,7 @@ export default function BackupSection({ locale }: BackupSectionProps) {
       setFilesStatus("success");
       setMessage(t.success);
       setTimeout(() => setFilesStatus("idle"), 3000);
-    } catch (error) {
+    } catch {
       setFilesStatus("error");
       setMessage("Error creating backup");
       setTimeout(() => setFilesStatus("idle"), 3000);
@@ -160,7 +160,7 @@ export default function BackupSection({ locale }: BackupSectionProps) {
       setFilesStatus("success");
       setMessage(t.success);
       setTimeout(() => setFilesStatus("idle"), 3000);
-    } catch (error) {
+    } catch {
       setFilesStatus("error");
       setMessage("Error restoring backup");
       setTimeout(() => setFilesStatus("idle"), 3000);

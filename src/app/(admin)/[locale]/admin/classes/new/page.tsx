@@ -12,17 +12,10 @@ import {
   IoCloudUpload
 } from 'react-icons/io5';
 import {
-  GiCookingPot,
-  GiPalette
-} from 'react-icons/gi';
-import {
   MdTitle,
   MdDescription,
   MdCategory,
-  MdPerson,
   MdAttachMoney,
-  MdEventSeat,
-  MdAccessTime
 } from 'react-icons/md';
 
 type ClassCategory = 'COOKING' | 'ARTS_CRAFTS';
@@ -125,6 +118,7 @@ export default function NewClassPage() {
 
   useEffect(() => {
     fetchTrainers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchTrainers = async () => {
