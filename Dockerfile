@@ -3,8 +3,8 @@ FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Install pnpm via npm (more reliable than corepack)
-RUN npm install -g pnpm@9.15.5
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -14,8 +14,8 @@ RUN pnpm install --frozen-lockfile
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Install pnpm via npm
-RUN npm install -g pnpm@9.15.5
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Copy dependencies and source
 COPY --from=deps /app/node_modules ./node_modules
@@ -51,13 +51,10 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/scripts/migrate-and-start.sh ./scripts/migrate-and-start.sh
 
 # Create directories for persistent data and Next.js cache (will be mounted as volumes)
 RUN mkdir -p /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache \
     && chown -R nextjs:nodejs /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache
-
-RUN chmod +x /app/scripts/migrate-and-start.sh
 
 USER nextjs
 
