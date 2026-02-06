@@ -52,9 +52,16 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
+# Copy database migrations and scripts
+COPY --from=builder /app/database/migrations ./database/migrations
+COPY --from=builder /app/scripts ./scripts
+
+# Make scripts executable
+RUN chmod +x /app/scripts/*.sh
+
 # Create directories for persistent data and Next.js cache (will be mounted as volumes)
 RUN mkdir -p /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache \
-    && chown -R nextjs:nodejs /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache
+    && chown -R nextjs:nodejs /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache /app/scripts /app/database
 
 USER nextjs
 
@@ -63,4 +70,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "server.js"]
+CMD ["/app/scripts/migrate-and-start.sh"]
