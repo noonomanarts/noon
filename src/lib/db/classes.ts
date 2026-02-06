@@ -2,15 +2,9 @@
  * Database queries for classes and sessions
  */
 import { query } from "./pool";
+import { generateUUID } from "./uuid";
 import type { ClassCategory as ClassCategoryType, ClassSubCategory, ClassStatus, ClassPublic } from "./types";
 import { ClassCategory } from "./types";
-
-// Helper to generate CUID-like IDs
-function generateId(): string {
-  const timestamp = Date.now().toString(36);
-  const randomPart = Math.random().toString(36).substring(2, 15);
-  return `c${timestamp}${randomPart}`;
-}
 
 // Extended ClassPublic with trainer info
 export interface ClassWithTrainer extends ClassPublic {
@@ -334,7 +328,7 @@ export async function createClass(data: {
   metaTitle?: string;
   metaDescription?: string;
 }): Promise<Record<string, unknown>> {
-  const id = generateId();
+  const id = generateUUID();
   const now = new Date();
 
   const result = await query(
@@ -582,7 +576,7 @@ export async function createClassSession(data: {
   endDateTime: Date;
   seatsTotal?: number;
 }): Promise<Record<string, unknown>> {
-  const id = generateId();
+  const id = generateUUID();
   const now = new Date();
 
   const result = await query(

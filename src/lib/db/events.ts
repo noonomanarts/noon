@@ -2,14 +2,8 @@
  * Database queries for events and calendar
  */
 import { query, transaction } from "./pool";
+import { generateUUID } from "./uuid";
 import type { EventType, EventStatus, PackageType, PaymentStatus, CalendarEventType } from "./types";
-
-// Helper to generate CUID-like IDs
-function generateId(): string {
-  const timestamp = Date.now().toString(36);
-  const randomPart = Math.random().toString(36).substring(2, 15);
-  return `c${timestamp}${randomPart}`;
-}
 
 /**
  * Find many event bookings
@@ -211,7 +205,7 @@ export async function createEventBooking(data: {
   specialRequests?: string;
   totalAmount?: number;
 }): Promise<Record<string, unknown>> {
-  const id = generateId();
+  const id = generateUUID();
   const now = new Date();
   
   // Generate booking number
@@ -468,7 +462,7 @@ export async function createCalendarEvent(data: {
   visibleTrainerIds?: string[];
   color?: string;
 }): Promise<Record<string, unknown>> {
-  const id = generateId();
+  const id = generateUUID();
   const now = new Date();
 
   const result = await query(
@@ -527,7 +521,7 @@ export async function getOrCreateWallet(userId: string): Promise<Record<string, 
 
   if (result.rows.length === 0) {
     // Create new wallet
-    const id = generateId();
+    const id = generateUUID();
     const now = new Date();
     result = await query(
       `INSERT INTO wallets (id, user_id, balance, currency, created_at, updated_at)
@@ -564,7 +558,7 @@ export async function addWalletCredit(
     );
 
     if (walletResult.rows.length === 0) {
-      const walletId = generateId();
+      const walletId = generateUUID();
       const now = new Date();
       walletResult = await client.query(
         `INSERT INTO wallets (id, user_id, balance, currency, created_at, updated_at)
@@ -583,7 +577,7 @@ export async function addWalletCredit(
     );
 
     // Create transaction record
-    const transactionId = generateId();
+    const transactionId = generateUUID();
     await client.query(
       `INSERT INTO wallet_transactions (id, wallet_id, amount, type, reason, created_at)
        VALUES ($1, $2, $3, $4, $5, $6)`,

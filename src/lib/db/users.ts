@@ -3,14 +3,8 @@
  */
 import * as bcrypt from "bcryptjs";
 import { query } from "./pool";
+import { generateUUID } from "./uuid";
 import type { User, UserRole, UserStatus, Gender, PreferredLanguage, UserPublic } from "./types";
-
-// Helper to generate CUID-like IDs
-function generateId(): string {
-  const timestamp = Date.now().toString(36);
-  const randomPart = Math.random().toString(36).substring(2, 15);
-  return `c${timestamp}${randomPart}`;
-}
 
 // Convert DB row to User object
 function rowToUser(row: Record<string, unknown>): User {
@@ -157,7 +151,7 @@ export async function createUser(data: {
   }
 
   const passwordHash = await hashPassword(data.password);
-  const id = generateId();
+  const id = generateUUID();
   const now = new Date();
 
   const result = await query(

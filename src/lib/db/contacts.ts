@@ -2,14 +2,8 @@
  * Database queries for contact messages
  */
 import { query } from "./pool";
+import { generateUUID } from "./uuid";
 import type { ContactMessageStatus } from "./types";
-
-// Helper to generate CUID-like IDs
-function generateId(): string {
-  const timestamp = Date.now().toString(36);
-  const randomPart = Math.random().toString(36).substring(2, 15);
-  return `c${timestamp}${randomPart}`;
-}
 
 /**
  * Create contact message
@@ -21,12 +15,12 @@ export async function createContactMessage(data: {
   subject: string;
   message: string;
 }): Promise<Record<string, unknown>> {
-  const id = generateId();
+  const id = generateUUID();
   const now = new Date();
 
   const result = await query(
-    `INSERT INTO contact_messages (id, name, email, phone, subject, message, status, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `INSERT INTO contact_messages (id, full_name, email, phone, subject, message, status, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING *`,
     [
       id,
@@ -37,14 +31,13 @@ export async function createContactMessage(data: {
       data.message,
       'NEW',
       now,
-      now,
     ]
   );
 
   const row = result.rows[0];
   return {
     id: row.id,
-    name: row.name,
+    name: row.full_name,
     email: row.email,
     phone: row.phone,
     subject: row.subject,
@@ -105,7 +98,7 @@ export async function findContactMessages(options?: {
 
   const messages = result.rows.map(row => ({
     id: row.id,
-    name: row.name,
+    name: row.full_name,
     email: row.email,
     phone: row.phone,
     subject: row.subject,
