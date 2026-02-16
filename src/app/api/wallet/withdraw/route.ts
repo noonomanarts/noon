@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/session';
-import { withdrawFromWallet } from '@/lib/db/wallet';
+import { requestWalletWithdrawal } from '@/lib/db/wallet';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,13 +15,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
     }
 
-    await withdrawFromWallet(user.id, amount, reason);
+    const transaction = await requestWalletWithdrawal(user.id, amount, reason);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      transaction: {
+        id: transaction.id,
+        amount: transaction.amount,
+        status: transaction.status,
+        created_at: transaction.created_at
+      }
+    });
   } catch (error) {
-    console.error('Withdraw error:', error);
-    if (error instanceof Error && error.message === 'Insufficient balance') {
-      return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
+    console.error('Withdraw request error:', error);
+    if (error instanceof Error && error.message === 'Insufficient available balance') {
+      return NextResponse.json({ error: 'Insufficient available balance' }, { status: 400 });
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

@@ -75,8 +75,8 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
       return;
     }
 
-    if (parseFloat(withdrawAmount) > wallet.balance) {
-      alert(isArabic ? "الرصيد غير كافي" : "Insufficient balance");
+    if (parseFloat(withdrawAmount) > (wallet.available_balance || 0)) {
+      alert(isArabic ? "الرصيد المتاح غير كافي" : "Insufficient available balance");
       return;
     }
 
@@ -87,17 +87,18 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: parseFloat(withdrawAmount),
-          description: withdrawDescription || undefined,
+          reason: withdrawDescription || undefined,
         }),
       });
 
       if (response.ok) {
-        setMessage(isArabic ? 'تم السحب بنجاح' : 'Withdrawal successful');
+        const data = await response.json();
+        setMessage(isArabic ? 'تم إرسال طلب السحب بنجاح. سيتم مراجعته من قبل الإدارة.' : 'Withdrawal request submitted successfully. It will be reviewed by administration.');
         setShowWithdrawModal(false);
-        window.location.reload();
+        // Don't reload page, just show success message
       } else {
         const data = await response.json();
-        alert(data.error || (isArabic ? 'فشل في السحب' : 'Withdrawal failed'));
+        alert(data.error || (isArabic ? 'فشل في إرسال طلب السحب' : 'Failed to submit withdrawal request'));
       }
     } catch {
       alert(isArabic ? 'خطأ في الاتصال' : 'Connection error');
@@ -236,7 +237,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
             <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-semibold text-zinc-900 dark:text-white bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">
-                  {isArabic ? "سحب رصيد" : "Withdraw Funds"}
+                  {isArabic ? "طلب سحب رصيد" : "Request Withdrawal"}
                 </h3>
                 <button
                   onClick={() => setShowWithdrawModal(false)}
@@ -302,7 +303,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                 </button>
                 <button
                   onClick={submitWithdraw}
-                  disabled={loading || !withdrawAmount || parseFloat(withdrawAmount) <= 0 || parseFloat(withdrawAmount) > wallet.balance}
+                  disabled={loading || !withdrawAmount || parseFloat(withdrawAmount) <= 0 || parseFloat(withdrawAmount) > (wallet.available_balance || 0)}
                   className="rounded-lg bg-gradient-to-r from-red-600 to-rose-600 px-5 py-2.5 text-sm font-medium text-white hover:from-red-700 hover:to-rose-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   {loading ? (
@@ -311,7 +312,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                       {isArabic ? "جاري..." : "Processing..."}
                     </div>
                   ) : (
-                    isArabic ? "سحب" : "Withdraw"
+                    isArabic ? "طلب سحب" : "Request Withdrawal"
                   )}
                 </button>
               </div>
@@ -332,12 +333,24 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
       )}
 
       {/* Balance */}
-      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 mb-6">
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 mb-4">
         <div className="text-sm text-gray-600 mb-1">
-          {isArabic ? 'الرصيد الحالي' : 'Current Balance'}
+          {isArabic ? 'الرصيد الإجمالي' : 'Total Balance'}
         </div>
         <div className="text-2xl font-bold text-green-600">
           {wallet.balance.toFixed(3)} {wallet.currency}
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-6">
+        <div className="text-sm text-gray-600 mb-1">
+          {isArabic ? 'الرصيد المتاح للسحب' : 'Available for Withdrawal'}
+        </div>
+        <div className="text-xl font-semibold text-blue-600">
+          {wallet.available_balance?.toFixed(3) || '0.000'} {wallet.currency}
+        </div>
+        <div className="text-xs text-gray-500 mt-1">
+          {isArabic ? 'يجب الموافقة من الإدارة للسحب' : 'Admin approval required for withdrawal'}
         </div>
       </div>
 
@@ -355,7 +368,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
           disabled={loading}
           className="bg-gradient-to-r from-red-600 to-rose-600 text-white px-4 py-2 rounded-lg hover:from-red-700 hover:to-rose-700 transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:scale-105"
         >
-          {isArabic ? 'سحب' : 'Withdraw'}
+          {isArabic ? 'طلب سحب' : 'Request Withdrawal'}
         </button>
         <button
           onClick={() => setShowTransfer(!showTransfer)}

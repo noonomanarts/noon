@@ -35,6 +35,7 @@ export default async function AccountPage({
       id: '',
       user_id: user.id,
       balance: 0,
+      available_balance: 0,
       currency: 'OMR',
       created_at: new Date(),
       updated_at: new Date(),

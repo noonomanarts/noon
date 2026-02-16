@@ -4,6 +4,7 @@ import { getUserById } from "@/lib/db/users";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { WalletsTable } from "@/components/admin/WalletsTable";
+import { WithdrawalRequestsTable } from "@/components/admin/WithdrawalRequestsTable";
 
 export default async function WalletsPage({
   params,
@@ -29,7 +30,7 @@ export default async function WalletsPage({
   const wallets = await getAllWallets();
 
   return (
-    <div className="p-6">
+    <div className="p-6 space-y-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           {locale === "ar" ? "محافظ المستخدمين" : "User Wallets"}
@@ -40,6 +41,8 @@ export default async function WalletsPage({
       </div>
 
       <WalletsTable wallets={wallets} locale={locale} />
+
+      <WithdrawalRequestsTable locale={locale} />
     </div>
   );
 }
