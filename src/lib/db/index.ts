@@ -22,3 +22,6 @@ export * from './trainers';
 
 // Contact operations
 export * from './contacts';
+
+// Wallet operations
+export * from './wallet';

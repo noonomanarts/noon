@@ -585,3 +585,14 @@ export async function addWalletCredit(
     );
   });
 }
+
+/**
+ * Get event bookings by user ID
+ */
+export async function getEventBookingsByUserId(userId: string) {
+  const result = await query(
+    `SELECT * FROM event_bookings WHERE user_id = $1 ORDER BY created_at DESC`,
+    [userId]
+  );
+  return result.rows;
+}

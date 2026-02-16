@@ -6,6 +6,7 @@ import { isLocale, type Locale } from "@/lib/locale";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
+import { AdminWalletDisplay } from "@/components/admin/AdminWalletDisplay";
 import MobileSidebar from "@/components/admin/MobileSidebar";
 import OverlayScrollArea from "@/components/site/OverlayScrollArea";
 import {
@@ -116,6 +117,7 @@ export default async function AdminLayout({
         { iconName: "FiUsers" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.users, href: `/${locale}/admin/users` },
         { iconName: "FiUserCheck" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.trainers, href: `/${locale}/admin/trainers` },
         { iconName: "FiCreditCard" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.payments, href: `/${locale}/admin/payments` },
+        { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: locale === "ar" ? "المحافظ" : "Wallets", href: `/${locale}/admin/wallets` },
       ],
     },
     {
@@ -256,6 +258,8 @@ export default async function AdminLayout({
               </div>
 
               <div className="flex items-center gap-3">
+                <AdminWalletDisplay locale={locale} userId={user.id} />
+
                 <LocaleSwitcher
                   currentLocale={locale}
                   labelEn={t.languageEn}

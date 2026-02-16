@@ -689,5 +689,22 @@ export async function findClassReviews(classId: string): Promise<{
   }));
 }
 
+/**
+ * Get bookings by user ID
+ */
+export async function getBookingsByUserId(userId: string) {
+  const result = await query(
+    `SELECT b.*, c.title, c.title_ar, cs.start_date_time, cs.end_date_time
+     FROM bookings b
+     LEFT JOIN classes c ON b.class_id = c.id
+     LEFT JOIN class_sessions cs ON b.session_id = cs.id
+     WHERE b.user_id = $1
+     ORDER BY b.created_at DESC`,
+    [userId]
+  );
+
+  return result.rows;
+}
+
 // Re-export ClassCategory for convenience
 export { ClassCategory };
