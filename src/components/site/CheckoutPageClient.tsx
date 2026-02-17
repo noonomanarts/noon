@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 
@@ -54,6 +55,7 @@ type CheckoutResult = {
 const SHIPPING_FEE = 2;
 
 export default function CheckoutPageClient({ locale }: { locale: Locale }) {
+  const searchParams = useSearchParams();
   const isArabic = locale === 'ar';
   const [cart, setCart] = useState<CartPayload | null>(null);
   const [wallet, setWallet] = useState<WalletPayload | null>(null);
@@ -104,6 +106,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     topupHint: isArabic ? 'يمكنك زيادة الرصيد مباشرة قبل الدفع.' : 'You can increase your balance before payment.',
     topupAmount: isArabic ? 'مبلغ الشحن' : 'Top Up Amount',
     topupAction: isArabic ? 'شحن الآن' : 'Top Up Now',
+    topupRedirect: isArabic ? 'سيتم تحويلك الآن لبوابة الدفع التجريبية.' : 'You will now be redirected to sandbox payment gateway.',
     successTitle: isArabic ? 'تم تأكيد الطلب بنجاح' : 'Order confirmed successfully',
     orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',
     continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
@@ -170,6 +173,29 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     );
   }, [form]);
 
+  useEffect(() => {
+    const topupStatus = searchParams.get('topup');
+    if (!topupStatus) return;
+
+    if (topupStatus === 'paid') {
+      setMessage(isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.');
+      setError(null);
+      void loadData();
+      return;
+    }
+
+    if (topupStatus === 'failed') {
+      setError(isArabic ? 'فشلت عملية شحن المحفظة.' : 'Wallet top-up payment failed.');
+      setMessage(null);
+      return;
+    }
+
+    if (topupStatus === 'cancelled') {
+      setError(isArabic ? 'تم إلغاء عملية شحن المحفظة.' : 'Wallet top-up was cancelled.');
+      setMessage(null);
+    }
+  }, [isArabic, loadData, searchParams]);
+
   const handleTopup = async () => {
     setMessage(null);
     setError(null);
@@ -182,12 +208,16 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
     setTopupLoading(true);
     try {
-      const response = await fetch('/api/wallet/deposit', {
+      const response = await fetch('/api/wallet/topup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount,
-          reason: 'Checkout wallet top-up',
+          gateway: 'SANDBOX_GATEWAY',
+          metadata: {
+            source: 'checkout_sidebar',
+            locale,
+          },
         }),
       });
 
@@ -196,9 +226,18 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         throw new Error(typeof errPayload?.error === 'string' ? errPayload.error : 'Failed to top up wallet');
       }
 
+      const payload = (await response.json()) as { payment?: { reference?: string } };
+      const reference = payload?.payment?.reference;
+
+      if (!reference) {
+        throw new Error(isArabic ? 'مرجع الدفع غير متوفر.' : 'Payment reference is missing.');
+      }
+
       setTopupAmount('');
-      setMessage(isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.');
-      await loadData();
+      setMessage(t.topupRedirect);
+
+      const returnUrl = `/${locale}/checkout`;
+      window.location.href = `/${locale}/wallet/topup/sandbox?reference=${encodeURIComponent(reference)}&returnUrl=${encodeURIComponent(returnUrl)}`;
     } catch (topupError) {
       setError(topupError instanceof Error ? topupError.message : 'Failed to top up wallet');
     } finally {

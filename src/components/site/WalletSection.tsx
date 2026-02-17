@@ -198,10 +198,11 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: parseFloat(depositAmount),
-          gateway: 'PENDING_GATEWAY',
+          gateway: 'SANDBOX_GATEWAY',
           metadata: {
             description: depositDescription || undefined,
             source: 'wallet_section',
+            locale,
           },
         }),
       });
@@ -209,20 +210,15 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
       if (response.ok) {
         const payload = await response.json();
         const reference = payload?.payment?.reference;
-        const paymentUrl = payload?.payment?.payment_url as string | null | undefined;
-
-        setMessage(
-          isArabic
-            ? `تم إنشاء طلب شحن المحفظة${reference ? ` (${reference})` : ''}. سيتم تحويلك لبوابة الدفع عند تفعيلها.`
-            : `Wallet top-up request created${reference ? ` (${reference})` : ''}. You will be redirected to gateway once enabled.`
-        );
-
-        if (typeof paymentUrl === 'string' && paymentUrl.length > 0) {
-          window.location.href = paymentUrl;
+        if (!reference) {
+          setMessage(isArabic ? 'تعذر إنشاء رابط الدفع.' : 'Failed to create payment link.');
           return;
         }
 
+        const returnUrl = `/${locale}/account/wallet`;
         setShowDepositModal(false);
+        setMessage(isArabic ? 'سيتم تحويلك الآن لبوابة الدفع التجريبية.' : 'Redirecting you to sandbox payment gateway.');
+        window.location.href = `/${locale}/wallet/topup/sandbox?reference=${encodeURIComponent(reference)}&returnUrl=${encodeURIComponent(returnUrl)}`;
       } else {
         const data = await response.json();
         setMessage(data.error || (isArabic ? 'فشل في إنشاء عملية الشحن' : 'Failed to create top-up request'));
