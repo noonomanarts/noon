@@ -344,6 +344,40 @@ export interface WalletTransaction {
   created_at: Date;
 }
 
+export type WalletTopupPaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
+
+export interface WalletTopupPayment {
+  id: string;
+  reference: string;
+  user_id: string;
+  wallet_id: string;
+  amount: number;
+  currency: string;
+  gateway: string;
+  gateway_transaction_id: string | null;
+  status: WalletTopupPaymentStatus;
+  payment_url: string | null;
+  failure_reason: string | null;
+  metadata: Record<string, unknown>;
+  paid_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ShopCategory {
+  id: string;
+  slug: string;
+  name_en: string;
+  name_ar: string;
+  description_en: string | null;
+  description_ar: string | null;
+  image: string | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface AppNotification {
   id: string;
   recipient_user_id: string | null;

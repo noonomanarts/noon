@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+import MarkdownEditor from '@/components/admin/MarkdownEditor';
 
 interface TrainerProfile {
   bio: string;
@@ -35,6 +37,7 @@ export default function EditTrainerPage() {
   const [trainer, setTrainer] = useState<Trainer | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   
   // Form state
@@ -112,6 +115,45 @@ export default function EditTrainerPage() {
 
   const handleRemoveExpertise = (item: string) => {
     setExpertise(expertise.filter(e => e !== item));
+  };
+
+  const uploadImage = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', 'profiles');
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data?.url) {
+      throw new Error(typeof data?.error === 'string' ? data.error : 'Failed to upload image');
+    }
+
+    return data.url as string;
+  };
+
+  const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      setFeedback(null);
+      const imageUrl = await uploadImage(file);
+      setProfileImage(imageUrl);
+      setFeedback({ type: 'success', message: 'Profile image uploaded successfully.' });
+    } catch (error) {
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to upload profile image.',
+      });
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -273,12 +315,25 @@ export default function EditTrainerPage() {
                   Profile Image URL
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   value={profileImage}
                   onChange={(e) => setProfileImage(e.target.value)}
-                  placeholder="https://..."
+                  placeholder="/uploads/profiles/... or https://..."
                   className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                 />
+                <div className="mt-3 flex items-center gap-3">
+                  <label className="inline-flex cursor-pointer items-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                    {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleProfileImageUpload}
+                      disabled={uploadingImage}
+                    />
+                  </label>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">PNG, JPG, WEBP</span>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -295,6 +350,20 @@ export default function EditTrainerPage() {
                 </select>
               </div>
             </div>
+            {profileImage && (
+              <div>
+                <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Image Preview</p>
+                <div className="relative h-24 w-24 overflow-hidden rounded-full border border-zinc-200 dark:border-zinc-700">
+                  <Image
+                    src={profileImage}
+                    alt={fullName || 'Trainer profile image'}
+                    fill
+                    sizes="96px"
+                    className="object-cover"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -303,12 +372,12 @@ export default function EditTrainerPage() {
           <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
             Biography
           </h2>
-          <textarea
+          <MarkdownEditor
+            label=""
             value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            rows={6}
-            placeholder="Write a brief description about the trainer..."
-            className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+            onChange={setBio}
+            rows={12}
+            placeholder="Write biography in Markdown..."
           />
         </div>
 
@@ -323,7 +392,7 @@ export default function EditTrainerPage() {
                 type="text"
                 value={newExpertise}
                 onChange={(e) => setNewExpertise(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddExpertise())}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddExpertise())}
                 placeholder="e.g., Italian Cuisine, Baking, Pastry..."
                 className="flex-1 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
               />

@@ -193,27 +193,39 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
 
     setLoading(true);
     try {
-      const response = await fetch('/api/wallet/deposit', {
+      const response = await fetch('/api/wallet/topup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: parseFloat(depositAmount),
-          description: depositDescription || undefined,
+          gateway: 'PENDING_GATEWAY',
+          metadata: {
+            description: depositDescription || undefined,
+            source: 'wallet_section',
+          },
         }),
       });
 
       if (response.ok) {
-        const deposited = parseFloat(depositAmount);
-        setWalletData((prev) => ({
-          ...prev,
-          balance: prev.balance + deposited,
-          available_balance: (prev.available_balance || 0) + deposited,
-        }));
-        setMessage(isArabic ? 'تم الإيداع بنجاح' : 'Deposit successful');
+        const payload = await response.json();
+        const reference = payload?.payment?.reference;
+        const paymentUrl = payload?.payment?.payment_url as string | null | undefined;
+
+        setMessage(
+          isArabic
+            ? `تم إنشاء طلب شحن المحفظة${reference ? ` (${reference})` : ''}. سيتم تحويلك لبوابة الدفع عند تفعيلها.`
+            : `Wallet top-up request created${reference ? ` (${reference})` : ''}. You will be redirected to gateway once enabled.`
+        );
+
+        if (typeof paymentUrl === 'string' && paymentUrl.length > 0) {
+          window.location.href = paymentUrl;
+          return;
+        }
+
         setShowDepositModal(false);
       } else {
         const data = await response.json();
-        setMessage(data.error || (isArabic ? 'فشل في الإيداع' : 'Deposit failed'));
+        setMessage(data.error || (isArabic ? 'فشل في إنشاء عملية الشحن' : 'Failed to create top-up request'));
       }
     } catch {
       setMessage(isArabic ? 'خطأ في الاتصال' : 'Connection error');
@@ -358,7 +370,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
             <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-semibold text-zinc-900 dark:text-white bg-gradient-to-r from-teal to-teal-light bg-clip-text text-transparent">
-                  {isArabic ? "إيداع رصيد" : "Deposit Funds"}
+                  {isArabic ? "شحن المحفظة" : "Wallet Top-up"}
                 </h3>
                 <button
                   onClick={() => setShowDepositModal(false)}
@@ -404,6 +416,11 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                 <p className="text-sm text-teal-900 dark:text-teal-200 font-medium">
                   {isArabic ? "الرصيد الحالي:" : "Current balance:"} <span className="font-semibold">{walletData.balance.toFixed(3)} {walletData.currency}</span>
                 </p>
+                 <p className="mt-1 text-xs text-teal-800 dark:text-teal-300">
+                   {isArabic
+                     ? 'سيتم اعتماد الرصيد بعد تأكيد عملية الدفع من البوابة.'
+                     : 'Balance is credited after payment gateway confirmation.'}
+                 </p>
               </div>
             </div>
 
@@ -427,7 +444,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                       {isArabic ? "جاري..." : "Processing..."}
                     </div>
                   ) : (
-                    isArabic ? "إيداع" : "Deposit"
+                      isArabic ? "المتابعة للدفع" : "Continue to Payment"
                   )}
                 </button>
               </div>
@@ -579,7 +596,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
           disabled={loading}
           className="noon-btn-teal px-4 py-2 transition-all duration-200 disabled:opacity-50 hover:shadow-xl transform hover:scale-105"
         >
-          {isArabic ? 'إيداع' : 'Deposit'}
+          {isArabic ? 'شحن المحفظة' : 'Top Up Wallet'}
         </button>
         <button
           onClick={handleWithdraw}

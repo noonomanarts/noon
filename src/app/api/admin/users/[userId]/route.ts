@@ -124,12 +124,12 @@ export async function PUT(
     }
 
     const updateData: Record<string, unknown> = {
-      fullName,
+      full_name: fullName,
       email: normalizedEmail,
-      phoneNumber: normalizedPhone,
+      phone_number: normalizedPhone,
       role,
-      dateOfBirth: dob ? new Date(dob) : undefined,
-      preferredLanguage: preferredLanguage === "ar" ? "ARABIC" : "ENGLISH",
+      date_of_birth: dob ? new Date(dob) : undefined,
+      preferred_language: preferredLanguage === "ar" ? "ARABIC" : "ENGLISH",
     };
 
     if (password) {
@@ -137,7 +137,7 @@ export async function PUT(
     }
 
     if (profileImagePath) {
-      updateData.profileImage = profileImagePath;
+      updateData.profile_image = profileImagePath;
     }
 
     const updatedUser = await updateUserWithPassword(userId, updateData);

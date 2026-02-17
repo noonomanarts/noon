@@ -33,6 +33,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
     }
 
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "File size must be 5MB or less" },
+        { status: 400 }
+      );
+    }
+
     const safeFolder = sanitizeFolder(folderValue);
     const uploadDir = path.join(process.cwd(), "public", "uploads", safeFolder);
     await mkdir(uploadDir, { recursive: true });

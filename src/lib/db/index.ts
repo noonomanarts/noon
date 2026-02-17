@@ -25,3 +25,6 @@ export * from './contacts';
 
 // Wallet operations
 export * from './wallet';
+
+// Shop operations
+export * from './shop';

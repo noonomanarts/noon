@@ -18,7 +18,7 @@ export async function findTrainers(options?: {
 
   const result = await query(
     `SELECT u.id, u.full_name, u.email, u.phone_number, u.profile_image,
-            u.date_of_birth, u.gender, u.created_at
+            u.date_of_birth, u.gender, u.status, u.created_at
      FROM users u
      WHERE ${conditions.join(' AND ')}
      ORDER BY u.full_name ASC`
@@ -32,6 +32,7 @@ export async function findTrainers(options?: {
     profileImage: row.profile_image,
     dateOfBirth: row.date_of_birth,
     gender: row.gender,
+    status: row.status,
     createdAt: row.created_at,
   }));
 }

@@ -71,6 +71,7 @@ export default function AdminProfileMenu({
               src={profileImage}
               alt={userName}
               fill
+              sizes="32px"
               className="object-cover"
             />
           ) : (

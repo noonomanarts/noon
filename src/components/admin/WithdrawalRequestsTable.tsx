@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { FiCheckCircle, FiXCircle, FiX, FiLoader } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 
@@ -16,6 +17,7 @@ interface WithdrawalRequest {
   user_full_name: string;
   user_email: string;
   user_phone_number: string;
+  user_profile_image: string | null;
 }
 
 interface PaginationPayload {
@@ -329,9 +331,28 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
                 {requests.map((request) => (
                   <tr key={request.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800/60">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">{request.user_full_name}</div>
-                      <div className="text-xs text-gray-500 dark:text-zinc-400">{request.user_email}</div>
-                      <div className="text-xs text-gray-500 dark:text-zinc-400">{request.user_phone_number}</div>
+                      <div className="flex items-start gap-3">
+                        <div className="relative h-9 w-9 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                          {request.user_profile_image ? (
+                            <Image
+                              src={request.user_profile_image}
+                              alt={request.user_full_name}
+                              fill
+                              sizes="36px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-zinc-700 dark:text-zinc-200">
+                              {(request.user_full_name?.charAt(0) || 'U').toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{request.user_full_name}</div>
+                          <div className="text-xs text-gray-500 dark:text-zinc-400">{request.user_email}</div>
+                          <div className="text-xs text-gray-500 dark:text-zinc-400">{request.user_phone_number}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                       {Math.abs(request.amount).toFixed(3)} OMR

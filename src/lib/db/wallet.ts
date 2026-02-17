@@ -1,9 +1,10 @@
 import { pool } from './pool';
 import { emitAdminEvent, emitUserEvent } from '@/lib/realtime/adminEvents';
 import { notifyRole, notifyUser } from '@/lib/notificationService';
-import type { Wallet, WalletTransaction, LoyaltyCard } from './types';
+import type { Wallet, WalletTransaction, LoyaltyCard, WalletTopupPayment, WalletTopupPaymentStatus } from './types';
 
 let walletDecisionColumnsCache: boolean | null = null;
+let walletTopupPaymentsTableCache: boolean | null = null;
 
 async function hasWalletDecisionTimestampColumns(): Promise<boolean> {
   if (walletDecisionColumnsCache !== null) {
@@ -20,6 +21,69 @@ async function hasWalletDecisionTimestampColumns(): Promise<boolean> {
 
   walletDecisionColumnsCache = (result.rows[0]?.count ?? 0) >= 2;
   return walletDecisionColumnsCache;
+}
+
+async function hasWalletTopupPaymentsTable(): Promise<boolean> {
+  if (walletTopupPaymentsTableCache !== null) {
+    return walletTopupPaymentsTableCache;
+  }
+
+  const result = await pool.query(
+    `SELECT to_regclass('public.wallet_topup_payments') IS NOT NULL AS exists`
+  );
+
+  walletTopupPaymentsTableCache = Boolean(result.rows[0]?.exists);
+  return walletTopupPaymentsTableCache;
+}
+
+async function ensureWalletTopupPaymentsTable(): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS wallet_topup_payments (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      reference VARCHAR(80) UNIQUE NOT NULL,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
+      amount DECIMAL(10, 3) NOT NULL CHECK (amount > 0),
+      currency VARCHAR(10) NOT NULL DEFAULT 'OMR',
+      gateway VARCHAR(50) NOT NULL DEFAULT 'PENDING_GATEWAY',
+      gateway_transaction_id VARCHAR(120),
+      status VARCHAR(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'PAID', 'FAILED', 'CANCELLED')),
+      payment_url TEXT,
+      failure_reason TEXT,
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+      paid_at TIMESTAMP WITH TIME ZONE,
+      created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS reference VARCHAR(80)`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS wallet_id UUID REFERENCES wallets(id) ON DELETE CASCADE`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS amount DECIMAL(10, 3)`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS currency VARCHAR(10) NOT NULL DEFAULT 'OMR'`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS gateway VARCHAR(50) NOT NULL DEFAULT 'PENDING_GATEWAY'`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS gateway_transaction_id VARCHAR(120)`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'PENDING'`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS payment_url TEXT`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS failure_reason TEXT`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'::jsonb`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP WITH TIME ZONE`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()`);
+
+  await pool.query(`UPDATE wallet_topup_payments SET metadata = '{}'::jsonb WHERE metadata IS NULL`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ALTER COLUMN metadata SET DEFAULT '{}'::jsonb`);
+  await pool.query(`ALTER TABLE wallet_topup_payments ALTER COLUMN metadata SET NOT NULL`);
+
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_wallet_topup_payments_reference ON wallet_topup_payments(reference)`);
+
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_topup_payments_user_id ON wallet_topup_payments(user_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_topup_payments_status ON wallet_topup_payments(status)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_topup_payments_created_at ON wallet_topup_payments(created_at DESC)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_wallet_topup_payments_reference ON wallet_topup_payments(reference)`);
+
+  walletTopupPaymentsTableCache = true;
 }
 
 export async function getWalletByUserId(userId: string): Promise<Wallet | null> {
@@ -426,6 +490,7 @@ export async function listWithdrawalRequestsForAdmin(options?: {
     user_full_name: string;
     user_email: string;
     user_phone_number: string;
+    user_profile_image: string | null;
     total_count: number;
   })[];
   total: number;
@@ -460,7 +525,8 @@ export async function listWithdrawalRequestsForAdmin(options?: {
   const offsetIndex = params.length;
 
   const result = await pool.query(
-    `SELECT wt.*, u.full_name as user_full_name, u.email as user_email, u.phone_number as user_phone_number,
+      `SELECT wt.*, u.full_name as user_full_name, u.email as user_email, u.phone_number as user_phone_number,
+        u.profile_image as user_profile_image,
             COUNT(*) OVER()::int as total_count
      FROM wallet_transactions wt
      JOIN wallets w ON wt.wallet_id = w.id
@@ -923,14 +989,22 @@ export async function adminUpdateWalletAvailableBalance(userId: string, newAvail
   };
 }
 
-export async function getAllWallets(): Promise<(Wallet & { user_full_name: string; user_email: string; user_phone_number: string })[]> {
+export async function getAllWallets(): Promise<
+  (Wallet & {
+    user_full_name: string;
+    user_email: string;
+    user_phone_number: string;
+    user_profile_image: string | null;
+  })[]
+> {
   const result = await pool.query(
     `SELECT w.*, u.full_name as user_full_name, u.email as user_email, u.phone_number as user_phone_number,
+            u.profile_image as user_profile_image,
             COALESCE(SUM(CASE WHEN wt.type = 'WITHDRAWAL_REQUEST' AND wt.status = 'PENDING' THEN ABS(wt.amount) ELSE 0 END), 0)::numeric AS blocked_balance
      FROM wallets w
      JOIN users u ON w.user_id = u.id
      LEFT JOIN wallet_transactions wt ON wt.wallet_id = w.id
-     GROUP BY w.id, u.full_name, u.email, u.phone_number
+     GROUP BY w.id, u.full_name, u.email, u.phone_number, u.profile_image
      ORDER BY u.full_name`
   );
   return result.rows.map(row => ({
@@ -939,4 +1013,260 @@ export async function getAllWallets(): Promise<(Wallet & { user_full_name: strin
     available_balance: parseFloat(row.available_balance as string),
     blocked_balance: parseFloat(row.blocked_balance as string),
   }));
+}
+
+const generateTopupReference = () => {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `TOPUP-${timestamp}-${random}`;
+};
+
+export async function createWalletTopupPayment(data: {
+  userId: string;
+  amount: number;
+  currency?: string;
+  gateway?: string;
+  paymentUrl?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<WalletTopupPayment> {
+  await ensureWalletTopupPaymentsTable();
+
+  const wallet = await getWalletByUserId(data.userId);
+  if (!wallet) {
+    throw new Error('Wallet not found');
+  }
+
+  const reference = generateTopupReference();
+  const result = await pool.query(
+    `INSERT INTO wallet_topup_payments
+      (reference, user_id, wallet_id, amount, currency, gateway, status, payment_url, metadata)
+     VALUES
+      ($1, $2, $3, $4, $5, $6, 'PENDING', $7, $8)
+     RETURNING *`,
+    [
+      reference,
+      data.userId,
+      wallet.id,
+      data.amount,
+      data.currency ?? wallet.currency,
+      data.gateway ?? 'PENDING_GATEWAY',
+      data.paymentUrl ?? null,
+      JSON.stringify(data.metadata ?? {}),
+    ]
+  );
+
+  const row = result.rows[0];
+  return {
+    ...row,
+    amount: parseFloat(row.amount as string),
+    metadata: row.metadata ?? {},
+  };
+}
+
+export async function listWalletTopupPaymentsForAdmin(options?: {
+  status?: WalletTopupPaymentStatus | 'ALL';
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{
+  payments: (WalletTopupPayment & {
+    user_full_name: string;
+    user_email: string;
+    user_phone_number: string;
+    user_profile_image: string | null;
+    total_count: number;
+  })[];
+  total: number;
+}> {
+  await ensureWalletTopupPaymentsTable();
+
+  const status = options?.status ?? 'ALL';
+  const search = options?.search?.trim() ?? '';
+  const page = Math.max(1, options?.page ?? 1);
+  const limit = Math.min(100, Math.max(1, options?.limit ?? 15));
+  const offset = (page - 1) * limit;
+
+  const whereClauses: string[] = ['1=1'];
+  const params: Array<string | number> = [];
+
+  if (status !== 'ALL') {
+    params.push(status);
+    whereClauses.push(`tp.status = $${params.length}`);
+  }
+
+  if (search.length > 0) {
+    params.push(`%${search}%`);
+    const searchIndex = params.length;
+    whereClauses.push(`(
+      u.full_name ILIKE $${searchIndex}
+      OR u.email ILIKE $${searchIndex}
+      OR u.phone_number ILIKE $${searchIndex}
+      OR tp.reference ILIKE $${searchIndex}
+      OR COALESCE(tp.gateway_transaction_id, '') ILIKE $${searchIndex}
+    )`);
+  }
+
+  params.push(limit);
+  const limitIndex = params.length;
+  params.push(offset);
+  const offsetIndex = params.length;
+
+  const result = await pool.query(
+    `SELECT tp.*, u.full_name as user_full_name, u.email as user_email,
+            u.phone_number as user_phone_number, u.profile_image as user_profile_image,
+            COUNT(*) OVER()::int as total_count
+     FROM wallet_topup_payments tp
+     JOIN users u ON u.id = tp.user_id
+     WHERE ${whereClauses.join(' AND ')}
+     ORDER BY tp.created_at DESC
+     LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+    params
+  );
+
+  const payments = result.rows.map((row) => ({
+    ...row,
+    amount: parseFloat(row.amount as string),
+    metadata: row.metadata ?? {},
+    total_count: Number(row.total_count ?? 0),
+  }));
+
+  const total = payments[0]?.total_count ?? 0;
+  return { payments, total };
+}
+
+export async function updateWalletTopupPaymentStatus(data: {
+  reference: string;
+  status: WalletTopupPaymentStatus;
+  gatewayTransactionId?: string;
+  failureReason?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<WalletTopupPayment> {
+  await ensureWalletTopupPaymentsTable();
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const paymentResult = await client.query(
+      `SELECT * FROM wallet_topup_payments WHERE reference = $1 FOR UPDATE`,
+      [data.reference]
+    );
+
+    if (!paymentResult.rows[0]) {
+      throw new Error('Topup payment not found');
+    }
+
+    const payment = paymentResult.rows[0] as WalletTopupPayment;
+
+    // Idempotency: if already in the same status, return current record
+    if (payment.status === data.status) {
+      await client.query('COMMIT');
+      return {
+        ...payment,
+        amount: parseFloat((payment as unknown as { amount: string }).amount),
+        metadata: payment.metadata ?? {},
+      };
+    }
+
+    if (payment.status === 'PAID') {
+      throw new Error('Paid topup cannot be changed');
+    }
+
+    const nextMetadata = {
+      ...(payment.metadata ?? {}),
+      ...(data.metadata ?? {}),
+    };
+
+    const updatedResult = await client.query(
+      `UPDATE wallet_topup_payments
+       SET status = $1::varchar,
+         gateway_transaction_id = COALESCE($2::varchar, gateway_transaction_id),
+         failure_reason = $3::text,
+         metadata = $4::jsonb,
+         paid_at = CASE WHEN $1::varchar = 'PAID' THEN NOW() ELSE paid_at END,
+           updated_at = NOW()
+       WHERE id = $5
+       RETURNING *`,
+      [
+        data.status,
+        data.gatewayTransactionId ?? null,
+        data.failureReason ?? null,
+        JSON.stringify(nextMetadata),
+        payment.id,
+      ]
+    );
+
+    const updatedPayment = updatedResult.rows[0] as WalletTopupPayment;
+
+    if (data.status === 'PAID') {
+      const walletResult = await client.query(
+        `SELECT * FROM wallets WHERE id = $1 FOR UPDATE`,
+        [updatedPayment.wallet_id]
+      );
+
+      const wallet = walletResult.rows[0] as Wallet;
+      if (!wallet) {
+        throw new Error('Wallet not found');
+      }
+
+      const currentBalance = parseFloat((wallet as unknown as { balance: string }).balance);
+      const currentAvailableBalance = parseFloat((wallet as unknown as { available_balance: string }).available_balance);
+      const paymentAmount = parseFloat((updatedPayment as unknown as { amount: string }).amount);
+
+      const newBalance = currentBalance + paymentAmount;
+      const newAvailableBalance = currentAvailableBalance + paymentAmount;
+
+      await client.query(
+        `UPDATE wallets SET balance = $1, available_balance = $2, updated_at = NOW() WHERE id = $3`,
+        [newBalance, newAvailableBalance, wallet.id]
+      );
+
+      await client.query(
+        `INSERT INTO wallet_transactions (wallet_id, amount, type, reason, status)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          wallet.id,
+          paymentAmount,
+          'TOPUP_GATEWAY',
+          `Wallet top-up paid (${updatedPayment.reference})`,
+          'COMPLETED',
+        ]
+      );
+
+      try {
+        emitAdminEvent('wallet_updated', {
+          user_id: wallet.user_id,
+          balance: newBalance,
+          available_balance: newAvailableBalance,
+          currency: wallet.currency,
+        });
+      } catch (eventError) {
+        console.error('Failed to emit admin wallet event after top-up payment:', eventError);
+      }
+
+      try {
+        emitUserEvent(wallet.user_id, 'wallet_updated', {
+          balance: newBalance,
+          available_balance: newAvailableBalance,
+          currency: wallet.currency,
+        });
+      } catch (eventError) {
+        console.error('Failed to emit user wallet event after top-up payment:', eventError);
+      }
+    }
+
+    await client.query('COMMIT');
+
+    return {
+      ...updatedPayment,
+      amount: parseFloat((updatedPayment as unknown as { amount: string }).amount),
+      metadata: updatedPayment.metadata ?? {},
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
