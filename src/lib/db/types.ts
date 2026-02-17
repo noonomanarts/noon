@@ -338,7 +338,7 @@ export interface WalletTransaction {
   amount: number;
   type: string;
   reason: string | null;
-  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
   approved_at?: Date | null;
   rejected_at?: Date | null;
   created_at: Date;

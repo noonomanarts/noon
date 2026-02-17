@@ -5,14 +5,21 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { WalletsTable } from "@/components/admin/WalletsTable";
 import { WithdrawalRequestsTable } from "@/components/admin/WithdrawalRequestsTable";
+import Link from "next/link";
+
+type WalletAdminView = "wallets" | "withdrawals";
 
 export default async function WalletsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { locale: rawLocale } = await params;
+  const { view: rawView } = await searchParams;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
+  const view: WalletAdminView = rawView === "withdrawals" ? "withdrawals" : "wallets";
 
   // Auth check
   const cookieStore = await cookies();
@@ -29,20 +36,58 @@ export default async function WalletsPage({
 
   const wallets = await getAllWallets();
 
+  const navItems: Array<{ key: WalletAdminView; label: string }> = [
+    {
+      key: "wallets",
+      label: locale === "ar" ? "إدارة المحافظ" : "Wallet Management",
+    },
+    {
+      key: "withdrawals",
+      label: locale === "ar" ? "طلبات السحب" : "Withdrawal Requests",
+    },
+  ];
+
   return (
     <div className="p-6 space-y-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           {locale === "ar" ? "محافظ المستخدمين" : "User Wallets"}
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+        <p className="text-gray-600 dark:text-zinc-400 mt-1">
           {locale === "ar" ? "إدارة محافظ المستخدمين ومعاملاتهم" : "Manage user wallets and transactions"}
         </p>
       </div>
 
-      <WalletsTable wallets={wallets} locale={locale} />
+      <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
+        <aside className="rounded-xl border border-gray-200/70 bg-white p-3 shadow-sm dark:border-zinc-700/70 dark:bg-zinc-900">
+          <nav className="space-y-1" aria-label={locale === "ar" ? "قائمة إدارة المحافظ" : "Wallet admin menu"}>
+            {navItems.map((item) => {
+              const isActive = view === item.key;
+              return (
+                <Link
+                  key={item.key}
+                  href={`/${locale}/admin/wallets?view=${item.key}`}
+                  className={`block rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
+                    isActive
+                      ? "bg-[color:var(--noon-teal-soft)] text-[color:var(--noon-teal)]"
+                      : "text-gray-700 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </aside>
 
-      <WithdrawalRequestsTable locale={locale} />
+        <section className="min-w-0">
+          {view === "wallets" ? (
+            <WalletsTable wallets={wallets} locale={locale} />
+          ) : (
+            <WithdrawalRequestsTable locale={locale} />
+          )}
+        </section>
+      </div>
     </div>
   );
 }

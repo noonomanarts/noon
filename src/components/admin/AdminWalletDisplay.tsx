@@ -61,7 +61,7 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
 
     toastTimeoutRef.current = window.setTimeout(() => {
       setToastMessage(null);
-    }, 3500);
+    }, 3000);
   };
 
   useEffect(() => {
@@ -197,7 +197,7 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
   return (
     <>
       {toastMessage && (
-        <div className={`fixed top-4 ${locale === 'ar' ? 'left-4' : 'right-4'} z-[140]`} aria-live="polite">
+        <div className={`fixed top-20 ${locale === 'ar' ? 'left-4' : 'right-4'} z-[140]`} aria-live="polite">
           <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl backdrop-blur ${
             toastType === 'success'
               ? 'border-emerald-200/70 bg-emerald-50/95 text-emerald-900 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-100'

@@ -240,6 +240,19 @@ export async function transferWalletFunds(
       messageEn: 'You received a wallet transfer.',
       messageAr: 'لقد استلمت تحويلاً إلى المحفظة.',
     });
+
+    await notifyUser(fromUserId, {
+      type: 'transfer_sent',
+      title: 'Transfer Sent',
+      message: 'Your wallet transfer was completed successfully.',
+      data: { amount, currency: senderWallet.rows[0].currency },
+    });
+    await notifyUser(toUserId, {
+      type: 'transfer_received',
+      title: 'Transfer Received',
+      message: 'You received a wallet transfer.',
+      data: { amount, currency: receiverWallet.rows[0].currency },
+    });
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -274,6 +287,13 @@ export async function depositToWallet(userId: string, amount: number, reason?: s
     type: 'deposit_success',
     messageEn: 'Deposit completed successfully.',
     messageAr: 'تم الإيداع بنجاح.',
+  });
+
+  await notifyUser(userId, {
+    type: 'deposit_success',
+    title: 'Deposit Successful',
+    message: 'Your wallet deposit was completed successfully.',
+    data: { amount, currency: wallet.currency },
   });
 }
 
@@ -392,6 +412,188 @@ export async function getPendingWithdrawalRequests(): Promise<(WalletTransaction
     ...row,
     amount: parseFloat(row.amount as string),
   }));
+}
+
+type WithdrawalRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export async function listWithdrawalRequestsForAdmin(options?: {
+  status?: WithdrawalRequestStatus | 'ALL';
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{
+  requests: (WalletTransaction & {
+    user_full_name: string;
+    user_email: string;
+    user_phone_number: string;
+    total_count: number;
+  })[];
+  total: number;
+}> {
+  const status = options?.status ?? 'ALL';
+  const search = options?.search?.trim() ?? '';
+  const page = Math.max(1, options?.page ?? 1);
+  const limit = Math.min(100, Math.max(1, options?.limit ?? 10));
+  const offset = (page - 1) * limit;
+
+  const whereClauses: string[] = [`wt.type = 'WITHDRAWAL_REQUEST'`];
+  const params: Array<string | number> = [];
+
+  if (status !== 'ALL') {
+    params.push(status);
+    whereClauses.push(`wt.status = $${params.length}`);
+  }
+
+  if (search.length > 0) {
+    params.push(`%${search}%`);
+    const searchParamIndex = params.length;
+    whereClauses.push(`(
+      u.full_name ILIKE $${searchParamIndex}
+      OR u.email ILIKE $${searchParamIndex}
+      OR u.phone_number ILIKE $${searchParamIndex}
+    )`);
+  }
+
+  params.push(limit);
+  const limitIndex = params.length;
+  params.push(offset);
+  const offsetIndex = params.length;
+
+  const result = await pool.query(
+    `SELECT wt.*, u.full_name as user_full_name, u.email as user_email, u.phone_number as user_phone_number,
+            COUNT(*) OVER()::int as total_count
+     FROM wallet_transactions wt
+     JOIN wallets w ON wt.wallet_id = w.id
+     JOIN users u ON w.user_id = u.id
+     WHERE ${whereClauses.join(' AND ')}
+     ORDER BY wt.created_at DESC
+     LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+    params
+  );
+
+  const requests = result.rows.map(row => ({
+    ...row,
+    amount: parseFloat(row.amount as string),
+    total_count: Number(row.total_count ?? 0),
+  }));
+
+  const total = requests[0]?.total_count ?? 0;
+  return { requests, total };
+}
+
+export async function cancelWithdrawalRequestByUser(userId: string, transactionId: string, reason?: string): Promise<void> {
+  const client = await pool.connect();
+  try {
+    const hasDecisionColumns = await hasWalletDecisionTimestampColumns();
+
+    await client.query('BEGIN');
+
+    const transactionResult = await client.query(
+      `SELECT wt.*, w.user_id
+       FROM wallet_transactions wt
+       JOIN wallets w ON w.id = wt.wallet_id
+       WHERE wt.id = $1
+         AND wt.type = 'WITHDRAWAL_REQUEST'
+         AND wt.status = 'PENDING'
+         AND w.user_id = $2`,
+      [transactionId, userId]
+    );
+    if (!transactionResult.rows[0]) {
+      throw new Error('Pending withdrawal request not found');
+    }
+
+    const transaction = transactionResult.rows[0];
+    const amount = Math.abs(parseFloat(transaction.amount as string));
+
+    const walletResult = await client.query(
+      `SELECT w.*, u.full_name,
+              COALESCE((
+                SELECT SUM(ABS(wt.amount))
+                FROM wallet_transactions wt
+                WHERE wt.wallet_id = w.id
+                  AND wt.type = 'WITHDRAWAL_REQUEST'
+                  AND wt.status = 'PENDING'
+              ), 0)::numeric AS blocked_balance
+       FROM wallets w
+       JOIN users u ON u.id = w.user_id
+       WHERE w.id = $1
+       FOR UPDATE`,
+      [transaction.wallet_id]
+    );
+    const wallet = walletResult.rows[0];
+    if (!wallet) throw new Error('Wallet not found');
+
+    const currentBalance = parseFloat(wallet.balance as string);
+    const currentAvailableBalance = parseFloat(wallet.available_balance as string);
+    const currentBlockedBalance = parseFloat(wallet.blocked_balance as string);
+
+    const newBalance = currentBalance + amount;
+    const newAvailableBalance = Math.min(newBalance, currentAvailableBalance + amount);
+    const newBlockedBalance = Math.max(0, currentBlockedBalance - amount);
+
+    await client.query(
+      'UPDATE wallets SET balance = $1, available_balance = $2, updated_at = NOW() WHERE id = $3',
+      [newBalance, newAvailableBalance, wallet.id]
+    );
+
+    const cancelReason = reason?.trim()
+      ? `Cancelled by user: ${reason.trim()}`
+      : 'Cancelled by user';
+
+    if (hasDecisionColumns) {
+      await client.query(
+        'UPDATE wallet_transactions SET status = $1, reason = $2, approved_at = NULL, rejected_at = NULL WHERE id = $3',
+        ['CANCELLED', cancelReason, transactionId]
+      );
+    } else {
+      await client.query(
+        'UPDATE wallet_transactions SET status = $1, reason = $2 WHERE id = $3',
+        ['CANCELLED', cancelReason, transactionId]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    emitAdminEvent('wallet_updated', {
+      user_id: wallet.user_id,
+      balance: newBalance,
+      available_balance: newAvailableBalance,
+      blocked_balance: newBlockedBalance,
+      currency: wallet.currency,
+    });
+    emitAdminEvent('withdrawal_requests_updated', { transactionId });
+
+    emitUserEvent(wallet.user_id, 'wallet_updated', {
+      balance: newBalance,
+      available_balance: newAvailableBalance,
+      blocked_balance: newBlockedBalance,
+      currency: wallet.currency,
+    });
+    emitUserEvent(wallet.user_id, 'wallet_notification', {
+      type: 'withdrawal_request_cancelled',
+      messageEn: 'Your withdrawal request was cancelled and funds were restored.',
+      messageAr: 'تم إلغاء طلب السحب وإرجاع المبلغ إلى محفظتك.',
+    });
+
+    await notifyRole('ADMIN', {
+      type: 'withdrawal_request_cancelled',
+      title: 'Withdrawal Cancelled by User',
+      message: `${wallet.full_name || 'User'} cancelled a withdrawal request.`,
+      data: { transactionId, userId: wallet.user_id, userName: wallet.full_name ?? null },
+    });
+
+    await notifyUser(wallet.user_id, {
+      type: 'withdrawal_request_cancelled',
+      title: 'Withdrawal Cancelled',
+      message: 'Your withdrawal request was cancelled and held funds were restored.',
+      data: { transactionId },
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function approveWithdrawalRequest(transactionId: string, adminReason?: string): Promise<void> {
@@ -628,6 +830,13 @@ export async function adminAddWalletCredit(userId: string, amount: number, reaso
     messageAr: 'تمت إضافة رصيد إلى محفظتك من الإدارة.',
   });
 
+  await notifyUser(wallet.user_id, {
+    type: 'admin_credit',
+    title: 'Wallet Credited',
+    message: 'An admin added credit to your wallet.',
+    data: { amount, currency: wallet.currency },
+  });
+
   return {
     wallet: { ...wallet, balance: newBalance, available_balance: newAvailableBalance },
     transaction
@@ -661,6 +870,13 @@ export async function adminDeductWalletCredit(userId: string, amount: number, re
     messageAr: 'تم خصم رصيد من محفظتك من الإدارة.',
   });
 
+  await notifyUser(wallet.user_id, {
+    type: 'admin_deduct',
+    title: 'Wallet Deduction',
+    message: 'An admin deducted credit from your wallet.',
+    data: { amount, currency: wallet.currency },
+  });
+
   return {
     wallet: { ...wallet, balance: newBalance, available_balance: newAvailableBalance },
     transaction
@@ -690,6 +906,16 @@ export async function adminUpdateWalletAvailableBalance(userId: string, newAvail
     type: 'available_balance_updated',
     messageEn: 'Your withdrawable wallet amount was updated.',
     messageAr: 'تم تحديث المقدار القابل للسحب في محفظتك.',
+  });
+
+  await notifyUser(wallet.user_id, {
+    type: 'available_balance_updated',
+    title: 'Withdrawable Amount Updated',
+    message: 'Your withdrawable wallet amount was updated by admin.',
+    data: {
+      withdrawableAmount: newAvailableBalance,
+      currency: wallet.currency,
+    },
   });
 
   return {

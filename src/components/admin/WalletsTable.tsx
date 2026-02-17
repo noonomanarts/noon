@@ -112,7 +112,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
     }
     toastTimeoutRef.current = window.setTimeout(() => {
       setToastMessage(null);
-    }, 3500);
+    }, 3000);
   };
 
   const notifyWithSound = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -457,7 +457,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
   return (
     <>
       {toastMessage && (
-        <div className={`fixed top-4 ${locale === 'ar' ? 'left-4' : 'right-4'} z-50`}
+        <div className={`fixed top-20 ${locale === 'ar' ? 'left-4' : 'right-4'} z-50`}
           aria-live="polite"
         >
           <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl backdrop-blur ${
@@ -554,7 +554,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-6">
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="flex-1 max-w-md">
             <input
@@ -562,7 +562,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
               placeholder={locale === "ar" ? "البحث في المحافظ..." : "Search wallets..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-zinc-800 dark:border-zinc-600 dark:text-white"
             />
           </div>
 
@@ -570,7 +570,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as 'all' | 'has-balance' | 'has-available' | 'pending-withdrawals')}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-zinc-800 dark:border-zinc-600 dark:text-white"
             >
               <option value="all">{locale === "ar" ? "جميع المحافظ" : "All Wallets"}</option>
               <option value="has-balance">{locale === "ar" ? "لديها رصيد" : "Has Balance"}</option>
@@ -582,55 +582,55 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
       </div>
 
       {/* Wallets Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-zinc-700">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white">
             {locale === "ar" ? "إدارة المحافظ" : "Wallet Management"}
           </h2>
         </div>
 
         <div className="relative overflow-x-auto overflow-y-visible">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
+            <thead className="bg-gray-50 dark:bg-zinc-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                   <div className="flex items-center">
                     <input
                       type="checkbox"
                       checked={selectedWallets.size === filteredWallets.length && filteredWallets.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-zinc-900 focus:ring-2 dark:bg-zinc-800 dark:border-zinc-600"
                     />
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                   {locale === "ar" ? "المستخدم" : "User"}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                   {locale === "ar" ? "رقم الهاتف" : "Phone Number"}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                   {locale === "ar" ? "الرصيد الإجمالي" : "Total Balance"}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                   {locale === "ar" ? "المقدار القابل للسحب" : "Withdrawable Amount"}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                   {locale === "ar" ? "المبلغ المحجوز" : "Blocked Amount"}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                   {locale === "ar" ? "العملة" : "Currency"}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                   {locale === "ar" ? "الإجراءات" : "Actions"}
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            <tbody className="bg-white dark:bg-zinc-900 divide-y divide-gray-200 dark:divide-zinc-700">
               {filteredWallets.map((wallet) => (
                 <tr
                   key={wallet.id}
-                  className={`relative hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                  className={`relative hover:bg-gray-50 dark:hover:bg-zinc-800 ${
                     openDropdown === wallet.user_id ? 'z-[80]' : 'z-0'
                   }`}
                 >
@@ -639,14 +639,14 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                       type="checkbox"
                       checked={selectedWallets.has(wallet.user_id)}
                       onChange={(e) => handleSelectWallet(wallet.user_id, e.target.checked)}
-                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-zinc-900 focus:ring-2 dark:bg-zinc-800 dark:border-zinc-600"
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {wallet.user_full_name}
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-gray-500 dark:text-zinc-400">
                       {wallet.user_email}
                     </div>
                   </td>
@@ -669,7 +669,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                     <div className="relative dropdown-container">
                       <button
                         onClick={(event) => toggleDropdown(wallet.user_id, event.currentTarget)}
-                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-600 dark:text-zinc-300 hover:text-gray-800 dark:hover:text-zinc-100 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
                         disabled={loading}
                       >
                         <FiMoreVertical className="w-4 h-4" />
@@ -685,7 +685,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
       {openDropdown && dropdownPosition && openWallet && (
         <div
-          className="wallet-actions-menu fixed z-[160] w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm focus:outline-none overflow-hidden"
+          className="wallet-actions-menu fixed z-[160] w-56 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200/50 dark:border-zinc-700/50 backdrop-blur-sm focus:outline-none overflow-hidden"
           style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
         >
           <div className="py-2">
@@ -695,7 +695,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 setOpenDropdown(null);
                 setDropdownPosition(null);
               }}
-              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 group"
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 group"
               disabled={loading}
             >
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 mr-3 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors duration-200">
@@ -709,7 +709,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 setOpenDropdown(null);
                 setDropdownPosition(null);
               }}
-              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 dark:hover:from-green-900/20 dark:hover:to-emerald-900/20 hover:text-green-700 dark:hover:text-green-300 transition-all duration-200 group"
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 dark:hover:from-green-900/20 dark:hover:to-emerald-900/20 hover:text-green-700 dark:hover:text-green-300 transition-all duration-200 group"
               disabled={loading}
             >
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 mr-3 group-hover:bg-green-200 dark:group-hover:bg-green-800/40 transition-colors duration-200">
@@ -723,7 +723,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 setOpenDropdown(null);
                 setDropdownPosition(null);
               }}
-              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-red-50 hover:to-rose-50 dark:hover:from-red-900/20 dark:hover:to-rose-900/20 hover:text-red-700 dark:hover:text-red-300 transition-all duration-200 group"
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gradient-to-r hover:from-red-50 hover:to-rose-50 dark:hover:from-red-900/20 dark:hover:to-rose-900/20 hover:text-red-700 dark:hover:text-red-300 transition-all duration-200 group"
               disabled={loading}
             >
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 mr-3 group-hover:bg-red-200 dark:group-hover:bg-red-800/40 transition-colors duration-200">
@@ -737,7 +737,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 setOpenDropdown(null);
                 setDropdownPosition(null);
               }}
-              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 dark:hover:from-purple-900/20 dark:hover:to-violet-900/20 hover:text-purple-700 dark:hover:text-purple-300 transition-all duration-200 group"
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 dark:hover:from-purple-900/20 dark:hover:to-violet-900/20 hover:text-purple-700 dark:hover:text-purple-300 transition-all duration-200 group"
               disabled={loading}
             >
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 mr-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors duration-200">
@@ -751,7 +751,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 setOpenDropdown(null);
                 setDropdownPosition(null);
               }}
-              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 dark:hover:from-orange-900/20 dark:hover:to-amber-900/20 hover:text-orange-700 dark:hover:text-orange-300 transition-all duration-200 group"
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 dark:hover:from-orange-900/20 dark:hover:to-amber-900/20 hover:text-orange-700 dark:hover:text-orange-300 transition-all duration-200 group"
               disabled={loading || (openWallet.available_balance || 0) <= 0}
             >
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 mr-3 group-hover:bg-orange-200 dark:group-hover:bg-orange-800/40 transition-colors duration-200">

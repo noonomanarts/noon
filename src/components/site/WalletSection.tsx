@@ -26,6 +26,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
   const [withdrawDescription, setWithdrawDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [cancelingTransactionId, setCancelingTransactionId] = useState<string | null>(null);
 
   const isArabic = locale === 'ar';
   const transactionsPerPage = 8;
@@ -313,6 +314,38 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
       setMessage(isArabic ? 'خطأ في الاتصال' : 'Connection error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelWithdrawalRequest = async (transactionId: string) => {
+    setCancelingTransactionId(transactionId);
+    try {
+      const response = await fetch('/api/wallet/withdraw/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactionId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setMessage(data.error || (isArabic ? 'فشل في إلغاء طلب السحب' : 'Failed to cancel withdrawal request'));
+        return;
+      }
+
+      setTransactionsData((prev) =>
+        prev.map((item) =>
+          item.id === transactionId
+            ? { ...item, status: 'CANCELLED', reason: item.reason ? `${item.reason} - Cancelled by user` : 'Cancelled by user' }
+            : item
+        )
+      );
+
+      setMessage(isArabic ? 'تم إلغاء طلب السحب وإرجاع المبلغ.' : 'Withdrawal request cancelled and funds restored.');
+      void refreshWalletBalance();
+    } catch {
+      setMessage(isArabic ? 'خطأ في الاتصال' : 'Connection error');
+    } finally {
+      setCancelingTransactionId(null);
     }
   };
 
@@ -640,6 +673,17 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                   <div className="text-xs text-gray-500">
                     {new Date(transaction.created_at).toLocaleDateString(locale === 'ar' ? 'ar' : 'en')}
                   </div>
+                  {transaction.type === 'WITHDRAWAL_REQUEST' && transaction.status === 'PENDING' && (
+                    <button
+                      onClick={() => handleCancelWithdrawalRequest(transaction.id)}
+                      disabled={cancelingTransactionId === transaction.id}
+                      className="mt-2 rounded-md border border-[color:var(--noon-coral)]/40 px-2.5 py-1 text-xs font-semibold text-[color:var(--noon-coral)] hover:bg-[color:var(--noon-coral-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {cancelingTransactionId === transaction.id
+                        ? (isArabic ? 'جاري الإلغاء...' : 'Cancelling...')
+                        : (isArabic ? 'إلغاء الطلب' : 'Cancel Request')}
+                    </button>
+                  )}
                 </div>
                 <div className={`font-medium ${
                   transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
