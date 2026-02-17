@@ -78,6 +78,7 @@ export interface User {
   gender: Gender | null;
   preferred_language: PreferredLanguage;
   profile_image: string | null;
+  whatsapp_verified_at: Date | null;
   created_at: Date;
   updated_at: Date;
   last_login_at: Date | null;
@@ -95,6 +96,7 @@ export interface UserPublic {
   gender: Gender | null;
   preferredLanguage: PreferredLanguage;
   profileImage: string | null;
+  whatsappVerifiedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   lastLoginAt: Date | null;

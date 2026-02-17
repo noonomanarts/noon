@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { isLocale, type Locale } from "@/lib/locale";
 import { registerUser } from "@/lib/authStore";
 import { cookies } from "next/headers";
+import WhatsAppAuthCard from "@/components/site/WhatsAppAuthCard";
 
 export default async function RegisterPage({
   params,
@@ -107,6 +108,7 @@ export default async function RegisterPage({
     confirmPassword: locale === "ar" ? "تأكيد كلمة المرور" : "Confirm Password",
     passwordHint: locale === "ar" ? "يجب أن تكون 8 أحرف على الأقل" : "Must be at least 8 characters",
     register: locale === "ar" ? "إنشاء حساب" : "Create Account",
+    orWhatsApp: locale === "ar" ? "أو إنشاء حساب عبر واتساب" : "Or register with WhatsApp",
     haveAccount: locale === "ar" ? "لديك حساب بالفعل؟" : "Already have an account?",
     login: locale === "ar" ? "تسجيل الدخول" : "Sign in",
   };
@@ -292,6 +294,14 @@ export default async function RegisterPage({
               {t.register}
             </button>
           </form>
+
+          <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+            <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            <span>{t.orWhatsApp}</span>
+            <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          </div>
+
+          <WhatsAppAuthCard locale={locale} purpose="register" />
 
           {/* Login Link */}
           <div className="mt-8 border-t border-zinc-200 pt-6 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">

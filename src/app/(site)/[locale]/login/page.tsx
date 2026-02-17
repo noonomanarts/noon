@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isLocale, type Locale } from "@/lib/locale";
 import { ensureDefaultAdmin, verifyLogin } from "@/lib/authStore";
 import ThemeToggle from "@/components/site/ThemeToggle";
+import WhatsAppAuthCard from "@/components/site/WhatsAppAuthCard";
 
 export default async function LoginPage({
   params,
@@ -60,6 +61,7 @@ export default async function LoginPage({
     signIn: locale === "ar" ? "تسجيل الدخول" : "Sign in",
     noAccount: locale === "ar" ? "ليس لديك حساب؟" : "Don't have an account?",
     createAccount: locale === "ar" ? "إنشاء حساب" : "Create one",
+    orWhatsApp: locale === "ar" ? "أو عبر واتساب" : "Or with WhatsApp",
     errorMessage: locale === "ar" ? "بيانات الدخول غير صحيحة" : "Invalid email or password",
     logoutSuccess: locale === 'ar' ? 'تم تسجيل الخروج بنجاح. يمكنك تسجيل الدخول مرة أخرى.' : 'You have been logged out successfully. You can sign in again.',
     adminNote: locale === "ar" ? "ملاحظة: استخدم admin@noon.com / admin123 للتجربة" : "Note: Use admin@noon.com / admin123 for testing",
@@ -156,6 +158,14 @@ export default async function LoginPage({
               {t.signIn}
             </button>
           </form>
+
+          <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+            <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            <span>{t.orWhatsApp}</span>
+            <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          </div>
+
+          <WhatsAppAuthCard locale={locale} purpose="login" />
 
           {/* Register Link */}
           <div className="mt-8 border-t border-zinc-200 pt-6 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">

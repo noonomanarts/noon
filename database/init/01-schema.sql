@@ -140,9 +140,27 @@ CREATE TABLE IF NOT EXISTS users (
   gender gender,
   preferred_language preferred_language NOT NULL DEFAULT 'ENGLISH',
   profile_image VARCHAR(500),
+  whatsapp_verified_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   last_login_at TIMESTAMP WITH TIME ZONE
+);
+
+-- WhatsApp OTP verification codes (login/register)
+CREATE TABLE IF NOT EXISTS whatsapp_verification_codes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  phone_number VARCHAR(50) NOT NULL,
+  phone_digits VARCHAR(30) NOT NULL,
+  purpose VARCHAR(20) NOT NULL,
+  code_hash VARCHAR(255) NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  max_attempts INTEGER NOT NULL DEFAULT 5,
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  consumed_at TIMESTAMP WITH TIME ZONE,
+  requested_ip VARCHAR(120),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  CONSTRAINT whatsapp_verification_codes_purpose_check CHECK (purpose IN ('LOGIN', 'REGISTER'))
 );
 
 -- Trainer profiles (additional info for trainers)

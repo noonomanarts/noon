@@ -6,6 +6,30 @@ import { query } from "./pool";
 import { generateUUID } from "./uuid";
 import type { User, UserRole, UserStatus, Gender, PreferredLanguage, UserPublic } from "./types";
 
+let usersWhatsappColumnReady = false;
+
+async function ensureUsersWhatsAppColumn(): Promise<void> {
+  if (usersWhatsappColumnReady) return;
+
+  await query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS whatsapp_verified_at TIMESTAMP WITH TIME ZONE
+  `);
+
+  usersWhatsappColumnReady = true;
+}
+
+export function normalizePhoneDigits(phone: string): string {
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('00')) {
+    digits = digits.slice(2);
+  }
+  if (digits.length === 8) {
+    digits = `968${digits}`;
+  }
+  return digits;
+}
+
 // Convert DB row to User object
 function rowToUser(row: Record<string, unknown>): User {
   return {
@@ -20,6 +44,7 @@ function rowToUser(row: Record<string, unknown>): User {
     gender: row.gender as Gender | null,
     preferred_language: row.preferred_language as PreferredLanguage,
     profile_image: row.profile_image as string | null,
+    whatsapp_verified_at: row.whatsapp_verified_at ? new Date(row.whatsapp_verified_at as string) : null,
     created_at: new Date(row.created_at as string),
     updated_at: new Date(row.updated_at as string),
     last_login_at: row.last_login_at ? new Date(row.last_login_at as string) : null,
@@ -39,6 +64,7 @@ function rowToUserPublic(row: Record<string, unknown>): UserPublic {
     gender: row.gender as Gender | null,
     preferredLanguage: (row.preferred_language as PreferredLanguage) || 'ENGLISH',
     profileImage: row.profile_image as string | null,
+    whatsappVerifiedAt: row.whatsapp_verified_at ? new Date(row.whatsapp_verified_at as string) : null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
     lastLoginAt: row.last_login_at ? new Date(row.last_login_at as string) : null,
@@ -58,6 +84,7 @@ function userToUserPublic(user: User): UserPublic {
     gender: user.gender,
     preferredLanguage: user.preferred_language || 'ENGLISH',
     profileImage: user.profile_image,
+    whatsappVerifiedAt: user.whatsapp_verified_at,
     createdAt: user.created_at,
     updatedAt: user.updated_at,
     lastLoginAt: user.last_login_at,
@@ -82,9 +109,11 @@ async function verifyPassword(password: string, hash: string): Promise<boolean> 
  * Get user by ID
  */
 export async function getUserById(id: string): Promise<UserPublic | null> {
+  await ensureUsersWhatsAppColumn();
+
   const result = await query(
     `SELECT id, email, role, status, full_name, phone_number, date_of_birth, 
-            gender, preferred_language, profile_image, created_at, updated_at, last_login_at
+            gender, preferred_language, profile_image, whatsapp_verified_at, created_at, updated_at, last_login_at
      FROM users WHERE id = $1`,
     [id]
   );
@@ -123,6 +152,25 @@ export async function getUserByPhone(phoneNumber: string): Promise<User | null> 
 }
 
 /**
+ * Get user by normalized phone digits (for WhatsApp auth)
+ */
+export async function getUserByPhoneNormalized(phoneNumber: string): Promise<User | null> {
+  const digits = normalizePhoneDigits(phoneNumber);
+  if (!digits) return null;
+
+  const result = await query(
+    `SELECT *
+     FROM users
+     WHERE regexp_replace(COALESCE(phone_number, ''), '[^0-9]', '', 'g') = $1
+     LIMIT 1`,
+    [digits]
+  );
+
+  if (result.rows.length === 0) return null;
+  return rowToUser(result.rows[0]);
+}
+
+/**
  * Create a new user
  */
 export async function createUser(data: {
@@ -136,6 +184,8 @@ export async function createUser(data: {
   preferredLanguage?: PreferredLanguage;
   profileImage?: string;
 }): Promise<UserPublic | null> {
+  await ensureUsersWhatsAppColumn();
+
   const normalizedEmail = data.email.toLowerCase().trim();
 
   // Check if email already exists
@@ -145,7 +195,7 @@ export async function createUser(data: {
   }
 
   // Check if phone already exists
-  const existingPhone = await getUserByPhone(data.phoneNumber);
+  const existingPhone = await getUserByPhoneNormalized(data.phoneNumber);
   if (existingPhone) {
     return null;
   }
@@ -161,7 +211,7 @@ export async function createUser(data: {
       created_at, updated_at
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     RETURNING id, email, role, status, full_name, phone_number, date_of_birth, 
-              gender, preferred_language, profile_image, created_at, updated_at, last_login_at`,
+              gender, preferred_language, profile_image, whatsapp_verified_at, created_at, updated_at, last_login_at`,
     [
       id,
       normalizedEmail,
@@ -222,6 +272,8 @@ export async function updateUser(
   data: Partial<Omit<User, 'id' | 'email' | 'password' | 'created_at'>>
 ): Promise<UserPublic | null> {
   try {
+    await ensureUsersWhatsAppColumn();
+
     const updates: string[] = [];
     const values: unknown[] = [];
     let paramIndex = 1;
@@ -270,7 +322,7 @@ export async function updateUser(
     const result = await query(
       `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}
        RETURNING id, email, role, status, full_name, phone_number, date_of_birth, 
-                 gender, preferred_language, profile_image, created_at, updated_at, last_login_at`,
+                 gender, preferred_language, profile_image, whatsapp_verified_at, created_at, updated_at, last_login_at`,
       values
     );
 
@@ -288,6 +340,7 @@ export async function updateUser(
       gender: row.gender,
       preferredLanguage: row.preferred_language,
       profileImage: row.profile_image,
+      whatsappVerifiedAt: row.whatsapp_verified_at,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       lastLoginAt: row.last_login_at,
@@ -327,6 +380,8 @@ export async function getAllUsers(options?: {
   skip?: number;
   take?: number;
 }): Promise<UserPublic[]> {
+  await ensureUsersWhatsAppColumn();
+
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -389,6 +444,8 @@ export async function updateUserWithPassword(
   data: Partial<Omit<User, 'id' | 'password' | 'created_at'>> & { password?: string }
 ): Promise<UserPublic | null> {
   try {
+    await ensureUsersWhatsAppColumn();
+
     // If email is changing, check if it already exists
     if (data.email) {
       const normalizedNewEmail = data.email.toLowerCase().trim();
@@ -514,6 +571,21 @@ export async function countUsersByRole(): Promise<Record<string, number>> {
     acc[row.role] = row.count;
     return acc;
   }, {} as Record<string, number>);
+}
+
+/**
+ * Mark user as WhatsApp-verified
+ */
+export async function markUserWhatsAppVerified(userId: string): Promise<void> {
+  await ensureUsersWhatsAppColumn();
+
+  await query(
+    `UPDATE users
+     SET whatsapp_verified_at = COALESCE(whatsapp_verified_at, NOW()),
+         updated_at = NOW()
+     WHERE id = $1`,
+    [userId]
+  );
 }
 
 // Re-export types for convenience
