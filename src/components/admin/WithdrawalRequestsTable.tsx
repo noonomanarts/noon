@@ -30,6 +30,33 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
   const [actionReason, setActionReason] = useState('');
 
+  const playNotificationSound = () => {
+    if (typeof window === 'undefined') return;
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    try {
+      const audioContext = new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 880;
+      gainNode.gain.value = 0.07;
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.12);
+      oscillator.onended = () => {
+        audioContext.close();
+      };
+    } catch {
+      // Ignore playback errors
+    }
+  };
+
   const fetchRequests = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/withdrawal-requests');
@@ -55,15 +82,31 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
     const source = new EventSource('/api/admin/stream');
     const handleUpdate = () => {
       fetchRequests();
+      setToastMessage(locale === 'ar' ? 'تم تحديث طلبات السحب' : 'Withdrawal requests updated');
+      playNotificationSound();
+    };
+
+    const handleWalletNotification = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data) as { type?: string };
+        if (data.type === 'withdrawal_request_submitted') {
+          setToastMessage(locale === 'ar' ? 'تم استلام طلب سحب جديد' : 'New withdrawal request received');
+          playNotificationSound();
+        }
+      } catch {
+        // Ignore malformed event
+      }
     };
 
     source.addEventListener('withdrawal_requests_updated', handleUpdate as EventListener);
+    source.addEventListener('wallet_notification', handleWalletNotification as EventListener);
 
     return () => {
       source.removeEventListener('withdrawal_requests_updated', handleUpdate as EventListener);
+      source.removeEventListener('wallet_notification', handleWalletNotification as EventListener);
       source.close();
     };
-  }, [fetchRequests]);
+  }, [fetchRequests, locale]);
 
   const handleProcessRequest = async (transactionId: string, action: 'approve' | 'reject', reason?: string) => {
     setProcessingId(transactionId);

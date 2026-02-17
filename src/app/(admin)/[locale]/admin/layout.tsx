@@ -6,6 +6,7 @@ import { isLocale, type Locale } from "@/lib/locale";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
+import AdminNotificationCenter from "@/components/admin/AdminNotificationCenter";
 import { AdminWalletDisplay } from "@/components/admin/AdminWalletDisplay";
 import MobileSidebar from "@/components/admin/MobileSidebar";
 import OverlayScrollArea from "@/components/site/OverlayScrollArea";
@@ -273,12 +274,7 @@ export default async function AdminLayout({
                   systemLabel={t.themeSystem}
                 />
 
-                <button className="relative rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800">
-                  <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-                  <span className={`absolute size-2 rounded-full bg-red-500 ${locale === "ar" ? "left-1.5 top-1.5" : "right-1.5 top-1.5"}`}></span>
-                </button>
+                <AdminNotificationCenter locale={locale} />
 
                 <Link
                   href={`/${locale}`}

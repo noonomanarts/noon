@@ -343,6 +343,19 @@ export interface WalletTransaction {
   created_at: Date;
 }
 
+export interface AppNotification {
+  id: string;
+  recipient_user_id: string | null;
+  recipient_role: UserRole | null;
+  type: string;
+  title: string;
+  message: string;
+  data: Record<string, unknown> | null;
+  is_read: boolean;
+  read_at: Date | null;
+  created_at: Date;
+}
+
 export interface LoyaltyCard {
   id: string;
   user_id: string;

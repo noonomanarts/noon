@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Wallet, WalletTransaction } from '@/lib/db/types';
+import { formatNotificationContent } from '@/lib/notifications/formatNotification';
 
 interface WalletSectionProps {
   wallet: Wallet;
@@ -27,10 +28,136 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
 
   const isArabic = locale === 'ar';
 
+  const playNotificationSound = () => {
+    if (typeof window === 'undefined') return;
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    try {
+      const audioContext = new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 740;
+      gainNode.gain.value = 0.07;
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.12);
+      oscillator.onended = () => {
+        audioContext.close();
+      };
+    } catch {
+      // Ignore playback errors
+    }
+  };
+
   useEffect(() => {
     setWalletData(wallet);
     setTransactionsData(transactions);
   }, [wallet, transactions]);
+
+  const refreshWalletBalance = useCallback(async () => {
+    try {
+      const response = await fetch('/api/wallet/balance');
+      if (!response.ok) return;
+      const data = await response.json();
+      setWalletData((prev) => ({
+        ...prev,
+        balance: typeof data.balance === 'number' ? data.balance : prev.balance,
+        available_balance: typeof data.available_balance === 'number' ? data.available_balance : prev.available_balance,
+        currency: typeof data.currency === 'string' ? data.currency : prev.currency,
+      }));
+    } catch {
+      // ignore refresh errors
+    }
+  }, []);
+
+  useEffect(() => {
+    const source = new EventSource('/api/stream');
+
+    const handleWalletUpdated = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data) as {
+          balance?: number;
+          available_balance?: number;
+          currency?: string;
+        };
+
+        setWalletData((prev) => ({
+          ...prev,
+          balance: data.balance ?? prev.balance,
+          available_balance: data.available_balance ?? prev.available_balance,
+          currency: data.currency ?? prev.currency,
+        }));
+        if (typeof data.balance !== 'number' || typeof data.available_balance !== 'number') {
+          void refreshWalletBalance();
+        }
+      } catch {
+        // Ignore malformed event
+      }
+    };
+
+    const handleWalletNotification = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data) as { messageEn?: string; messageAr?: string };
+        const text = isArabic ? data.messageAr : data.messageEn;
+        if (text) {
+          setMessage(text);
+          playNotificationSound();
+        }
+        void refreshWalletBalance();
+      } catch {
+        // Ignore malformed event
+      }
+    };
+
+    const handleNotificationCreated = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data) as {
+          notification?: {
+            type?: string;
+            title?: string;
+            message?: string;
+            data?: Record<string, unknown> | null;
+          };
+        };
+        const notification = data.notification;
+        const localized = notification?.type
+          ? formatNotificationContent(
+              {
+                type: notification.type,
+                title: notification.title,
+                message: notification.message,
+                data: notification.data,
+              },
+              locale
+            )
+          : null;
+        const text = localized?.message || notification?.message || notification?.title;
+        if (text) {
+          setMessage(text);
+          playNotificationSound();
+        }
+      } catch {
+        // Ignore malformed event
+      }
+    };
+
+    source.addEventListener('wallet_updated', handleWalletUpdated as EventListener);
+    source.addEventListener('wallet_notification', handleWalletNotification as EventListener);
+    source.addEventListener('notification_created', handleNotificationCreated as EventListener);
+
+    return () => {
+      source.removeEventListener('wallet_updated', handleWalletUpdated as EventListener);
+      source.removeEventListener('wallet_notification', handleWalletNotification as EventListener);
+      source.removeEventListener('notification_created', handleNotificationCreated as EventListener);
+      source.close();
+    };
+  }, [isArabic, locale, refreshWalletBalance]);
 
   const handleDeposit = () => {
     setDepositAmount('');
@@ -62,9 +189,14 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
       });
 
       if (response.ok) {
+        const deposited = parseFloat(depositAmount);
+        setWalletData((prev) => ({
+          ...prev,
+          balance: prev.balance + deposited,
+          available_balance: (prev.available_balance || 0) + deposited,
+        }));
         setMessage(isArabic ? 'تم الإيداع بنجاح' : 'Deposit successful');
         setShowDepositModal(false);
-        window.location.reload();
       } else {
         const data = await response.json();
         alert(data.error || (isArabic ? 'فشل في الإيداع' : 'Deposit failed'));
@@ -156,7 +288,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
         setTransferAmount('');
         setTransferTo('');
         setTransferReason('');
-        window.location.reload();
+        void refreshWalletBalance();
       } else {
         const data = await response.json();
         setMessage(data.error || (isArabic ? 'فشل في التحويل' : 'Transfer failed'));

@@ -1,5 +1,6 @@
 import { pool } from './pool';
-import { emitAdminEvent } from '@/lib/realtime/adminEvents';
+import { emitAdminEvent, emitUserEvent } from '@/lib/realtime/adminEvents';
+import { notifyRole, notifyUser } from '@/lib/notificationService';
 import type { Wallet, WalletTransaction, LoyaltyCard } from './types';
 
 let walletDecisionColumnsCache: boolean | null = null;
@@ -171,6 +172,11 @@ export async function transferWalletFunds(
     }
 
     // Update balances
+    const senderBalance = parseFloat(senderWallet.rows[0].balance as string);
+    const senderAvailableBalance = parseFloat(senderWallet.rows[0].available_balance as string);
+    const receiverBalance = parseFloat(receiverWallet.rows[0].balance as string);
+    const receiverAvailableBalance = parseFloat(receiverWallet.rows[0].available_balance as string);
+
     await client.query(
       'UPDATE wallets SET balance = balance - $1, available_balance = available_balance - $1, updated_at = NOW() WHERE user_id = $2',
       [amount, fromUserId]
@@ -191,6 +197,41 @@ export async function transferWalletFunds(
     );
 
     await client.query('COMMIT');
+
+    emitAdminEvent('wallet_updated', {
+      user_id: fromUserId,
+      balance: senderBalance - amount,
+      available_balance: senderAvailableBalance - amount,
+      currency: senderWallet.rows[0].currency,
+    });
+    emitAdminEvent('wallet_updated', {
+      user_id: toUserId,
+      balance: receiverBalance + amount,
+      available_balance: receiverAvailableBalance + amount,
+      currency: receiverWallet.rows[0].currency,
+    });
+
+    emitUserEvent(fromUserId, 'wallet_updated', {
+      balance: senderBalance - amount,
+      available_balance: senderAvailableBalance - amount,
+      currency: senderWallet.rows[0].currency,
+    });
+    emitUserEvent(toUserId, 'wallet_updated', {
+      balance: receiverBalance + amount,
+      available_balance: receiverAvailableBalance + amount,
+      currency: receiverWallet.rows[0].currency,
+    });
+
+    emitUserEvent(fromUserId, 'wallet_notification', {
+      type: 'transfer_sent',
+      messageEn: 'Transfer completed successfully.',
+      messageAr: 'تم التحويل بنجاح.',
+    });
+    emitUserEvent(toUserId, 'wallet_notification', {
+      type: 'transfer_received',
+      messageEn: 'You received a wallet transfer.',
+      messageAr: 'لقد استلمت تحويلاً إلى المحفظة.',
+    });
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -208,6 +249,24 @@ export async function depositToWallet(userId: string, amount: number, reason?: s
   const newAvailableBalance = wallet.available_balance + amount;
   await updateWalletBalances(wallet.id, newBalance, newAvailableBalance);
   await addWalletTransaction(wallet.id, amount, 'DEPOSIT', reason);
+
+  emitAdminEvent('wallet_updated', {
+    user_id: wallet.user_id,
+    balance: newBalance,
+    available_balance: newAvailableBalance,
+    currency: wallet.currency,
+  });
+
+  emitUserEvent(userId, 'wallet_updated', {
+    balance: newBalance,
+    available_balance: newAvailableBalance,
+    currency: wallet.currency,
+  });
+  emitUserEvent(userId, 'wallet_notification', {
+    type: 'deposit_success',
+    messageEn: 'Deposit completed successfully.',
+    messageAr: 'تم الإيداع بنجاح.',
+  });
 }
 
 export async function requestWalletWithdrawal(userId: string, amount: number, reason?: string): Promise<WalletTransaction> {
@@ -216,7 +275,11 @@ export async function requestWalletWithdrawal(userId: string, amount: number, re
     await client.query('BEGIN');
 
     const walletResult = await client.query(
-      'SELECT * FROM wallets WHERE user_id = $1 FOR UPDATE',
+      `SELECT w.*, u.full_name
+       FROM wallets w
+       JOIN users u ON u.id = w.user_id
+       WHERE w.user_id = $1
+       FOR UPDATE`,
       [userId]
     );
     const wallet = walletResult.rows[0];
@@ -246,6 +309,35 @@ export async function requestWalletWithdrawal(userId: string, amount: number, re
       currency: wallet.currency,
     });
     emitAdminEvent('withdrawal_requests_updated', { wallet_id: wallet.id });
+    emitAdminEvent('wallet_notification', {
+      type: 'withdrawal_request_submitted',
+      user_id: wallet.user_id,
+    });
+
+    emitUserEvent(wallet.user_id, 'wallet_updated', {
+      balance: parseFloat(wallet.balance as string),
+      available_balance: newAvailableBalance,
+      currency: wallet.currency,
+    });
+    emitUserEvent(wallet.user_id, 'wallet_notification', {
+      type: 'withdrawal_request_submitted',
+      messageEn: 'Your withdrawal request was submitted for review.',
+      messageAr: 'تم إرسال طلب السحب للمراجعة.',
+    });
+
+    await notifyRole('ADMIN', {
+      type: 'withdrawal_request_submitted',
+      title: 'New Withdrawal Request',
+      message: `${wallet.full_name || 'User'} submitted a withdrawal request.`,
+      data: { userId: wallet.user_id, walletId: wallet.id, userName: wallet.full_name ?? null },
+    });
+
+    await notifyUser(wallet.user_id, {
+      type: 'withdrawal_request_submitted',
+      title: 'Withdrawal Request Submitted',
+      message: 'Your withdrawal request has been submitted and is pending admin review.',
+      data: { walletId: wallet.id },
+    });
 
     return {
       ...transactionResult.rows[0],
@@ -301,7 +393,11 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
 
     // Get wallet
     const walletResult = await client.query(
-      'SELECT * FROM wallets WHERE id = $1 FOR UPDATE',
+      `SELECT w.*, u.full_name
+       FROM wallets w
+       JOIN users u ON u.id = w.user_id
+       WHERE w.id = $1
+       FOR UPDATE`,
       [transaction.wallet_id]
     );
     const wallet = walletResult.rows[0];
@@ -348,6 +444,30 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
       currency: wallet.currency,
     });
     emitAdminEvent('withdrawal_requests_updated', { transactionId });
+    emitUserEvent(wallet.user_id, 'wallet_updated', {
+      balance: newBalance,
+      available_balance: newAvailableBalance,
+      currency: wallet.currency,
+    });
+    emitUserEvent(wallet.user_id, 'wallet_notification', {
+      type: 'withdrawal_request_approved',
+      messageEn: 'Your withdrawal request was approved.',
+      messageAr: 'تمت الموافقة على طلب السحب الخاص بك.',
+    });
+
+    await notifyRole('ADMIN', {
+      type: 'withdrawal_request_approved',
+      title: 'Withdrawal Approved',
+      message: `${wallet.full_name || 'User'} withdrawal was approved.`,
+      data: { transactionId, userId: wallet.user_id, userName: wallet.full_name ?? null },
+    });
+
+    await notifyUser(wallet.user_id, {
+      type: 'withdrawal_request_approved',
+      title: 'Withdrawal Approved',
+      message: 'Your withdrawal request was approved by admin.',
+      data: { transactionId },
+    });
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -375,7 +495,11 @@ export async function rejectWithdrawalRequest(transactionId: string, adminReason
     const amount = Math.abs(parseFloat(transaction.amount as string));
 
     const walletResult = await client.query(
-      'SELECT * FROM wallets WHERE id = $1 FOR UPDATE',
+      `SELECT w.*, u.full_name
+       FROM wallets w
+       JOIN users u ON u.id = w.user_id
+       WHERE w.id = $1
+       FOR UPDATE`,
       [transaction.wallet_id]
     );
     const wallet = walletResult.rows[0];
@@ -414,6 +538,30 @@ export async function rejectWithdrawalRequest(transactionId: string, adminReason
       currency: wallet.currency,
     });
     emitAdminEvent('withdrawal_requests_updated', { transactionId });
+    emitUserEvent(wallet.user_id, 'wallet_updated', {
+      balance: currentBalance,
+      available_balance: newAvailableBalance,
+      currency: wallet.currency,
+    });
+    emitUserEvent(wallet.user_id, 'wallet_notification', {
+      type: 'withdrawal_request_rejected',
+      messageEn: 'Your withdrawal request was rejected and funds were released.',
+      messageAr: 'تم رفض طلب السحب وتم تحرير المبلغ المحجوز.',
+    });
+
+    await notifyRole('ADMIN', {
+      type: 'withdrawal_request_rejected',
+      title: 'Withdrawal Rejected',
+      message: `${wallet.full_name || 'User'} withdrawal was rejected.`,
+      data: { transactionId, userId: wallet.user_id, userName: wallet.full_name ?? null },
+    });
+
+    await notifyUser(wallet.user_id, {
+      type: 'withdrawal_request_rejected',
+      title: 'Withdrawal Rejected',
+      message: 'Your withdrawal request was rejected and held funds were released.',
+      data: { transactionId },
+    });
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -436,6 +584,16 @@ export async function adminAddWalletCredit(userId: string, amount: number, reaso
     balance: newBalance,
     available_balance: newAvailableBalance,
     currency: wallet.currency,
+  });
+  emitUserEvent(wallet.user_id, 'wallet_updated', {
+    balance: newBalance,
+    available_balance: newAvailableBalance,
+    currency: wallet.currency,
+  });
+  emitUserEvent(wallet.user_id, 'wallet_notification', {
+    type: 'admin_credit',
+    messageEn: 'An admin added credit to your wallet.',
+    messageAr: 'تمت إضافة رصيد إلى محفظتك من الإدارة.',
   });
 
   return {
@@ -460,6 +618,16 @@ export async function adminDeductWalletCredit(userId: string, amount: number, re
     available_balance: newAvailableBalance,
     currency: wallet.currency,
   });
+  emitUserEvent(wallet.user_id, 'wallet_updated', {
+    balance: newBalance,
+    available_balance: newAvailableBalance,
+    currency: wallet.currency,
+  });
+  emitUserEvent(wallet.user_id, 'wallet_notification', {
+    type: 'admin_deduct',
+    messageEn: 'An admin deducted credit from your wallet.',
+    messageAr: 'تم خصم رصيد من محفظتك من الإدارة.',
+  });
 
   return {
     wallet: { ...wallet, balance: newBalance, available_balance: newAvailableBalance },
@@ -480,6 +648,16 @@ export async function adminUpdateWalletAvailableBalance(userId: string, newAvail
     balance: wallet.balance,
     available_balance: newAvailableBalance,
     currency: wallet.currency,
+  });
+  emitUserEvent(wallet.user_id, 'wallet_updated', {
+    balance: wallet.balance,
+    available_balance: newAvailableBalance,
+    currency: wallet.currency,
+  });
+  emitUserEvent(wallet.user_id, 'wallet_notification', {
+    type: 'available_balance_updated',
+    messageEn: 'Your available wallet balance was updated.',
+    messageAr: 'تم تحديث الرصيد المتاح في محفظتك.',
   });
 
   return {
