@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useMemo, useRef, useState } from 'react';
-import { FiGlobe, FiLock, FiSave, FiShield, FiUser } from 'react-icons/fi';
+import { FiLock, FiSave, FiShield, FiUser } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 
 type AccountSettingsUser = {
@@ -14,7 +14,7 @@ type AccountSettingsUser = {
   preferredLanguage: 'ENGLISH' | 'ARABIC';
 };
 
-type TabId = 'profile' | 'preferences' | 'security';
+type TabId = 'profile' | 'security';
 
 export default function AccountSettingsPageClient({
   locale,
@@ -48,7 +48,6 @@ export default function AccountSettingsPageClient({
       ? 'إدارة معلوماتك الشخصية، اللغة، وأمان الحساب من مكان واحد.'
       : 'Manage your personal details, language, and account security in one place.',
     tabProfile: isArabic ? 'الملف الشخصي' : 'Profile',
-    tabPreferences: isArabic ? 'التفضيلات' : 'Preferences',
     tabSecurity: isArabic ? 'الأمان' : 'Security',
     fullName: isArabic ? 'الاسم الكامل' : 'Full Name',
     email: isArabic ? 'البريد الإلكتروني' : 'Email',
@@ -232,19 +231,6 @@ export default function AccountSettingsPageClient({
 
           <button
             type="button"
-            onClick={() => setActiveTab('preferences')}
-            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-              activeTab === 'preferences'
-                ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal-strong)]'
-                : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700'
-            }`}
-          >
-            <FiGlobe className="size-4" />
-            {t.tabPreferences}
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveTab('security')}
             className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
               activeTab === 'security'
@@ -270,7 +256,7 @@ export default function AccountSettingsPageClient({
         </div>
       ) : null}
 
-      {(activeTab === 'profile' || activeTab === 'preferences') && (
+      {activeTab === 'profile' && (
         <div className="rounded-2xl border border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900">
           <div className="grid gap-6 lg:grid-cols-[140px_1fr]">
             <div className="flex flex-col items-center gap-3">
