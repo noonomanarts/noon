@@ -399,6 +399,67 @@ export interface ShopProduct {
   updated_at: Date;
 }
 
+export type ShopOrderStatus =
+  | 'PAID'
+  | 'PROCESSING'
+  | 'READY_TO_SHIP'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED';
+
+export interface ShopOrder {
+  id: string;
+  order_number: string;
+  user_id: string;
+  status: ShopOrderStatus;
+  city: string;
+  area: string;
+  street_address: string;
+  postal_code: string | null;
+  recipient_full_name: string;
+  recipient_phone: string;
+  notes: string | null;
+  subtotal: number;
+  shipping_fee: number;
+  total_amount: number;
+  currency: string;
+  payment_method: 'WALLET';
+  wallet_transaction_id: string | null;
+  tracking_number: string | null;
+  admin_notes: string | null;
+  cancellation_reason: string | null;
+  paid_at: Date;
+  shipped_at: Date | null;
+  delivered_at: Date | null;
+  cancelled_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ShopOrderItem {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  product_name_en: string;
+  product_name_ar: string;
+  product_slug: string;
+  product_image: string | null;
+  created_at: Date;
+}
+
+export interface ShopOrderStatusHistory {
+  id: string;
+  order_id: string;
+  previous_status: ShopOrderStatus | null;
+  next_status: ShopOrderStatus;
+  changed_by_user_id: string | null;
+  note: string | null;
+  created_at: Date;
+}
+
 export interface AppNotification {
   id: string;
   recipient_user_id: string | null;

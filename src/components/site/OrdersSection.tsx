@@ -2,15 +2,16 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { Booking, EventBooking } from '@/lib/db/types';
+import type { Booking, EventBooking, ShopOrder, ShopOrderItem } from '@/lib/db/types';
 
 interface OrdersSectionProps {
   bookings: Booking[];
   eventBookings: EventBooking[];
+  shopOrders: (ShopOrder & { items: ShopOrderItem[] })[];
   locale: 'en' | 'ar';
 }
 
-export function OrdersSection({ bookings, eventBookings, locale }: OrdersSectionProps) {
+export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: OrdersSectionProps) {
   const isArabic = locale === 'ar';
   const ordersPerPage = 6;
   const [currentPage, setCurrentPage] = useState(1);
@@ -20,8 +21,9 @@ export function OrdersSection({ bookings, eventBookings, locale }: OrdersSection
       [
         ...bookings.map((booking) => ({ ...booking, type: 'class' as const })),
         ...eventBookings.map((booking) => ({ ...booking, type: 'event' as const })),
+        ...shopOrders.map((order) => ({ ...order, type: 'shop' as const })),
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-    [bookings, eventBookings]
+    [bookings, eventBookings, shopOrders]
   );
 
   const totalPages = Math.max(1, Math.ceil(allOrders.length / ordersPerPage));
@@ -35,7 +37,12 @@ export function OrdersSection({ bookings, eventBookings, locale }: OrdersSection
     switch (status) {
       case 'COMPLETED':
       case 'PAID':
+      case 'DELIVERED':
         return 'text-[color:var(--noon-teal)] bg-[color:var(--noon-teal-soft)]';
+      case 'PROCESSING':
+      case 'READY_TO_SHIP':
+      case 'SHIPPED':
+        return 'text-[color:var(--noon-purple)] bg-[color:var(--noon-purple-soft)]';
       case 'PENDING':
       case 'PENDING_PAYMENT':
         return 'text-[color:var(--noon-yellow)] bg-[color:var(--noon-yellow-soft)]';
@@ -51,6 +58,10 @@ export function OrdersSection({ bookings, eventBookings, locale }: OrdersSection
       PENDING: { en: 'Pending', ar: 'معلق' },
       CONFIRMED: { en: 'Confirmed', ar: 'مؤكد' },
       PAID: { en: 'Paid', ar: 'مدفوع' },
+      PROCESSING: { en: 'Processing', ar: 'قيد التجهيز' },
+      READY_TO_SHIP: { en: 'Ready to Ship', ar: 'جاهز للشحن' },
+      SHIPPED: { en: 'Shipped', ar: 'تم الشحن' },
+      DELIVERED: { en: 'Delivered', ar: 'تم التسليم' },
       COMPLETED: { en: 'Completed', ar: 'مكتمل' },
       CANCELLED: { en: 'Cancelled', ar: 'ملغي' },
       PENDING_PAYMENT: { en: 'Pending Payment', ar: 'دفع معلق' },
@@ -81,12 +92,14 @@ export function OrdersSection({ bookings, eventBookings, locale }: OrdersSection
                   <h4 className="font-medium">
                     {order.type === 'class' ? (
                       isArabic ? 'حجز فصل' : 'Class Booking'
+                    ) : order.type === 'shop' ? (
+                      isArabic ? 'طلب متجر' : 'Shop Order'
                     ) : (
                       isArabic ? 'حدث جماعي' : 'Group Event'
                     )}
                   </h4>
                   <p className="text-sm text-gray-600">
-                    {isArabic ? 'رقم الطلب:' : 'Order #:'} {order.booking_number}
+                    {isArabic ? 'رقم الطلب:' : 'Order #:'} {'order_number' in order ? order.order_number : order.booking_number}
                   </p>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
@@ -110,14 +123,30 @@ export function OrdersSection({ bookings, eventBookings, locale }: OrdersSection
                 </div>
               )}
 
-              <div className="mt-3">
-                <Link
-                  href={`/${locale}/account/orders/${order.id}`}
-                  className="text-sm font-medium text-[color:var(--noon-teal)] hover:text-[color:var(--noon-teal-dark)]"
-                >
-                  {isArabic ? 'عرض التفاصيل' : 'View Details'} →
-                </Link>
-              </div>
+              {order.type === 'shop' && (
+                <div className="space-y-1 text-sm">
+                  <div className="font-medium">
+                    {isArabic ? 'المجموع:' : 'Total:'} {order.total_amount.toFixed(3)} {order.currency}
+                  </div>
+                  <div className="text-gray-600">
+                    {isArabic ? 'العنوان:' : 'Address:'} {order.city} - {order.area}
+                  </div>
+                  <div className="text-gray-600">
+                    {isArabic ? 'عدد المنتجات:' : 'Items:'} {order.items.reduce((sum, item) => sum + item.quantity, 0)}
+                  </div>
+                </div>
+              )}
+
+              {order.type !== 'shop' && (
+                <div className="mt-3">
+                  <Link
+                    href={`/${locale}/account/orders/${order.id}`}
+                    className="text-sm font-medium text-[color:var(--noon-teal)] hover:text-[color:var(--noon-teal-dark)]"
+                  >
+                    {isArabic ? 'عرض التفاصيل' : 'View Details'} →
+                  </Link>
+                </div>
+              )}
             </div>
           ))}
 

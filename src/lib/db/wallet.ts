@@ -322,7 +322,7 @@ export async function depositToWallet(userId: string, amount: number, reason?: s
   if (!wallet) throw new Error('Wallet not found');
 
   const newBalance = wallet.balance + amount;
-  const newAvailableBalance = wallet.available_balance + amount;
+  const newAvailableBalance = wallet.available_balance;
   await updateWalletBalances(wallet.id, newBalance, newAvailableBalance);
   await addWalletTransaction(wallet.id, amount, 'DEPOSIT', reason);
 
@@ -1125,6 +1125,42 @@ export async function listWalletTopupPaymentsForAdmin(options?: {
   return { payments, total };
 }
 
+export async function getWalletTopupAnalyticsSummary(): Promise<{
+  totalPayments: number;
+  paidPayments: number;
+  pendingPayments: number;
+  failedPayments: number;
+  cancelledPayments: number;
+  paidAmount: number;
+  monthPaidAmount: number;
+}> {
+  await ensureWalletTopupPaymentsTable();
+
+  const result = await pool.query(
+    `SELECT
+       COUNT(*)::int AS total_payments,
+       COUNT(*) FILTER (WHERE status = 'PAID')::int AS paid_payments,
+       COUNT(*) FILTER (WHERE status = 'PENDING')::int AS pending_payments,
+       COUNT(*) FILTER (WHERE status = 'FAILED')::int AS failed_payments,
+       COUNT(*) FILTER (WHERE status = 'CANCELLED')::int AS cancelled_payments,
+       COALESCE(SUM(amount) FILTER (WHERE status = 'PAID'), 0)::numeric AS paid_amount,
+       COALESCE(SUM(amount) FILTER (WHERE status = 'PAID' AND created_at >= date_trunc('month', NOW())), 0)::numeric AS month_paid_amount
+     FROM wallet_topup_payments`
+  );
+
+  const row = result.rows[0] ?? {};
+
+  return {
+    totalPayments: Number(row.total_payments ?? 0),
+    paidPayments: Number(row.paid_payments ?? 0),
+    pendingPayments: Number(row.pending_payments ?? 0),
+    failedPayments: Number(row.failed_payments ?? 0),
+    cancelledPayments: Number(row.cancelled_payments ?? 0),
+    paidAmount: parseFloat(String(row.paid_amount ?? 0)),
+    monthPaidAmount: parseFloat(String(row.month_paid_amount ?? 0)),
+  };
+}
+
 export async function updateWalletTopupPaymentStatus(data: {
   reference: string;
   status: WalletTopupPaymentStatus;
@@ -1206,7 +1242,7 @@ export async function updateWalletTopupPaymentStatus(data: {
       const paymentAmount = parseFloat((updatedPayment as unknown as { amount: string }).amount);
 
       const newBalance = currentBalance + paymentAmount;
-      const newAvailableBalance = currentAvailableBalance + paymentAmount;
+      const newAvailableBalance = currentAvailableBalance;
 
       await client.query(
         `UPDATE wallets SET balance = $1, available_balance = $2, updated_at = NOW() WHERE id = $3`,

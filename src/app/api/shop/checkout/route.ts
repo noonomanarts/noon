@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
           id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
           order_number VARCHAR(30) UNIQUE NOT NULL,
           user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-          status VARCHAR(20) NOT NULL DEFAULT 'PAID' CHECK (status IN ('PAID', 'CANCELLED')),
+          status VARCHAR(20) NOT NULL DEFAULT 'PAID' CHECK (status IN ('PAID', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'CANCELLED')),
           city VARCHAR(80) NOT NULL,
           area VARCHAR(120) NOT NULL,
           street_address TEXT NOT NULL,
@@ -91,11 +91,30 @@ export async function POST(request: NextRequest) {
           currency VARCHAR(10) NOT NULL DEFAULT 'OMR',
           payment_method VARCHAR(20) NOT NULL DEFAULT 'WALLET' CHECK (payment_method IN ('WALLET')),
           wallet_transaction_id UUID REFERENCES wallet_transactions(id) ON DELETE SET NULL,
+          tracking_number VARCHAR(120),
+          admin_notes TEXT,
+          cancellation_reason TEXT,
           paid_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+          shipped_at TIMESTAMP WITH TIME ZONE,
+          delivered_at TIMESTAMP WITH TIME ZONE,
+          cancelled_at TIMESTAMP WITH TIME ZONE,
           created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
         )`
       );
+
+      await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(120)`);
+      await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS admin_notes TEXT`);
+      await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT`);
+      await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMP WITH TIME ZONE`);
+      await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE`);
+      await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP WITH TIME ZONE`);
+      await client.query(`ALTER TABLE shop_orders DROP CONSTRAINT IF EXISTS shop_orders_status_check`);
+      await client.query(`
+        ALTER TABLE shop_orders
+        ADD CONSTRAINT shop_orders_status_check
+        CHECK (status IN ('PAID', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'CANCELLED'))
+      `);
 
       await client.query(
         `CREATE TABLE IF NOT EXISTS shop_order_items (

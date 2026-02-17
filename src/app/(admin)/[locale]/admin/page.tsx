@@ -1,4 +1,11 @@
-import { isLocale, type Locale } from "@/lib/locale";
+import Image from 'next/image';
+import Link from 'next/link';
+import { isLocale, type Locale } from '@/lib/locale';
+import { countUsersByRole } from '@/lib/db/users';
+import { countEventBookings } from '@/lib/db/events';
+import { getShopOrdersAnalyticsSummary, listShopOrdersForAdmin } from '@/lib/db/shop';
+import { getWalletTopupAnalyticsSummary } from '@/lib/db/wallet';
+import AdminPieChartCard, { type AdminPieSlice } from '@/components/admin/AdminPieChartCard';
 
 export default async function AdminDashboard({
   params,
@@ -6,230 +13,221 @@ export default async function AdminDashboard({
   params: Promise<{ locale: string }>;
 }) {
   const { locale: rawLocale } = await params;
-  const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
+  const locale: Locale = isLocale(rawLocale) ? rawLocale : 'en';
+
+  const [roles, shopSummary, topupSummary, eventBookingsCount, recentOrdersPayload] = await Promise.all([
+    countUsersByRole(),
+    getShopOrdersAnalyticsSummary(),
+    getWalletTopupAnalyticsSummary(),
+    countEventBookings(),
+    listShopOrdersForAdmin({ page: 1, limit: 6 }),
+  ]);
+
+  const customersCount = Number(roles.CUSTOMER ?? 0);
+  const trainersCount = Number(roles.TRAINER ?? 0);
+  const adminsCount = Number(roles.ADMIN ?? 0);
+
+  const totalOrders = Math.max(1, shopSummary.totalOrders);
+  const deliveredOrShipped = shopSummary.statusCounts.DELIVERED + shopSummary.statusCounts.SHIPPED;
+  const fulfillmentRate = (deliveredOrShipped / totalOrders) * 100;
+  const cancellationRate = (shopSummary.statusCounts.CANCELLED / totalOrders) * 100;
 
   const t = {
-    totalStudents: locale === "ar" ? "إجمالي الطلاب" : "Total Students",
-    activeClasses: locale === "ar" ? "الدورات النشطة" : "Active Classes",
-    revenueMonth: locale === "ar" ? "الإيرادات (هذا الشهر)" : "Revenue (This Month)",
-    upcomingEvents: locale === "ar" ? "الفعاليات القادمة" : "Upcoming Events",
-    recentBookings: locale === "ar" ? "الحجوزات الأخيرة" : "Recent Bookings",
-    upcomingClasses: locale === "ar" ? "الدورات القادمة" : "Upcoming Classes",
-    quickActions: locale === "ar" ? "إجراءات سريعة" : "Quick Actions",
-    viewAll: locale === "ar" ? "عرض الكل" : "View All",
-    confirmed: locale === "ar" ? "مؤكد" : "confirmed",
-    pending: locale === "ar" ? "قيد الانتظار" : "pending",
-    trainer: locale === "ar" ? "المدرب" : "Trainer",
-    addClass: locale === "ar" ? "إضافة دورة" : "Add Class",
-    createNewClass: locale === "ar" ? "إنشاء دورة جديدة" : "Create new class",
-    addCustomer: locale === "ar" ? "إضافة عميل" : "Add Customer",
-    registerNewCustomer: locale === "ar" ? "تسجيل عميل جديد" : "Register new customer",
-    scheduleEvent: locale === "ar" ? "جدولة فعالية" : "Schedule Event",
-    createNewEvent: locale === "ar" ? "إنشاء فعالية جديدة" : "Create new event",
-    viewReports: locale === "ar" ? "عرض التقارير" : "View Reports",
-    analyticsInsights: locale === "ar" ? "التحليلات والإحصاءات" : "Analytics & insights",
+    title: locale === 'ar' ? 'لوحة الإدارة' : 'Admin Dashboard',
+    subtitle:
+      locale === 'ar'
+        ? 'نظرة تشغيلية فورية مع بيانات فعلية من النظام.'
+        : 'Real-time operational overview powered by live system data.',
+    users: locale === 'ar' ? 'المستخدمون' : 'Users',
+    customers: locale === 'ar' ? 'العملاء' : 'Customers',
+    trainers: locale === 'ar' ? 'المدربون' : 'Trainers',
+    admins: locale === 'ar' ? 'الإداريون' : 'Admins',
+    orders: locale === 'ar' ? 'طلبات المتجر' : 'Shop Orders',
+    totalOrders: locale === 'ar' ? 'إجمالي الطلبات' : 'Total Orders',
+    monthOrders: locale === 'ar' ? 'طلبات هذا الشهر' : 'Orders This Month',
+    grossRevenue: locale === 'ar' ? 'الإيراد الإجمالي' : 'Gross Revenue',
+    monthRevenue: locale === 'ar' ? 'إيراد هذا الشهر' : 'Revenue This Month',
+    topups: locale === 'ar' ? 'شحن المحافظ' : 'Wallet Topups',
+    paidAmount: locale === 'ar' ? 'قيمة الشحن المدفوعة' : 'Paid Topup Amount',
+    paidThisMonth: locale === 'ar' ? 'مدفوع هذا الشهر' : 'Paid This Month',
+    operations: locale === 'ar' ? 'المؤشرات التشغيلية' : 'Operational KPIs',
+    fulfillmentRate: locale === 'ar' ? 'معدل الإنجاز' : 'Fulfillment Rate',
+    cancellationRate: locale === 'ar' ? 'معدل الإلغاء' : 'Cancellation Rate',
+    eventBookings: locale === 'ar' ? 'حجوزات الفعاليات' : 'Event Bookings',
+    userDistribution: locale === 'ar' ? 'توزيع المستخدمين' : 'User Distribution',
+    orderDistribution: locale === 'ar' ? 'توزيع حالات الطلبات' : 'Order Status Distribution',
+    recentOrders: locale === 'ar' ? 'أحدث الطلبات' : 'Recent Orders',
+    orderNumber: locale === 'ar' ? 'رقم الطلب' : 'Order #',
+    customer: locale === 'ar' ? 'العميل' : 'Customer',
+    products: locale === 'ar' ? 'المنتجات' : 'Products',
+    amount: locale === 'ar' ? 'قيمة المنتجات' : 'Products Total',
+    status: locale === 'ar' ? 'الحالة' : 'Status',
+    createdAt: locale === 'ar' ? 'تاريخ الإنشاء' : 'Created at',
+    viewAll: locale === 'ar' ? 'عرض الكل' : 'View all',
+    open: locale === 'ar' ? 'فتح' : 'Open',
+    noOrders: locale === 'ar' ? 'لا توجد طلبات حديثة.' : 'No recent orders yet.',
   };
 
-  const stats = [
+  const formatMoney = (value: number) => `${value.toFixed(3)} OMR`;
+
+  const userSlices: AdminPieSlice[] = [
+    { label: t.customers, value: customersCount, color: '#2563eb' },
+    { label: t.trainers, value: trainersCount, color: '#16a34a' },
+    { label: t.admins, value: adminsCount, color: '#9333ea' },
+  ];
+
+  const orderSlices: AdminPieSlice[] = [
     {
-      label: t.totalStudents,
-      value: "4,532",
-      change: "+12.5%",
-      trend: "up",
-      icon: "👥",
+      label: locale === 'ar' ? 'مدفوع' : 'Paid',
+      value: shopSummary.statusCounts.PAID,
+      color: '#10b981',
     },
     {
-      label: t.activeClasses,
-      value: "24",
-      change: "+3",
-      trend: "up",
-      icon: "📚",
+      label: locale === 'ar' ? 'قيد التجهيز' : 'Processing',
+      value: shopSummary.statusCounts.PROCESSING,
+      color: '#f59e0b',
     },
     {
-      label: t.revenueMonth,
-      value: locale === "ar" ? "٤٥,٢٨٠ ر.ع" : "OMR 45,280",
-      change: "+8.2%",
-      trend: "up",
-      icon: "💰",
+      label: locale === 'ar' ? 'جاهز للشحن' : 'Ready to Ship',
+      value: shopSummary.statusCounts.READY_TO_SHIP,
+      color: '#3b82f6',
     },
     {
-      label: t.upcomingEvents,
-      value: "12",
-      change: "0",
-      trend: "neutral",
-      icon: "📅",
+      label: locale === 'ar' ? 'تم الشحن' : 'Shipped',
+      value: shopSummary.statusCounts.SHIPPED,
+      color: '#0ea5e9',
+    },
+    {
+      label: locale === 'ar' ? 'تم التسليم' : 'Delivered',
+      value: shopSummary.statusCounts.DELIVERED,
+      color: '#22c55e',
+    },
+    {
+      label: locale === 'ar' ? 'ملغي' : 'Cancelled',
+      value: shopSummary.statusCounts.CANCELLED,
+      color: '#f43f5e',
     },
   ];
 
-  const recentBookings = [
-    { id: 1, customer: "Sarah Ahmed", class: "Italian Cooking", date: "Jan 22, 2026", status: "confirmed" },
-    { id: 2, customer: "Mohammed Ali", class: "Arts & Crafts", date: "Jan 23, 2026", status: "pending" },
-    { id: 3, customer: "Fatima Hassan", class: "Baking Workshop", date: "Jan 24, 2026", status: "confirmed" },
-    { id: 4, customer: "Ahmed Ibrahim", class: "Cooking Competition", date: "Jan 25, 2026", status: "confirmed" },
-    { id: 5, customer: "Layla Omar", class: "Mom & Kid", date: "Jan 26, 2026", status: "pending" },
-  ];
+  const recentOrders = recentOrdersPayload.orders;
 
-  const upcomingClasses = [
-    { id: 1, title: "Italian Pasta Making", date: "Jan 22, 2026", time: "10:00 AM", seats: "8/12", trainer: "Chef Marco" },
-    { id: 2, title: "Watercolor Painting", date: "Jan 23, 2026", time: "2:00 PM", seats: "15/16", trainer: "Noor Ali" },
-    { id: 3, title: "French Pastries", date: "Jan 24, 2026", time: "11:00 AM", seats: "6/10", trainer: "Chef Marie" },
-  ];
+  const statusMap: Record<string, { en: string; ar: string; cls: string }> = {
+    PAID: { en: 'Paid', ar: 'مدفوع', cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
+    PROCESSING: { en: 'Processing', ar: 'قيد التجهيز', cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
+    READY_TO_SHIP: { en: 'Ready to Ship', ar: 'جاهز للشحن', cls: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+    SHIPPED: { en: 'Shipped', ar: 'تم الشحن', cls: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300' },
+    DELIVERED: { en: 'Delivered', ar: 'تم التسليم', cls: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
+    CANCELLED: { en: 'Cancelled', ar: 'ملغي', cls: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300' },
+  };
 
   return (
     <div className="space-y-6">
-      {/* Stats Grid */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{stat.label}</p>
-                <p className="mt-2 text-3xl font-bold text-zinc-900 dark:text-white">{stat.value}</p>
-                <p
-                  className={`mt-2 text-sm font-medium ${
-                    stat.trend === "up"
-                      ? "text-green-600 dark:text-green-400"
-                      : stat.trend === "down"
-                      ? "text-red-600 dark:text-red-400"
-                      : "text-zinc-500 dark:text-zinc-400"
-                  }`}
-                >
-                  {stat.change}
-                </p>
-              </div>
-              <div className="flex size-12 items-center justify-center rounded-xl bg-zinc-100 text-2xl dark:bg-zinc-800">
-                {stat.icon}
-              </div>
-            </div>
-          </div>
-        ))}
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t.subtitle}</p>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.totalOrders}</p>
+          <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{shopSummary.totalOrders}</p>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.monthOrders}: {shopSummary.monthOrders}</p>
+        </article>
+
+        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.grossRevenue}</p>
+          <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{formatMoney(shopSummary.grossRevenue)}</p>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.monthRevenue}: {formatMoney(shopSummary.monthRevenue)}</p>
+        </article>
+
+        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.paidAmount}</p>
+          <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{formatMoney(topupSummary.paidAmount)}</p>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.paidThisMonth}: {formatMoney(topupSummary.monthPaidAmount)}</p>
+        </article>
+
+        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.operations}</p>
+          <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{fulfillmentRate.toFixed(1)}%</p>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.cancellationRate}: {cancellationRate.toFixed(1)}% • {t.eventBookings}: {eventBookingsCount}</p>
+        </article>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <AdminPieChartCard title={t.userDistribution} slices={userSlices} locale={locale} />
+        <AdminPieChartCard title={t.orderDistribution} slices={orderSlices} locale={locale} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Recent Bookings */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{t.recentBookings}</h2>
-            <button className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
-              {t.viewAll}
-            </button>
-          </div>
-          <div className="space-y-3">
-            {recentBookings.map((booking) => (
-              <div
-                key={booking.id}
-                className="flex items-center justify-between rounded-lg border border-zinc-200 p-3 dark:border-zinc-800"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-900 dark:bg-zinc-800 dark:text-white">
-                    {booking.customer.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-zinc-900 dark:text-white">{booking.customer}</p>
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">{booking.class}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{booking.date}</p>
-                  <span
-                    className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                      booking.status === "confirmed"
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                    }`}
-                  >
-                    {booking.status === "confirmed" ? t.confirmed : t.pending}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-zinc-900 dark:text-white">{t.recentOrders}</h2>
+          <Link href={`/${locale}/admin/shop/orders`} className="text-sm font-medium text-[color:var(--noon-teal)] hover:opacity-90">
+            {t.viewAll}
+          </Link>
         </div>
 
-        {/* Upcoming Classes */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{t.upcomingClasses}</h2>
-            <button className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white">
-              {t.viewAll}
-            </button>
+        {recentOrders.length === 0 ? (
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.noOrders}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-zinc-200 dark:divide-zinc-700">
+              <thead className="bg-zinc-50 dark:bg-zinc-800/60">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300">{t.orderNumber}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300">{t.customer}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300">{t.products}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300">{t.amount}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300">{t.status}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300">{t.createdAt}</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-600 dark:text-zinc-300">{t.open}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
+                {recentOrders.map((order) => {
+                  const status = statusMap[order.status];
+                  const productNames = order.items.map((item) => (locale === 'ar' ? item.product_name_ar : item.product_name_en));
+                  const productsText = productNames.length <= 2 ? productNames.join('، ') : `${productNames.slice(0, 2).join('، ')} +${productNames.length - 2}`;
+
+                  return (
+                    <tr key={order.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+                      <td className="px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-white">#{order.order_number}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="relative h-7 w-7 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                            {order.user_profile_image ? (
+                              <Image src={order.user_profile_image} alt={order.user_full_name} fill sizes="28px" className="object-cover" />
+                            ) : (
+                              <span className="flex h-full w-full items-center justify-center text-[10px] font-semibold text-zinc-700 dark:text-zinc-200">
+                                {order.user_full_name.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-sm text-zinc-700 dark:text-zinc-300">{order.user_full_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300" title={productNames.join('، ')}>{productsText || '—'}</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-zinc-900 dark:text-white">{formatMoney(order.subtotal)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${status.cls}`}>
+                          {status[locale]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
+                        {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar' : 'en')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/${locale}/admin/shop/orders/${order.id}`} className="text-sm font-medium text-[color:var(--noon-teal)] hover:opacity-90">
+                          {t.open}
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-          <div className="space-y-3">
-            {upcomingClasses.map((classItem) => (
-              <div
-                key={classItem.id}
-                className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-medium text-zinc-900 dark:text-white">{classItem.title}</h3>
-                    <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                      {classItem.date} at {classItem.time}
-                    </p>
-                    <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-                      {t.trainer}: {classItem.trainer}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-flex items-center rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-900 dark:bg-zinc-800 dark:text-white">
-                      {classItem.seats}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">{t.quickActions}</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <button className="flex items-center gap-3 rounded-xl border border-zinc-200 p-4 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100 text-xl dark:bg-blue-900/30">
-              ➕
-            </div>
-            <div>
-              <p className="font-medium text-zinc-900 dark:text-white">{t.addClass}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.createNewClass}</p>
-            </div>
-          </button>
-
-          <button className="flex items-center gap-3 rounded-xl border border-zinc-200 p-4 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-green-100 text-xl dark:bg-green-900/30">
-              👤
-            </div>
-            <div>
-              <p className="font-medium text-zinc-900 dark:text-white">{t.addCustomer}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.registerNewCustomer}</p>
-            </div>
-          </button>
-
-          <button className="flex items-center gap-3 rounded-xl border border-zinc-200 p-4 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-purple-100 text-xl dark:bg-purple-900/30">
-              📅
-            </div>
-            <div>
-              <p className="font-medium text-zinc-900 dark:text-white">{t.scheduleEvent}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.createNewEvent}</p>
-            </div>
-          </button>
-
-          <button className="flex items-center gap-3 rounded-xl border border-zinc-200 p-4 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-orange-100 text-xl dark:bg-orange-900/30">
-              📊
-            </div>
-            <div>
-              <p className="font-medium text-zinc-900 dark:text-white">{t.viewReports}</p>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.analyticsInsights}</p>
-            </div>
-          </button>
-        </div>
-      </div>
+        )}
+      </section>
     </div>
   );
 }
