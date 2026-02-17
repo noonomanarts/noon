@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useParams } from 'next/navigation';
 
 interface Trainer {
@@ -261,9 +262,11 @@ export default function AdminTrainersPage() {
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                             {trainer.profileImage ? (
-                              <img
+                              <Image
                                 src={trainer.profileImage}
                                 alt={trainer.fullName}
+                                width={40}
+                                height={40}
                                 className="h-full w-full object-cover"
                               />
                             ) : (

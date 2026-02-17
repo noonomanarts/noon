@@ -6,6 +6,7 @@ import { otherLocale, type Locale } from "@/lib/locale";
 import { getUserById } from "@/lib/db/users";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import { Dropdown } from "@/components/site/Dropdown";
+import SiteProfileMenu from "@/components/site/SiteProfileMenu";
 import CartLinkWithCount from '@/components/site/CartLinkWithCount';
 import { CART_COOKIE_NAME, parseCartCookie } from '@/lib/cart';
 
@@ -127,12 +128,12 @@ export default async function Header({ locale }: { locale: Locale }) {
           <CartLinkWithCount locale={locale} label={t.cart} initialCount={initialCartCount} />
 
           {user ? (
-            <Link 
-              href={user.role === "ADMIN" ? `/${locale}/admin` : `/${locale}/account`}
-              className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
-            >
-              {user.role === "ADMIN" ? t.dashboard : t.account}
-            </Link>
+            <SiteProfileMenu
+              locale={locale}
+              fullName={user.fullName}
+              role={user.role}
+              profileImage={user.profileImage}
+            />
           ) : (
             <Link 
               href={`/${locale}/login`} 

@@ -126,11 +126,37 @@ async function ensureShopOrdersTables(): Promise<void> {
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP WITH TIME ZONE`);
 
-  await pool.query(`ALTER TABLE shop_orders DROP CONSTRAINT IF EXISTS shop_orders_status_check`);
   await pool.query(`
-    ALTER TABLE shop_orders
-    ADD CONSTRAINT shop_orders_status_check
-    CHECK (status IN ('PAID', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'CANCELLED'))
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_constraint c
+        JOIN pg_class t ON t.oid = c.conrelid
+        WHERE t.relname = 'shop_orders'
+          AND c.conname = 'shop_orders_status_check'
+          AND pg_get_constraintdef(c.oid) NOT LIKE '%PROCESSING%'
+      ) THEN
+        ALTER TABLE shop_orders DROP CONSTRAINT shop_orders_status_check;
+      END IF;
+
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint c
+        JOIN pg_class t ON t.oid = c.conrelid
+        WHERE t.relname = 'shop_orders'
+          AND c.conname = 'shop_orders_status_check'
+      ) THEN
+        BEGIN
+          ALTER TABLE shop_orders
+          ADD CONSTRAINT shop_orders_status_check
+          CHECK (status IN ('PAID', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'CANCELLED'));
+        EXCEPTION
+          WHEN duplicate_object THEN
+            NULL;
+        END;
+      END IF;
+    END $$;
   `);
 
   await pool.query(`

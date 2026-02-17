@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -55,13 +55,7 @@ export default function EditTrainerPage() {
   const [linkedin, setLinkedin] = useState('');
   const [isActive, setIsActive] = useState(true);
 
-  useEffect(() => {
-    if (trainerId) {
-      fetchTrainer();
-    }
-  }, [trainerId]);
-
-  const fetchTrainer = async () => {
+  const fetchTrainer = useCallback(async () => {
     if (!trainerId) return;
 
     try {
@@ -104,7 +98,13 @@ export default function EditTrainerPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [trainerId]);
+
+  useEffect(() => {
+    if (trainerId) {
+      void fetchTrainer();
+    }
+  }, [trainerId, fetchTrainer]);
 
   const handleAddExpertise = () => {
     if (newExpertise.trim() && !expertise.includes(newExpertise.trim())) {

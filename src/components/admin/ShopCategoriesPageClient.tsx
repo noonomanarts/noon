@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 
 type ShopCategory = {
@@ -49,6 +49,7 @@ export default function ShopCategoriesPageClient({ locale }: { locale: Locale })
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [includeInactive, setIncludeInactive] = useState(true);
   const [editor, setEditor] = useState<EditorState>(emptyEditor);
   const [processingImage, setProcessingImage] = useState(false);
@@ -100,13 +101,13 @@ export default function ShopCategoriesPageClient({ locale }: { locale: Locale })
     status: isArabic ? 'الحالة' : 'Status',
   };
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
       const params = new URLSearchParams({ includeInactive: String(includeInactive) });
-      if (query.trim()) params.set('search', query.trim());
+      if (debouncedQuery.trim()) params.set('search', debouncedQuery.trim());
 
       const response = await fetch(`/api/admin/shop/categories?${params.toString()}`);
       if (!response.ok) {
@@ -122,19 +123,19 @@ export default function ShopCategoriesPageClient({ locale }: { locale: Locale })
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    void loadCategories();
-  }, [includeInactive]);
+  }, [debouncedQuery, includeInactive]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void loadCategories();
+      setDebouncedQuery(query);
     }, 250);
 
     return () => window.clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    void loadCategories();
+  }, [loadCategories]);
 
   const resetEditor = () => {
     setEditor(emptyEditor);

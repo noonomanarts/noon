@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 
 type ShopCategory = {
@@ -80,6 +80,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState('ALL');
   const [includeInactive, setIncludeInactive] = useState(true);
   const [editor, setEditor] = useState<EditorState>(emptyEditor);
@@ -133,7 +134,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
 
-  const loadCategories = async () => {
+  const loadCategories = useCallback(async () => {
     const response = await fetch('/api/admin/shop/categories?includeInactive=false');
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
@@ -141,11 +142,11 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
     }
     const data = await response.json();
     return Array.isArray(data?.categories) ? (data.categories as ShopCategory[]) : [];
-  };
+  }, []);
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     const params = new URLSearchParams({ includeInactive: String(includeInactive) });
-    if (query.trim()) params.set('search', query.trim());
+    if (debouncedQuery.trim()) params.set('search', debouncedQuery.trim());
     if (selectedCategoryId !== 'ALL') params.set('categoryId', selectedCategoryId);
 
     const response = await fetch(`/api/admin/shop/products?${params.toString()}`);
@@ -156,9 +157,9 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
 
     const data = await response.json();
     return Array.isArray(data?.products) ? (data.products as ShopProduct[]) : [];
-  };
+  }, [debouncedQuery, includeInactive, selectedCategoryId]);
 
-  const refreshAll = async () => {
+  const refreshAll = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -177,18 +178,19 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    void refreshAll();
-  }, [includeInactive, selectedCategoryId]);
+  }, [editor.categoryId, loadCategories, loadProducts]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void refreshAll();
+      setDebouncedQuery(query);
     }, 250);
+
     return () => window.clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    void refreshAll();
+  }, [refreshAll]);
 
   const resetEditor = () => {
     setEditor({

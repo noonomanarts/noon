@@ -28,3 +28,6 @@ export * from './wallet';
 
 // Shop operations
 export * from './shop';
+
+// Admin settings operations
+export * from './adminSettings';

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import type { ComponentType } from 'react';
 import { FiAward, FiBell, FiCreditCard, FiSettings, FiShoppingBag, FiUser } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
+import LogoutButton from '@/components/site/LogoutButton';
 
 type NavItem = {
   key: string;
@@ -52,6 +53,12 @@ export function AccountSidebar({ locale }: AccountSidebarProps) {
             </Link>
           );
         })}
+
+        <LogoutButton
+          locale={locale}
+          label={isArabic ? 'تسجيل الخروج' : 'Logout'}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+        />
       </nav>
     </aside>
   );

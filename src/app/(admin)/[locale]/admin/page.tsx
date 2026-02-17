@@ -71,41 +71,41 @@ export default async function AdminDashboard({
   const formatMoney = (value: number) => `${value.toFixed(3)} OMR`;
 
   const userSlices: AdminPieSlice[] = [
-    { label: t.customers, value: customersCount, color: '#2563eb' },
-    { label: t.trainers, value: trainersCount, color: '#16a34a' },
-    { label: t.admins, value: adminsCount, color: '#9333ea' },
+    { label: t.customers, value: customersCount, color: 'var(--noon-teal)' },
+    { label: t.trainers, value: trainersCount, color: 'var(--noon-purple)' },
+    { label: t.admins, value: adminsCount, color: 'var(--noon-coral)' },
   ];
 
   const orderSlices: AdminPieSlice[] = [
     {
       label: locale === 'ar' ? 'مدفوع' : 'Paid',
       value: shopSummary.statusCounts.PAID,
-      color: '#10b981',
+      color: 'var(--noon-teal)',
     },
     {
       label: locale === 'ar' ? 'قيد التجهيز' : 'Processing',
       value: shopSummary.statusCounts.PROCESSING,
-      color: '#f59e0b',
+      color: 'var(--noon-yellow)',
     },
     {
       label: locale === 'ar' ? 'جاهز للشحن' : 'Ready to Ship',
       value: shopSummary.statusCounts.READY_TO_SHIP,
-      color: '#3b82f6',
+      color: 'var(--noon-purple)',
     },
     {
       label: locale === 'ar' ? 'تم الشحن' : 'Shipped',
       value: shopSummary.statusCounts.SHIPPED,
-      color: '#0ea5e9',
+      color: 'var(--noon-teal-strong)',
     },
     {
       label: locale === 'ar' ? 'تم التسليم' : 'Delivered',
       value: shopSummary.statusCounts.DELIVERED,
-      color: '#22c55e',
+      color: 'var(--noon-purple-strong)',
     },
     {
       label: locale === 'ar' ? 'ملغي' : 'Cancelled',
       value: shopSummary.statusCounts.CANCELLED,
-      color: '#f43f5e',
+      color: 'var(--noon-coral-strong)',
     },
   ];
 

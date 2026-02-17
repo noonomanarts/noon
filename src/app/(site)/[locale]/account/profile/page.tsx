@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Image from 'next/image';
 import { isLocale, type Locale } from '@/lib/locale';
 import { getCurrentUser } from '@/lib/session';
 
@@ -20,6 +21,22 @@ export default async function AccountProfilePage({
       <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
         {locale === 'ar' ? 'معلومات الملف الشخصي' : 'Profile Information'}
       </h2>
+
+      <div className="mt-6 flex items-center gap-4 rounded-xl border border-zinc-200/70 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
+        <span className="relative size-16 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
+          {user.profileImage ? (
+            <Image src={user.profileImage} alt={user.fullName} fill sizes="64px" className="object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-lg font-semibold text-zinc-600 dark:text-zinc-200">
+              {user.fullName.trim().charAt(0).toUpperCase() || 'U'}
+            </span>
+          )}
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{user.fullName}</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">{user.email}</p>
+        </div>
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-xl border border-zinc-200/70 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">

@@ -17,6 +17,7 @@ export default async function LoginPage({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const queryParams = (await searchParams) ?? {};
   const error = typeof queryParams.error === "string" ? queryParams.error : "";
+  const logoutSuccess = queryParams.logout === 'success';
 
   await ensureDefaultAdmin();
 
@@ -60,6 +61,7 @@ export default async function LoginPage({
     noAccount: locale === "ar" ? "ليس لديك حساب؟" : "Don't have an account?",
     createAccount: locale === "ar" ? "إنشاء حساب" : "Create one",
     errorMessage: locale === "ar" ? "بيانات الدخول غير صحيحة" : "Invalid email or password",
+    logoutSuccess: locale === 'ar' ? 'تم تسجيل الخروج بنجاح. يمكنك تسجيل الدخول مرة أخرى.' : 'You have been logged out successfully. You can sign in again.',
     adminNote: locale === "ar" ? "ملاحظة: استخدم admin@noon.com / admin123 للتجربة" : "Note: Use admin@noon.com / admin123 for testing",
     theme: locale === "ar" ? "المظهر" : "Theme",
     themeLight: locale === "ar" ? "فاتح" : "Light",
@@ -94,6 +96,12 @@ export default async function LoginPage({
           {error ? (
             <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
               {t.errorMessage}
+            </div>
+          ) : null}
+
+          {logoutSuccess ? (
+            <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
+              {t.logoutSuccess}
             </div>
           ) : null}
 
