@@ -378,6 +378,27 @@ export interface ShopCategory {
   updated_at: Date;
 }
 
+export interface ShopProduct {
+  id: string;
+  category_id: string;
+  slug: string;
+  name_en: string;
+  name_ar: string;
+  description_en: string | null;
+  description_ar: string | null;
+  price: number;
+  currency: string;
+  sku: string | null;
+  image: string | null;
+  gallery_images: string[];
+  stock_quantity: number;
+  is_active: boolean;
+  is_featured: boolean;
+  sort_order: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface AppNotification {
   id: string;
   recipient_user_id: string | null;

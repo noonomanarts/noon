@@ -6,6 +6,8 @@ import { otherLocale, type Locale } from "@/lib/locale";
 import { getUserById } from "@/lib/db/users";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import { Dropdown } from "@/components/site/Dropdown";
+import CartLinkWithCount from '@/components/site/CartLinkWithCount';
+import { CART_COOKIE_NAME, parseCartCookie } from '@/lib/cart';
 
 function NavLink({
   href,
@@ -36,6 +38,9 @@ export default async function Header({ locale }: { locale: Locale }) {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get("noon_session")?.value;
   const user = sessionId ? await getUserById(sessionId) : null;
+  const cartCookie = cookieStore.get(CART_COOKIE_NAME)?.value;
+  const initialCart = parseCartCookie(cartCookie);
+  const initialCartCount = initialCart.items.reduce((sum, item) => sum + item.quantity, 0);
 
   const t = {
     about: locale === "ar" ? "من نحن" : "About",
@@ -119,16 +124,7 @@ export default async function Header({ locale }: { locale: Locale }) {
             {t.langShort}
           </Link>
 
-          <Link href={`/${locale}/cart`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800">
-            <span className="inline-flex items-center gap-2">
-              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M6 6h15l-1.5 9h-12z" />
-                <path d="M6 6l-2-2H1" />
-                <path d="M9 22a1 1 0 100-2 1 1 0 000 2zM18 22a1 1 0 100-2 1 1 0 000 2z" />
-              </svg>
-              <span>{t.cart}</span>
-            </span>
-          </Link>
+          <CartLinkWithCount locale={locale} label={t.cart} initialCount={initialCartCount} />
 
           {user ? (
             <Link 

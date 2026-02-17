@@ -23,20 +23,11 @@ async function hasWalletDecisionTimestampColumns(): Promise<boolean> {
   return walletDecisionColumnsCache;
 }
 
-async function hasWalletTopupPaymentsTable(): Promise<boolean> {
-  if (walletTopupPaymentsTableCache !== null) {
-    return walletTopupPaymentsTableCache;
+async function ensureWalletTopupPaymentsTable(): Promise<void> {
+  if (walletTopupPaymentsTableCache) {
+    return;
   }
 
-  const result = await pool.query(
-    `SELECT to_regclass('public.wallet_topup_payments') IS NOT NULL AS exists`
-  );
-
-  walletTopupPaymentsTableCache = Boolean(result.rows[0]?.exists);
-  return walletTopupPaymentsTableCache;
-}
-
-async function ensureWalletTopupPaymentsTable(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS wallet_topup_payments (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

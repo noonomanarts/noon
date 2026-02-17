@@ -1,0 +1,493 @@
+'use client';
+
+import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { Locale } from '@/lib/locale';
+
+type CartApiItem = {
+  productId: string;
+  quantity: number;
+  lineTotal: number;
+  product: {
+    id: string;
+    slug: string;
+    name_en: string;
+    name_ar: string;
+    price: number;
+    currency: string;
+  };
+};
+
+type CartPayload = {
+  items: CartApiItem[];
+  summary: {
+    totalQuantity: number;
+    subtotal: number;
+    currency: string;
+  };
+};
+
+type WalletPayload = {
+  balance: number;
+  available_balance: number;
+  currency: string;
+};
+
+type CheckoutResult = {
+  success: boolean;
+  order: {
+    id: string;
+    orderNumber: string;
+    subtotal: number;
+    shippingFee: number;
+    totalAmount: number;
+    currency: string;
+    itemsCount: number;
+  };
+  wallet: {
+    balance: number;
+    available_balance: number;
+    currency: string;
+  };
+};
+
+const SHIPPING_FEE = 2;
+
+export default function CheckoutPageClient({ locale }: { locale: Locale }) {
+  const isArabic = locale === 'ar';
+  const [cart, setCart] = useState<CartPayload | null>(null);
+  const [wallet, setWallet] = useState<WalletPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
+  const [topupLoading, setTopupLoading] = useState(false);
+  const [topupAmount, setTopupAmount] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [unauthorized, setUnauthorized] = useState(false);
+  const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(null);
+
+  const [form, setForm] = useState({
+    city: isArabic ? 'مسقط' : 'Muscat',
+    area: '',
+    streetAddress: '',
+    postalCode: '',
+    recipientFullName: '',
+    recipientPhone: '',
+    notes: '',
+  });
+
+  const t = {
+    title: isArabic ? 'إتمام الطلب' : 'Checkout',
+    loginRequired: isArabic ? 'يرجى تسجيل الدخول لإتمام الطلب.' : 'Please login to complete checkout.',
+    goToLogin: isArabic ? 'تسجيل الدخول' : 'Go to login',
+    empty: isArabic ? 'السلة فارغة. أضف منتجات أولاً.' : 'Your cart is empty. Add products first.',
+    goToCart: isArabic ? 'العودة للسلة' : 'Back to cart',
+    goToShop: isArabic ? 'الذهاب للمتجر' : 'Go to shop',
+    shippingInfo: isArabic ? 'معلومات الشحن' : 'Shipping Information',
+    city: isArabic ? 'المدينة' : 'City',
+    area: isArabic ? 'المنطقة' : 'Area',
+    streetAddress: isArabic ? 'العنوان التفصيلي' : 'Street Address',
+    postalCode: isArabic ? 'الرمز البريدي (اختياري)' : 'Postal Code (Optional)',
+    recipientFullName: isArabic ? 'اسم المستلم' : 'Recipient Full Name',
+    recipientPhone: isArabic ? 'رقم هاتف المستلم' : 'Recipient Phone Number',
+    notes: isArabic ? 'ملاحظات (اختياري)' : 'Notes (Optional)',
+    onlyMuscat: isArabic ? 'التوصيل داخل مسقط فقط.' : 'Delivery is available in Muscat only.',
+    orderSummary: isArabic ? 'ملخص الطلب' : 'Order Summary',
+    walletBalance: isArabic ? 'رصيد المحفظة المتاح' : 'Available Wallet Balance',
+    subtotal: isArabic ? 'الإجمالي الفرعي' : 'Subtotal',
+    shipping: isArabic ? 'رسوم التوصيل' : 'Shipping Fee',
+    total: isArabic ? 'الإجمالي النهائي' : 'Total',
+    payWallet: isArabic ? 'الدفع من المحفظة' : 'Pay with Wallet',
+    processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
+    insufficient: isArabic ? 'الرصيد غير كافٍ. قم بشحن المحفظة.' : 'Insufficient balance. Top up your wallet.',
+    topupTitle: isArabic ? 'شحن المحفظة' : 'Top Up Wallet',
+    topupHint: isArabic ? 'يمكنك زيادة الرصيد مباشرة قبل الدفع.' : 'You can increase your balance before payment.',
+    topupAmount: isArabic ? 'مبلغ الشحن' : 'Top Up Amount',
+    topupAction: isArabic ? 'شحن الآن' : 'Top Up Now',
+    successTitle: isArabic ? 'تم تأكيد الطلب بنجاح' : 'Order confirmed successfully',
+    orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',
+    continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
+    backToCart: isArabic ? 'العودة للسلة' : 'Back to cart',
+    required: isArabic ? 'هذا الحقل مطلوب' : 'This field is required',
+  };
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setUnauthorized(false);
+
+    try {
+      const [cartRes, walletRes] = await Promise.all([
+        fetch('/api/cart', { cache: 'no-store' }),
+        fetch('/api/wallet/balance', { cache: 'no-store' }),
+      ]);
+
+      if (!cartRes.ok) {
+        const errPayload = await cartRes.json().catch(() => ({}));
+        throw new Error(typeof errPayload?.error === 'string' ? errPayload.error : 'Failed to load cart');
+      }
+
+      if (walletRes.status === 401) {
+        setUnauthorized(true);
+      } else if (!walletRes.ok) {
+        const errPayload = await walletRes.json().catch(() => ({}));
+        throw new Error(typeof errPayload?.error === 'string' ? errPayload.error : 'Failed to load wallet');
+      }
+
+      const cartPayload = (await cartRes.json()) as CartPayload;
+      setCart(cartPayload);
+
+      if (walletRes.ok) {
+        const walletPayload = (await walletRes.json()) as WalletPayload;
+        setWallet(walletPayload);
+      } else {
+        setWallet(null);
+      }
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'Failed to load checkout data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  const subtotal = cart?.summary.subtotal ?? 0;
+  const currency = cart?.summary.currency ?? wallet?.currency ?? 'OMR';
+  const total = Number((subtotal + SHIPPING_FEE).toFixed(3));
+  const availableBalance = wallet?.available_balance ?? 0;
+  const hasEnoughBalance = availableBalance >= total;
+  const hasItems = (cart?.items.length ?? 0) > 0;
+
+  const requiredMissing = useMemo(() => {
+    return (
+      form.area.trim().length === 0 ||
+      form.streetAddress.trim().length === 0 ||
+      form.recipientFullName.trim().length === 0 ||
+      form.recipientPhone.trim().length === 0
+    );
+  }, [form]);
+
+  const handleTopup = async () => {
+    setMessage(null);
+    setError(null);
+
+    const amount = Number(topupAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError(isArabic ? 'مبلغ الشحن غير صحيح.' : 'Invalid top-up amount.');
+      return;
+    }
+
+    setTopupLoading(true);
+    try {
+      const response = await fetch('/api/wallet/deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          reason: 'Checkout wallet top-up',
+        }),
+      });
+
+      if (!response.ok) {
+        const errPayload = await response.json().catch(() => ({}));
+        throw new Error(typeof errPayload?.error === 'string' ? errPayload.error : 'Failed to top up wallet');
+      }
+
+      setTopupAmount('');
+      setMessage(isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.');
+      await loadData();
+    } catch (topupError) {
+      setError(topupError instanceof Error ? topupError.message : 'Failed to top up wallet');
+    } finally {
+      setTopupLoading(false);
+    }
+  };
+
+  const submitCheckout = async () => {
+    setError(null);
+    setMessage(null);
+
+    if (!hasItems) {
+      setError(isArabic ? 'السلة فارغة.' : 'Your cart is empty.');
+      return;
+    }
+
+    if (requiredMissing) {
+      setError(t.required);
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const response = await fetch('/api/shop/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as CheckoutResult & {
+        error?: string;
+      };
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || (isArabic ? 'فشل إتمام الطلب.' : 'Checkout failed.'));
+      }
+
+      setCheckoutResult(payload);
+      setWallet(payload.wallet);
+      setCart({
+        items: [],
+        summary: {
+          totalQuantity: 0,
+          subtotal: 0,
+          currency: payload.order.currency,
+        },
+      });
+      window.dispatchEvent(new CustomEvent('cart:changed', { detail: { count: 0 } }));
+    } catch (checkoutError) {
+      setError(checkoutError instanceof Error ? checkoutError.message : 'Checkout failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-6xl px-4 py-12">
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading...</p>
+      </div>
+    );
+  }
+
+  if (unauthorized) {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 py-12">
+        <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
+          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">{t.loginRequired}</p>
+          <Link
+            href={`/${locale}/login`}
+            className="mt-4 inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            {t.goToLogin}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (checkoutResult) {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 py-12">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-900/40 dark:bg-emerald-900/20">
+          <h1 className="text-2xl font-semibold text-emerald-900 dark:text-emerald-200">{t.successTitle}</h1>
+          <p className="mt-3 text-sm text-emerald-800 dark:text-emerald-300">
+            {t.orderNumber}: <span className="font-semibold">{checkoutResult.order.orderNumber}</span>
+          </p>
+          <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-300">
+            {t.total}: {checkoutResult.order.totalAmount.toFixed(3)} {checkoutResult.order.currency}
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href={`/${locale}/shop`}
+              className="inline-flex rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              {t.continueShopping}
+            </Link>
+            <Link
+              href={`/${locale}/cart`}
+              className="inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              {t.backToCart}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasItems) {
+    return (
+      <div className="mx-auto w-full max-w-3xl px-4 py-12">
+        <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
+          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">{t.empty}</p>
+          <div className="mt-4 flex gap-3">
+            <Link
+              href={`/${locale}/cart`}
+              className="inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              {t.goToCart}
+            </Link>
+            <Link
+              href={`/${locale}/shop`}
+              className="inline-flex rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              {t.goToShop}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-6xl px-4 py-12">
+      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{t.title}</h1>
+
+      {error && (
+        <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
+          {error}
+        </div>
+      )}
+      {message && (
+        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">
+          {message}
+        </div>
+      )}
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
+        <section className="space-y-6">
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.shippingInfo}</h2>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.onlyMuscat}</p>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="space-y-1 text-sm">
+                <span className="text-zinc-700 dark:text-zinc-300">{t.city}</span>
+                <input
+                  value={form.city}
+                  onChange={(event) => setForm((prev) => ({ ...prev, city: event.target.value }))}
+                  className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-zinc-700 dark:text-zinc-300">{t.area}</span>
+                <input
+                  value={form.area}
+                  onChange={(event) => setForm((prev) => ({ ...prev, area: event.target.value }))}
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </label>
+              <label className="space-y-1 text-sm sm:col-span-2">
+                <span className="text-zinc-700 dark:text-zinc-300">{t.streetAddress}</span>
+                <input
+                  value={form.streetAddress}
+                  onChange={(event) => setForm((prev) => ({ ...prev, streetAddress: event.target.value }))}
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-zinc-700 dark:text-zinc-300">{t.postalCode}</span>
+                <input
+                  value={form.postalCode}
+                  onChange={(event) => setForm((prev) => ({ ...prev, postalCode: event.target.value }))}
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-zinc-700 dark:text-zinc-300">{t.recipientFullName}</span>
+                <input
+                  value={form.recipientFullName}
+                  onChange={(event) => setForm((prev) => ({ ...prev, recipientFullName: event.target.value }))}
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </label>
+              <label className="space-y-1 text-sm sm:col-span-2">
+                <span className="text-zinc-700 dark:text-zinc-300">{t.recipientPhone}</span>
+                <input
+                  value={form.recipientPhone}
+                  onChange={(event) => setForm((prev) => ({ ...prev, recipientPhone: event.target.value }))}
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </label>
+              <label className="space-y-1 text-sm sm:col-span-2">
+                <span className="text-zinc-700 dark:text-zinc-300">{t.notes}</span>
+                <textarea
+                  value={form.notes}
+                  onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
+                  rows={3}
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </label>
+            </div>
+          </div>
+
+        </section>
+
+        <aside className="h-fit rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.orderSummary}</h2>
+          <div className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <div className="flex items-center justify-between">
+              <span>{t.walletBalance}</span>
+              <span className="font-semibold">{availableBalance.toFixed(3)} {currency}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>{t.subtotal}</span>
+              <span>{subtotal.toFixed(3)} {currency}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>{t.shipping}</span>
+              <span>{SHIPPING_FEE.toFixed(3)} {currency}</span>
+            </div>
+            <div className="mt-2 border-t border-zinc-200 pt-2 text-base font-semibold text-zinc-900 dark:border-zinc-700 dark:text-zinc-100">
+              <div className="flex items-center justify-between">
+                <span>{t.total}</span>
+                <span>{total.toFixed(3)} {currency}</span>
+              </div>
+            </div>
+          </div>
+
+          {!hasEnoughBalance && (
+            <p className="mt-3 text-xs text-rose-700 dark:text-rose-300">{t.insufficient}</p>
+          )}
+
+          <button
+            type="button"
+            onClick={() => void submitCheckout()}
+            disabled={processing || requiredMissing || !hasEnoughBalance}
+            className="mt-5 inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            {processing ? t.processing : t.payWallet}
+          </button>
+
+          {!hasEnoughBalance && (
+            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/40 dark:bg-emerald-900/20">
+              <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">{t.topupTitle}</h3>
+              <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">{t.topupHint}</p>
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0.001"
+                  step="0.001"
+                  value={topupAmount}
+                  onChange={(event) => setTopupAmount(event.target.value)}
+                  placeholder={t.topupAmount}
+                  className="min-w-0 flex-1 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-emerald-800 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleTopup()}
+                  disabled={topupLoading}
+                  className="inline-flex shrink-0 whitespace-nowrap rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-900 hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-900/30"
+                >
+                  {topupLoading ? t.processing : t.topupAction}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <Link
+            href={`/${locale}/cart`}
+            className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            {t.backToCart}
+          </Link>
+        </aside>
+      </div>
+    </div>
+  );
+}

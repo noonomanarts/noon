@@ -393,7 +393,7 @@ export default function AdminTrainersPage() {
               Promote to Trainer
             </h3>
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-              Are you sure you want to promote this user to a trainer? You'll be able to edit their profile afterward.
+              Are you sure you want to promote this user to a trainer? You&apos;ll be able to edit their profile afterward.
             </p>
             <div className="mt-6 flex gap-3">
               <button

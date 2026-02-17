@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from 'next/image';
 import { notFound } from "next/navigation";
 import { isLocale, type Locale } from "@/lib/locale";
-import { getShopCategoryBySlug, listShopCategoriesForPublic } from '@/lib/db/shop';
+import { getShopCategoryBySlug, listShopCategoriesForPublic, listShopProductsForPublic } from '@/lib/db/shop';
 
 export default async function ShopCategoryPage({
   params,
@@ -21,6 +21,8 @@ export default async function ShopCategoryPage({
     notFound();
   }
 
+  const products = await listShopProductsForPublic({ categorySlug: category });
+
   const t = {
     categories: locale === "ar" ? "التصنيفات" : "Categories",
     products: locale === "ar" ? "المنتجات" : "Products",
@@ -30,6 +32,9 @@ export default async function ShopCategoryPage({
       : "We're working on adding amazing products in this category",
     allProducts: locale === "ar" ? "كل التصنيفات" : "All Categories",
     openAll: locale === 'ar' ? 'عرض كل التصنيفات' : 'View all categories',
+    noProducts: locale === 'ar' ? 'لا توجد منتجات حالياً في هذا التصنيف.' : 'No products in this category yet.',
+    inStock: locale === 'ar' ? 'متوفر' : 'In stock',
+    outOfStock: locale === 'ar' ? 'غير متوفر حالياً' : 'Out of stock',
   };
 
   const categoryName = locale === 'ar' ? currentCategory.name_ar : currentCategory.name_en;
@@ -82,36 +87,71 @@ export default async function ShopCategoryPage({
           <p className="mt-4 text-base text-zinc-600 dark:text-zinc-400">{categoryDescription}</p>
         </div>
 
-        {/* Coming Soon Message */}
-        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="relative h-56 w-full bg-zinc-100 dark:bg-zinc-800">
-            {currentCategory.image ? (
-              <Image
-                src={currentCategory.image}
-                alt={categoryName}
-                fill
-                sizes="(max-width: 1024px) 100vw, 70vw"
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">{t.comingSoon}</div>
-            )}
+        {products.length === 0 ? (
+          <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="relative h-56 w-full bg-zinc-100 dark:bg-zinc-800">
+              {currentCategory.image ? (
+                <Image
+                  src={currentCategory.image}
+                  alt={categoryName}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 70vw"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">{t.comingSoon}</div>
+              )}
+            </div>
+            <div className="flex min-h-[240px] flex-col items-center justify-center p-12 text-center">
+              <h2 className="mb-3 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t.comingSoon}</h2>
+              <p className="max-w-md text-zinc-600 dark:text-zinc-400">{t.noProducts}</p>
+              <Link
+                href={`/${locale}/shop`}
+                className="mt-6 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              >
+                {t.openAll}
+              </Link>
+            </div>
           </div>
-          <div className="flex min-h-[240px] flex-col items-center justify-center p-12 text-center">
-          <h2 className="mb-3 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-            {t.comingSoon}
-          </h2>
-          <p className="max-w-md text-zinc-600 dark:text-zinc-400">
-            {t.comingSoonDesc}
-          </p>
-          <Link
-            href={`/${locale}/shop`}
-            className="mt-6 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            {t.openAll}
-          </Link>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {products.map((product) => (
+              <Link key={product.id} href={`/${locale}/shop/product/${product.slug}`} className="overflow-hidden rounded-xl border border-zinc-200 bg-white transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                <div className="relative h-44 w-full bg-zinc-100 dark:bg-zinc-800">
+                  {product.image ? (
+                    <Image
+                      src={product.image}
+                      alt={locale === 'ar' ? product.name_ar : product.name_en}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-xs text-zinc-500 dark:text-zinc-400">{t.comingSoon}</div>
+                  )}
+                </div>
+                <div className="space-y-1.5 p-4">
+                  <h3 className="line-clamp-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    {locale === 'ar' ? product.name_ar : product.name_en}
+                  </h3>
+                  <p className="line-clamp-2 text-xs text-zinc-600 dark:text-zinc-400">
+                    {(locale === 'ar' ? product.description_ar : product.description_en) || t.comingSoonDesc}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{product.price.toFixed(3)} {product.currency}</p>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      product.stock_quantity > 0
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                        : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300'
+                    }`}>
+                      {product.stock_quantity > 0 ? t.inStock : t.outOfStock}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
