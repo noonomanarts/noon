@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Wallet, WalletTransaction } from '@/lib/db/types';
 import { formatNotificationContent } from '@/lib/notifications/formatNotification';
 
@@ -13,6 +13,7 @@ interface WalletSectionProps {
 export function WalletSection({ wallet, transactions, locale }: WalletSectionProps) {
   const [walletData, setWalletData] = useState(wallet);
   const [transactionsData, setTransactionsData] = useState(transactions);
+  const [transactionsPage, setTransactionsPage] = useState(1);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -27,6 +28,14 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
   const [message, setMessage] = useState('');
 
   const isArabic = locale === 'ar';
+  const transactionsPerPage = 8;
+
+  const transactionsTotalPages = Math.max(1, Math.ceil(transactionsData.length / transactionsPerPage));
+  const effectiveTransactionsPage = Math.min(transactionsPage, transactionsTotalPages);
+  const paginatedTransactions = useMemo(() => {
+    const start = (effectiveTransactionsPage - 1) * transactionsPerPage;
+    return transactionsData.slice(start, start + transactionsPerPage);
+  }, [transactionsData, effectiveTransactionsPage]);
 
   const playNotificationSound = () => {
     if (typeof window === 'undefined') return;
@@ -600,7 +609,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
               {isArabic ? 'لم يتم العثور على معاملات' : 'No transactions found'}
             </p>
           ) : (
-            transactionsData.map((transaction) => (
+            paginatedTransactions.map((transaction) => (
               <div key={transaction.id} className="flex justify-between items-center py-3 border-b border-zinc-100/60 last:border-b-0">
                 <div>
                   <div className="font-medium">
@@ -622,6 +631,32 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
             ))
           )}
         </div>
+
+        {transactionsData.length > transactionsPerPage && (
+          <div className="mt-4 flex items-center justify-between border-t border-zinc-200/70 pt-4 dark:border-zinc-700/60">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              {isArabic
+                ? `صفحة ${effectiveTransactionsPage} من ${transactionsTotalPages}`
+                : `Page ${effectiveTransactionsPage} of ${transactionsTotalPages}`}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setTransactionsPage(Math.max(1, effectiveTransactionsPage - 1))}
+                disabled={effectiveTransactionsPage === 1}
+                className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                {isArabic ? 'السابق' : 'Previous'}
+              </button>
+              <button
+                onClick={() => setTransactionsPage(Math.min(transactionsTotalPages, effectiveTransactionsPage + 1))}
+                disabled={effectiveTransactionsPage === transactionsTotalPages}
+                className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                {isArabic ? 'التالي' : 'Next'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
     </>
