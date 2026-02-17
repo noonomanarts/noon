@@ -5,25 +5,14 @@
 
 /* Noon Brand Colors */
 :root {
-  /* Coral */
-  --noon-coral: #FF6B6B;
-  --noon-coral-light: #FF9999;
-  --noon-coral-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF9999 100%);
-  
-  /* Yellow */
-  --noon-yellow: #FFD93D;
-  --noon-yellow-light: #FFC93C;
-  --noon-yellow-gradient: linear-gradient(135deg, #FFD93D 0%, #FFC93C 100%);
-  
-  /* Purple */
-  --noon-purple: #8E44AD;
-  --noon-purple-dark: #6C3483;
-  --noon-purple-gradient: linear-gradient(135deg, #8E44AD 0%, #6C3483 100%);
-  
-  /* Teal */
-  --noon-teal: #17A2B8;
-  --noon-teal-light: #1ABC9C;
-  --noon-teal-gradient: linear-gradient(135deg, #17A2B8 0%, #1ABC9C 100%);
+  --noon-coral: #f77d6b;
+  --noon-coral-strong: #ef6b58;
+  --noon-yellow: #f2cb56;
+  --noon-yellow-strong: #e8be40;
+  --noon-purple: #7b3f8d;
+  --noon-purple-strong: #6a347b;
+  --noon-teal: #17b0ad;
+  --noon-teal-strong: #109d9a;
 }
 
 /* OverlayScrollbars Theme Customization */
@@ -120,14 +109,14 @@
   --font-arabic: var(--font-arabic);
   
   /* Noon Brand Colors for Tailwind */
-  --color-coral: #FF6B6B;
-  --color-coral-light: #FF9999;
-  --color-yellow: #FFD93D;
-  --color-yellow-light: #FFC93C;
-  --color-purple: #8E44AD;
-  --color-purple-dark: #6C3483;
-  --color-teal: #17A2B8;
-  --color-teal-light: #1ABC9C;
+  --color-coral: var(--noon-coral);
+  --color-coral-light: var(--noon-coral-strong);
+  --color-yellow: var(--noon-yellow);
+  --color-yellow-light: var(--noon-yellow-strong);
+  --color-purple: var(--noon-purple);
+  --color-purple-dark: var(--noon-purple-strong);
+  --color-teal: var(--noon-teal);
+  --color-teal-light: var(--noon-teal-strong);
 }
 
 body {
@@ -226,6 +215,66 @@ body {
 }
 
 @layer components {
+  .noon-btn-teal,
+  .noon-btn-coral,
+  .noon-btn-purple,
+  .noon-btn-yellow {
+    color: #fff;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 180ms ease;
+    box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.45);
+  }
+
+  .noon-btn-teal {
+    background: linear-gradient(135deg, var(--noon-teal) 0%, var(--noon-teal-strong) 100%);
+  }
+
+  .noon-btn-teal:hover {
+    filter: brightness(0.95);
+  }
+
+  .noon-btn-coral {
+    background: linear-gradient(135deg, var(--noon-coral) 0%, var(--noon-coral-strong) 100%);
+  }
+
+  .noon-btn-coral:hover {
+    filter: brightness(0.95);
+  }
+
+  .noon-btn-purple {
+    background: linear-gradient(135deg, var(--noon-purple) 0%, var(--noon-purple-strong) 100%);
+  }
+
+  .noon-btn-purple:hover {
+    filter: brightness(0.95);
+  }
+
+  .noon-btn-yellow {
+    background: linear-gradient(135deg, var(--noon-yellow) 0%, var(--noon-yellow-strong) 100%);
+    color: #2f2a1f;
+  }
+
+  .noon-btn-yellow:hover {
+    filter: brightness(0.95);
+  }
+
+  .noon-soft-teal {
+    background: color-mix(in oklab, var(--noon-teal) 18%, white);
+  }
+
+  .noon-soft-coral {
+    background: color-mix(in oklab, var(--noon-coral) 18%, white);
+  }
+
+  .noon-soft-purple {
+    background: color-mix(in oklab, var(--noon-purple) 16%, white);
+  }
+
+  .noon-soft-yellow {
+    background: color-mix(in oklab, var(--noon-yellow) 28%, white);
+  }
+
   .admin-panel input,
   .admin-panel select,
   .admin-panel textarea {

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Locale } from "@/lib/locale";
 import type { Wallet } from "@/lib/db/types";
 
@@ -19,6 +19,58 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+  const toastTimeoutRef = useRef<number | null>(null);
+
+  const playNotificationSound = () => {
+    if (typeof window === 'undefined') return;
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    try {
+      const audioContext = new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 860;
+      gainNode.gain.value = 0.06;
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.13);
+      oscillator.onended = () => {
+        audioContext.close();
+      };
+    } catch {
+      // Ignore audio errors
+    }
+  };
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastType(type);
+    setToastMessage(message);
+    playNotificationSound();
+
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        window.clearTimeout(toastTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchWallet = useCallback(async () => {
     try {
@@ -54,7 +106,7 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
 
   const submitDeposit = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      alert(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount");
+      showToast(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount", 'error');
       return;
     }
 
@@ -72,13 +124,13 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
       if (response.ok) {
         await fetchWallet(); // Refresh wallet data
         setShowDepositModal(false);
-        alert(locale === "ar" ? "تم الإيداع بنجاح" : "Deposit successful");
+        showToast(locale === "ar" ? "تم الإيداع بنجاح" : "Deposit successful", 'success');
       } else {
         const data = await response.json();
-        alert(data.error || (locale === "ar" ? "فشل في الإيداع" : "Deposit failed"));
+        showToast(data.error || (locale === "ar" ? "فشل في الإيداع" : "Deposit failed"), 'error');
       }
     } catch {
-      alert(locale === "ar" ? "خطأ في الاتصال" : "Connection error");
+      showToast(locale === "ar" ? "خطأ في الاتصال" : "Connection error", 'error');
     } finally {
       setProcessing(false);
     }
@@ -86,12 +138,12 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
 
   const submitWithdraw = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      alert(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount");
+      showToast(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount", 'error');
       return;
     }
 
-    if (wallet && parseFloat(amount) > wallet.balance) {
-      alert(locale === "ar" ? "الرصيد غير كافي" : "Insufficient balance");
+    if (wallet && parseFloat(amount) > (wallet.available_balance || 0)) {
+      showToast(locale === "ar" ? "المقدار القابل للسحب غير كافٍ" : "Insufficient withdrawable amount", 'error');
       return;
     }
 
@@ -109,13 +161,13 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
       if (response.ok) {
         await fetchWallet(); // Refresh wallet data
         setShowWithdrawModal(false);
-        alert(locale === "ar" ? "تم السحب بنجاح" : "Withdrawal successful");
+        showToast(locale === "ar" ? "تم السحب بنجاح" : "Withdrawal successful", 'success');
       } else {
         const data = await response.json();
-        alert(data.error || (locale === "ar" ? "فشل في السحب" : "Withdrawal failed"));
+        showToast(data.error || (locale === "ar" ? "فشل في السحب" : "Withdrawal failed"), 'error');
       }
     } catch {
-      alert(locale === "ar" ? "خطأ في الاتصال" : "Connection error");
+      showToast(locale === "ar" ? "خطأ في الاتصال" : "Connection error", 'error');
     } finally {
       setProcessing(false);
     }
@@ -144,11 +196,34 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
 
   return (
     <>
+      {toastMessage && (
+        <div className={`fixed top-4 ${locale === 'ar' ? 'left-4' : 'right-4'} z-[140]`} aria-live="polite">
+          <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl backdrop-blur ${
+            toastType === 'success'
+              ? 'border-emerald-200/70 bg-emerald-50/95 text-emerald-900 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-100'
+              : toastType === 'error'
+                ? 'border-rose-200/70 bg-rose-50/95 text-rose-900 dark:border-rose-700/60 dark:bg-rose-900/30 dark:text-rose-100'
+                : 'border-blue-200/70 bg-blue-50/95 text-blue-900 dark:border-blue-700/60 dark:bg-blue-900/30 dark:text-blue-100'
+          }`}>
+            <span className={`inline-flex size-8 items-center justify-center rounded-lg ${
+              toastType === 'success'
+                ? 'noon-soft-teal text-teal-800 dark:text-teal-300'
+                : toastType === 'error'
+                  ? 'noon-soft-coral text-coral dark:text-coral-light'
+                  : 'noon-soft-purple text-purple dark:text-purple'
+            }`}>
+              {toastType === 'success' ? '✓' : toastType === 'error' ? '!' : 'i'}
+            </span>
+            <span className="font-medium">{toastMessage}</span>
+          </div>
+        </div>
+      )}
+
       {/* Main Wallet Button */}
       <div className="relative">
         <button
           onClick={() => setShowDropdown(!showDropdown)}
-          className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 px-4 py-2 text-white shadow-sm transition-all hover:from-green-600 hover:to-emerald-700 hover:shadow-md"
+          className="noon-btn-teal flex items-center gap-2 px-4 py-2 shadow-sm transition-all hover:shadow-md"
         >
           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
@@ -224,7 +299,7 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
 
       {/* Deposit Modal */}
       {showDepositModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/30 p-4">
+        <div className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen items-center justify-center backdrop-blur-sm bg-black/40 dark:bg-black/55 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
             <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
@@ -290,7 +365,7 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
                 <button
                   onClick={submitDeposit}
                   disabled={processing || !amount || parseFloat(amount) <= 0}
-                  className="rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="noon-btn-teal px-5 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   {processing ? (
                     <div className="flex items-center gap-2">
@@ -309,7 +384,7 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
 
       {/* Withdraw Modal */}
       {showWithdrawModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/30 p-4">
+        <div className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen items-center justify-center backdrop-blur-sm bg-black/40 dark:bg-black/55 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
             <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
@@ -340,7 +415,7 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
                   className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200"
                   placeholder="0.000"
                   min="0"
-                  max={wallet.balance}
+                  max={wallet.available_balance || 0}
                 />
               </div>
 
@@ -359,11 +434,14 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
 
               <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border border-blue-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-800/30">
                 <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
-                  {locale === "ar" ? "الرصيد المتاح:" : "Available balance:"} <span className="font-semibold">{wallet.balance.toFixed(3)} {wallet.currency}</span>
+                  {locale === "ar" ? "المقدار القابل للسحب:" : "Withdrawable amount:"} <span className="font-semibold">{(wallet.available_balance || 0).toFixed(3)} {wallet.currency}</span>
                 </p>
-                {amount && parseFloat(amount) > wallet.balance && (
+                <p className="mt-2 text-sm text-rose-700 dark:text-rose-300 font-medium">
+                  {locale === "ar" ? 'المبلغ المحجوز:' : 'Blocked amount:'} <span className="font-semibold">{(wallet.blocked_balance || 0).toFixed(3)} {wallet.currency}</span>
+                </p>
+                {amount && parseFloat(amount) > (wallet.available_balance || 0) && (
                   <p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">
-                    {locale === "ar" ? "المبلغ المطلوب أكبر من الرصيد المتاح" : "Amount exceeds available balance"}
+                    {locale === "ar" ? "المبلغ المطلوب أكبر من المقدار القابل للسحب" : "Amount exceeds withdrawable amount"}
                   </p>
                 )}
               </div>
@@ -380,8 +458,8 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
                 </button>
                 <button
                   onClick={submitWithdraw}
-                  disabled={processing || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > wallet.balance}
-                  className="rounded-lg bg-gradient-to-r from-red-600 to-rose-600 px-5 py-2.5 text-sm font-medium text-white hover:from-red-700 hover:to-rose-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  disabled={processing || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > (wallet.available_balance || 0)}
+                  className="noon-btn-coral px-5 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   {processing ? (
                     <div className="flex items-center gap-2">

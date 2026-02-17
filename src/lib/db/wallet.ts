@@ -24,7 +24,11 @@ async function hasWalletDecisionTimestampColumns(): Promise<boolean> {
 
 export async function getWalletByUserId(userId: string): Promise<Wallet | null> {
   const result = await pool.query(
-    'SELECT * FROM wallets WHERE user_id = $1',
+    `SELECT w.*, COALESCE(SUM(CASE WHEN wt.type = 'WITHDRAWAL_REQUEST' AND wt.status = 'PENDING' THEN ABS(wt.amount) ELSE 0 END), 0)::numeric AS blocked_balance
+     FROM wallets w
+     LEFT JOIN wallet_transactions wt ON wt.wallet_id = w.id
+     WHERE w.user_id = $1
+     GROUP BY w.id`,
     [userId]
   );
   if (result.rows[0]) {
@@ -32,6 +36,7 @@ export async function getWalletByUserId(userId: string): Promise<Wallet | null> 
       ...result.rows[0],
       balance: parseFloat(result.rows[0].balance as string),
       available_balance: parseFloat(result.rows[0].available_balance as string),
+      blocked_balance: parseFloat(result.rows[0].blocked_balance as string),
     };
   }
   return null;
@@ -46,6 +51,7 @@ export async function createWallet(userId: string, currency = 'OMR'): Promise<Wa
     ...result.rows[0],
     balance: parseFloat(result.rows[0].balance as string),
     available_balance: parseFloat(result.rows[0].available_balance as string),
+    blocked_balance: 0,
   };
 }
 
@@ -177,9 +183,11 @@ export async function transferWalletFunds(
     const receiverBalance = parseFloat(receiverWallet.rows[0].balance as string);
     const receiverAvailableBalance = parseFloat(receiverWallet.rows[0].available_balance as string);
 
+    const senderNewBalance = senderBalance - amount;
+    const senderNewAvailableBalance = Math.min(senderAvailableBalance, senderNewBalance);
     await client.query(
-      'UPDATE wallets SET balance = balance - $1, available_balance = available_balance - $1, updated_at = NOW() WHERE user_id = $2',
-      [amount, fromUserId]
+      'UPDATE wallets SET balance = $1, available_balance = $2, updated_at = NOW() WHERE user_id = $3',
+      [senderNewBalance, senderNewAvailableBalance, fromUserId]
     );
     await client.query(
       'UPDATE wallets SET balance = balance + $1, available_balance = available_balance + $1, updated_at = NOW() WHERE user_id = $2',
@@ -200,8 +208,8 @@ export async function transferWalletFunds(
 
     emitAdminEvent('wallet_updated', {
       user_id: fromUserId,
-      balance: senderBalance - amount,
-      available_balance: senderAvailableBalance - amount,
+      balance: senderNewBalance,
+      available_balance: senderNewAvailableBalance,
       currency: senderWallet.rows[0].currency,
     });
     emitAdminEvent('wallet_updated', {
@@ -212,8 +220,8 @@ export async function transferWalletFunds(
     });
 
     emitUserEvent(fromUserId, 'wallet_updated', {
-      balance: senderBalance - amount,
-      available_balance: senderAvailableBalance - amount,
+      balance: senderNewBalance,
+      available_balance: senderNewAvailableBalance,
       currency: senderWallet.rows[0].currency,
     });
     emitUserEvent(toUserId, 'wallet_updated', {
@@ -275,7 +283,14 @@ export async function requestWalletWithdrawal(userId: string, amount: number, re
     await client.query('BEGIN');
 
     const walletResult = await client.query(
-      `SELECT w.*, u.full_name
+      `SELECT w.*, u.full_name,
+              COALESCE((
+                SELECT SUM(ABS(wt.amount))
+                FROM wallet_transactions wt
+                WHERE wt.wallet_id = w.id
+                  AND wt.type = 'WITHDRAWAL_REQUEST'
+                  AND wt.status = 'PENDING'
+              ), 0)::numeric AS blocked_balance
        FROM wallets w
        JOIN users u ON u.id = w.user_id
        WHERE w.user_id = $1
@@ -285,13 +300,18 @@ export async function requestWalletWithdrawal(userId: string, amount: number, re
     const wallet = walletResult.rows[0];
     if (!wallet) throw new Error('Wallet not found');
 
+    const currentBalance = parseFloat(wallet.balance as string);
     const availableBalance = parseFloat(wallet.available_balance as string);
+    if (currentBalance < amount) throw new Error('Insufficient balance');
     if (availableBalance < amount) throw new Error('Insufficient available balance');
 
+    const newBalance = currentBalance - amount;
     const newAvailableBalance = availableBalance - amount;
+    const currentBlockedBalance = parseFloat(wallet.blocked_balance as string);
+    const newBlockedBalance = currentBlockedBalance + amount;
     await client.query(
-      'UPDATE wallets SET available_balance = $1, updated_at = NOW() WHERE id = $2',
-      [newAvailableBalance, wallet.id]
+      'UPDATE wallets SET balance = $1, available_balance = $2, updated_at = NOW() WHERE id = $3',
+      [newBalance, newAvailableBalance, wallet.id]
     );
 
     // Create a withdrawal request transaction with PENDING status
@@ -304,8 +324,9 @@ export async function requestWalletWithdrawal(userId: string, amount: number, re
 
     emitAdminEvent('wallet_updated', {
       user_id: wallet.user_id,
-      balance: parseFloat(wallet.balance as string),
+      balance: newBalance,
       available_balance: newAvailableBalance,
+      blocked_balance: newBlockedBalance,
       currency: wallet.currency,
     });
     emitAdminEvent('withdrawal_requests_updated', { wallet_id: wallet.id });
@@ -315,8 +336,9 @@ export async function requestWalletWithdrawal(userId: string, amount: number, re
     });
 
     emitUserEvent(wallet.user_id, 'wallet_updated', {
-      balance: parseFloat(wallet.balance as string),
+      balance: newBalance,
       available_balance: newAvailableBalance,
+      blocked_balance: newBlockedBalance,
       currency: wallet.currency,
     });
     emitUserEvent(wallet.user_id, 'wallet_notification', {
@@ -393,7 +415,14 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
 
     // Get wallet
     const walletResult = await client.query(
-      `SELECT w.*, u.full_name
+      `SELECT w.*, u.full_name,
+              COALESCE((
+                SELECT SUM(ABS(wt.amount))
+                FROM wallet_transactions wt
+                WHERE wt.wallet_id = w.id
+                  AND wt.type = 'WITHDRAWAL_REQUEST'
+                  AND wt.status = 'PENDING'
+              ), 0)::numeric AS blocked_balance
        FROM wallets w
        JOIN users u ON u.id = w.user_id
        WHERE w.id = $1
@@ -407,19 +436,8 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
 
     const currentBalance = parseFloat(wallet.balance as string);
     const currentAvailableBalance = parseFloat(wallet.available_balance as string);
-    if (currentBalance < amount) {
-      throw new Error('Insufficient balance');
-    }
-
-    // Finalize approved withdrawal.
-    // - Always deduct from total balance
-    // - Keep available balance consistent for both legacy (unblocked) and new (blocked) requests
-    const newBalance = currentBalance - amount;
-    const newAvailableBalance = Math.min(currentAvailableBalance, newBalance);
-    await client.query(
-      'UPDATE wallets SET balance = $1, available_balance = $2, updated_at = NOW() WHERE id = $3',
-      [newBalance, newAvailableBalance, wallet.id]
-    );
+    const currentBlockedBalance = parseFloat(wallet.blocked_balance as string);
+    const newBlockedBalance = Math.max(0, currentBlockedBalance - amount);
 
     // Update transaction status
     const reason = adminReason ? `${transaction.reason || ''} - Approved: ${adminReason}` : transaction.reason;
@@ -439,14 +457,16 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
 
     emitAdminEvent('wallet_updated', {
       user_id: wallet.user_id,
-      balance: newBalance,
-      available_balance: newAvailableBalance,
+      balance: currentBalance,
+      available_balance: currentAvailableBalance,
+      blocked_balance: newBlockedBalance,
       currency: wallet.currency,
     });
     emitAdminEvent('withdrawal_requests_updated', { transactionId });
     emitUserEvent(wallet.user_id, 'wallet_updated', {
-      balance: newBalance,
-      available_balance: newAvailableBalance,
+      balance: currentBalance,
+      available_balance: currentAvailableBalance,
+      blocked_balance: newBlockedBalance,
       currency: wallet.currency,
     });
     emitUserEvent(wallet.user_id, 'wallet_notification', {
@@ -495,7 +515,14 @@ export async function rejectWithdrawalRequest(transactionId: string, adminReason
     const amount = Math.abs(parseFloat(transaction.amount as string));
 
     const walletResult = await client.query(
-      `SELECT w.*, u.full_name
+      `SELECT w.*, u.full_name,
+              COALESCE((
+                SELECT SUM(ABS(wt.amount))
+                FROM wallet_transactions wt
+                WHERE wt.wallet_id = w.id
+                  AND wt.type = 'WITHDRAWAL_REQUEST'
+                  AND wt.status = 'PENDING'
+              ), 0)::numeric AS blocked_balance
        FROM wallets w
        JOIN users u ON u.id = w.user_id
        WHERE w.id = $1
@@ -507,13 +534,16 @@ export async function rejectWithdrawalRequest(transactionId: string, adminReason
       throw new Error('Wallet not found');
     }
 
-    // Release blocked amount back to available balance (without exceeding total balance)
+    // Restore deducted balances and release blocked amount.
     const currentBalance = parseFloat(wallet.balance as string);
     const currentAvailableBalance = parseFloat(wallet.available_balance as string);
-    const newAvailableBalance = Math.min(currentBalance, currentAvailableBalance + amount);
+    const currentBlockedBalance = parseFloat(wallet.blocked_balance as string);
+    const newBalance = currentBalance + amount;
+    const newAvailableBalance = Math.min(newBalance, currentAvailableBalance + amount);
+    const newBlockedBalance = Math.max(0, currentBlockedBalance - amount);
     await client.query(
-      'UPDATE wallets SET available_balance = $1, updated_at = NOW() WHERE id = $2',
-      [newAvailableBalance, wallet.id]
+      'UPDATE wallets SET balance = $1, available_balance = $2, updated_at = NOW() WHERE id = $3',
+      [newBalance, newAvailableBalance, wallet.id]
     );
 
     const reason = adminReason ? `Rejected: ${adminReason}` : 'Rejected by admin';
@@ -533,14 +563,16 @@ export async function rejectWithdrawalRequest(transactionId: string, adminReason
 
     emitAdminEvent('wallet_updated', {
       user_id: wallet.user_id,
-      balance: currentBalance,
+      balance: newBalance,
       available_balance: newAvailableBalance,
+      blocked_balance: newBlockedBalance,
       currency: wallet.currency,
     });
     emitAdminEvent('withdrawal_requests_updated', { transactionId });
     emitUserEvent(wallet.user_id, 'wallet_updated', {
-      balance: currentBalance,
+      balance: newBalance,
       available_balance: newAvailableBalance,
+      blocked_balance: newBlockedBalance,
       currency: wallet.currency,
     });
     emitUserEvent(wallet.user_id, 'wallet_notification', {
@@ -605,10 +637,10 @@ export async function adminAddWalletCredit(userId: string, amount: number, reaso
 export async function adminDeductWalletCredit(userId: string, amount: number, reason?: string): Promise<{ wallet: Wallet; transaction: WalletTransaction }> {
   const wallet = await getWalletByUserId(userId);
   if (!wallet) throw new Error('Wallet not found');
-  if (wallet.available_balance < amount) throw new Error('Insufficient available balance');
+  if (wallet.balance < amount) throw new Error('Insufficient balance');
 
   const newBalance = wallet.balance - amount;
-  const newAvailableBalance = wallet.available_balance - amount;
+  const newAvailableBalance = Math.min(wallet.available_balance, newBalance);
   await updateWalletBalances(wallet.id, newBalance, newAvailableBalance);
   const transaction = await addWalletTransaction(wallet.id, -amount, 'ADMIN_DEDUCT', reason);
 
@@ -638,8 +670,8 @@ export async function adminDeductWalletCredit(userId: string, amount: number, re
 export async function adminUpdateWalletAvailableBalance(userId: string, newAvailableBalance: number): Promise<{ wallet: Wallet }> {
   const wallet = await getWalletByUserId(userId);
   if (!wallet) throw new Error('Wallet not found');
-  if (newAvailableBalance < 0) throw new Error('Available balance cannot be negative');
-  if (newAvailableBalance > wallet.balance) throw new Error('Available balance cannot exceed total balance');
+  if (newAvailableBalance < 0) throw new Error('Withdrawable amount cannot be negative');
+  if (newAvailableBalance > wallet.balance) throw new Error('Withdrawable amount cannot exceed total balance');
 
   await updateWalletAvailableBalance(wallet.id, newAvailableBalance);
 
@@ -656,8 +688,8 @@ export async function adminUpdateWalletAvailableBalance(userId: string, newAvail
   });
   emitUserEvent(wallet.user_id, 'wallet_notification', {
     type: 'available_balance_updated',
-    messageEn: 'Your available wallet balance was updated.',
-    messageAr: 'تم تحديث الرصيد المتاح في محفظتك.',
+    messageEn: 'Your withdrawable wallet amount was updated.',
+    messageAr: 'تم تحديث المقدار القابل للسحب في محفظتك.',
   });
 
   return {
@@ -667,14 +699,18 @@ export async function adminUpdateWalletAvailableBalance(userId: string, newAvail
 
 export async function getAllWallets(): Promise<(Wallet & { user_full_name: string; user_email: string; user_phone_number: string })[]> {
   const result = await pool.query(
-    `SELECT w.*, u.full_name as user_full_name, u.email as user_email, u.phone_number as user_phone_number
+    `SELECT w.*, u.full_name as user_full_name, u.email as user_email, u.phone_number as user_phone_number,
+            COALESCE(SUM(CASE WHEN wt.type = 'WITHDRAWAL_REQUEST' AND wt.status = 'PENDING' THEN ABS(wt.amount) ELSE 0 END), 0)::numeric AS blocked_balance
      FROM wallets w
      JOIN users u ON w.user_id = u.id
+     LEFT JOIN wallet_transactions wt ON wt.wallet_id = w.id
+     GROUP BY w.id, u.full_name, u.email, u.phone_number
      ORDER BY u.full_name`
   );
   return result.rows.map(row => ({
     ...row,
     balance: parseFloat(row.balance as string),
     available_balance: parseFloat(row.available_balance as string),
+    blocked_balance: parseFloat(row.blocked_balance as string),
   }));
 }

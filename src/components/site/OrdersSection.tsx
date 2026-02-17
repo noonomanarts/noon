@@ -35,14 +35,14 @@ export function OrdersSection({ bookings, eventBookings, locale }: OrdersSection
     switch (status) {
       case 'COMPLETED':
       case 'PAID':
-        return 'text-green-600 bg-green-50';
+        return 'text-[color:var(--noon-teal)] bg-[color:var(--noon-teal-soft)]';
       case 'PENDING':
       case 'PENDING_PAYMENT':
-        return 'text-yellow-600 bg-yellow-50';
+        return 'text-[color:var(--noon-yellow)] bg-[color:var(--noon-yellow-soft)]';
       case 'CANCELLED':
-        return 'text-red-600 bg-red-50';
+        return 'text-[color:var(--noon-coral)] bg-[color:var(--noon-coral-soft)]';
       default:
-        return 'text-gray-600 bg-gray-50';
+        return 'text-[color:var(--noon-purple)] bg-[color:var(--noon-purple-soft)]';
     }
   };
 
@@ -113,7 +113,7 @@ export function OrdersSection({ bookings, eventBookings, locale }: OrdersSection
               <div className="mt-3">
                 <Link
                   href={`/${locale}/account/orders/${order.id}`}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  className="text-sm font-medium text-[color:var(--noon-teal)] hover:text-[color:var(--noon-teal-dark)]"
                 >
                   {isArabic ? 'عرض التفاصيل' : 'View Details'} →
                 </Link>
@@ -132,14 +132,14 @@ export function OrdersSection({ bookings, eventBookings, locale }: OrdersSection
                 <button
                   onClick={() => setCurrentPage(Math.max(1, effectivePage - 1))}
                   disabled={effectivePage === 1}
-                  className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  className="rounded-lg border border-[color:var(--noon-teal)]/40 px-3 py-1.5 text-xs font-medium text-[color:var(--noon-teal)] hover:bg-[color:var(--noon-teal-soft)] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[color:var(--noon-teal)]/50 dark:text-[color:var(--noon-teal)] dark:hover:bg-[color:var(--noon-teal-soft)]"
                 >
                   {isArabic ? 'السابق' : 'Previous'}
                 </button>
                 <button
                   onClick={() => setCurrentPage(Math.min(totalPages, effectivePage + 1))}
                   disabled={effectivePage === totalPages}
-                  className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  className="rounded-lg border border-[color:var(--noon-teal)]/40 px-3 py-1.5 text-xs font-medium text-[color:var(--noon-teal)] hover:bg-[color:var(--noon-teal-soft)] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[color:var(--noon-teal)]/50 dark:text-[color:var(--noon-teal)] dark:hover:bg-[color:var(--noon-teal-soft)]"
                 >
                   {isArabic ? 'التالي' : 'Next'}
                 </button>

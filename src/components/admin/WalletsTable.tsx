@@ -29,18 +29,21 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const toastTimeoutRef = useRef<number | null>(null);
 
   // Statistics
   const stats = useMemo(() => {
     const totalBalance = wallets.reduce((sum, w) => sum + w.balance, 0);
     const totalAvailable = wallets.reduce((sum, w) => sum + (w.available_balance || 0), 0);
+    const totalBlocked = wallets.reduce((sum, w) => sum + (w.blocked_balance || 0), 0);
     const walletsWithBalance = wallets.filter(w => w.balance > 0).length;
     const walletsWithAvailable = wallets.filter(w => (w.available_balance || 0) > 0).length;
 
     return {
       totalBalance,
       totalAvailable,
+      totalBlocked,
       walletsWithBalance,
       walletsWithAvailable,
       totalWallets: wallets.length
@@ -58,7 +61,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
       const matchesFilter = filterStatus === 'all' ||
         (filterStatus === 'has-balance' && wallet.balance > 0) ||
         (filterStatus === 'has-available' && (wallet.available_balance || 0) > 0) ||
-        (filterStatus === 'pending-withdrawals' && (wallet.available_balance || 0) < wallet.balance);
+        (filterStatus === 'pending-withdrawals' && (wallet.blocked_balance || 0) > 0);
 
       return matchesSearch && matchesFilter;
     });
@@ -101,7 +104,8 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
     };
   }, []);
 
-  const showToast = (message: string) => {
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setToastType(type);
     setToastMessage(message);
     if (toastTimeoutRef.current) {
       window.clearTimeout(toastTimeoutRef.current);
@@ -109,6 +113,11 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
     toastTimeoutRef.current = window.setTimeout(() => {
       setToastMessage(null);
     }, 3500);
+  };
+
+  const notifyWithSound = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    showToast(message, type);
+    playNotificationSound();
   };
 
   const playNotificationSound = () => {
@@ -147,6 +156,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
           user_id: string;
           balance?: number;
           available_balance?: number;
+          blocked_balance?: number;
           currency?: string;
         };
 
@@ -159,13 +169,14 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                   ...wallet,
                   balance: data.balance ?? wallet.balance,
                   available_balance: data.available_balance ?? wallet.available_balance,
+                  blocked_balance: data.blocked_balance ?? wallet.blocked_balance,
                   currency: data.currency ?? wallet.currency,
                 }
               : wallet
           );
         });
 
-        showToast(locale === 'ar' ? 'تم تحديث محفظة' : 'Wallet updated');
+        showToast(locale === 'ar' ? 'تم تحديث محفظة' : 'Wallet updated', 'info');
         playNotificationSound();
       } catch {
         // Ignore malformed events
@@ -190,11 +201,11 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
         setSelectedUser(userId);
         setShowTransactions(true);
       } else {
-        alert(locale === "ar" ? "فشل في تحميل المعاملات" : "Failed to load transactions");
+        notifyWithSound(locale === "ar" ? "فشل في تحميل المعاملات" : "Failed to load transactions", 'error');
       }
     } catch (error) {
       console.error("Error loading transactions:", error);
-      alert(locale === "ar" ? "خطأ في تحميل المعاملات" : "Error loading transactions");
+      notifyWithSound(locale === "ar" ? "خطأ في تحميل المعاملات" : "Error loading transactions", 'error');
     } finally {
       setLoading(false);
     }
@@ -231,7 +242,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
       setDescription("");
       setShowRequestWithdrawal(true);
     } else {
-      alert(locale === "ar" ? "لا يوجد رصيد قابل للسحب" : "No available balance for withdrawal");
+      notifyWithSound(locale === "ar" ? "لا يوجد مقدار قابل للسحب" : "No withdrawable amount for withdrawal", 'error');
     }
   };
 
@@ -271,7 +282,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
   const submitAddCredit = async () => {
     if (!selectedUser || !amount || parseFloat(amount) <= 0) {
-      alert(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount");
+      notifyWithSound(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount", 'error');
       return;
     }
 
@@ -291,17 +302,19 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
         const result = await response.json();
         // Update the wallet in the list
         setWallets(prev => prev.map(w =>
-          w.user_id === selectedUser ? { ...w, balance: result.wallet.balance, available_balance: result.wallet.available_balance } : w
+          w.user_id === selectedUser
+            ? { ...w, balance: result.wallet.balance, available_balance: result.wallet.available_balance, blocked_balance: result.wallet.blocked_balance ?? w.blocked_balance }
+            : w
         ));
         setShowAddCredit(false);
-        alert(locale === "ar" ? "تم إضافة الرصيد بنجاح" : "Credit added successfully");
+        notifyWithSound(locale === "ar" ? "تم إضافة الرصيد بنجاح" : "Credit added successfully", 'success');
       } else {
         const error = await response.json();
-        alert(error.error || (locale === "ar" ? "فشل في إضافة الرصيد" : "Failed to add credit"));
+        notifyWithSound(error.error || (locale === "ar" ? "فشل في إضافة الرصيد" : "Failed to add credit"), 'error');
       }
     } catch (error) {
       console.error("Error adding credit:", error);
-      alert(locale === "ar" ? "خطأ في إضافة الرصيد" : "Error adding credit");
+      notifyWithSound(locale === "ar" ? "خطأ في إضافة الرصيد" : "Error adding credit", 'error');
     } finally {
       setLoading(false);
     }
@@ -309,7 +322,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
   const submitDeductCredit = async () => {
     if (!selectedUser || !amount || parseFloat(amount) <= 0) {
-      alert(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount");
+      notifyWithSound(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount", 'error');
       return;
     }
 
@@ -329,17 +342,19 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
         const result = await response.json();
         // Update the wallet in the list
         setWallets(prev => prev.map(w =>
-          w.user_id === selectedUser ? { ...w, balance: result.wallet.balance, available_balance: result.wallet.available_balance } : w
+          w.user_id === selectedUser
+            ? { ...w, balance: result.wallet.balance, available_balance: result.wallet.available_balance, blocked_balance: result.wallet.blocked_balance ?? w.blocked_balance }
+            : w
         ));
         setShowDeductCredit(false);
-        alert(locale === "ar" ? "تم خصم الرصيد بنجاح" : "Credit deducted successfully");
+        notifyWithSound(locale === "ar" ? "تم خصم الرصيد بنجاح" : "Credit deducted successfully", 'success');
       } else {
         const error = await response.json();
-        alert(error.error || (locale === "ar" ? "فشل في خصم الرصيد" : "Failed to deduct credit"));
+        notifyWithSound(error.error || (locale === "ar" ? "فشل في خصم الرصيد" : "Failed to deduct credit"), 'error');
       }
     } catch (error) {
       console.error("Error deducting credit:", error);
-      alert(locale === "ar" ? "خطأ في خصم الرصيد" : "Error deducting credit");
+      notifyWithSound(locale === "ar" ? "خطأ في خصم الرصيد" : "Error deducting credit", 'error');
     } finally {
       setLoading(false);
     }
@@ -347,19 +362,19 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
   const submitEditAvailableBalance = async () => {
     if (!selectedUser || availableBalanceAmount === "") {
-      alert(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount");
+      notifyWithSound(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount", 'error');
       return;
     }
 
     const newAmount = parseFloat(availableBalanceAmount);
     if (newAmount < 0) {
-      alert(locale === "ar" ? "لا يمكن أن يكون الرصيد سالباً" : "Balance cannot be negative");
+      notifyWithSound(locale === "ar" ? "لا يمكن أن يكون الرصيد سالباً" : "Balance cannot be negative", 'error');
       return;
     }
 
     const wallet = wallets.find(w => w.user_id === selectedUser);
     if (!wallet || newAmount > wallet.balance) {
-      alert(locale === "ar" ? "لا يمكن أن يكون الرصيد المتاح أكبر من الرصيد الإجمالي" : "Available balance cannot exceed total balance");
+      notifyWithSound(locale === "ar" ? "لا يمكن أن يكون المقدار القابل للسحب أكبر من الرصيد الإجمالي" : "Withdrawable amount cannot exceed total balance", 'error');
       return;
     }
 
@@ -377,17 +392,19 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
       if (response.ok) {
         const result = await response.json();
         setWallets(prev => prev.map(w =>
-          w.user_id === selectedUser ? { ...w, available_balance: result.wallet.available_balance } : w
+          w.user_id === selectedUser
+            ? { ...w, available_balance: result.wallet.available_balance, blocked_balance: result.wallet.blocked_balance ?? w.blocked_balance }
+            : w
         ));
         setShowEditAvailableBalance(false);
-        alert(locale === "ar" ? "تم تحديث الرصيد المتاح بنجاح" : "Available balance updated successfully");
+        notifyWithSound(locale === "ar" ? "تم تحديث المقدار القابل للسحب بنجاح" : "Withdrawable amount updated successfully", 'success');
       } else {
         const error = await response.json();
-        alert(error.error || (locale === "ar" ? "فشل في تحديث الرصيد المتاح" : "Failed to update available balance"));
+        notifyWithSound(error.error || (locale === "ar" ? "فشل في تحديث المقدار القابل للسحب" : "Failed to update withdrawable amount"), 'error');
       }
     } catch (error) {
       console.error("Error updating available balance:", error);
-      alert(locale === "ar" ? "خطأ في تحديث الرصيد المتاح" : "Error updating available balance");
+      notifyWithSound(locale === "ar" ? "خطأ في تحديث المقدار القابل للسحب" : "Error updating withdrawable amount", 'error');
     } finally {
       setLoading(false);
     }
@@ -395,13 +412,13 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
   const submitRequestWithdrawal = async () => {
     if (!selectedUser || !amount || parseFloat(amount) <= 0) {
-      alert(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount");
+      notifyWithSound(locale === "ar" ? "يرجى إدخال مبلغ صحيح" : "Please enter a valid amount", 'error');
       return;
     }
 
     const wallet = wallets.find(w => w.user_id === selectedUser);
     if (!wallet || parseFloat(amount) > (wallet.available_balance || 0)) {
-      alert(locale === "ar" ? "المبلغ المطلوب أكبر من الرصيد المتاح" : "Requested amount exceeds available balance");
+      notifyWithSound(locale === "ar" ? "المبلغ المطلوب أكبر من المقدار القابل للسحب" : "Requested amount exceeds withdrawable amount", 'error');
       return;
     }
 
@@ -421,17 +438,17 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
         const result = await response.json();
         // Update the wallet in the list
         setWallets(prev => prev.map(w =>
-          w.user_id === selectedUser ? { ...w, balance: result.wallet.balance, available_balance: result.wallet.available_balance } : w
+          w.user_id === selectedUser ? { ...w, balance: result.wallet.balance, available_balance: result.wallet.available_balance, blocked_balance: result.wallet.blocked_balance } : w
         ));
         setShowRequestWithdrawal(false);
-        alert(locale === "ar" ? "تم طلب السحب بنجاح" : "Withdrawal request submitted successfully");
+        notifyWithSound(locale === "ar" ? "تم طلب السحب بنجاح" : "Withdrawal request submitted successfully", 'success');
       } else {
         const error = await response.json();
-        alert(error.error || (locale === "ar" ? "فشل في طلب السحب" : "Failed to request withdrawal"));
+        notifyWithSound(error.error || (locale === "ar" ? "فشل في طلب السحب" : "Failed to request withdrawal"), 'error');
       }
     } catch (error) {
       console.error("Error requesting withdrawal:", error);
-      alert(locale === "ar" ? "خطأ في طلب السحب" : "Error requesting withdrawal");
+      notifyWithSound(locale === "ar" ? "خطأ في طلب السحب" : "Error requesting withdrawal", 'error');
     } finally {
       setLoading(false);
     }
@@ -443,9 +460,21 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
         <div className={`fixed top-4 ${locale === 'ar' ? 'left-4' : 'right-4'} z-50`}
           aria-live="polite"
         >
-          <div className="flex items-center gap-3 rounded-xl border border-gray-200/60 dark:border-gray-700/60 bg-white/95 dark:bg-gray-800/95 shadow-2xl px-4 py-3 text-sm text-gray-800 dark:text-gray-100 backdrop-blur">
-            <span className="inline-flex items-center justify-center size-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-              <FiDollarSign className="size-4" />
+          <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-2xl backdrop-blur ${
+            toastType === 'success'
+              ? 'border-emerald-200/70 bg-emerald-50/95 text-emerald-900 dark:border-emerald-700/60 dark:bg-emerald-900/30 dark:text-emerald-100'
+              : toastType === 'error'
+                ? 'border-rose-200/70 bg-rose-50/95 text-rose-900 dark:border-rose-700/60 dark:bg-rose-900/30 dark:text-rose-100'
+                : 'border-blue-200/70 bg-blue-50/95 text-blue-900 dark:border-blue-700/60 dark:bg-blue-900/30 dark:text-blue-100'
+          }`}>
+            <span className={`inline-flex items-center justify-center size-8 rounded-lg ${
+              toastType === 'success'
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-800/40 dark:text-emerald-300'
+                : toastType === 'error'
+                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-800/40 dark:text-rose-300'
+                  : 'bg-blue-100 text-blue-700 dark:bg-blue-800/40 dark:text-blue-300'
+            }`}>
+              {toastType === 'success' ? <FiCheck className="size-4" /> : toastType === 'error' ? <FiX className="size-4" /> : <FiDollarSign className="size-4" />}
             </span>
             <span className="font-medium">{toastMessage}</span>
           </div>
@@ -453,71 +482,71 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
       )}
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+        <div className="bg-gradient-to-r from-coral to-coral-light rounded-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm font-medium">
+              <p className="text-white/85 text-sm font-medium">
                 {locale === "ar" ? "إجمالي المحافظ" : "Total Wallets"}
               </p>
               <p className="text-2xl font-bold">{stats.totalWallets}</p>
             </div>
-            <div className="text-blue-200">
+            <div className="text-white/80">
               <FiUsers className="w-8 h-8" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
+        <div className="bg-gradient-to-r from-teal to-teal-light rounded-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm font-medium">
+              <p className="text-white/85 text-sm font-medium">
                 {locale === "ar" ? "الرصيد الإجمالي" : "Total Balance"}
               </p>
               <p className="text-2xl font-bold">{stats.totalBalance.toFixed(3)} OMR</p>
             </div>
-            <div className="text-green-200">
+            <div className="text-white/80">
               <FiDollarSign className="w-8 h-8" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+        <div className="bg-gradient-to-r from-purple to-purple-dark rounded-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm font-medium">
-                {locale === "ar" ? "الرصيد المتاح" : "Available Balance"}
+              <p className="text-white/85 text-sm font-medium">
+                {locale === "ar" ? "المقدار القابل للسحب" : "Withdrawable Amount"}
               </p>
               <p className="text-2xl font-bold">{stats.totalAvailable.toFixed(3)} OMR</p>
             </div>
-            <div className="text-purple-200">
+            <div className="text-white/80">
               <FiTrendingDown className="w-8 h-8" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg p-6 text-white">
+        <div className="bg-gradient-to-r from-yellow to-yellow-light rounded-lg p-6 text-zinc-900">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-yellow-100 text-sm font-medium">
-                {locale === "ar" ? "محافظ برصيد" : "Wallets with Balance"}
+              <p className="text-zinc-800/80 text-sm font-medium">
+                {locale === "ar" ? "المبلغ المحجوز" : "Blocked Amount"}
               </p>
-              <p className="text-2xl font-bold">{stats.walletsWithBalance}</p>
+              <p className="text-2xl font-bold">{stats.totalBlocked.toFixed(3)} OMR</p>
             </div>
-            <div className="text-yellow-200">
-              <FiCheck className="w-8 h-8" />
+            <div className="text-zinc-800/70">
+              <FiTrendingDown className="w-8 h-8" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg p-6 text-white">
+        <div className="bg-gradient-to-r from-teal to-purple rounded-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-red-100 text-sm font-medium">
+              <p className="text-white/85 text-sm font-medium">
                 {locale === "ar" ? "محافظ قابل السحب" : "Withdrawable Wallets"}
               </p>
-              <p className="text-2xl font-bold">{stats.walletsWithAvailable}</p>
+              <p className="text-2xl font-bold">{stats.walletsWithAvailable} / {stats.walletsWithBalance}</p>
             </div>
-            <div className="text-red-200">
+            <div className="text-white/80">
               <FiArrowRight className="w-8 h-8" />
             </div>
           </div>
@@ -584,7 +613,10 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                   {locale === "ar" ? "الرصيد الإجمالي" : "Total Balance"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  {locale === "ar" ? "الرصيد المتاح" : "Available Balance"}
+                  {locale === "ar" ? "المقدار القابل للسحب" : "Withdrawable Amount"}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  {locale === "ar" ? "المبلغ المحجوز" : "Blocked Amount"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   {locale === "ar" ? "العملة" : "Currency"}
@@ -626,6 +658,9 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 dark:text-blue-400">
                     {wallet.available_balance?.toFixed(3) || '0.000'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-rose-600 dark:text-rose-400">
+                    {(wallet.blocked_balance || 0).toFixed(3)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {wallet.currency}
@@ -730,8 +765,8 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
       {/* Transactions Modal */}
       {showTransactions && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
-          <div className="bg-white shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 rounded-2xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto transform transition-all duration-300 scale-100">
+        <div className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen items-center justify-center p-4 backdrop-blur-sm bg-black/40 dark:bg-black/55">
+          <div className="mx-4 flex max-h-[82vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/20 bg-white shadow-2xl transition-all duration-300 scale-100 dark:border-zinc-700/50 dark:bg-zinc-800">
             <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-semibold text-zinc-900 dark:text-white bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
@@ -745,29 +780,51 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 </button>
               </div>
             </div>
-            <div className="p-6 space-y-3">
-              {transactions.map((transaction) => (
-                <div key={transaction.id} className="border border-zinc-200/60 dark:border-zinc-700/60 rounded-xl p-4 hover:bg-zinc-50/50 dark:hover:bg-zinc-700/30 transition-colors duration-200">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <span className="font-semibold text-zinc-900 dark:text-white text-sm">
-                        {transaction.type.replace('_', ' ')}
-                      </span>
-                      {transaction.reason && (
-                        <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                          {transaction.reason}
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              <div className="space-y-3">
+                {transactions.length === 0 ? (
+                  <div className="rounded-xl border border-zinc-200/60 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700/60 dark:text-zinc-400">
+                    {locale === 'ar' ? 'لا توجد معاملات' : 'No transactions found'}
+                  </div>
+                ) : (
+                  transactions.map((transaction) => (
+                    <div key={transaction.id} className="border border-zinc-200/60 dark:border-zinc-700/60 rounded-xl p-4 hover:bg-zinc-50/50 dark:hover:bg-zinc-700/30 transition-colors duration-200">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <span className="font-semibold text-zinc-900 dark:text-white text-sm">
+                            {transaction.type.replace('_', ' ')}
+                          </span>
+                          {transaction.reason && (
+                            <div className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
+                              {transaction.reason}
+                            </div>
+                          )}
+                          <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
+                            {new Date(transaction.created_at).toLocaleString(locale === 'ar' ? 'ar' : 'en')}
+                          </div>
                         </div>
-                      )}
-                      <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                        {new Date(transaction.created_at).toLocaleString(locale === 'ar' ? 'ar' : 'en')}
+                        <span className={`font-bold text-sm ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {transaction.amount > 0 ? '+' : ''}{transaction.amount.toFixed(3)}
+                        </span>
                       </div>
                     </div>
-                    <span className={`font-bold text-sm ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {transaction.amount > 0 ? '+' : ''}{transaction.amount.toFixed(3)}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-zinc-200/60 px-6 py-4 dark:border-zinc-700/60">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {locale === 'ar' ? `إجمالي المعاملات: ${transactions.length}` : `Total transactions: ${transactions.length}`}
+                </p>
+                <button
+                  onClick={() => setShowTransactions(false)}
+                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  {locale === 'ar' ? 'إغلاق' : 'Close'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -775,7 +832,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
       {/* Add Credit Modal */}
       {showAddCredit && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
+        <div className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen items-center justify-center p-4 backdrop-blur-sm bg-black/40 dark:bg-black/55">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
             <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
@@ -792,7 +849,6 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 </button>
               </div>
             </div>
-
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
@@ -840,7 +896,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 <button
                   onClick={submitAddCredit}
                   disabled={loading || !amount || parseFloat(amount) <= 0}
-                  className="rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="noon-btn-teal px-5 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -859,7 +915,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
       {/* Deduct Credit Modal */}
       {showDeductCredit && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
+        <div className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen items-center justify-center p-4 backdrop-blur-sm bg-black/40 dark:bg-black/55">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
             <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
@@ -922,7 +978,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 <button
                   onClick={submitDeductCredit}
                   disabled={loading || !amount || parseFloat(amount) <= 0}
-                  className="rounded-lg bg-gradient-to-r from-red-600 to-rose-600 px-5 py-2.5 text-sm font-medium text-white hover:from-red-700 hover:to-rose-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="noon-btn-coral px-5 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -941,12 +997,12 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
       {/* Edit Available Balance Modal */}
       {showEditAvailableBalance && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
+        <div className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen items-center justify-center p-4 backdrop-blur-sm bg-black/40 dark:bg-black/55">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
             <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-semibold text-zinc-900 dark:text-white bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  {locale === "ar" ? "تعديل الرصيد المتاح" : "Edit Available Balance"}
+                  {locale === "ar" ? "تعديل المقدار القابل للسحب" : "Edit Withdrawable Amount"}
                 </h3>
                 <button
                   onClick={() => setShowEditAvailableBalance(false)}
@@ -960,7 +1016,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                  {locale === "ar" ? "الرصيد المتاح الجديد" : "New Available Balance"}
+                  {locale === "ar" ? "المقدار القابل للسحب الجديد" : "New Withdrawable Amount"}
                 </label>
                 <input
                   type="number"
@@ -974,7 +1030,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
               <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border border-blue-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-800/30">
                 <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
-                  {locale === "ar" ? "سيتم تحديث الرصيد المتاح للمستخدم المحدد" : "Available balance will be updated for the selected user"}
+                  {locale === "ar" ? "سيتم تحديث المقدار القابل للسحب للمستخدم المحدد" : "Withdrawable amount will be updated for the selected user"}
                 </p>
               </div>
             </div>
@@ -991,7 +1047,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 <button
                   onClick={submitEditAvailableBalance}
                   disabled={loading || availableBalanceAmount === ""}
-                  className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="noon-btn-purple px-5 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -1010,7 +1066,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
       {/* Request Withdrawal Modal */}
       {showRequestWithdrawal && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-white/30 flex items-center justify-center z-50 p-4">
+        <div className="fixed left-0 top-0 z-50 flex h-[100dvh] w-screen items-center justify-center p-4 backdrop-blur-sm bg-black/40 dark:bg-black/55">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
             <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
@@ -1073,7 +1129,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 <button
                   onClick={submitRequestWithdrawal}
                   disabled={loading || !amount || parseFloat(amount) <= 0}
-                  className="rounded-lg bg-gradient-to-r from-orange-600 to-amber-600 px-5 py-2.5 text-sm font-medium text-white hover:from-orange-700 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                  className="noon-btn-yellow px-5 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
@@ -1089,6 +1145,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
           </div>
         </div>
       )}
+
     </>
   );
 }

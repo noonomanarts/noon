@@ -29,7 +29,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Withdraw request error:', error);
     if (error instanceof Error && error.message === 'Insufficient available balance') {
-      return NextResponse.json({ error: 'Insufficient available balance' }, { status: 400 });
+      return NextResponse.json({ error: 'Insufficient withdrawable balance' }, { status: 400 });
+    }
+    if (error instanceof Error && error.message === 'Insufficient balance') {
+      return NextResponse.json({ error: 'Insufficient total balance' }, { status: 400 });
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

@@ -266,7 +266,7 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
                     {request.status === 'PENDING' && (
                       <>
                         <button
-                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30 mr-2 disabled:opacity-50 transition-colors"
+                          className="noon-btn-teal inline-flex items-center gap-2 px-3 py-1.5 text-sm mr-2 disabled:opacity-50 transition-colors"
                           onClick={() => openActionModal(request, 'approve')}
                           disabled={processingId === request.id}
                         >
@@ -274,7 +274,7 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
                           {locale === "ar" ? "موافقة" : "Approve"}
                         </button>
                         <button
-                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-red-700 bg-red-50 hover:bg-red-100 dark:text-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 disabled:opacity-50 transition-colors"
+                          className="noon-btn-coral inline-flex items-center gap-2 px-3 py-1.5 text-sm disabled:opacity-50 transition-colors"
                           onClick={() => openActionModal(request, 'reject')}
                           disabled={processingId === request.id}
                         >
@@ -293,7 +293,7 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
       </div>
 
       {showActionModal && selectedRequest && actionType && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+        <div className="fixed left-0 top-0 z-[150] flex h-[100dvh] w-screen items-center justify-center p-4 bg-black/40 dark:bg-black/55 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow-2xl overflow-hidden">
             <div className="px-6 py-5 border-b border-gray-200/60 dark:border-gray-700/60 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -348,9 +348,7 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
                 onClick={submitActionModal}
                 disabled={!!processingId}
                 className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50 ${
-                  actionType === 'approve'
-                    ? 'bg-green-600 hover:bg-green-700'
-                    : 'bg-red-600 hover:bg-red-700'
+                  actionType === 'approve' ? 'noon-btn-teal' : 'noon-btn-coral'
                 }`}
               >
                 {processingId ? <FiLoader className="size-4 animate-spin" /> : null}

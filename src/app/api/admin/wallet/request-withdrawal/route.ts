@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getUserById } from "@/lib/db/users";
-import { requestWalletWithdrawal } from "@/lib/db/wallet";
+import { getWalletByUserId, requestWalletWithdrawal } from "@/lib/db/wallet";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,11 +24,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    const result = await requestWalletWithdrawal(userId, amount, description || "Admin withdrawal request");
+    const transaction = await requestWalletWithdrawal(userId, amount, description || "Admin withdrawal request");
+    const wallet = await getWalletByUserId(userId);
 
-    return NextResponse.json(result);
+    return NextResponse.json({ transaction, wallet });
   } catch (error) {
     console.error("Error requesting wallet withdrawal:", error);
+    if (error instanceof Error && error.message === 'Insufficient available balance') {
+      return NextResponse.json({ error: 'Insufficient withdrawable balance' }, { status: 400 });
+    }
+    if (error instanceof Error && error.message === 'Insufficient balance') {
+      return NextResponse.json({ error: 'Insufficient total balance' }, { status: 400 });
+    }
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

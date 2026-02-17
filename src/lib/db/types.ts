@@ -326,6 +326,7 @@ export interface Wallet {
   user_id: string;
   balance: number;
   available_balance: number;
+  blocked_balance?: number;
   currency: string;
   created_at: Date;
   updated_at: Date;

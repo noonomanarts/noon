@@ -16,13 +16,13 @@ export function LoyaltySection({ loyalty, locale }: LoyaltySectionProps) {
         {isArabic ? 'بطاقة الولاء' : 'Loyalty Card'}
       </h3>
 
-      <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-4">
+      <div className="rounded-lg bg-gradient-to-r from-[color:var(--noon-purple-soft)] to-[color:var(--noon-coral-soft)] p-4">
         <div className="flex justify-between items-center mb-4">
           <div>
             <div className="text-sm text-gray-600 mb-1">
               {isArabic ? 'النقاط' : 'Points'}
             </div>
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-2xl font-bold text-[color:var(--noon-purple)]">
               {loyalty.points}
             </div>
           </div>
@@ -30,7 +30,7 @@ export function LoyaltySection({ loyalty, locale }: LoyaltySectionProps) {
             <div className="text-sm text-gray-600 mb-1">
               {isArabic ? 'الطوابع' : 'Stamps'}
             </div>
-            <div className="text-2xl font-bold text-pink-600">
+            <div className="text-2xl font-bold text-[color:var(--noon-coral)]">
               {loyalty.stamps}
             </div>
           </div>
