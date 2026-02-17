@@ -33,6 +33,7 @@ interface CalendarEvent {
 export default function AdminCalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'month' | 'week' | 'day'>('month');
 
@@ -43,6 +44,9 @@ export default function AdminCalendarPage() {
 
   const fetchEvents = async () => {
     try {
+      setLoading(true);
+      setError(null);
+      
       const startDate = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth(),
@@ -54,13 +58,32 @@ export default function AdminCalendarPage() {
         0
       );
 
-      const response = await fetch(
-        `/api/admin/calendar?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
-      );
+      const url = `/api/admin/calendar?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+      console.log('Fetching events from:', url);
+      
+      const response = await fetch(url);
       const data = await response.json();
-      setEvents(data);
+      
+      console.log('Response status:', response.status);
+      console.log('Response data:', data);
+      
+      // Check if response is successful and data is an array
+      if (response.ok && Array.isArray(data)) {
+        setEvents(data);
+        setError(null);
+      } else if (!response.ok && data?.error) {
+        console.error('API error:', data.error);
+        setError(data.error);
+        setEvents([]);
+      } else {
+        console.error('Invalid response format:', data);
+        setError('Received invalid data format from server');
+        setEvents([]);
+      }
     } catch (error) {
       console.error('Error fetching events:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch events');
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -236,6 +259,24 @@ export default function AdminCalendarPage() {
           <div className="flex flex-col items-center gap-3">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-200 border-t-blue-600 dark:border-zinc-700 dark:border-t-blue-500"></div>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading calendar...</p>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center rounded-xl border border-red-200 bg-red-50 py-12 dark:border-red-900/50 dark:bg-red-900/10">
+          <div className="flex flex-col items-center gap-3">
+            <svg className="h-12 w-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="text-center">
+              <p className="text-sm font-medium text-red-900 dark:text-red-200">Failed to load calendar</p>
+              <p className="mt-1 text-xs text-red-700 dark:text-red-400">{error}</p>
+            </div>
+            <button
+              onClick={fetchEvents}
+              className="mt-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            >
+              Retry
+            </button>
           </div>
         </div>
       ) : (

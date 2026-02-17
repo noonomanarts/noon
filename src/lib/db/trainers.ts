@@ -178,3 +178,75 @@ export async function verifyTrainer(id: string): Promise<boolean> {
   );
   return result.rows.length > 0;
 }
+
+/**
+ * Create or update trainer profile
+ */
+export async function upsertTrainerProfile(data: {
+  userId: string;
+  bio?: string;
+  expertise?: string[];
+  experience?: number;
+  socialLinks?: Record<string, string>;
+  isActive?: boolean;
+}): Promise<TrainerProfilePublic> {
+  const result = await query(
+    `INSERT INTO trainer_profiles (user_id, bio, expertise, experience, social_links, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     ON CONFLICT (user_id) 
+     DO UPDATE SET
+       bio = COALESCE($2, trainer_profiles.bio),
+       expertise = COALESCE($3, trainer_profiles.expertise),
+       experience = COALESCE($4, trainer_profiles.experience),
+       social_links = COALESCE($5, trainer_profiles.social_links),
+       is_active = COALESCE($6, trainer_profiles.is_active),
+       updated_at = NOW()
+     RETURNING *`,
+    [
+      data.userId,
+      data.bio ?? null,
+      data.expertise ?? null,
+      data.experience ?? null,
+      data.socialLinks ? JSON.stringify(data.socialLinks) : null,
+      data.isActive ?? true,
+    ]
+  );
+
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    userId: row.user_id,
+    bio: row.bio,
+    expertise: row.expertise || [],
+    experience: row.experience,
+    socialLinks: row.social_links,
+    isActive: row.is_active,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/**
+ * Get trainer profile
+ */
+export async function getTrainerProfile(userId: string): Promise<TrainerProfilePublic | null> {
+  const result = await query(
+    `SELECT * FROM trainer_profiles WHERE user_id = $1`,
+    [userId]
+  );
+
+  if (result.rows.length === 0) return null;
+
+  const row = result.rows[0];
+  return {
+    id: row.id,
+    userId: row.user_id,
+    bio: row.bio,
+    expertise: row.expertise || [],
+    experience: row.experience,
+    socialLinks: row.social_links,
+    isActive: row.is_active,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}

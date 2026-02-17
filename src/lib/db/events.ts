@@ -371,77 +371,83 @@ export async function findCalendarEvents(options?: {
   endDate?: Date;
   type?: CalendarEventType;
 }): Promise<Record<string, unknown>[]> {
-  const conditions: string[] = [];
-  const values: unknown[] = [];
-  let paramIndex = 1;
+  try {
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
 
-  if (options?.startDate && options?.endDate) {
-    conditions.push(`start_date_time >= $${paramIndex++}`);
-    values.push(options.startDate);
-    conditions.push(`start_date_time <= $${paramIndex++}`);
-    values.push(options.endDate);
-  }
+    if (options?.startDate && options?.endDate) {
+      conditions.push(`start_date_time >= $${paramIndex++}`);
+      values.push(options.startDate);
+      conditions.push(`start_date_time <= $${paramIndex++}`);
+      values.push(options.endDate);
+    }
 
-  if (options?.type) {
-    conditions.push(`type = $${paramIndex++}`);
-    values.push(options.type);
-  }
+    if (options?.type) {
+      conditions.push(`type = $${paramIndex++}`);
+      values.push(options.type);
+    }
 
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-  const result = await query(
-    `SELECT ce.*,
-            cs.id as session_id,
-            c.id as class_id, c.title as class_title, c.category as class_category,
-            t.id as trainer_id, t.full_name as trainer_full_name,
-            eb.id as event_booking_id, eb.booking_number, eb.event_type, eb.full_name as event_full_name, eb.status as event_status
-     FROM calendar_events ce
-     LEFT JOIN class_sessions cs ON ce.class_session_id = cs.id
-     LEFT JOIN classes c ON cs.class_id = c.id
-     LEFT JOIN users t ON c.trainer_id = t.id
-     LEFT JOIN event_bookings eb ON ce.event_booking_id = eb.id
-     ${whereClause}
-     ORDER BY ce.start_date_time ASC`,
-    values
-  );
+    const result = await query(
+      `SELECT ce.*,
+              cs.id as session_id,
+              c.id as class_id, c.title as class_title, c.category as class_category,
+              t.id as trainer_id, t.full_name as trainer_full_name,
+              eb.id as event_booking_id, eb.booking_number, eb.event_type, eb.full_name as event_full_name, eb.status as event_status
+       FROM calendar_events ce
+       LEFT JOIN class_sessions cs ON ce.class_session_id = cs.id
+       LEFT JOIN classes c ON cs.class_id = c.id
+       LEFT JOIN users t ON c.trainer_id = t.id
+       LEFT JOIN event_bookings eb ON ce.event_booking_id = eb.id
+       ${whereClause}
+       ORDER BY ce.start_date_time ASC`,
+      values
+    );
 
-  return result.rows.map(row => ({
-    id: row.id,
-    type: row.type,
-    startDateTime: row.start_date_time,
-    endDateTime: row.end_date_time,
-    title: row.title,
-    description: row.description,
-    classSessionId: row.class_session_id,
-    eventBookingId: row.event_booking_id,
-    isBlocked: row.is_blocked,
-    blockReason: row.block_reason,
-    internalNotes: row.internal_notes,
-    visibleToTrainers: row.visible_to_trainers,
-    visibleTrainerIds: row.visible_trainer_ids || [],
-    color: row.color,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    classSession: row.session_id ? {
-      id: row.session_id,
-      class: row.class_id ? {
-        id: row.class_id,
-        title: row.class_title,
-        category: row.class_category,
-        trainer: row.trainer_id ? {
-          id: row.trainer_id,
-          fullName: row.trainer_full_name,
+    return result.rows.map(row => ({
+      id: row.id,
+      type: row.type,
+      startDateTime: row.start_date_time,
+      endDateTime: row.end_date_time,
+      title: row.title,
+      description: row.description,
+      classSessionId: row.class_session_id,
+      eventBookingId: row.event_booking_id,
+      isBlocked: row.is_blocked,
+      blockReason: row.block_reason,
+      internalNotes: row.internal_notes,
+      visibleToTrainers: row.visible_to_trainers,
+      visibleTrainerIds: row.visible_trainer_ids || [],
+      color: row.color,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      classSession: row.session_id ? {
+        id: row.session_id,
+        class: row.class_id ? {
+          id: row.class_id,
+          title: row.class_title,
+          category: row.class_category,
+          trainer: row.trainer_id ? {
+            id: row.trainer_id,
+            fullName: row.trainer_full_name,
+          } : null,
         } : null,
       } : null,
-    } : null,
-    eventBooking: row.event_booking_id ? {
-      id: row.event_booking_id,
-      bookingNumber: row.booking_number,
-      eventType: row.event_type,
-      fullName: row.event_full_name,
-      status: row.event_status,
-    } : null,
-  }));
+      eventBooking: row.event_booking_id ? {
+        id: row.event_booking_id,
+        bookingNumber: row.booking_number,
+        eventType: row.event_type,
+        fullName: row.event_full_name,
+        status: row.event_status,
+      } : null,
+    }));
+  } catch (error) {
+    console.error('Error in findCalendarEvents:', error);
+    // Return empty array on error instead of throwing
+    return [];
+  }
 }
 
 /**

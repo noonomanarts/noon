@@ -9,13 +9,19 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const type = searchParams.get('type');
 
+    console.log('Fetching calendar events with params:', { startDate, endDate, type });
+
     const events = await findCalendarEvents({
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
       type: type as 'CLASS' | 'PRIVATE_SESSION' | 'COMPETITION' | 'BIRTHDAY_PARTY' | 'BLOCKED' | 'CLEANING' | undefined,
     });
 
-    return NextResponse.json(events);
+    console.log('Calendar events result:', Array.isArray(events), 'length:', events?.length ?? 0);
+
+    // Ensure we always return an array
+    const result = Array.isArray(events) ? events : [];
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching calendar events:', error);
     return NextResponse.json(
