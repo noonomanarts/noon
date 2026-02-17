@@ -16,6 +16,12 @@ export type GeneralAdminSettings = {
   trainerReminderHours: number;
 };
 
+export type WhatsAppAdminSettings = {
+  sendApiUrl: string;
+  activeSession: string;
+  apiCode: string;
+};
+
 export const defaultGeneralAdminSettings: GeneralAdminSettings = {
   siteName: 'Noon',
   supportEmail: 'support@noon.com',
@@ -28,6 +34,12 @@ export const defaultGeneralAdminSettings: GeneralAdminSettings = {
   bookingAutoConfirm: false,
   customerReminderHours: 6,
   trainerReminderHours: 24,
+};
+
+export const defaultWhatsAppAdminSettings: WhatsAppAdminSettings = {
+  sendApiUrl: 'https://whatsapp.noonomanarts.com/',
+  activeSession: 'default',
+  apiCode: '',
 };
 
 async function ensureAdminSettingsTable(): Promise<void> {

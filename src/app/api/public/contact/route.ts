@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createContactMessage } from "@/lib/db/contacts";
+import { notifyRole } from "@/lib/notificationService";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,6 +31,18 @@ export async function POST(request: NextRequest) {
       phone: phone || null,
       subject,
       message,
+    });
+
+    await notifyRole("ADMIN", {
+      type: "contact_message_new",
+      title: "New Contact Message",
+      message: `${name} sent a new contact request: ${subject}`,
+      data: {
+        contactMessageId: contactMessage.id,
+        name,
+        email,
+        subject,
+      },
     });
 
     return NextResponse.json({

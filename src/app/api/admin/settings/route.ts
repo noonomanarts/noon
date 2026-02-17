@@ -2,8 +2,10 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import {
   defaultGeneralAdminSettings,
+  defaultWhatsAppAdminSettings,
   getAdminSettingsByKey,
   type GeneralAdminSettings,
+  type WhatsAppAdminSettings,
   upsertAdminSettings,
 } from '@/lib/db/adminSettings';
 import { getUserById } from '@/lib/db/users';
@@ -21,6 +23,14 @@ function sanitizeGeneralSettings(input: Partial<GeneralAdminSettings>): GeneralA
     bookingAutoConfirm: Boolean(input.bookingAutoConfirm),
     customerReminderHours: Math.min(72, Math.max(1, Number(input.customerReminderHours ?? defaultGeneralAdminSettings.customerReminderHours))),
     trainerReminderHours: Math.min(168, Math.max(1, Number(input.trainerReminderHours ?? defaultGeneralAdminSettings.trainerReminderHours))),
+  };
+}
+
+function sanitizeWhatsAppSettings(input: Partial<WhatsAppAdminSettings>): WhatsAppAdminSettings {
+  return {
+    sendApiUrl: (input.sendApiUrl ?? defaultWhatsAppAdminSettings.sendApiUrl).trim().slice(0, 500),
+    activeSession: (input.activeSession ?? defaultWhatsAppAdminSettings.activeSession).trim().slice(0, 120),
+    apiCode: (input.apiCode ?? defaultWhatsAppAdminSettings.apiCode).trim().slice(0, 300),
   };
 }
 
@@ -43,10 +53,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const saved = await getAdminSettingsByKey<GeneralAdminSettings>('general');
-    const general = sanitizeGeneralSettings(saved ?? defaultGeneralAdminSettings);
+    const [savedGeneral, savedWhatsApp] = await Promise.all([
+      getAdminSettingsByKey<GeneralAdminSettings>('general'),
+      getAdminSettingsByKey<WhatsAppAdminSettings>('whatsapp'),
+    ]);
 
-    return NextResponse.json({ general });
+    const general = sanitizeGeneralSettings(savedGeneral ?? defaultGeneralAdminSettings);
+    const whatsapp = sanitizeWhatsAppSettings(savedWhatsApp ?? defaultWhatsAppAdminSettings);
+
+    return NextResponse.json({ general, whatsapp });
   } catch (error) {
     console.error('Failed to load admin settings:', error);
     return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 });
@@ -62,17 +77,39 @@ export async function PUT(request: Request) {
 
     const body = (await request.json().catch(() => ({}))) as {
       general?: Partial<GeneralAdminSettings>;
+      whatsapp?: Partial<WhatsAppAdminSettings>;
     };
 
-    const general = sanitizeGeneralSettings(body.general ?? {});
+    const [currentGeneral, currentWhatsApp] = await Promise.all([
+      getAdminSettingsByKey<GeneralAdminSettings>('general'),
+      getAdminSettingsByKey<WhatsAppAdminSettings>('whatsapp'),
+    ]);
 
-    await upsertAdminSettings({
-      key: 'general',
-      value: general,
-      updatedByUserId: admin.id,
-    });
+    const mergedGeneralInput = body.general
+      ? { ...(currentGeneral ?? defaultGeneralAdminSettings), ...body.general }
+      : (currentGeneral ?? defaultGeneralAdminSettings);
 
-    return NextResponse.json({ success: true, general });
+    const mergedWhatsAppInput = body.whatsapp
+      ? { ...(currentWhatsApp ?? defaultWhatsAppAdminSettings), ...body.whatsapp }
+      : (currentWhatsApp ?? defaultWhatsAppAdminSettings);
+
+    const general = sanitizeGeneralSettings(mergedGeneralInput);
+    const whatsapp = sanitizeWhatsAppSettings(mergedWhatsAppInput);
+
+    await Promise.all([
+      upsertAdminSettings({
+        key: 'general',
+        value: general,
+        updatedByUserId: admin.id,
+      }),
+      upsertAdminSettings({
+        key: 'whatsapp',
+        value: whatsapp,
+        updatedByUserId: admin.id,
+      }),
+    ]);
+
+    return NextResponse.json({ success: true, general, whatsapp });
   } catch (error) {
     console.error('Failed to update admin settings:', error);
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });

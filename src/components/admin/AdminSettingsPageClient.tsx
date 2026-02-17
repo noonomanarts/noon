@@ -1,19 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { FiDatabase, FiSettings, FiShield, FiTool } from 'react-icons/fi';
+import { FiDatabase, FiSettings, FiShield, FiTool, FiMessageSquare } from 'react-icons/fi';
 import BackupSection from '@/components/admin/BackupSection';
 import type { Locale } from '@/lib/locale';
-import type { GeneralAdminSettings } from '@/lib/db/adminSettings';
+import type { GeneralAdminSettings, WhatsAppAdminSettings } from '@/lib/db/adminSettings';
 
-type TabId = 'general' | 'backup';
+type TabId = 'general' | 'whatsapp' | 'backup';
 
 export default function AdminSettingsPageClient({
   locale,
   initialGeneral,
+  initialWhatsApp,
 }: {
   locale: Locale;
   initialGeneral: GeneralAdminSettings;
+  initialWhatsApp: WhatsAppAdminSettings;
 }) {
   const isArabic = locale === 'ar';
   const [activeTab, setActiveTab] = useState<TabId>('general');
@@ -21,6 +23,7 @@ export default function AdminSettingsPageClient({
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [general, setGeneral] = useState<GeneralAdminSettings>(initialGeneral);
+  const [whatsapp, setWhatsapp] = useState<WhatsAppAdminSettings>(initialWhatsApp);
 
   const t = {
     title: isArabic ? 'إعدادات الإدارة' : 'Admin Settings',
@@ -28,6 +31,7 @@ export default function AdminSettingsPageClient({
       ? 'تحكم كامل في الإعدادات العامة والنسخ الاحتياطي والاستعادة.'
       : 'Centralized control for general configuration and backup/restore operations.',
     tabGeneral: isArabic ? 'الإعدادات العامة' : 'General Settings',
+    tabWhatsapp: isArabic ? 'إعدادات واتساب' : 'WhatsApp Settings',
     tabBackup: isArabic ? 'النسخ الاحتياطي والاستعادة' : 'Backup & Restore',
     siteConfig: isArabic ? 'إعدادات المنصة' : 'Platform Configuration',
     operationsConfig: isArabic ? 'إعدادات التشغيل' : 'Operational Rules',
@@ -43,6 +47,13 @@ export default function AdminSettingsPageClient({
     bookingAutoConfirm: isArabic ? 'تأكيد الحجوزات تلقائيًا' : 'Auto-confirm bookings',
     customerReminderHours: isArabic ? 'تذكير العملاء قبل (ساعة)' : 'Customer reminder (hours before)',
     trainerReminderHours: isArabic ? 'تذكير المدرب قبل (ساعة)' : 'Trainer reminder (hours before)',
+    wahaConfig: isArabic ? 'إعدادات WAHA' : 'WAHA Configuration',
+    wahaHint: isArabic
+      ? 'أدخل رابط API الخاص بالإرسال، اسم السشن النشط، وكود API لخدمة WAHA.'
+      : 'Enter the send API URL, active session name, and API code for your WAHA service.',
+    sendApiUrl: isArabic ? 'رابط API للإرسال' : 'Send API URL',
+    activeSession: isArabic ? 'السشن النشط' : 'Active Session',
+    apiCode: isArabic ? 'API Code' : 'API Code',
     save: isArabic ? 'حفظ الإعدادات' : 'Save Settings',
     saving: isArabic ? 'جارٍ الحفظ...' : 'Saving...',
     saved: isArabic ? 'تم حفظ الإعدادات بنجاح.' : 'Settings saved successfully.',
@@ -65,6 +76,7 @@ export default function AdminSettingsPageClient({
 
       const payload = (await response.json().catch(() => ({}))) as {
         general?: GeneralAdminSettings;
+        whatsapp?: WhatsAppAdminSettings;
         error?: string;
       };
 
@@ -73,6 +85,39 @@ export default function AdminSettingsPageClient({
       }
 
       setGeneral(payload.general);
+      if (payload.whatsapp) {
+        setWhatsapp(payload.whatsapp);
+      }
+      setInfo(t.saved);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : t.loadError);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveWhatsApp = async () => {
+    setSaving(true);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsapp }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        whatsapp?: WhatsAppAdminSettings;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.whatsapp) {
+        throw new Error(payload.error || t.loadError);
+      }
+
+      setWhatsapp(payload.whatsapp);
       setInfo(t.saved);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : t.loadError);
@@ -118,6 +163,17 @@ export default function AdminSettingsPageClient({
               }`}
             >
               {t.tabGeneral}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('whatsapp')}
+              className={`rounded-t-lg px-4 py-3 text-sm font-medium transition ${
+                activeTab === 'whatsapp'
+                  ? 'border-b-2 border-[color:var(--noon-teal)] text-[color:var(--noon-teal)]'
+                  : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
+              }`}
+            >
+              {t.tabWhatsapp}
             </button>
             <button
               type="button"
@@ -285,6 +341,61 @@ export default function AdminSettingsPageClient({
                 <button
                   type="button"
                   onClick={() => void handleSaveGeneral()}
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? t.saving : t.save}
+                </button>
+              </div>
+            </div>
+          ) : activeTab === 'whatsapp' ? (
+            <div className="space-y-6">
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <FiMessageSquare className="size-4 text-[color:var(--noon-teal)]" />
+                  <span>{t.wahaConfig}</span>
+                </div>
+
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.wahaHint}</p>
+
+                <div className="grid gap-4">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.sendApiUrl}</span>
+                    <input
+                      value={whatsapp.sendApiUrl}
+                      onChange={(e) => setWhatsapp((prev) => ({ ...prev, sendApiUrl: e.target.value }))}
+                      placeholder="https://whatsapp.noonomanarts.com/"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.activeSession}</span>
+                    <input
+                      value={whatsapp.activeSession}
+                      onChange={(e) => setWhatsapp((prev) => ({ ...prev, activeSession: e.target.value }))}
+                      placeholder="default"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.apiCode}</span>
+                    <input
+                      type="password"
+                      value={whatsapp.apiCode}
+                      onChange={(e) => setWhatsapp((prev) => ({ ...prev, apiCode: e.target.value }))}
+                      placeholder="WAHA_API_KEY_OR_TOKEN"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                </div>
+              </section>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void handleSaveWhatsApp()}
                   disabled={saving}
                   className="inline-flex items-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 >

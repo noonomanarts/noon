@@ -19,6 +19,7 @@ import {
   FiAward,
   FiCreditCard,
   FiPackage,
+  FiMessageSquare,
 } from "react-icons/fi";
 
 const iconMap = {
@@ -36,6 +37,7 @@ const iconMap = {
   FiSettings,
   FiBell,
   FiPackage,
+  FiMessageSquare,
 } as const;
 
 type MenuItem = {

@@ -3,7 +3,13 @@ import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/db/users";
 import { isLocale } from "@/lib/locale";
 import AdminSettingsPageClient from "@/components/admin/AdminSettingsPageClient";
-import { defaultGeneralAdminSettings, getAdminSettingsByKey, type GeneralAdminSettings } from "@/lib/db/adminSettings";
+import {
+  defaultGeneralAdminSettings,
+  defaultWhatsAppAdminSettings,
+  getAdminSettingsByKey,
+  type GeneralAdminSettings,
+  type WhatsAppAdminSettings,
+} from "@/lib/db/adminSettings";
 
 interface SettingsPageProps {
   params: Promise<{ locale: string }>;
@@ -28,11 +34,26 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     redirect(`/${locale}/account`);
   }
 
-  const savedGeneral = await getAdminSettingsByKey<GeneralAdminSettings>("general");
+  const [savedGeneral, savedWhatsApp] = await Promise.all([
+    getAdminSettingsByKey<GeneralAdminSettings>("general"),
+    getAdminSettingsByKey<WhatsAppAdminSettings>("whatsapp"),
+  ]);
+
   const initialGeneral = {
     ...defaultGeneralAdminSettings,
     ...(savedGeneral ?? {}),
   };
 
-  return <AdminSettingsPageClient locale={locale} initialGeneral={initialGeneral} />;
+  const initialWhatsApp = {
+    ...defaultWhatsAppAdminSettings,
+    ...(savedWhatsApp ?? {}),
+  };
+
+  return (
+    <AdminSettingsPageClient
+      locale={locale}
+      initialGeneral={initialGeneral}
+      initialWhatsApp={initialWhatsApp}
+    />
+  );
 }
