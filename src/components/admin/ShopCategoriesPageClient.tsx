@@ -30,6 +30,8 @@ type EditorState = {
   isActive: boolean;
 };
 
+type ImageAspectRatio = '1:1' | '4:3';
+
 const emptyEditor: EditorState = {
   nameEn: '',
   nameAr: '',
@@ -49,7 +51,11 @@ export default function ShopCategoriesPageClient({ locale }: { locale: Locale })
   const [query, setQuery] = useState('');
   const [includeInactive, setIncludeInactive] = useState(true);
   const [editor, setEditor] = useState<EditorState>(emptyEditor);
+  const [processingImage, setProcessingImage] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [imageAspectRatio, setImageAspectRatio] = useState<ImageAspectRatio>('1:1');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
@@ -74,8 +80,16 @@ export default function ShopCategoriesPageClient({ locale }: { locale: Locale })
     descriptionAr: isArabic ? 'الوصف (العربية)' : 'Description (Arabic)',
     image: isArabic ? 'رابط الصورة' : 'Image URL',
     uploadImage: isArabic ? 'رفع صورة' : 'Upload Image',
+    processing: isArabic ? 'جاري تجهيز الصورة...' : 'Processing image...',
     uploading: isArabic ? 'جاري الرفع...' : 'Uploading...',
     imagePreview: isArabic ? 'معاينة الصورة' : 'Image Preview',
+    dragDropHint: isArabic
+      ? 'اسحب صورة هنا أو اضغط لاختيار ملف'
+      : 'Drag & drop an image here, or click to select a file',
+    aspectRatio: isArabic ? 'نسبة الصورة' : 'Image ratio',
+    square: isArabic ? 'مربع 1:1' : 'Square 1:1',
+    landscape: isArabic ? 'أفقي 4:3' : 'Landscape 4:3',
+    uploadingProgress: isArabic ? 'نسبة الرفع' : 'Upload progress',
     supportedFormats: isArabic ? 'PNG, JPG, WEBP بحد أقصى 5MB' : 'PNG, JPG, WEBP up to 5MB',
     sortOrder: isArabic ? 'ترتيب العرض' : 'Sort order',
     actions: isArabic ? 'الإجراءات' : 'Actions',
@@ -143,41 +157,139 @@ export default function ShopCategoriesPageClient({ locale }: { locale: Locale })
   };
 
   const createMode = !editor.id;
+  const previewAspectRatio = imageAspectRatio === '1:1' ? '1 / 1' : '4 / 3';
+
+  const preprocessImage = async (file: File): Promise<File> => {
+    if (!file.type.startsWith('image/')) {
+      throw new Error(isArabic ? 'الملف يجب أن يكون صورة.' : 'Selected file must be an image.');
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+
+    try {
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new window.Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Failed to read image file'));
+        img.src = objectUrl;
+      });
+
+      const ratio = imageAspectRatio === '1:1' ? 1 : 4 / 3;
+
+      let cropWidth = image.width;
+      let cropHeight = Math.round(cropWidth / ratio);
+
+      if (cropHeight > image.height) {
+        cropHeight = image.height;
+        cropWidth = Math.round(cropHeight * ratio);
+      }
+
+      const sx = Math.floor((image.width - cropWidth) / 2);
+      const sy = Math.floor((image.height - cropHeight) / 2);
+
+      const baseWidth = Math.min(1400, Math.max(800, cropWidth));
+      const outputWidth = imageAspectRatio === '1:1' ? baseWidth : Math.max(900, baseWidth);
+      const outputHeight = Math.round(outputWidth / ratio);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = outputWidth;
+      canvas.height = outputHeight;
+
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error('Canvas not available');
+      }
+
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(image, sx, sy, cropWidth, cropHeight, 0, 0, outputWidth, outputHeight);
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (result) => {
+            if (result) resolve(result);
+            else reject(new Error('Failed to process image blob'));
+          },
+          'image/webp',
+          0.88
+        );
+      });
+
+      const safeName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-z0-9-_]/gi, '-').toLowerCase() || 'category';
+      return new File([blob], `${safeName}.webp`, { type: 'image/webp' });
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  };
 
   const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', 'shop-categories');
 
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
+    return await new Promise<string>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload');
+
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable) return;
+        const percent = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percent);
+      };
+
+      xhr.onload = () => {
+        try {
+          const payload = JSON.parse(xhr.responseText || '{}') as { url?: string; error?: string };
+
+          if (xhr.status >= 200 && xhr.status < 300 && payload.url) {
+            resolve(payload.url);
+            return;
+          }
+
+          reject(new Error(payload.error || 'Failed to upload image'));
+        } catch {
+          reject(new Error('Invalid upload response'));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error while uploading image'));
+      xhr.send(formData);
     });
-
-    const data = await res.json();
-    if (!res.ok || !data?.url) {
-      throw new Error(typeof data?.error === 'string' ? data.error : 'Failed to upload image');
-    }
-
-    return data.url as string;
   };
 
-  const handleCategoryImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleCategoryImageUpload = async (file: File | null) => {
     if (!file) return;
 
     try {
+      setProcessingImage(true);
+      setUploadProgress(0);
       setUploadingImage(true);
       setError(null);
-      const imageUrl = await uploadImage(file);
+      const processedFile = await preprocessImage(file);
+      setProcessingImage(false);
+      const imageUrl = await uploadImage(processedFile);
       setEditor((prev) => ({ ...prev, image: imageUrl }));
       setInfo(isArabic ? 'تم رفع صورة التصنيف بنجاح.' : 'Category image uploaded successfully.');
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : 'Failed to upload image');
     } finally {
+      setProcessingImage(false);
       setUploadingImage(false);
-      event.target.value = '';
+      setUploadProgress(0);
     }
+  };
+
+  const handleImageInputChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    await handleCategoryImageUpload(file);
+    event.target.value = '';
+  };
+
+  const handleImageDrop = async (event: React.DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    const file = event.dataTransfer.files?.[0] ?? null;
+    await handleCategoryImageUpload(file);
   };
 
   const submitCategory = async (event: FormEvent) => {
@@ -469,15 +581,84 @@ export default function ShopCategoriesPageClient({ locale }: { locale: Locale })
               placeholder={text.image}
               className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
             />
+            <label
+              className={`block cursor-pointer rounded-lg border border-dashed px-3 py-4 text-center transition ${
+                isDragOver
+                  ? 'border-[color:var(--noon-teal)] bg-[color:var(--noon-teal)]/5'
+                  : 'border-zinc-300 hover:bg-zinc-50 dark:border-zinc-600 dark:hover:bg-zinc-800/60'
+              }`}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setIsDragOver(true);
+              }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={(event) => void handleImageDrop(event)}
+            >
+              <span className="block text-xs font-medium text-zinc-700 dark:text-zinc-200">
+                {processingImage ? text.processing : uploadingImage ? text.uploading : text.dragDropHint}
+              </span>
+              <span className="mt-1 block text-[11px] text-zinc-500 dark:text-zinc-400">{text.supportedFormats}</span>
+              <span className="mt-2 inline-flex rounded-md border border-zinc-300 px-2.5 py-1 text-[11px] font-medium text-zinc-700 dark:border-zinc-600 dark:text-zinc-200">
+                {text.uploadImage}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => void handleImageInputChange(event)}
+                  disabled={uploadingImage || processingImage}
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setImageAspectRatio('1:1')}
+                className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${
+                  imageAspectRatio === '1:1'
+                    ? 'border-[color:var(--noon-teal)] bg-[color:var(--noon-teal)]/10 text-zinc-900 dark:text-zinc-100'
+                    : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800'
+                }`}
+              >
+                {text.square}
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageAspectRatio('4:3')}
+                className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${
+                  imageAspectRatio === '4:3'
+                    ? 'border-[color:var(--noon-teal)] bg-[color:var(--noon-teal)]/10 text-zinc-900 dark:text-zinc-100'
+                    : 'border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800'
+                }`}
+              >
+                {text.landscape}
+              </button>
+            </div>
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              {text.aspectRatio}: {imageAspectRatio}
+            </p>
+            {(uploadingImage || processingImage) && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] text-zinc-600 dark:text-zinc-300">
+                  <span>{processingImage ? text.processing : text.uploadingProgress}</span>
+                  <span>{processingImage ? '...' : `${uploadProgress}%`}</span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                  <div
+                    className="h-full rounded-full bg-[color:var(--noon-teal)] transition-all"
+                    style={{ width: `${processingImage ? 35 : uploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-3">
               <label className="inline-flex cursor-pointer items-center rounded-lg border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800">
-                {uploadingImage ? text.uploading : text.uploadImage}
+                {text.uploadImage}
                 <input
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={handleCategoryImageUpload}
-                  disabled={uploadingImage}
+                  onChange={(event) => void handleImageInputChange(event)}
+                  disabled={uploadingImage || processingImage}
                 />
               </label>
               <span className="text-xs text-zinc-500 dark:text-zinc-400">{text.supportedFormats}</span>
@@ -485,7 +666,10 @@ export default function ShopCategoriesPageClient({ locale }: { locale: Locale })
             {editor.image && (
               <div>
                 <p className="mb-2 text-xs font-medium text-zinc-700 dark:text-zinc-300">{text.imagePreview}</p>
-                <div className="relative h-28 w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
+                <div
+                  className="relative w-full max-w-sm overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800"
+                  style={{ aspectRatio: previewAspectRatio }}
+                >
                   <Image src={editor.image} alt="Category preview" fill sizes="320px" className="object-cover" />
                 </div>
               </div>
