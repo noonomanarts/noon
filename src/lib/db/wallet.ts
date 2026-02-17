@@ -1,5 +1,25 @@
 import { pool } from './pool';
+import { emitAdminEvent } from '@/lib/realtime/adminEvents';
 import type { Wallet, WalletTransaction, LoyaltyCard } from './types';
+
+let walletDecisionColumnsCache: boolean | null = null;
+
+async function hasWalletDecisionTimestampColumns(): Promise<boolean> {
+  if (walletDecisionColumnsCache !== null) {
+    return walletDecisionColumnsCache;
+  }
+
+  const result = await pool.query(
+    `SELECT COUNT(*)::int AS count
+     FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name = 'wallet_transactions'
+       AND column_name IN ('approved_at', 'rejected_at')`
+  );
+
+  walletDecisionColumnsCache = (result.rows[0]?.count ?? 0) >= 2;
+  return walletDecisionColumnsCache;
+}
 
 export async function getWalletByUserId(userId: string): Promise<Wallet | null> {
   const result = await pool.query(
@@ -191,13 +211,52 @@ export async function depositToWallet(userId: string, amount: number, reason?: s
 }
 
 export async function requestWalletWithdrawal(userId: string, amount: number, reason?: string): Promise<WalletTransaction> {
-  const wallet = await getWalletByUserId(userId);
-  if (!wallet) throw new Error('Wallet not found');
-  if (wallet.available_balance < amount) throw new Error('Insufficient available balance');
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
 
-  // Create a withdrawal request transaction with PENDING status
-  const transaction = await addWalletTransaction(wallet.id, -amount, 'WITHDRAWAL_REQUEST', reason, 'PENDING');
-  return transaction;
+    const walletResult = await client.query(
+      'SELECT * FROM wallets WHERE user_id = $1 FOR UPDATE',
+      [userId]
+    );
+    const wallet = walletResult.rows[0];
+    if (!wallet) throw new Error('Wallet not found');
+
+    const availableBalance = parseFloat(wallet.available_balance as string);
+    if (availableBalance < amount) throw new Error('Insufficient available balance');
+
+    const newAvailableBalance = availableBalance - amount;
+    await client.query(
+      'UPDATE wallets SET available_balance = $1, updated_at = NOW() WHERE id = $2',
+      [newAvailableBalance, wallet.id]
+    );
+
+    // Create a withdrawal request transaction with PENDING status
+    const transactionResult = await client.query(
+      'INSERT INTO wallet_transactions (wallet_id, amount, type, reason, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [wallet.id, -amount, 'WITHDRAWAL_REQUEST', reason, 'PENDING']
+    );
+
+    await client.query('COMMIT');
+
+    emitAdminEvent('wallet_updated', {
+      user_id: wallet.user_id,
+      balance: parseFloat(wallet.balance as string),
+      available_balance: newAvailableBalance,
+      currency: wallet.currency,
+    });
+    emitAdminEvent('withdrawal_requests_updated', { wallet_id: wallet.id });
+
+    return {
+      ...transactionResult.rows[0],
+      amount: parseFloat(transactionResult.rows[0].amount as string),
+    } as WalletTransaction;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function withdrawFromWallet(): Promise<void> {
@@ -224,6 +283,8 @@ export async function getPendingWithdrawalRequests(): Promise<(WalletTransaction
 export async function approveWithdrawalRequest(transactionId: string, adminReason?: string): Promise<void> {
   const client = await pool.connect();
   try {
+    const hasDecisionColumns = await hasWalletDecisionTimestampColumns();
+
     await client.query('BEGIN');
 
     // Get the transaction
@@ -244,13 +305,21 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
       [transaction.wallet_id]
     );
     const wallet = walletResult.rows[0];
-    if (!wallet || parseFloat(wallet.available_balance as string) < amount) {
-      throw new Error('Insufficient available balance');
+    if (!wallet) {
+      throw new Error('Wallet not found');
     }
 
-    // Update wallet balances
-    const newBalance = parseFloat(wallet.balance as string) - amount;
-    const newAvailableBalance = parseFloat(wallet.available_balance as string) - amount;
+    const currentBalance = parseFloat(wallet.balance as string);
+    const currentAvailableBalance = parseFloat(wallet.available_balance as string);
+    if (currentBalance < amount) {
+      throw new Error('Insufficient balance');
+    }
+
+    // Finalize approved withdrawal.
+    // - Always deduct from total balance
+    // - Keep available balance consistent for both legacy (unblocked) and new (blocked) requests
+    const newBalance = currentBalance - amount;
+    const newAvailableBalance = Math.min(currentAvailableBalance, newBalance);
     await client.query(
       'UPDATE wallets SET balance = $1, available_balance = $2, updated_at = NOW() WHERE id = $3',
       [newBalance, newAvailableBalance, wallet.id]
@@ -258,12 +327,27 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
 
     // Update transaction status
     const reason = adminReason ? `${transaction.reason || ''} - Approved: ${adminReason}` : transaction.reason;
-    await client.query(
-      'UPDATE wallet_transactions SET status = $1, reason = $2, updated_at = NOW() WHERE id = $3',
-      ['APPROVED', reason, transactionId]
-    );
+    if (hasDecisionColumns) {
+      await client.query(
+        'UPDATE wallet_transactions SET status = $1, reason = $2, approved_at = NOW(), rejected_at = NULL WHERE id = $3',
+        ['APPROVED', reason, transactionId]
+      );
+    } else {
+      await client.query(
+        'UPDATE wallet_transactions SET status = $1, reason = $2 WHERE id = $3',
+        ['APPROVED', reason, transactionId]
+      );
+    }
 
     await client.query('COMMIT');
+
+    emitAdminEvent('wallet_updated', {
+      user_id: wallet.user_id,
+      balance: newBalance,
+      available_balance: newAvailableBalance,
+      currency: wallet.currency,
+    });
+    emitAdminEvent('withdrawal_requests_updated', { transactionId });
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -273,11 +357,69 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
 }
 
 export async function rejectWithdrawalRequest(transactionId: string, adminReason?: string): Promise<void> {
-  const reason = adminReason ? `Rejected: ${adminReason}` : 'Rejected by admin';
-  await pool.query(
-    'UPDATE wallet_transactions SET status = $1, reason = $2, updated_at = NOW() WHERE id = $3',
-    ['REJECTED', reason, transactionId]
-  );
+  const client = await pool.connect();
+  try {
+    const hasDecisionColumns = await hasWalletDecisionTimestampColumns();
+
+    await client.query('BEGIN');
+
+    const transactionResult = await client.query(
+      'SELECT * FROM wallet_transactions WHERE id = $1 AND type = $2 AND status = $3',
+      [transactionId, 'WITHDRAWAL_REQUEST', 'PENDING']
+    );
+    if (!transactionResult.rows[0]) {
+      throw new Error('Pending withdrawal request not found');
+    }
+
+    const transaction = transactionResult.rows[0];
+    const amount = Math.abs(parseFloat(transaction.amount as string));
+
+    const walletResult = await client.query(
+      'SELECT * FROM wallets WHERE id = $1 FOR UPDATE',
+      [transaction.wallet_id]
+    );
+    const wallet = walletResult.rows[0];
+    if (!wallet) {
+      throw new Error('Wallet not found');
+    }
+
+    // Release blocked amount back to available balance (without exceeding total balance)
+    const currentBalance = parseFloat(wallet.balance as string);
+    const currentAvailableBalance = parseFloat(wallet.available_balance as string);
+    const newAvailableBalance = Math.min(currentBalance, currentAvailableBalance + amount);
+    await client.query(
+      'UPDATE wallets SET available_balance = $1, updated_at = NOW() WHERE id = $2',
+      [newAvailableBalance, wallet.id]
+    );
+
+    const reason = adminReason ? `Rejected: ${adminReason}` : 'Rejected by admin';
+    if (hasDecisionColumns) {
+      await client.query(
+        'UPDATE wallet_transactions SET status = $1, reason = $2, rejected_at = NOW(), approved_at = NULL WHERE id = $3',
+        ['REJECTED', reason, transactionId]
+      );
+    } else {
+      await client.query(
+        'UPDATE wallet_transactions SET status = $1, reason = $2 WHERE id = $3',
+        ['REJECTED', reason, transactionId]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    emitAdminEvent('wallet_updated', {
+      user_id: wallet.user_id,
+      balance: currentBalance,
+      available_balance: newAvailableBalance,
+      currency: wallet.currency,
+    });
+    emitAdminEvent('withdrawal_requests_updated', { transactionId });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export async function adminAddWalletCredit(userId: string, amount: number, reason?: string): Promise<{ wallet: Wallet; transaction: WalletTransaction }> {
@@ -288,6 +430,13 @@ export async function adminAddWalletCredit(userId: string, amount: number, reaso
   const newAvailableBalance = wallet.available_balance + amount;
   await updateWalletBalances(wallet.id, newBalance, newAvailableBalance);
   const transaction = await addWalletTransaction(wallet.id, amount, 'ADMIN_CREDIT', reason);
+
+  emitAdminEvent('wallet_updated', {
+    user_id: wallet.user_id,
+    balance: newBalance,
+    available_balance: newAvailableBalance,
+    currency: wallet.currency,
+  });
 
   return {
     wallet: { ...wallet, balance: newBalance, available_balance: newAvailableBalance },
@@ -305,6 +454,13 @@ export async function adminDeductWalletCredit(userId: string, amount: number, re
   await updateWalletBalances(wallet.id, newBalance, newAvailableBalance);
   const transaction = await addWalletTransaction(wallet.id, -amount, 'ADMIN_DEDUCT', reason);
 
+  emitAdminEvent('wallet_updated', {
+    user_id: wallet.user_id,
+    balance: newBalance,
+    available_balance: newAvailableBalance,
+    currency: wallet.currency,
+  });
+
   return {
     wallet: { ...wallet, balance: newBalance, available_balance: newAvailableBalance },
     transaction
@@ -318,6 +474,13 @@ export async function adminUpdateWalletAvailableBalance(userId: string, newAvail
   if (newAvailableBalance > wallet.balance) throw new Error('Available balance cannot exceed total balance');
 
   await updateWalletAvailableBalance(wallet.id, newAvailableBalance);
+
+  emitAdminEvent('wallet_updated', {
+    user_id: wallet.user_id,
+    balance: wallet.balance,
+    available_balance: newAvailableBalance,
+    currency: wallet.currency,
+  });
 
   return {
     wallet: { ...wallet, available_balance: newAvailableBalance }

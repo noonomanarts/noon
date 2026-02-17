@@ -58,6 +58,19 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Process withdrawal request error:', error);
+
+    if (error instanceof Error) {
+      const knownErrors = new Set([
+        'Pending withdrawal request not found',
+        'Wallet not found',
+        'Insufficient balance',
+      ]);
+
+      if (knownErrors.has(error.message)) {
+        return NextResponse.json({ error: error.message }, { status: 400 });
+      }
+    }
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { FiUsers, FiDollarSign, FiTrendingDown, FiCheck, FiArrowRight, FiX, FiLoader, FiMoreVertical, FiTrendingUp } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 import type { Wallet, WalletTransaction } from '@/lib/db/types';
@@ -26,7 +26,10 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<'all' | 'has-balance' | 'has-available' | 'pending-withdrawals'>('all');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<number | null>(null);
 
   // Statistics
   const stats = useMemo(() => {
@@ -61,17 +64,121 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
     });
   }, [wallets, searchTerm, filterStatus]);
 
+  const openWallet = useMemo(
+    () => wallets.find((wallet) => wallet.user_id === openDropdown) ?? null,
+    [wallets, openDropdown]
+  );
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (openDropdown && !(event.target as Element).closest('.dropdown-container')) {
+      const target = event.target as Element;
+      if (
+        openDropdown &&
+        !target.closest('.dropdown-container') &&
+        !target.closest('.wallet-actions-menu')
+      ) {
         setOpenDropdown(null);
+        setDropdownPosition(null);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openDropdown]);
+
+  useEffect(() => {
+    const handleViewportChange = () => {
+      setOpenDropdown(null);
+      setDropdownPosition(null);
+    };
+
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, []);
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    if (toastTimeoutRef.current) {
+      window.clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = window.setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+  };
+
+  const playNotificationSound = () => {
+    if (typeof window === 'undefined') return;
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    try {
+      const audioContext = new AudioContextClass();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 880;
+      gainNode.gain.value = 0.06;
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.14);
+      oscillator.onended = () => {
+        audioContext.close();
+      };
+    } catch {
+      // Ignore audio errors
+    }
+  };
+
+  useEffect(() => {
+    const source = new EventSource('/api/admin/stream');
+
+    const handleWalletUpdated = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data) as {
+          user_id: string;
+          balance?: number;
+          available_balance?: number;
+          currency?: string;
+        };
+
+        setWallets((prev) => {
+          const index = prev.findIndex((wallet) => wallet.user_id === data.user_id);
+          if (index === -1) return prev;
+          return prev.map((wallet) =>
+            wallet.user_id === data.user_id
+              ? {
+                  ...wallet,
+                  balance: data.balance ?? wallet.balance,
+                  available_balance: data.available_balance ?? wallet.available_balance,
+                  currency: data.currency ?? wallet.currency,
+                }
+              : wallet
+          );
+        });
+
+        showToast(locale === 'ar' ? 'تم تحديث محفظة' : 'Wallet updated');
+        playNotificationSound();
+      } catch {
+        // Ignore malformed events
+      }
+    };
+
+    source.addEventListener('wallet_updated', handleWalletUpdated as EventListener);
+
+    return () => {
+      source.removeEventListener('wallet_updated', handleWalletUpdated as EventListener);
+      source.close();
+    };
+  }, [locale]);
 
   const handleViewTransactions = async (userId: string) => {
     setLoading(true);
@@ -146,8 +253,20 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
     }
   };
 
-  const toggleDropdown = (userId: string) => {
-    setOpenDropdown(openDropdown === userId ? null : userId);
+  const toggleDropdown = (userId: string, triggerElement: HTMLElement) => {
+    if (openDropdown === userId) {
+      setOpenDropdown(null);
+      setDropdownPosition(null);
+      return;
+    }
+
+    const rect = triggerElement.getBoundingClientRect();
+    const menuWidth = 224;
+    const left = Math.max(12, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 12));
+    const top = rect.bottom + 8;
+
+    setOpenDropdown(userId);
+    setDropdownPosition({ top, left });
   };
 
   const submitAddCredit = async () => {
@@ -320,6 +439,18 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
   return (
     <>
+      {toastMessage && (
+        <div className={`fixed top-4 ${locale === 'ar' ? 'left-4' : 'right-4'} z-50`}
+          aria-live="polite"
+        >
+          <div className="flex items-center gap-3 rounded-xl border border-gray-200/60 dark:border-gray-700/60 bg-white/95 dark:bg-gray-800/95 shadow-2xl px-4 py-3 text-sm text-gray-800 dark:text-gray-100 backdrop-blur">
+            <span className="inline-flex items-center justify-center size-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+              <FiDollarSign className="size-4" />
+            </span>
+            <span className="font-medium">{toastMessage}</span>
+          </div>
+        </div>
+      )}
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-6 text-white">
@@ -429,7 +560,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
           </h2>
         </div>
 
-        <div className="overflow-x-auto overflow-y-visible">
+        <div className="relative overflow-x-auto overflow-y-visible">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -465,7 +596,12 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredWallets.map((wallet) => (
-                <tr key={wallet.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr
+                  key={wallet.id}
+                  className={`relative hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                    openDropdown === wallet.user_id ? 'z-[80]' : 'z-0'
+                  }`}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <input
                       type="checkbox"
@@ -494,87 +630,15 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {wallet.currency}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium relative">
                     <div className="relative dropdown-container">
                       <button
-                        onClick={() => toggleDropdown(wallet.user_id)}
+                        onClick={(event) => toggleDropdown(wallet.user_id, event.currentTarget)}
                         className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                         disabled={loading}
                       >
                         <FiMoreVertical className="w-4 h-4" />
                       </button>
-
-                      {openDropdown === wallet.user_id && (
-                        <div className="absolute right-0 z-50 mt-2 w-56 origin-top-right bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm focus:outline-none overflow-hidden">
-                          <div className="py-2">
-                            <button
-                              onClick={() => {
-                                handleViewTransactions(wallet.user_id);
-                                setOpenDropdown(null);
-                              }}
-                              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 group"
-                              disabled={loading}
-                            >
-                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 mr-3 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors duration-200">
-                                <FiArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                              </div>
-                              <span className="font-medium">{locale === "ar" ? "المعاملات" : "Transactions"}</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleAddCredit(wallet.user_id);
-                                setOpenDropdown(null);
-                              }}
-                              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 dark:hover:from-green-900/20 dark:hover:to-emerald-900/20 hover:text-green-700 dark:hover:text-green-300 transition-all duration-200 group"
-                              disabled={loading}
-                            >
-                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 mr-3 group-hover:bg-green-200 dark:group-hover:bg-green-800/40 transition-colors duration-200">
-                                <FiTrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
-                              </div>
-                              <span className="font-medium">{locale === "ar" ? "إضافة رصيد" : "Add Credit"}</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleDeductCredit(wallet.user_id);
-                                setOpenDropdown(null);
-                              }}
-                              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-red-50 hover:to-rose-50 dark:hover:from-red-900/20 dark:hover:to-rose-900/20 hover:text-red-700 dark:hover:text-red-300 transition-all duration-200 group"
-                              disabled={loading}
-                            >
-                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 mr-3 group-hover:bg-red-200 dark:group-hover:bg-red-800/40 transition-colors duration-200">
-                                <FiTrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
-                              </div>
-                              <span className="font-medium">{locale === "ar" ? "خصم رصيد" : "Deduct Credit"}</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleEditAvailableBalance(wallet.user_id);
-                                setOpenDropdown(null);
-                              }}
-                              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 dark:hover:from-purple-900/20 dark:hover:to-violet-900/20 hover:text-purple-700 dark:hover:text-purple-300 transition-all duration-200 group"
-                              disabled={loading}
-                            >
-                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 mr-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors duration-200">
-                                <FiCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                              </div>
-                              <span className="font-medium">{locale === "ar" ? "تعديل المتاح" : "Edit Available"}</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleRequestWithdrawal(wallet.user_id);
-                                setOpenDropdown(null);
-                              }}
-                              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 dark:hover:from-orange-900/20 dark:hover:to-amber-900/20 hover:text-orange-700 dark:hover:text-orange-300 transition-all duration-200 group"
-                              disabled={loading || (wallet.available_balance || 0) <= 0}
-                            >
-                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 mr-3 group-hover:bg-orange-200 dark:group-hover:bg-orange-800/40 transition-colors duration-200">
-                                <FiArrowRight className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-                              </div>
-                              <span className="font-medium">{locale === "ar" ? "طلب سحب" : "Request Withdrawal"}</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </td>
                 </tr>
@@ -583,6 +647,86 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
           </table>
         </div>
       </div>
+
+      {openDropdown && dropdownPosition && openWallet && (
+        <div
+          className="wallet-actions-menu fixed z-[160] w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm focus:outline-none overflow-hidden"
+          style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+        >
+          <div className="py-2">
+            <button
+              onClick={() => {
+                handleViewTransactions(openWallet.user_id);
+                setOpenDropdown(null);
+                setDropdownPosition(null);
+              }}
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 dark:hover:from-blue-900/20 dark:hover:to-indigo-900/20 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 group"
+              disabled={loading}
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 mr-3 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40 transition-colors duration-200">
+                <FiArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <span className="font-medium">{locale === "ar" ? "المعاملات" : "Transactions"}</span>
+            </button>
+            <button
+              onClick={() => {
+                handleAddCredit(openWallet.user_id);
+                setOpenDropdown(null);
+                setDropdownPosition(null);
+              }}
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 dark:hover:from-green-900/20 dark:hover:to-emerald-900/20 hover:text-green-700 dark:hover:text-green-300 transition-all duration-200 group"
+              disabled={loading}
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 mr-3 group-hover:bg-green-200 dark:group-hover:bg-green-800/40 transition-colors duration-200">
+                <FiTrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
+              <span className="font-medium">{locale === "ar" ? "إضافة رصيد" : "Add Credit"}</span>
+            </button>
+            <button
+              onClick={() => {
+                handleDeductCredit(openWallet.user_id);
+                setOpenDropdown(null);
+                setDropdownPosition(null);
+              }}
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-red-50 hover:to-rose-50 dark:hover:from-red-900/20 dark:hover:to-rose-900/20 hover:text-red-700 dark:hover:text-red-300 transition-all duration-200 group"
+              disabled={loading}
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 mr-3 group-hover:bg-red-200 dark:group-hover:bg-red-800/40 transition-colors duration-200">
+                <FiTrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+              </div>
+              <span className="font-medium">{locale === "ar" ? "خصم رصيد" : "Deduct Credit"}</span>
+            </button>
+            <button
+              onClick={() => {
+                handleEditAvailableBalance(openWallet.user_id);
+                setOpenDropdown(null);
+                setDropdownPosition(null);
+              }}
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-violet-50 dark:hover:from-purple-900/20 dark:hover:to-violet-900/20 hover:text-purple-700 dark:hover:text-purple-300 transition-all duration-200 group"
+              disabled={loading}
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 mr-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors duration-200">
+                <FiCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <span className="font-medium">{locale === "ar" ? "تعديل المتاح" : "Edit Available"}</span>
+            </button>
+            <button
+              onClick={() => {
+                handleRequestWithdrawal(openWallet.user_id);
+                setOpenDropdown(null);
+                setDropdownPosition(null);
+              }}
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-orange-50 hover:to-amber-50 dark:hover:from-orange-900/20 dark:hover:to-amber-900/20 hover:text-orange-700 dark:hover:text-orange-300 transition-all duration-200 group"
+              disabled={loading || (openWallet.available_balance || 0) <= 0}
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 mr-3 group-hover:bg-orange-200 dark:group-hover:bg-orange-800/40 transition-colors duration-200">
+                <FiArrowRight className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+              </div>
+              <span className="font-medium">{locale === "ar" ? "طلب سحب" : "Request Withdrawal"}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Transactions Modal */}
       {showTransactions && (

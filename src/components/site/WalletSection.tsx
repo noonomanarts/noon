@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Wallet, WalletTransaction } from '@/lib/db/types';
 
 interface WalletSectionProps {
@@ -10,6 +10,8 @@ interface WalletSectionProps {
 }
 
 export function WalletSection({ wallet, transactions, locale }: WalletSectionProps) {
+  const [walletData, setWalletData] = useState(wallet);
+  const [transactionsData, setTransactionsData] = useState(transactions);
   const [showTransfer, setShowTransfer] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
@@ -24,6 +26,11 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
   const [message, setMessage] = useState('');
 
   const isArabic = locale === 'ar';
+
+  useEffect(() => {
+    setWalletData(wallet);
+    setTransactionsData(transactions);
+  }, [wallet, transactions]);
 
   const handleDeposit = () => {
     setDepositAmount('');
@@ -75,7 +82,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
       return;
     }
 
-    if (parseFloat(withdrawAmount) > (wallet.available_balance || 0)) {
+    if (parseFloat(withdrawAmount) > (walletData.available_balance || 0)) {
       alert(isArabic ? "الرصيد المتاح غير كافي" : "Insufficient available balance");
       return;
     }
@@ -93,9 +100,27 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
 
       if (response.ok) {
         const data = await response.json();
+        const requestedAmount = parseFloat(withdrawAmount);
+        setWalletData((prev) => ({
+          ...prev,
+          available_balance: Math.max(0, (prev.available_balance || 0) - requestedAmount),
+        }));
+        if (data?.transaction) {
+          setTransactionsData((prev) => [
+            {
+              id: data.transaction.id,
+              wallet_id: walletData.id,
+              amount: data.transaction.amount,
+              type: 'WITHDRAWAL_REQUEST',
+              reason: withdrawDescription || null,
+              status: data.transaction.status || 'PENDING',
+              created_at: data.transaction.created_at ? new Date(data.transaction.created_at) : new Date(),
+            },
+            ...prev,
+          ]);
+        }
         setMessage(isArabic ? 'تم إرسال طلب السحب بنجاح. سيتم مراجعته من قبل الإدارة.' : 'Withdrawal request submitted successfully. It will be reviewed by administration.');
         setShowWithdrawModal(false);
-        // Don't reload page, just show success message
       } else {
         const data = await response.json();
         alert(data.error || (isArabic ? 'فشل في إرسال طلب السحب' : 'Failed to submit withdrawal request'));
@@ -168,7 +193,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                  {isArabic ? "المبلغ" : "Amount"} ({wallet.currency})
+                  {isArabic ? "المبلغ" : "Amount"} ({walletData.currency})
                 </label>
                 <input
                   type="number"
@@ -196,7 +221,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
 
               <div className="rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 p-4 border border-green-100 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-800/30">
                 <p className="text-sm text-green-800 dark:text-green-200 font-medium">
-                  {isArabic ? "الرصيد الحالي:" : "Current balance:"} <span className="font-semibold">{wallet.balance.toFixed(3)} {wallet.currency}</span>
+                  {isArabic ? "الرصيد الحالي:" : "Current balance:"} <span className="font-semibold">{walletData.balance.toFixed(3)} {walletData.currency}</span>
                 </p>
               </div>
             </div>
@@ -253,7 +278,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                  {isArabic ? "المبلغ" : "Amount"} ({wallet.currency})
+                  {isArabic ? "المبلغ" : "Amount"} ({walletData.currency})
                 </label>
                 <input
                   type="number"
@@ -263,7 +288,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                   className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200"
                   placeholder="0.000"
                   min="0"
-                  max={wallet.balance}
+                  max={walletData.available_balance || 0}
                 />
               </div>
 
@@ -282,9 +307,9 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
 
               <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border border-blue-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-800/30">
                 <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
-                  {isArabic ? "الرصيد المتاح:" : "Available balance:"} <span className="font-semibold">{wallet.balance.toFixed(3)} {wallet.currency}</span>
+                  {isArabic ? "الرصيد المتاح:" : "Available balance:"} <span className="font-semibold">{walletData.available_balance?.toFixed(3) || '0.000'} {walletData.currency}</span>
                 </p>
-                {withdrawAmount && parseFloat(withdrawAmount) > wallet.balance && (
+                {withdrawAmount && parseFloat(withdrawAmount) > (walletData.available_balance || 0) && (
                   <p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">
                     {isArabic ? "المبلغ المطلوب أكبر من الرصيد المتاح" : "Amount exceeds available balance"}
                   </p>
@@ -303,7 +328,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                 </button>
                 <button
                   onClick={submitWithdraw}
-                  disabled={loading || !withdrawAmount || parseFloat(withdrawAmount) <= 0 || parseFloat(withdrawAmount) > (wallet.available_balance || 0)}
+                  disabled={loading || !withdrawAmount || parseFloat(withdrawAmount) <= 0 || parseFloat(withdrawAmount) > (walletData.available_balance || 0)}
                   className="rounded-lg bg-gradient-to-r from-red-600 to-rose-600 px-5 py-2.5 text-sm font-medium text-white hover:from-red-700 hover:to-rose-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                 >
                   {loading ? (
@@ -338,7 +363,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
           {isArabic ? 'الرصيد الإجمالي' : 'Total Balance'}
         </div>
         <div className="text-2xl font-bold text-green-600">
-          {wallet.balance.toFixed(3)} {wallet.currency}
+          {walletData.balance.toFixed(3)} {walletData.currency}
         </div>
       </div>
 
@@ -347,7 +372,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
           {isArabic ? 'الرصيد المتاح للسحب' : 'Available for Withdrawal'}
         </div>
         <div className="text-xl font-semibold text-blue-600">
-          {wallet.available_balance?.toFixed(3) || '0.000'} {wallet.currency}
+          {walletData.available_balance?.toFixed(3) || '0.000'} {walletData.currency}
         </div>
         <div className="text-xs text-gray-500 mt-1">
           {isArabic ? 'يجب الموافقة من الإدارة للسحب' : 'Admin approval required for withdrawal'}
@@ -438,12 +463,12 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
           {isArabic ? 'تاريخ المعاملات' : 'Transaction History'}
         </h4>
         <div className="space-y-2">
-          {transactions.length === 0 ? (
+          {transactionsData.length === 0 ? (
             <p className="text-gray-500 text-sm">
               {isArabic ? 'لم يتم العثور على معاملات' : 'No transactions found'}
             </p>
           ) : (
-            transactions.map((transaction) => (
+            transactionsData.map((transaction) => (
               <div key={transaction.id} className="flex justify-between items-center py-3 border-b border-zinc-100/60 last:border-b-0">
                 <div>
                   <div className="font-medium">
@@ -459,7 +484,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                 <div className={`font-medium ${
                   transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {transaction.amount > 0 ? '+' : ''}{transaction.amount.toFixed(3)} {wallet.currency}
+                  {transaction.amount > 0 ? '+' : ''}{transaction.amount.toFixed(3)} {walletData.currency}
                 </div>
               </div>
             ))

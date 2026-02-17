@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { FiCheckCircle, FiXCircle, FiX, FiLoader } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 
 interface WithdrawalRequest {
@@ -23,27 +24,46 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
   const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
+  const [actionReason, setActionReason] = useState('');
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/withdrawal-requests');
       if (response.ok) {
         const data = await response.json();
         setRequests(data.requests);
       } else {
-        alert(locale === "ar" ? "فشل في تحميل طلبات السحب" : "Failed to load withdrawal requests");
+        setToastMessage(locale === "ar" ? "فشل في تحميل طلبات السحب" : "Failed to load withdrawal requests");
       }
     } catch (error) {
       console.error("Error loading withdrawal requests:", error);
-      alert(locale === "ar" ? "خطأ في تحميل طلبات السحب" : "Error loading withdrawal requests");
+      setToastMessage(locale === "ar" ? "خطأ في تحميل طلبات السحب" : "Error loading withdrawal requests");
     } finally {
       setLoading(false);
     }
-  };
+  }, [locale]);
 
   useEffect(() => {
     fetchRequests();
-  }, []);
+  }, [fetchRequests]);
+
+  useEffect(() => {
+    const source = new EventSource('/api/admin/stream');
+    const handleUpdate = () => {
+      fetchRequests();
+    };
+
+    source.addEventListener('withdrawal_requests_updated', handleUpdate as EventListener);
+
+    return () => {
+      source.removeEventListener('withdrawal_requests_updated', handleUpdate as EventListener);
+      source.close();
+    };
+  }, [fetchRequests]);
 
   const handleProcessRequest = async (transactionId: string, action: 'approve' | 'reject', reason?: string) => {
     setProcessingId(transactionId);
@@ -59,21 +79,45 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
       });
 
       if (response.ok) {
-        alert(locale === "ar"
+        setToastMessage(locale === "ar"
           ? (action === 'approve' ? 'تمت الموافقة على طلب السحب' : 'تم رفض طلب السحب')
           : (action === 'approve' ? 'Withdrawal request approved' : 'Withdrawal request rejected')
         );
         fetchRequests(); // Refresh the list
       } else {
         const error = await response.json();
-        alert(error.error || (locale === "ar" ? "فشل في معالجة الطلب" : "Failed to process request"));
+        setToastMessage(error.error || (locale === "ar" ? "فشل في معالجة الطلب" : "Failed to process request"));
       }
     } catch (error) {
       console.error("Error processing withdrawal request:", error);
-      alert(locale === "ar" ? "خطأ في معالجة الطلب" : "Error processing request");
+      setToastMessage(locale === "ar" ? "خطأ في معالجة الطلب" : "Error processing request");
     } finally {
       setProcessingId(null);
     }
+  };
+
+  const openActionModal = (request: WithdrawalRequest, action: 'approve' | 'reject') => {
+    setSelectedRequest(request);
+    setActionType(action);
+    setActionReason('');
+    setShowActionModal(true);
+  };
+
+  const closeActionModal = () => {
+    if (processingId) return;
+    setShowActionModal(false);
+    setActionType(null);
+    setSelectedRequest(null);
+    setActionReason('');
+  };
+
+  const submitActionModal = async () => {
+    if (!selectedRequest || !actionType) return;
+    await handleProcessRequest(selectedRequest.id, actionType, actionReason || undefined);
+    setShowActionModal(false);
+    setActionType(null);
+    setSelectedRequest(null);
+    setActionReason('');
   };
 
   const getStatusColor = (status: string) => {
@@ -108,7 +152,16 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+    <>
+      {toastMessage && (
+        <div className={`fixed top-4 ${locale === 'ar' ? 'left-4' : 'right-4'} z-[140]`} aria-live="polite">
+          <div className="rounded-xl bg-white/95 dark:bg-gray-800/95 border border-gray-200/70 dark:border-gray-700/70 px-4 py-3 shadow-2xl text-sm font-medium text-gray-800 dark:text-gray-100 backdrop-blur">
+            {toastMessage}
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {locale === "ar" ? "طلبات سحب الأموال" : "Withdrawal Requests"}
@@ -170,22 +223,19 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
                     {request.status === 'PENDING' && (
                       <>
                         <button
-                          className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 mr-2 disabled:opacity-50"
-                          onClick={() => handleProcessRequest(request.id, 'approve')}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-green-700 bg-green-50 hover:bg-green-100 dark:text-green-300 dark:bg-green-900/20 dark:hover:bg-green-900/30 mr-2 disabled:opacity-50 transition-colors"
+                          onClick={() => openActionModal(request, 'approve')}
                           disabled={processingId === request.id}
                         >
-                          {processingId === request.id ? (locale === "ar" ? "جاري..." : "Processing...") : (locale === "ar" ? "موافقة" : "Approve")}
+                          <FiCheckCircle className="size-4" />
+                          {locale === "ar" ? "موافقة" : "Approve"}
                         </button>
                         <button
-                          className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"
-                          onClick={() => {
-                            const reason = prompt(locale === "ar" ? "سبب الرفض:" : "Reason for rejection:");
-                            if (reason !== null) {
-                              handleProcessRequest(request.id, 'reject', reason);
-                            }
-                          }}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-red-700 bg-red-50 hover:bg-red-100 dark:text-red-300 dark:bg-red-900/20 dark:hover:bg-red-900/30 disabled:opacity-50 transition-colors"
+                          onClick={() => openActionModal(request, 'reject')}
                           disabled={processingId === request.id}
                         >
+                          <FiXCircle className="size-4" />
                           {locale === "ar" ? "رفض" : "Reject"}
                         </button>
                       </>
@@ -197,6 +247,78 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
           </table>
         )}
       </div>
-    </div>
+      </div>
+
+      {showActionModal && selectedRequest && actionType && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-800 border border-gray-200/70 dark:border-gray-700/70 shadow-2xl overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-200/60 dark:border-gray-700/60 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {actionType === 'approve'
+                  ? (locale === 'ar' ? 'تأكيد الموافقة على الطلب' : 'Confirm Withdrawal Approval')
+                  : (locale === 'ar' ? 'تأكيد رفض الطلب' : 'Confirm Withdrawal Rejection')}
+              </h3>
+              <button
+                onClick={closeActionModal}
+                disabled={!!processingId}
+                className="p-1 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <FiX className="size-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="rounded-xl p-4 bg-gray-50 dark:bg-gray-700/40 border border-gray-200/60 dark:border-gray-700/60">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {locale === 'ar' ? 'المستخدم' : 'User'}: <span className="font-semibold text-gray-900 dark:text-white">{selectedRequest.user_full_name}</span>
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                  {locale === 'ar' ? 'المبلغ' : 'Amount'}: <span className="font-semibold text-gray-900 dark:text-white">{Math.abs(selectedRequest.amount).toFixed(3)} OMR</span>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {locale === 'ar' ? 'ملاحظة (اختياري)' : 'Note (Optional)'}
+                </label>
+                <textarea
+                  value={actionReason}
+                  onChange={(e) => setActionReason(e.target.value)}
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder={actionType === 'approve'
+                    ? (locale === 'ar' ? 'ملاحظة للموافقة' : 'Approval note')
+                    : (locale === 'ar' ? 'سبب الرفض' : 'Rejection reason')}
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200/60 dark:border-gray-700/60 flex justify-end gap-3">
+              <button
+                onClick={closeActionModal}
+                disabled={!!processingId}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                onClick={submitActionModal}
+                disabled={!!processingId}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors disabled:opacity-50 ${
+                  actionType === 'approve'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {processingId ? <FiLoader className="size-4 animate-spin" /> : null}
+                {actionType === 'approve'
+                  ? (locale === 'ar' ? 'تأكيد الموافقة' : 'Confirm Approve')
+                  : (locale === 'ar' ? 'تأكيد الرفض' : 'Confirm Reject')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
