@@ -4,8 +4,8 @@ services:
     image: postgres:16-alpine
     container_name: noon-postgres
     restart: unless-stopped
-    ports:
-      - "5433:5432"
+    expose:
+      - "5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -47,7 +47,7 @@ services:
       PORT: 3000
       
       # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-noonomanarts}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-noonomanarts}}
       
       # Application URLs
       NEXT_PUBLIC_APP_URL: https://noonomanarts.com

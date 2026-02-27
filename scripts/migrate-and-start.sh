@@ -8,6 +8,22 @@ echo "============================================"
 # Function to wait for database
 wait_for_db() {
   echo "Waiting for PostgreSQL to be ready..."
+
+  node -e "
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      console.error('DATABASE_URL is not set');
+      process.exit(0);
+    }
+    try {
+      const parsed = new URL(dbUrl);
+      const database = (parsed.pathname || '').replace(/^\//, '') || '(empty)';
+      const user = decodeURIComponent(parsed.username || '');
+      console.log('DB target => host=' + parsed.hostname + ' port=' + (parsed.port || '5432') + ' user=' + user + ' db=' + database);
+    } catch {
+      console.error('DATABASE_URL is invalid and could not be parsed');
+    }
+  "
   
   max_retries=30
   counter=0
@@ -22,6 +38,8 @@ wait_for_db() {
     counter=$((counter + 1))
     if [ $counter -ge $max_retries ]; then
       echo "Error: Could not connect to database after $max_retries attempts"
+      echo "Hint: if PostgreSQL uses a persisted volume, changing POSTGRES_PASSWORD in .env will NOT update the existing DB user password."
+      echo "Reset password in DB container or set DATABASE_URL to the current real DB password."
       exit 1
     fi
     echo "Database not ready yet... retrying in 2 seconds (attempt $counter/$max_retries)"
