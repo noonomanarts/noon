@@ -41,10 +41,12 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_wallets_updated_at ON wallets;
 CREATE TRIGGER update_wallets_updated_at
   BEFORE UPDATE ON wallets
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_loyalty_cards_updated_at ON loyalty_cards;
 CREATE TRIGGER update_loyalty_cards_updated_at
   BEFORE UPDATE ON loyalty_cards
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
