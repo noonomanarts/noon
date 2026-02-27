@@ -64,7 +64,7 @@ export default async function LoginPage({
     orWhatsApp: locale === "ar" ? "أو عبر واتساب" : "Or with WhatsApp",
     errorMessage: locale === "ar" ? "بيانات الدخول غير صحيحة" : "Invalid email or password",
     logoutSuccess: locale === 'ar' ? 'تم تسجيل الخروج بنجاح. يمكنك تسجيل الدخول مرة أخرى.' : 'You have been logged out successfully. You can sign in again.',
-    adminNote: locale === "ar" ? "ملاحظة: استخدم admin@noon.com / admin123 للتجربة" : "Note: Use admin@noon.com / admin123 for testing",
+    adminNote: locale === "ar" ? "ملاحظة: استخدم admin@noonomanarts.com / admin123 للتجربة" : "Note: Use admin@noonomanarts.com / admin123 for testing",
     theme: locale === "ar" ? "المظهر" : "Theme",
     themeLight: locale === "ar" ? "فاتح" : "Light",
     themeDark: locale === "ar" ? "داكن" : "Dark",

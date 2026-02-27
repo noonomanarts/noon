@@ -540,7 +540,7 @@ export async function updateUserWithPassword(
  * Initialize default admin user
  */
 export async function ensureDefaultAdmin(): Promise<void> {
-  const adminEmail = "admin@noon.com";
+  const adminEmail = "admin@noonomanarts.com";
   
   // Check if admin already exists
   const existingAdmin = await getUserByEmail(adminEmail);

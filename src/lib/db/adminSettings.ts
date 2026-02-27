@@ -24,7 +24,7 @@ export type WhatsAppAdminSettings = {
 
 export const defaultGeneralAdminSettings: GeneralAdminSettings = {
   siteName: 'Noon',
-  supportEmail: 'support@noon.com',
+  supportEmail: 'support@noonomanarts.com',
   supportPhone: '+96800000000',
   defaultLocale: 'en',
   timezone: 'Asia/Muscat',

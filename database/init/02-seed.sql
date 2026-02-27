@@ -10,7 +10,7 @@
 INSERT INTO users (email, password, role, status, full_name, phone_number, preferred_language)
 VALUES (
   'admin@noonomanarts.com',
-  '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4ELQdYBGJHPqOqBm',
+  '$2b$10$wOKDS2UzfkxQVObM.WLtseI1xcKpp8pAiCpNjOzqvlw9VmODoai/O',
   'ADMIN',
   'ACTIVE',
   'Admin User',
