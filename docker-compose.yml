@@ -47,7 +47,7 @@ services:
       PORT: 3000
       
       # Database
-      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-noonomanarts}}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-noonomanarts}
       
       # Application URLs
       NEXT_PUBLIC_APP_URL: https://noonomanarts.com
