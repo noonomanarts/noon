@@ -176,8 +176,8 @@ export default function Footer({ locale }: { locale: Locale }) {
               <p className="inline-flex items-center gap-2">
                 <FiMail className="size-4 text-teal" />
                 {t.email}:{" "}
-                <a className="font-medium text-zinc-200 hover:text-white" href="mailto:info@noonoman.com">
-                  info@noonoman.com
+                <a className="font-medium text-zinc-200 hover:text-white" href="mailto:info@noonomanarts.com">
+                  info@noonomanarts.com
                 </a>
               </p>
             </div>
@@ -185,7 +185,7 @@ export default function Footer({ locale }: { locale: Locale }) {
             <h3 className="mb-3 mt-6 text-sm font-semibold uppercase tracking-wider text-zinc-200">{t.follow}</h3>
             <div className="flex gap-2">
               <a
-                href="https://instagram.com/noon"
+                href="https://instagram.com/noonomanarts"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800 hover:text-zinc-100"

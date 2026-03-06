@@ -197,8 +197,8 @@ export default function ContactPage({
               <MdEmail className="h-5 w-5 text-[color:var(--noon-purple-strong)]" />
             </div>
             <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{t.emailUs}</h3>
-            <a href="mailto:hello@noonoman.com" className="mt-1 block text-sm font-medium text-[color:var(--noon-purple-strong)] hover:underline">
-              hello@noonoman.com
+            <a href="mailto:info@noonomanarts.com" className="mt-1 block text-sm font-medium text-[color:var(--noon-purple-strong)] hover:underline">
+              info@noonomanarts.com
             </a>
 
             <div className="mt-4">
@@ -214,7 +214,7 @@ export default function ContactPage({
                   <FaWhatsapp className="h-5 w-5" />
                 </a>
                 <a
-                  href="https://instagram.com/noon"
+                  href="https://instagram.com/noonomanarts"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white transition hover:opacity-90"
