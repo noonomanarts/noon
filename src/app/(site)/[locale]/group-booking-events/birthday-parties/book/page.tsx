@@ -7,6 +7,8 @@ import { MdCake, MdGroup, MdSchedule, MdEmail, MdPhone, MdPerson } from 'react-i
 import { IoCalendar, IoCheckmarkCircle, IoClose } from 'react-icons/io5';
 import { GiPartyPopper, GiCupcake } from 'react-icons/gi';
 import { HiSparkles } from 'react-icons/hi2';
+import BookingFormError from '@/components/site/BookingFormError';
+import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
 
 export default function BirthdayPartyBookingPage() {
   const params = useParams();
@@ -134,19 +136,13 @@ export default function BirthdayPartyBookingPage() {
     loading: locale === 'ar' ? 'جاري المعالجة...' : 'Processing...',
   };
 
-  const isEmailValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-  const isPhoneValid = (value: string) => /^[\d\s+()-]+$/.test(value.trim());
-
   const validateStep = (stepToValidate: 1 | 2 | 3): boolean => {
     if (stepToValidate === 1) {
       if (!formData.selectedDate) {
         setError(t.dateRequired);
         return false;
       }
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const selected = new Date(`${formData.selectedDate}T00:00:00`);
-      if (Number.isNaN(selected.getTime()) || selected.getTime() < today.getTime()) {
+      if (isDateInPast(formData.selectedDate)) {
         setError(t.dateInPast);
         return false;
       }
@@ -178,7 +174,7 @@ export default function BirthdayPartyBookingPage() {
         setError(t.emailRequired);
         return false;
       }
-      if (!isEmailValid(formData.email)) {
+      if (!isValidEmail(formData.email)) {
         setError(t.invalidEmail);
         return false;
       }
@@ -186,7 +182,7 @@ export default function BirthdayPartyBookingPage() {
         setError(t.phoneRequired);
         return false;
       }
-      if (!isPhoneValid(formData.phoneNumber)) {
+      if (!isValidPhone(formData.phoneNumber)) {
         setError(t.invalidPhone);
         return false;
       }
@@ -277,11 +273,7 @@ export default function BirthdayPartyBookingPage() {
         </div>
 
         <div className="rounded-2xl border-2 border-coral/20 bg-white p-8 shadow-xl">
-        {error ? (
-          <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {error}
-          </div>
-        ) : null}
+        <BookingFormError message={error} />
 
         {step === 1 && (
           <div className="space-y-8">
@@ -415,9 +407,7 @@ export default function BirthdayPartyBookingPage() {
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      numberOfParticipants: Number.isNaN(Number.parseInt(e.target.value, 10))
-                        ? 0
-                        : Number.parseInt(e.target.value, 10),
+                      numberOfParticipants: parseIntegerInput(e.target.value, 0),
                     })
                   }
                   placeholder={t.participantsPlaceholder}
@@ -438,9 +428,7 @@ export default function BirthdayPartyBookingPage() {
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      childAge: Number.isNaN(Number.parseInt(e.target.value, 10))
-                        ? 0
-                        : Number.parseInt(e.target.value, 10),
+                      childAge: parseIntegerInput(e.target.value, 0),
                     })
                   }
                   placeholder={t.childAgePlaceholder}

@@ -8,6 +8,8 @@ import { IoTrophy, IoCalendar, IoCheckmarkCircle, IoClose } from 'react-icons/io
 import { GiCookingPot } from 'react-icons/gi';
 import { BiSolidGift } from 'react-icons/bi';
 import { HiSparkles } from 'react-icons/hi2';
+import BookingFormError from '@/components/site/BookingFormError';
+import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -144,19 +146,13 @@ export default function CookingCompetitionBookingPage() {
     loading: locale === 'ar' ? 'جاري الإرسال...' : 'Submitting...',
   };
 
-  const isEmailValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-  const isPhoneValid = (value: string) => /^[\d\s+()-]+$/.test(value.trim());
-
   const validateStep = (stepToValidate: 1 | 2 | 3): boolean => {
     if (stepToValidate === 1) {
       if (!bookingData.selectedDate) {
         setError(t.dateRequired);
         return false;
       }
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const selected = new Date(`${bookingData.selectedDate}T00:00:00`);
-      if (Number.isNaN(selected.getTime()) || selected.getTime() < today.getTime()) {
+      if (isDateInPast(bookingData.selectedDate)) {
         setError(t.dateInPast);
         return false;
       }
@@ -183,7 +179,7 @@ export default function CookingCompetitionBookingPage() {
       setError(t.emailRequired);
       return false;
     }
-    if (!isEmailValid(bookingData.email)) {
+    if (!isValidEmail(bookingData.email)) {
       setError(t.invalidEmail);
       return false;
     }
@@ -191,7 +187,7 @@ export default function CookingCompetitionBookingPage() {
       setError(t.phoneRequired);
       return false;
     }
-    if (!isPhoneValid(bookingData.phoneNumber)) {
+    if (!isValidPhone(bookingData.phoneNumber)) {
       setError(t.invalidPhone);
       return false;
     }
@@ -315,11 +311,7 @@ export default function CookingCompetitionBookingPage() {
           </div>
         </div>
 
-        {error ? (
-          <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
-            {error}
-          </div>
-        ) : null}
+        <BookingFormError message={error} />
 
         {/* Step Content */}
         <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
@@ -627,9 +619,7 @@ export default function CookingCompetitionBookingPage() {
                   onChange={(e) =>
                     setBookingData({
                       ...bookingData,
-                      numberOfParticipants: Number.isNaN(Number.parseInt(e.target.value, 10))
-                        ? 0
-                        : Number.parseInt(e.target.value, 10),
+                      numberOfParticipants: parseIntegerInput(e.target.value, 0),
                     })
                   }
                   required
