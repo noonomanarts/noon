@@ -15,6 +15,8 @@ export default function BirthdayPartyBookingPage() {
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [bookingNumber, setBookingNumber] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     selectedDate: '',
     selectedTime: '',
@@ -66,9 +68,86 @@ export default function BirthdayPartyBookingPage() {
       ? 'تم استلام طلب حجز حفلة عيد الميلاد. سيتواصل معك فريقنا قريباً.'
       : 'Your birthday party booking request has been received. Our team will contact you shortly.',
     backToHome: locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home',
+    selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
+    dateRequired: locale === 'ar' ? 'يرجى اختيار التاريخ.' : 'Please select a date.',
+    timeRequired: locale === 'ar' ? 'يرجى اختيار الوقت.' : 'Please select a time.',
+    participantsRange: locale === 'ar' ? 'عدد المشاركين يجب أن يكون بين 1 و 16.' : 'Participants must be between 1 and 16.',
+    ageMinimum: locale === 'ar' ? 'الحد الأدنى للعمر هو 10 سنوات.' : 'Minimum age is 10.',
+    fullNameRequired: locale === 'ar' ? 'يرجى إدخال الاسم.' : 'Please enter parent/guardian name.',
+    emailRequired: locale === 'ar' ? 'يرجى إدخال البريد الإلكتروني.' : 'Please enter email.',
+    phoneRequired: locale === 'ar' ? 'يرجى إدخال رقم الهاتف.' : 'Please enter phone number.',
+    invalidEmail: locale === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح.' : 'Please enter a valid email address.',
+    invalidPhone: locale === 'ar' ? 'يرجى إدخال رقم هاتف صحيح.' : 'Please enter a valid phone number.',
+    submitError: locale === 'ar' ? 'حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.' : 'Failed to submit booking. Please try again.',
+    bookingNumber: locale === 'ar' ? 'رقم الحجز' : 'Booking Number',
+    dateInPast: locale === 'ar' ? 'لا يمكن اختيار تاريخ في الماضي.' : 'Selected date cannot be in the past.',
+  };
+
+  const isEmailValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  const isPhoneValid = (value: string) => /^[\d\s+()-]+$/.test(value.trim());
+
+  const validateStep = (stepToValidate: 1 | 2 | 3): boolean => {
+    if (stepToValidate === 1) {
+      if (!formData.selectedDate) {
+        setError(t.dateRequired);
+        return false;
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = new Date(`${formData.selectedDate}T00:00:00`);
+      if (Number.isNaN(selected.getTime()) || selected.getTime() < today.getTime()) {
+        setError(t.dateInPast);
+        return false;
+      }
+      if (!formData.selectedTime) {
+        setError(t.timeRequired);
+        return false;
+      }
+
+      const participants = Number(formData.numberOfParticipants);
+      if (!Number.isInteger(participants) || participants < 1 || participants > 16) {
+        setError(t.participantsRange);
+        return false;
+      }
+
+      const age = Number(formData.childAge);
+      if (!Number.isInteger(age) || age < 10) {
+        setError(t.ageMinimum);
+        return false;
+      }
+      return true;
+    }
+
+    if (stepToValidate === 2 || stepToValidate === 3) {
+      if (!formData.fullName.trim()) {
+        setError(t.fullNameRequired);
+        return false;
+      }
+      if (!formData.email.trim()) {
+        setError(t.emailRequired);
+        return false;
+      }
+      if (!isEmailValid(formData.email)) {
+        setError(t.invalidEmail);
+        return false;
+      }
+      if (!formData.phoneNumber.trim()) {
+        setError(t.phoneRequired);
+        return false;
+      }
+      if (!isPhoneValid(formData.phoneNumber)) {
+        setError(t.invalidPhone);
+        return false;
+      }
+    }
+
+    return true;
   };
 
   const handleSubmit = async () => {
+    setError(null);
+    if (!validateStep(3)) return;
+
     setLoading(true);
     try {
       const response = await fetch('/api/public/event-bookings', {
@@ -76,15 +155,21 @@ export default function BirthdayPartyBookingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventType: 'BIRTHDAY_PARTY',
+          preferredLanguage: locale,
           ...formData,
         }),
       });
 
+      const payload = await response.json().catch(() => ({} as Record<string, unknown>));
       if (response.ok) {
+        setBookingNumber(typeof payload.bookingNumber === 'string' ? payload.bookingNumber : null);
         setStep(4);
+      } else {
+        setError(typeof payload.error === 'string' ? payload.error : t.submitError);
       }
     } catch (error) {
       console.error(error);
+      setError(t.submitError);
     } finally {
       setLoading(false);
     }
@@ -141,6 +226,12 @@ export default function BirthdayPartyBookingPage() {
         </div>
 
         <div className="rounded-2xl border-2 border-coral/20 bg-white p-8 shadow-xl">
+        {error ? (
+          <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {error}
+          </div>
+        ) : null}
+
         {step === 1 && (
           <div className="space-y-8">
             <div className="text-center">
@@ -249,7 +340,7 @@ export default function BirthdayPartyBookingPage() {
                   value={formData.selectedTime}
                   onChange={(e) => setFormData({ ...formData, selectedTime: e.target.value })}
                 >
-                  <option value="">Select time...</option>
+                  <option value="">{t.selectTimePlaceholder}</option>
                   <option value="14:00">02:00 PM</option>
                   <option value="16:00">04:00 PM</option>
                   <option value="18:00">06:00 PM</option>
@@ -273,7 +364,7 @@ export default function BirthdayPartyBookingPage() {
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      numberOfParticipants: parseInt(e.target.value),
+                      numberOfParticipants: Number.parseInt(e.target.value, 10),
                     })
                   }
                   placeholder="e.g., 12"
@@ -292,7 +383,7 @@ export default function BirthdayPartyBookingPage() {
                   className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
                   value={formData.childAge}
                   onChange={(e) =>
-                    setFormData({ ...formData, childAge: parseInt(e.target.value) })
+                    setFormData({ ...formData, childAge: Number.parseInt(e.target.value, 10) })
                   }
                   placeholder="e.g., 12"
                 />
@@ -458,6 +549,11 @@ export default function BirthdayPartyBookingPage() {
             <p className="noon-text-muted mx-auto mb-8 max-w-2xl text-lg">
               {t.confirmationMessage}
             </p>
+            {bookingNumber ? (
+              <p className="mb-6 text-sm font-semibold text-zinc-700">
+                {t.bookingNumber}: {bookingNumber}
+              </p>
+            ) : null}
             <div className="mx-auto flex max-w-md flex-col gap-4">
               <button
                 onClick={() => router.push(`/${locale}`)}
@@ -486,7 +582,12 @@ export default function BirthdayPartyBookingPage() {
             </button>
             {step < 3 ? (
               <button
-                onClick={() => setStep(step + 1)}
+                onClick={() => {
+                  setError(null);
+                  if (validateStep(step as 1 | 2 | 3)) {
+                    setStep(step + 1);
+                  }
+                }}
                 disabled={
                   (step === 1 && (!formData.selectedDate || !formData.selectedTime)) ||
                   (step === 2 && (!formData.fullName || !formData.email || !formData.phoneNumber))

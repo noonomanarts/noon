@@ -66,6 +66,8 @@ export default function CookingCompetitionBookingPage() {
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [bookingData, setBookingData] = useState<BookingData>({});
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [bookingNumber, setBookingNumber] = useState<string | null>(null);
 
   const t = {
     title: locale === 'ar' ? 'حجز مسابقة الطبخ' : 'Book Cooking Competition',
@@ -118,21 +120,100 @@ export default function CookingCompetitionBookingPage() {
       ? 'سيقوم فريقنا بمراجعة التفاصيل والاتصال بك قريباً لتأكيد الحجز وإتمام الدفع. ستصلك رسالة تأكيد عبر البريد الإلكتروني وWhatsApp.'
       : 'Our team will review the details and contact you shortly to confirm the booking and complete payment. You will receive a confirmation email and WhatsApp message.',
     backToHome: locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home',
+    selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
+    invalidEmail: locale === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح.' : 'Please enter a valid email address.',
+    invalidPhone: locale === 'ar' ? 'يرجى إدخال رقم هاتف صحيح.' : 'Please enter a valid phone number.',
+    dateRequired: locale === 'ar' ? 'يرجى اختيار التاريخ.' : 'Please select a date.',
+    timeRequired: locale === 'ar' ? 'يرجى اختيار الوقت.' : 'Please select a time.',
+    packageRequired: locale === 'ar' ? 'يرجى اختيار الباقة.' : 'Please choose a package.',
+    participantsRange: locale === 'ar' ? 'عدد المشاركين يجب أن يكون بين 8 و 40.' : 'Participants must be between 8 and 40.',
+    fullNameRequired: locale === 'ar' ? 'يرجى إدخال الاسم الكامل.' : 'Please enter full name.',
+    emailRequired: locale === 'ar' ? 'يرجى إدخال البريد الإلكتروني.' : 'Please enter email.',
+    phoneRequired: locale === 'ar' ? 'يرجى إدخال رقم الهاتف.' : 'Please enter phone number.',
+    submitError: locale === 'ar' ? 'حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.' : 'Failed to submit booking. Please try again.',
+    bookingNumber: locale === 'ar' ? 'رقم الحجز' : 'Booking Number',
+    dateInPast: locale === 'ar' ? 'لا يمكن اختيار تاريخ في الماضي.' : 'Selected date cannot be in the past.',
+  };
+
+  const isEmailValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  const isPhoneValid = (value: string) => /^[\d\s+()-]+$/.test(value.trim());
+
+  const validateStep = (stepToValidate: 1 | 2 | 3): boolean => {
+    if (stepToValidate === 1) {
+      if (!bookingData.selectedDate) {
+        setError(t.dateRequired);
+        return false;
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = new Date(`${bookingData.selectedDate}T00:00:00`);
+      if (Number.isNaN(selected.getTime()) || selected.getTime() < today.getTime()) {
+        setError(t.dateInPast);
+        return false;
+      }
+      if (!bookingData.selectedTime) {
+        setError(t.timeRequired);
+        return false;
+      }
+      return true;
+    }
+
+    if (stepToValidate === 2) {
+      if (!bookingData.packageType) {
+        setError(t.packageRequired);
+        return false;
+      }
+      return true;
+    }
+
+    if (!bookingData.fullName?.trim()) {
+      setError(t.fullNameRequired);
+      return false;
+    }
+    if (!bookingData.email?.trim()) {
+      setError(t.emailRequired);
+      return false;
+    }
+    if (!isEmailValid(bookingData.email)) {
+      setError(t.invalidEmail);
+      return false;
+    }
+    if (!bookingData.phoneNumber?.trim()) {
+      setError(t.phoneRequired);
+      return false;
+    }
+    if (!isPhoneValid(bookingData.phoneNumber)) {
+      setError(t.invalidPhone);
+      return false;
+    }
+
+    const participants = Number(bookingData.numberOfParticipants);
+    if (!Number.isInteger(participants) || participants < 8 || participants > 40) {
+      setError(t.participantsRange);
+      return false;
+    }
+
+    return true;
   };
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    setError(null);
+    if (currentStep < 3 && validateStep(currentStep as 1 | 2 | 3)) {
       setCurrentStep((currentStep + 1) as Step);
     }
   };
 
   const handleBack = () => {
+    setError(null);
     if (currentStep > 1) {
       setCurrentStep((currentStep - 1) as Step);
     }
   };
 
   const handleSubmit = async () => {
+    setError(null);
+    if (!validateStep(3)) return;
+
     setLoading(true);
     try {
       const response = await fetch('/api/public/event-bookings', {
@@ -140,18 +221,23 @@ export default function CookingCompetitionBookingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventType: 'COOKING_COMPETITION',
+          preferredLanguage: locale,
           ...bookingData,
         }),
       });
 
+      const payload = await response.json().catch(() => ({} as Record<string, unknown>));
       if (response.ok) {
+        const serverBookingNumber =
+          typeof payload.bookingNumber === 'string' ? payload.bookingNumber : null;
+        setBookingNumber(serverBookingNumber);
         setCurrentStep(4);
       } else {
-        alert('Error submitting booking. Please try again.');
+        setError(typeof payload.error === 'string' ? payload.error : t.submitError);
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error submitting booking. Please try again.');
+      setError(t.submitError);
     } finally {
       setLoading(false);
     }
@@ -220,6 +306,12 @@ export default function CookingCompetitionBookingPage() {
           </div>
         </div>
 
+        {error ? (
+          <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
+            {error}
+          </div>
+        ) : null}
+
         {/* Step Content */}
         <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
           {/* Step 1: Date & Time Selection */}
@@ -269,7 +361,7 @@ export default function CookingCompetitionBookingPage() {
                   setBookingData({ ...bookingData, selectedTime: e.target.value })
                 }
               >
-                <option value="">Select time...</option>
+                <option value="">{t.selectTimePlaceholder}</option>
                 <option value="09:00">09:00 AM</option>
                 <option value="10:00">10:00 AM</option>
                 <option value="14:00">02:00 PM</option>
@@ -526,7 +618,7 @@ export default function CookingCompetitionBookingPage() {
                   onChange={(e) =>
                     setBookingData({
                       ...bookingData,
-                      numberOfParticipants: parseInt(e.target.value),
+                      numberOfParticipants: Number.parseInt(e.target.value, 10),
                     })
                   }
                   required
@@ -593,6 +685,11 @@ export default function CookingCompetitionBookingPage() {
             <p className="mx-auto mb-8 max-w-2xl text-zinc-600 dark:text-zinc-400">
               {t.confirmationMessage}
             </p>
+            {bookingNumber ? (
+              <p className="mb-6 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                {t.bookingNumber}: {bookingNumber}
+              </p>
+            ) : null}
             <button
               onClick={() => router.push(`/${locale}`)}
               className="rounded-xl px-8 py-4 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"

@@ -16,6 +16,8 @@ export default function PrivateClassBookingPage() {
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [bookingNumber, setBookingNumber] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     classType,
     selectedDate: '',
@@ -63,9 +65,79 @@ export default function PrivateClassBookingPage() {
       ? 'تم استلام طلبك. سيتواصل معك فريقنا قريباً.'
       : 'Your request has been received. Our team will contact you shortly.',
     backToHome: locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home',
+    selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
+    dateRequired: locale === 'ar' ? 'يرجى اختيار التاريخ.' : 'Please select a date.',
+    timeRequired: locale === 'ar' ? 'يرجى اختيار الوقت.' : 'Please select a time.',
+    participantsRange: locale === 'ar' ? 'عدد المشاركين يجب أن يكون بين 8 و 32.' : 'Participants must be between 8 and 32.',
+    fullNameRequired: locale === 'ar' ? 'يرجى إدخال الاسم الكامل.' : 'Please enter full name.',
+    emailRequired: locale === 'ar' ? 'يرجى إدخال البريد الإلكتروني.' : 'Please enter email.',
+    phoneRequired: locale === 'ar' ? 'يرجى إدخال رقم الهاتف.' : 'Please enter phone number.',
+    invalidEmail: locale === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح.' : 'Please enter a valid email address.',
+    invalidPhone: locale === 'ar' ? 'يرجى إدخال رقم هاتف صحيح.' : 'Please enter a valid phone number.',
+    submitError: locale === 'ar' ? 'حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.' : 'Failed to submit booking. Please try again.',
+    bookingNumber: locale === 'ar' ? 'رقم الحجز' : 'Booking Number',
+    dateInPast: locale === 'ar' ? 'لا يمكن اختيار تاريخ في الماضي.' : 'Selected date cannot be in the past.',
+  };
+
+  const isEmailValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  const isPhoneValid = (value: string) => /^[\d\s+()-]+$/.test(value.trim());
+
+  const validateStep = (stepToValidate: 1 | 2 | 3): boolean => {
+    if (stepToValidate === 1) {
+      if (!formData.selectedDate) {
+        setError(t.dateRequired);
+        return false;
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = new Date(`${formData.selectedDate}T00:00:00`);
+      if (Number.isNaN(selected.getTime()) || selected.getTime() < today.getTime()) {
+        setError(t.dateInPast);
+        return false;
+      }
+      if (!formData.selectedTime) {
+        setError(t.timeRequired);
+        return false;
+      }
+
+      const participants = Number(formData.numberOfParticipants);
+      if (!Number.isInteger(participants) || participants < 8 || participants > 32) {
+        setError(t.participantsRange);
+        return false;
+      }
+      return true;
+    }
+
+    if (stepToValidate === 2 || stepToValidate === 3) {
+      if (!formData.fullName.trim()) {
+        setError(t.fullNameRequired);
+        return false;
+      }
+      if (!formData.email.trim()) {
+        setError(t.emailRequired);
+        return false;
+      }
+      if (!isEmailValid(formData.email)) {
+        setError(t.invalidEmail);
+        return false;
+      }
+      if (!formData.phoneNumber.trim()) {
+        setError(t.phoneRequired);
+        return false;
+      }
+      if (!isPhoneValid(formData.phoneNumber)) {
+        setError(t.invalidPhone);
+        return false;
+      }
+    }
+
+    return true;
   };
 
   const handleSubmit = async () => {
+    setError(null);
+    if (!validateStep(3)) return;
+
     setLoading(true);
     try {
       const response = await fetch('/api/public/event-bookings', {
@@ -73,15 +145,21 @@ export default function PrivateClassBookingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventType: 'PRIVATE_CLASS',
+          preferredLanguage: locale,
           ...formData,
         }),
       });
 
+      const payload = await response.json().catch(() => ({} as Record<string, unknown>));
       if (response.ok) {
+        setBookingNumber(typeof payload.bookingNumber === 'string' ? payload.bookingNumber : null);
         setStep(4);
+      } else {
+        setError(typeof payload.error === 'string' ? payload.error : t.submitError);
       }
     } catch (error) {
       console.error(error);
+      setError(t.submitError);
     } finally {
       setLoading(false);
     }
@@ -112,6 +190,12 @@ export default function PrivateClassBookingPage() {
       </div>
 
       <div className="rounded-lg border bg-white p-8 shadow-sm">
+        {error ? (
+          <div className="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            {error}
+          </div>
+        ) : null}
+
         {step === 1 && (
           <div className="space-y-6">
             <h2 className="noon-text text-2xl font-bold">{t.selectDateTime}</h2>
@@ -134,7 +218,7 @@ export default function PrivateClassBookingPage() {
                 value={formData.selectedTime}
                 onChange={(e) => setFormData({ ...formData, selectedTime: e.target.value })}
               >
-                <option value="">Select time...</option>
+                <option value="">{t.selectTimePlaceholder}</option>
                 <option value="09:00">09:00 AM</option>
                 <option value="14:00">02:00 PM</option>
                 <option value="16:00">04:00 PM</option>
@@ -155,7 +239,7 @@ export default function PrivateClassBookingPage() {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    numberOfParticipants: parseInt(e.target.value),
+                    numberOfParticipants: Number.parseInt(e.target.value, 10),
                   })
                 }
               />
@@ -287,6 +371,11 @@ export default function PrivateClassBookingPage() {
             <p className="noon-text-muted mx-auto mb-8 max-w-2xl">
               {t.confirmationMessage}
             </p>
+            {bookingNumber ? (
+              <p className="mb-6 text-sm font-semibold text-zinc-700">
+                {t.bookingNumber}: {bookingNumber}
+              </p>
+            ) : null}
             <button
               onClick={() => router.push(`/${locale}`)}
               className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
@@ -307,7 +396,12 @@ export default function PrivateClassBookingPage() {
             </button>
             {step < 3 ? (
               <button
-                onClick={() => setStep(step + 1)}
+                onClick={() => {
+                  setError(null);
+                  if (validateStep(step as 1 | 2 | 3)) {
+                    setStep(step + 1);
+                  }
+                }}
                 disabled={
                   (step === 1 && (!formData.selectedDate || !formData.selectedTime))
                 }
