@@ -80,6 +80,7 @@ export default async function AdminLayout({
     shopOrders: locale === "ar" ? "طلبات المتجر" : "Shop Orders",
     recommendations: locale === "ar" ? "التوصيات" : "Recommendations",
     recipes: locale === "ar" ? "الوصفات" : "Recipes",
+    pages: locale === "ar" ? "الصفحات" : "Pages",
     contactMessages: locale === "ar" ? "رسائل التواصل" : "Contact Messages",
     settings: locale === "ar" ? "الإعدادات" : "Settings",
     notifications: locale === "ar" ? "الإشعارات" : "Notifications",
@@ -135,6 +136,7 @@ export default async function AdminLayout({
       items: [
         { iconName: "FiThumbsUp" as const, iconColor: "text-lime-600 dark:text-lime-400", label: t.recommendations, href: `/${locale}/admin/recommendations` },
         { iconName: "FiFileText" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.recipes, href: `/${locale}/admin/recipes` },
+        { iconName: "FiFileText" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.pages, href: `/${locale}/admin/pages` },
         { iconName: "FiFileText" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.contactMessages, href: `/${locale}/admin/contact-messages` },
       ],
     },

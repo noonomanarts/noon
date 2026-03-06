@@ -74,6 +74,24 @@ export async function getAdminSettingsByKey<T>(key: string): Promise<T | null> {
   return result.rows[0].value as T;
 }
 
+export async function getAdminSettingsByPrefix<T>(prefix: string): Promise<Record<string, T>> {
+  await ensureAdminSettingsTable();
+
+  const result = await pool.query(
+    `SELECT key, value
+     FROM admin_settings
+     WHERE key LIKE $1`,
+    [`${prefix}%`]
+  );
+
+  const mapped: Record<string, T> = {};
+  for (const row of result.rows) {
+    mapped[row.key as string] = row.value as T;
+  }
+
+  return mapped;
+}
+
 export async function upsertAdminSettings<T>(input: {
   key: string;
   value: T;
