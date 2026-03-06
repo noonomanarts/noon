@@ -12,7 +12,8 @@ export default function PrivateClassBookingPage() {
   const router = useRouter();
   const locale = (isLocale(params.locale as string) ? params.locale : 'en') as Locale;
   
-  const classType = (searchParams.get('type') || 'cooking') as ClassType;
+  const rawClassType = searchParams.get('type');
+  const classType: ClassType = rawClassType === 'arts-crafts' ? 'arts-crafts' : 'cooking';
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -77,6 +78,16 @@ export default function PrivateClassBookingPage() {
     submitError: locale === 'ar' ? 'حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.' : 'Failed to submit booking. Please try again.',
     bookingNumber: locale === 'ar' ? 'رقم الحجز' : 'Booking Number',
     dateInPast: locale === 'ar' ? 'لا يمكن اختيار تاريخ في الماضي.' : 'Selected date cannot be in the past.',
+    preferredDishPlaceholder:
+      locale === 'ar' ? 'مثال: باستا إيطالية، حلويات عربية...' : 'e.g., Italian Pasta, Arabic Sweets, etc.',
+    reviewTitle: locale === 'ar' ? 'مراجعة وإرسال' : 'Review & Submit',
+    summaryDate: locale === 'ar' ? 'التاريخ' : 'Date',
+    summaryTime: locale === 'ar' ? 'الوقت' : 'Time',
+    summaryParticipants: locale === 'ar' ? 'عدد المشاركين' : 'Participants',
+    summaryPreferredDish: locale === 'ar' ? 'الطبق المفضل' : 'Preferred Dish',
+    summaryName: locale === 'ar' ? 'الاسم' : 'Name',
+    summaryPhone: locale === 'ar' ? 'رقم الهاتف' : 'Phone',
+    loading: locale === 'ar' ? 'جاري الإرسال...' : 'Submitting...',
   };
 
   const isEmailValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -239,7 +250,9 @@ export default function PrivateClassBookingPage() {
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    numberOfParticipants: Number.parseInt(e.target.value, 10),
+                    numberOfParticipants: Number.isNaN(Number.parseInt(e.target.value, 10))
+                      ? 0
+                      : Number.parseInt(e.target.value, 10),
                   })
                 }
               />
@@ -258,7 +271,7 @@ export default function PrivateClassBookingPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, preferredDish: e.target.value })
                   }
-                  placeholder="e.g., Italian Pasta, Arabic Sweets, etc."
+                  placeholder={t.preferredDishPlaceholder}
                 />
               </div>
             )}
@@ -344,19 +357,19 @@ export default function PrivateClassBookingPage() {
 
         {step === 3 && (
           <div className="space-y-6">
-            <h2 className="noon-text text-2xl font-bold">Review & Submit</h2>
+            <h2 className="noon-text text-2xl font-bold">{t.reviewTitle}</h2>
             
             <div className="rounded-lg bg-gray-50 p-4">
               <div className="space-y-2 text-sm">
-                <div><strong>Date:</strong> {formData.selectedDate}</div>
-                <div><strong>Time:</strong> {formData.selectedTime}</div>
-                <div><strong>Participants:</strong> {formData.numberOfParticipants}</div>
+                <div><strong>{t.summaryDate}:</strong> {formData.selectedDate}</div>
+                <div><strong>{t.summaryTime}:</strong> {formData.selectedTime}</div>
+                <div><strong>{t.summaryParticipants}:</strong> {formData.numberOfParticipants}</div>
                 {formData.preferredDish && (
-                  <div><strong>Preferred Dish:</strong> {formData.preferredDish}</div>
+                  <div><strong>{t.summaryPreferredDish}:</strong> {formData.preferredDish}</div>
                 )}
-                <div><strong>Name:</strong> {formData.fullName}</div>
-                <div><strong>Email:</strong> {formData.email}</div>
-                <div><strong>Phone:</strong> {formData.phoneNumber}</div>
+                <div><strong>{t.summaryName}:</strong> {formData.fullName}</div>
+                <div><strong>{t.email}:</strong> {formData.email}</div>
+                <div><strong>{t.summaryPhone}:</strong> {formData.phoneNumber}</div>
               </div>
             </div>
           </div>
@@ -388,8 +401,11 @@ export default function PrivateClassBookingPage() {
         {step < 4 && (
           <div className="mt-8 flex justify-between">
             <button
-              onClick={() => setStep(step - 1)}
-              disabled={step === 1}
+              onClick={() => {
+                setError(null);
+                setStep(step - 1);
+              }}
+              disabled={step === 1 || loading}
               className="rounded-lg border px-6 py-2 font-semibold disabled:opacity-50"
             >
               {t.back}
@@ -403,6 +419,7 @@ export default function PrivateClassBookingPage() {
                   }
                 }}
                 disabled={
+                  loading ||
                   (step === 1 && (!formData.selectedDate || !formData.selectedTime))
                 }
                 className="rounded-lg bg-blue-600 px-6 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
@@ -415,7 +432,7 @@ export default function PrivateClassBookingPage() {
                 disabled={loading || !formData.fullName || !formData.email || !formData.phoneNumber}
                 className="rounded-lg bg-green-600 px-6 py-2 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
               >
-                {loading ? '...' : t.submit}
+                {loading ? t.loading : t.submit}
               </button>
             )}
           </div>

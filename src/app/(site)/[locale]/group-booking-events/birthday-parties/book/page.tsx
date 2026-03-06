@@ -81,6 +81,57 @@ export default function BirthdayPartyBookingPage() {
     submitError: locale === 'ar' ? 'حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.' : 'Failed to submit booking. Please try again.',
     bookingNumber: locale === 'ar' ? 'رقم الحجز' : 'Booking Number',
     dateInPast: locale === 'ar' ? 'لا يمكن اختيار تاريخ في الماضي.' : 'Selected date cannot be in the past.',
+    badgeTitle: locale === 'ar' ? 'حجز حفلة عيد ميلاد' : 'Birthday Party Booking',
+    intro:
+      locale === 'ar'
+        ? 'اصنعي ذكريات لا تُنسى مع حفلة طبخ ممتعة للبنات بعمر 10+'
+        : 'Create unforgettable memories with a fun cooking party for girls aged 10+',
+    progressDate: locale === 'ar' ? 'التاريخ والوقت' : 'Date & Time',
+    progressDetails: locale === 'ar' ? 'التفاصيل' : 'Details',
+    progressReview: locale === 'ar' ? 'المراجعة' : 'Review',
+    progressConfirm: locale === 'ar' ? 'التأكيد' : 'Confirm',
+    step1Hint:
+      locale === 'ar'
+        ? 'اختاري التاريخ والوقت وحجم المجموعة المناسب.'
+        : 'Select your preferred date, time, and party size.',
+    packageDetails: locale === 'ar' ? 'تفاصيل الباقة' : 'Package Details',
+    packageParticipantsLabel: locale === 'ar' ? 'المشاركات' : 'Participants',
+    packageParticipantsValue: locale === 'ar' ? 'حتى 16 بنت' : 'Max 16 girls',
+    packageDurationLabel: locale === 'ar' ? 'المدة' : 'Duration',
+    packageDurationValue: locale === 'ar' ? 'ساعتان' : '2 hours',
+    packageAgeLabel: locale === 'ar' ? 'العمر' : 'Age',
+    packageAgeValue: locale === 'ar' ? 'بنات 10+ سنوات' : 'Girls 10+ years',
+    participantsPlaceholder: locale === 'ar' ? 'مثال: 12' : 'e.g., 12',
+    childAgePlaceholder: locale === 'ar' ? 'مثال: 12' : 'e.g., 12',
+    guardianInfoHint:
+      locale === 'ar'
+        ? 'بيانات التواصل الخاصة بولي الأمر.'
+        : 'Parent/Guardian contact information.',
+    fullNamePlaceholder: locale === 'ar' ? 'الاسم الكامل لولي الأمر' : 'Parent/Guardian full name',
+    emailPlaceholder: locale === 'ar' ? 'your@email.com' : 'your@email.com',
+    phonePlaceholder: locale === 'ar' ? '+968 XXXX XXXX' : '+968 XXXX XXXX',
+    specialRequestsPlaceholder:
+      locale === 'ar'
+        ? 'قيود غذائية، تفضيلات الثيم، طلبات خاصة...'
+        : 'Dietary restrictions, theme preferences, special requests...',
+    reviewTitle: locale === 'ar' ? 'مراجعة وإرسال' : 'Review & Submit',
+    reviewHint:
+      locale === 'ar'
+        ? 'يرجى مراجعة تفاصيل الحجز قبل الإرسال.'
+        : 'Please review your booking details before submitting.',
+    summaryTitle: locale === 'ar' ? 'ملخص الحجز' : 'Booking Summary',
+    summaryDateTime: locale === 'ar' ? 'التاريخ والوقت' : 'Date & Time',
+    summaryPartyDetails: locale === 'ar' ? 'تفاصيل الحفلة' : 'Party Details',
+    summaryParent: locale === 'ar' ? 'ولي الأمر' : 'Parent/Guardian',
+    summaryContact: locale === 'ar' ? 'معلومات التواصل' : 'Contact Information',
+    summarySpecial: locale === 'ar' ? 'طلبات خاصة' : 'Special Requests',
+    noteTitle: locale === 'ar' ? 'ملاحظة:' : 'Note:',
+    noteText:
+      locale === 'ar'
+        ? 'سيقوم فريقنا بمراجعة طلبك والتواصل معك خلال 24 ساعة لتأكيد التوفر وإنهاء التفاصيل.'
+        : 'Our team will review your request and contact you within 24 hours to confirm availability and finalize the details.',
+    viewAllEvents: locale === 'ar' ? 'عرض جميع الفعاليات' : 'View All Events',
+    loading: locale === 'ar' ? 'جاري المعالجة...' : 'Processing...',
   };
 
   const isEmailValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -182,13 +233,13 @@ export default function BirthdayPartyBookingPage() {
         <div className="mb-12 text-center">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-coral to-coral-light px-6 py-2 text-white">
             <GiPartyPopper className="text-2xl" />
-            <span className="font-semibold">Birthday Party Booking</span>
+            <span className="font-semibold">{t.badgeTitle}</span>
           </div>
           <h1 className="noon-text text-3xl font-bold md:text-4xl">
             {t.title}
           </h1>
           <p className="noon-text-muted mx-auto mt-4 max-w-2xl">
-            Create unforgettable memories with a fun cooking party for girls aged 10+
+            {t.intro}
           </p>
         </div>
 
@@ -216,10 +267,10 @@ export default function BirthdayPartyBookingPage() {
                   step >= s ? 'text-coral' : 'text-gray-400'
                 }`}
               >
-                {s === 1 && 'Date & Time'}
-                {s === 2 && 'Details'}
-                {s === 3 && 'Review'}
-                {s === 4 && 'Confirm'}
+                {s === 1 && t.progressDate}
+                {s === 2 && t.progressDetails}
+                {s === 3 && t.progressReview}
+                {s === 4 && t.progressConfirm}
               </span>
             </div>
           ))}
@@ -236,7 +287,7 @@ export default function BirthdayPartyBookingPage() {
           <div className="space-y-8">
             <div className="text-center">
               <h2 className="noon-text mb-2 text-2xl font-bold">{t.selectDateTime}</h2>
-              <p className="noon-text-muted">Select your preferred date, time, and party size</p>
+              <p className="noon-text-muted">{t.step1Hint}</p>
             </div>
 
             {/* Package Information */}
@@ -246,28 +297,28 @@ export default function BirthdayPartyBookingPage() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow/20">
                     <GiCupcake className="text-2xl text-yellow" />
                   </div>
-                  <h3 className="text-lg font-bold">Package Details</h3>
+                  <h3 className="text-lg font-bold">{t.packageDetails}</h3>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <MdGroup className="text-xl text-yellow" />
                     <div>
-                      <span className="text-sm text-gray-600">Participants:</span>
-                      <p className="font-semibold">Max 16 girls</p>
+                      <span className="text-sm text-gray-600">{t.packageParticipantsLabel}:</span>
+                      <p className="font-semibold">{t.packageParticipantsValue}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <MdSchedule className="text-xl text-yellow" />
                     <div>
-                      <span className="text-sm text-gray-600">Duration:</span>
-                      <p className="font-semibold">2 hours</p>
+                      <span className="text-sm text-gray-600">{t.packageDurationLabel}:</span>
+                      <p className="font-semibold">{t.packageDurationValue}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <MdCake className="text-xl text-yellow" />
                     <div>
-                      <span className="text-sm text-gray-600">Age:</span>
-                      <p className="font-semibold">Girls 10+ years</p>
+                      <span className="text-sm text-gray-600">{t.packageAgeLabel}:</span>
+                      <p className="font-semibold">{t.packageAgeValue}</p>
                     </div>
                   </div>
                 </div>
@@ -364,10 +415,12 @@ export default function BirthdayPartyBookingPage() {
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      numberOfParticipants: Number.parseInt(e.target.value, 10),
+                      numberOfParticipants: Number.isNaN(Number.parseInt(e.target.value, 10))
+                        ? 0
+                        : Number.parseInt(e.target.value, 10),
                     })
                   }
-                  placeholder="e.g., 12"
+                  placeholder={t.participantsPlaceholder}
                 />
                 <p className="mt-2 text-xs text-gray-500">{t.maxParticipants}</p>
               </div>
@@ -383,9 +436,14 @@ export default function BirthdayPartyBookingPage() {
                   className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
                   value={formData.childAge}
                   onChange={(e) =>
-                    setFormData({ ...formData, childAge: Number.parseInt(e.target.value, 10) })
+                    setFormData({
+                      ...formData,
+                      childAge: Number.isNaN(Number.parseInt(e.target.value, 10))
+                        ? 0
+                        : Number.parseInt(e.target.value, 10),
+                    })
                   }
-                  placeholder="e.g., 12"
+                  placeholder={t.childAgePlaceholder}
                 />
                 <p className="mt-2 text-xs text-gray-500">{t.minimumAge}</p>
               </div>
@@ -397,7 +455,7 @@ export default function BirthdayPartyBookingPage() {
           <div className="space-y-8">
             <div className="text-center">
               <h2 className="noon-text mb-2 text-2xl font-bold">{t.bookingInfo}</h2>
-              <p className="noon-text-muted">Parent/Guardian contact information</p>
+              <p className="noon-text-muted">{t.guardianInfoHint}</p>
             </div>
 
             <div className="space-y-6">
@@ -411,7 +469,7 @@ export default function BirthdayPartyBookingPage() {
                   className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  placeholder="Parent/Guardian full name"
+                  placeholder={t.fullNamePlaceholder}
                   required
                 />
               </div>
@@ -427,7 +485,7 @@ export default function BirthdayPartyBookingPage() {
                     className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-yellow focus:outline-none focus:ring-2 focus:ring-yellow/20"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="your@email.com"
+                    placeholder={t.emailPlaceholder}
                     required
                   />
                 </div>
@@ -442,7 +500,7 @@ export default function BirthdayPartyBookingPage() {
                     className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-yellow focus:outline-none focus:ring-2 focus:ring-yellow/20"
                     value={formData.phoneNumber}
                     onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                    placeholder="+968 XXXX XXXX"
+                    placeholder={t.phonePlaceholder}
                     required
                   />
                 </div>
@@ -460,7 +518,7 @@ export default function BirthdayPartyBookingPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, specialRequests: e.target.value })
                   }
-                  placeholder="Dietary restrictions, theme preferences, special requests..."
+                  placeholder={t.specialRequestsPlaceholder}
                 />
               </div>
             </div>
@@ -470,8 +528,8 @@ export default function BirthdayPartyBookingPage() {
         {step === 3 && (
           <div className="space-y-8">
             <div className="text-center">
-              <h2 className="noon-text mb-2 text-2xl font-bold">Review & Submit</h2>
-              <p className="noon-text-muted">Please review your booking details before submitting</p>
+              <h2 className="noon-text mb-2 text-2xl font-bold">{t.reviewTitle}</h2>
+              <p className="noon-text-muted">{t.reviewHint}</p>
             </div>
 
             <div className="rounded-2xl border-2 border-purple/20 bg-gradient-to-br from-purple/5 to-purple-dark/5 p-8">
@@ -479,30 +537,32 @@ export default function BirthdayPartyBookingPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple/20">
                   <GiPartyPopper className="text-2xl text-purple" />
                 </div>
-                <h3 className="text-xl font-bold">Booking Summary</h3>
+                <h3 className="text-xl font-bold">{t.summaryTitle}</h3>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
                   <IoCalendar className="mt-1 text-xl text-coral" />
                   <div className="flex-1">
-                    <span className="text-sm text-gray-600">Date & Time</span>
-                    <p className="font-semibold">{formData.selectedDate} at {formData.selectedTime}</p>
+                    <span className="text-sm text-gray-600">{t.summaryDateTime}</span>
+                    <p className="font-semibold">{formData.selectedDate} {locale === 'ar' ? 'الساعة' : 'at'} {formData.selectedTime}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
                   <MdGroup className="mt-1 text-xl text-yellow" />
                   <div className="flex-1">
-                    <span className="text-sm text-gray-600">Party Details</span>
-                    <p className="font-semibold">{formData.numberOfParticipants} participants • Age: {formData.childAge}</p>
+                    <span className="text-sm text-gray-600">{t.summaryPartyDetails}</span>
+                    <p className="font-semibold">
+                      {formData.numberOfParticipants} {t.participants} • {t.childAge}: {formData.childAge}
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
                   <MdPerson className="mt-1 text-xl text-teal" />
                   <div className="flex-1">
-                    <span className="text-sm text-gray-600">Parent/Guardian</span>
+                    <span className="text-sm text-gray-600">{t.summaryParent}</span>
                     <p className="font-semibold">{formData.fullName}</p>
                   </div>
                 </div>
@@ -510,7 +570,7 @@ export default function BirthdayPartyBookingPage() {
                 <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
                   <MdEmail className="mt-1 text-xl text-purple" />
                   <div className="flex-1">
-                    <span className="text-sm text-gray-600">Contact Information</span>
+                    <span className="text-sm text-gray-600">{t.summaryContact}</span>
                     <p className="font-semibold">{formData.email}</p>
                     <p className="font-semibold">{formData.phoneNumber}</p>
                   </div>
@@ -520,7 +580,7 @@ export default function BirthdayPartyBookingPage() {
                   <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
                     <HiSparkles className="mt-1 text-xl text-coral" />
                     <div className="flex-1">
-                      <span className="text-sm text-gray-600">Special Requests</span>
+                      <span className="text-sm text-gray-600">{t.summarySpecial}</span>
                       <p className="font-semibold">{formData.specialRequests}</p>
                     </div>
                   </div>
@@ -532,8 +592,8 @@ export default function BirthdayPartyBookingPage() {
               <div className="flex items-start gap-3">
                 <HiSparkles className="mt-1 text-xl text-yellow" />
                 <div className="text-sm">
-                  <p className="font-semibold text-yellow-dark">Note:</p>
-                  <p className="text-gray-600">Our team will review your request and contact you within 24 hours to confirm availability and finalize the details.</p>
+                  <p className="font-semibold text-yellow-dark">{t.noteTitle}</p>
+                  <p className="text-gray-600">{t.noteText}</p>
                 </div>
               </div>
             </div>
@@ -565,7 +625,7 @@ export default function BirthdayPartyBookingPage() {
                 onClick={() => router.push(`/${locale}/group-booking-events`)}
                 className="rounded-xl border-2 border-coral px-8 py-4 font-semibold text-coral transition-all hover:bg-coral/5"
               >
-                View All Events
+                {t.viewAllEvents}
               </button>
             </div>
           </div>
@@ -574,8 +634,11 @@ export default function BirthdayPartyBookingPage() {
         {step < 4 && (
           <div className="mt-12 flex justify-between gap-4">
             <button
-              onClick={() => setStep(step - 1)}
-              disabled={step === 1}
+              onClick={() => {
+                setError(null);
+                setStep(step - 1);
+              }}
+              disabled={step === 1 || loading}
               className="rounded-xl border-2 border-coral px-8 py-3 font-semibold text-coral transition-all hover:bg-coral/5 disabled:opacity-30 disabled:hover:bg-transparent"
             >
               {t.back}
@@ -589,6 +652,7 @@ export default function BirthdayPartyBookingPage() {
                   }
                 }}
                 disabled={
+                  loading ||
                   (step === 1 && (!formData.selectedDate || !formData.selectedTime)) ||
                   (step === 2 && (!formData.fullName || !formData.email || !formData.phoneNumber))
                 }
@@ -605,7 +669,7 @@ export default function BirthdayPartyBookingPage() {
                 {loading ? (
                   <span className="flex items-center gap-2">
                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                    Processing...
+                    {t.loading}
                   </span>
                 ) : (
                   t.submit

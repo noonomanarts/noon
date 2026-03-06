@@ -104,6 +104,9 @@ export default function CookingCompetitionBookingPage() {
     forWinningTeam: locale === 'ar' ? 'للفريق الفائز فقط' : 'For Winning Team Only',
     addToBooking: locale === 'ar' ? 'أضف للحجز' : 'Add to Booking',
     selected: locale === 'ar' ? 'محدد' : 'Selected',
+    standardSubtitle: locale === 'ar' ? 'تجربة رائعة للفرق' : 'Great team experience',
+    premiumSubtitle: locale === 'ar' ? 'تجربة لا تُنسى' : 'Unforgettable experience',
+    popular: locale === 'ar' ? 'الأفضل' : 'POPULAR',
     
     // Step 3
     step3Title: locale === 'ar' ? 'معلومات الحجز' : 'Booking Information',
@@ -133,6 +136,12 @@ export default function CookingCompetitionBookingPage() {
     submitError: locale === 'ar' ? 'حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.' : 'Failed to submit booking. Please try again.',
     bookingNumber: locale === 'ar' ? 'رقم الحجز' : 'Booking Number',
     dateInPast: locale === 'ar' ? 'لا يمكن اختيار تاريخ في الماضي.' : 'Selected date cannot be in the past.',
+    bookingSummary: locale === 'ar' ? 'ملخص الحجز' : 'Booking Summary',
+    summaryDate: locale === 'ar' ? 'التاريخ' : 'Date',
+    summaryTime: locale === 'ar' ? 'الوقت' : 'Time',
+    summaryPackage: locale === 'ar' ? 'الباقة' : 'Package',
+    summaryGifts: locale === 'ar' ? 'الهدايا' : 'Gifts',
+    loading: locale === 'ar' ? 'جاري الإرسال...' : 'Submitting...',
   };
 
   const isEmailValid = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -399,7 +408,7 @@ export default function CookingCompetitionBookingPage() {
                     {t.standardPackage}
                   </h3>
                   <p className={bookingData.packageType === 'STANDARD' ? 'text-white' : 'text-zinc-600 dark:text-zinc-400'}>
-                    {locale === 'ar' ? 'تجربة رائعة للفرق' : 'Great team experience'}
+                    {t.standardSubtitle}
                   </p>
                 </div>
                 <div className="space-y-3 p-6">
@@ -434,7 +443,7 @@ export default function CookingCompetitionBookingPage() {
                 {bookingData.packageType !== 'PREMIUM' && (
                   <div className="absolute right-4 top-4">
                     <span className="rounded-full px-3 py-1 text-xs font-bold text-white" style={{ background: 'var(--noon-yellow-gradient)' }}>
-                      {locale === 'ar' ? 'الأفضل' : 'POPULAR'}
+                      {t.popular}
                     </span>
                   </div>
                 )}
@@ -443,7 +452,7 @@ export default function CookingCompetitionBookingPage() {
                     {t.premiumPackage}
                   </h3>
                   <p className={bookingData.packageType === 'PREMIUM' ? 'text-white' : 'text-zinc-600 dark:text-zinc-400'}>
-                    {locale === 'ar' ? 'تجربة لا تُنسى' : 'Unforgettable experience'}
+                    {t.premiumSubtitle}
                   </p>
                 </div>
                 <div className="space-y-3 p-6">
@@ -618,7 +627,9 @@ export default function CookingCompetitionBookingPage() {
                   onChange={(e) =>
                     setBookingData({
                       ...bookingData,
-                      numberOfParticipants: Number.parseInt(e.target.value, 10),
+                      numberOfParticipants: Number.isNaN(Number.parseInt(e.target.value, 10))
+                        ? 0
+                        : Number.parseInt(e.target.value, 10),
                     })
                   }
                   required
@@ -648,24 +659,24 @@ export default function CookingCompetitionBookingPage() {
             <div className="rounded-xl border-2 border-coral/20 bg-coral/5 p-6 dark:border-coral/30 dark:bg-coral/10">
               <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-zinc-900 dark:text-white">
                 <IoCheckmarkCircle className="h-6 w-6 text-coral" />
-                Booking Summary
+                {t.bookingSummary}
               </h3>
               <div className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
                 <div className="flex items-center gap-2">
                   <IoCalendar className="h-4 w-4 text-teal" />
-                  <strong>Date:</strong> {bookingData.selectedDate}
+                  <strong>{t.summaryDate}:</strong> {bookingData.selectedDate}
                 </div>
                 <div className="flex items-center gap-2">
                   <MdSchedule className="h-4 w-4 text-purple" />
-                  <strong>Time:</strong> {bookingData.selectedTime}
+                  <strong>{t.summaryTime}:</strong> {bookingData.selectedTime}
                 </div>
                 <div className="flex items-center gap-2">
                   <BiSolidGift className="h-4 w-4 text-yellow" />
-                  <strong>Package:</strong> {bookingData.packageType}
+                  <strong>{t.summaryPackage}:</strong> {bookingData.packageType}
                 </div>
                 {bookingData.gifts && bookingData.gifts.length > 0 && (
                   <div>
-                    <strong>Gifts:</strong> {bookingData.gifts.map(g => g.name).join(', ')}
+                    <strong>{t.summaryGifts}:</strong> {bookingData.gifts.map(g => g.name).join(', ')}
                   </div>
                 )}
               </div>
@@ -706,7 +717,7 @@ export default function CookingCompetitionBookingPage() {
           <div className="flex justify-between border-t border-zinc-200 p-6 dark:border-zinc-800">
             <button
               onClick={handleBack}
-              disabled={currentStep === 1}
+              disabled={currentStep === 1 || loading}
               className="flex items-center gap-2 rounded-xl border-2 border-coral px-6 py-3 font-bold text-coral transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
             >
               <IoClose className="h-5 w-5" />
@@ -716,6 +727,7 @@ export default function CookingCompetitionBookingPage() {
               <button
                 onClick={handleNext}
                 disabled={
+                  loading ||
                   (currentStep === 1 &&
                     (!bookingData.selectedDate || !bookingData.selectedTime)) ||
                   (currentStep === 2 && !bookingData.packageType)
@@ -742,7 +754,7 @@ export default function CookingCompetitionBookingPage() {
                 {loading ? (
                   <>
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    {locale === 'ar' ? 'جاري الإرسال...' : 'Submitting...'}
+                    {t.loading}
                   </>
                 ) : (
                   <>
