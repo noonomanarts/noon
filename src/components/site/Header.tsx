@@ -1,14 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
-import { headers, cookies } from "next/headers";
+import { cookies } from "next/headers";
 
-import { otherLocale, type Locale } from "@/lib/locale";
+import { type Locale } from "@/lib/locale";
 import { getUserById } from "@/lib/db/users";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import { Dropdown } from "@/components/site/Dropdown";
 import SiteProfileMenu from "@/components/site/SiteProfileMenu";
 import CartLinkWithCount from '@/components/site/CartLinkWithCount';
 import { CART_COOKIE_NAME, parseCartCookie } from '@/lib/cart';
+import HeaderLocaleLink from "@/components/site/HeaderLocaleLink";
 
 function NavLink({
   href,
@@ -28,13 +29,6 @@ function NavLink({
 }
 
 export default async function Header({ locale }: { locale: Locale }) {
-  const h = await headers();
-  const pathname = h.get("x-noon-pathname") ?? `/${locale}`;
-  const nextLocale = otherLocale(locale);
-  const switchedPath = pathname.startsWith(`/${locale}`)
-    ? pathname.replace(`/${locale}`, `/${nextLocale}`)
-    : `/${nextLocale}`;
-
   // Check if user is logged in
   const cookieStore = await cookies();
   const sessionId = cookieStore.get("noon_session")?.value;
@@ -61,7 +55,6 @@ export default async function Header({ locale }: { locale: Locale }) {
     account: locale === "ar" ? "حساب" : "Account",
     login: locale === "ar" ? "تسجيل الدخول" : "Login",
     cart: locale === "ar" ? "السلة" : "Cart",
-    langShort: nextLocale.toUpperCase(),
     theme: locale === "ar" ? "المظهر" : "Theme",
     themeLight: locale === "ar" ? "فاتح" : "Light",
     themeDark: locale === "ar" ? "داكن" : "Dark",
@@ -121,13 +114,7 @@ export default async function Header({ locale }: { locale: Locale }) {
             systemLabel={t.themeSystem}
           />
 
-          <Link
-            href={switchedPath}
-            className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
-            aria-label={locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}
-          >
-            {t.langShort}
-          </Link>
+          <HeaderLocaleLink locale={locale} />
 
           <CartLinkWithCount locale={locale} label={t.cart} initialCount={initialCartCount} />
 
