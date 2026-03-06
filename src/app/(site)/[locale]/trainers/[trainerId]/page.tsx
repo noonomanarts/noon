@@ -5,8 +5,15 @@ import Link from "next/link";
 import { MdEmail, MdPhone } from "react-icons/md";
 import { GiChefToque } from "react-icons/gi";
 import { HiSparkles } from "react-icons/hi2";
-import { findTrainerById, findTrainerClasses } from "@/lib/db/trainers";
+import { findTrainerById, findTrainerClasses, getTrainerProfile } from "@/lib/db/trainers";
 import { findClassSessions } from "@/lib/db/classes";
+
+function toExternalUrl(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
 
 export default async function TrainerProfilePage({
   params,
@@ -22,6 +29,8 @@ export default async function TrainerProfilePage({
   if (!trainer || trainer.status !== "ACTIVE") {
     notFound();
   }
+
+  const trainerProfile = await getTrainerProfile(trainerId);
 
   // Fetch trainer's classes
   const classes = await findTrainerClasses(trainerId, { publishedOnly: true });
@@ -50,20 +59,21 @@ export default async function TrainerProfilePage({
     moreDetails: locale === "ar" ? "المزيد من التفاصيل" : "More Details",
     noUpcomingClasses: locale === "ar" ? "لا توجد دورات قادمة حالياً" : "No upcoming classes at the moment",
     noPreviousClasses: locale === "ar" ? "لا توجد دورات سابقة" : "No previous classes",
-    perClass: locale === "ar" ? "للدورة" : "per class",
-    reviews: locale === "ar" ? "تقييم" : "reviews",
-    duration: locale === "ar" ? "المدة" : "Duration",
-    minutes: locale === "ar" ? "دقيقة" : "minutes",
-    category: locale === "ar" ? "الفئة" : "Category",
-    cooking: locale === "ar" ? "الطبخ" : "Cooking",
-    artsCrafts: locale === "ar" ? "الفنون والحرف" : "Arts & Crafts",
     contactInfo: locale === "ar" ? "معلومات التواصل" : "Contact Information",
+    expertise: locale === "ar" ? "التخصصات" : "Expertise",
+    experience: locale === "ar" ? "الخبرة" : "Experience",
+    years: locale === "ar" ? "سنة" : "years",
+    noBio:
+      locale === "ar"
+        ? "سيتم تحديث نبذة المدرب قريباً."
+        : "Trainer bio will be updated soon.",
+    visit: locale === "ar" ? "زيارة" : "Visit",
   };
 
-  // Mock trainer bio - in production this would come from database
-  const trainerBio = locale === "ar" 
-    ? `${trainer.fullName} هو/هي مدرب محترف مع سنوات من الخبرة في تقديم دورات تدريبية عالية الجودة. متخصص في تعليم تقنيات الطهي الحديثة والتقليدية، ويسعى دائماً لإلهام الطلاب وتطوير مهاراتهم.`
-    : `${trainer.fullName} is a professional trainer with years of experience in delivering high-quality training sessions. Specialized in teaching modern and traditional culinary techniques, always striving to inspire students and develop their skills.`;
+  const trainerBio = trainerProfile?.bio?.trim() || t.noBio;
+  const trainerExpertise = trainerProfile?.expertise?.filter(Boolean) ?? [];
+  const trainerSocialLinks = trainerProfile?.socialLinks ?? null;
+  const trainerExperience = trainerProfile?.experience ?? null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
@@ -112,8 +122,34 @@ export default async function TrainerProfilePage({
                 </p>
               </div>
 
+              {(trainerExperience || trainerExpertise.length > 0) && (
+                <div className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-900/60">
+                  {trainerExperience ? (
+                    <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                      <span className="font-bold text-zinc-900 dark:text-white">{t.experience}:</span>{" "}
+                      {trainerExperience} {t.years}
+                    </p>
+                  ) : null}
+                  {trainerExpertise.length > 0 ? (
+                    <div>
+                      <p className="mb-2 text-sm font-bold text-zinc-900 dark:text-white">{t.expertise}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {trainerExpertise.map((item) => (
+                          <span
+                            key={item}
+                            className="rounded-full border border-coral/30 bg-coral/10 px-3 py-1 text-xs font-semibold text-coral"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
               {/* Contact Info */}
-              {(trainer.email || trainer.phoneNumber) && (
+              {(trainer.email || trainer.phoneNumber || trainerSocialLinks) && (
                 <div className="space-y-3">
                   <h3 className="font-bold text-zinc-900 dark:text-white">{t.contactInfo}</h3>
                   {trainer.email && (
@@ -128,6 +164,24 @@ export default async function TrainerProfilePage({
                       <span>{trainer.phoneNumber}</span>
                     </div>
                   )}
+                  {trainerSocialLinks &&
+                    Object.entries(trainerSocialLinks).map(([key, value]) => {
+                      if (typeof value !== "string" || value.trim().length === 0) return null;
+                      const href = toExternalUrl(value);
+                      if (!href) return null;
+                      return (
+                        <div key={key} className="text-zinc-600 dark:text-zinc-400">
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900 dark:hover:text-zinc-100"
+                          >
+                            {t.visit} {key}
+                          </a>
+                        </div>
+                      );
+                    })}
                 </div>
               )}
 

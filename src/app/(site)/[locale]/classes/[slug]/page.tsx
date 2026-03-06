@@ -165,7 +165,7 @@ export default async function ClassDetailPage({
                 <p className="whitespace-pre-line leading-relaxed text-zinc-700 dark:text-zinc-300">
                   {locale === "ar" && classData.descriptionAr
                     ? classData.descriptionAr
-                    : classData.description || "No description available."}
+                    : classData.description || (locale === "ar" ? "لا يوجد وصف متاح حالياً." : "No description available.")}
                 </p>
               </div>
             </section>
@@ -282,7 +282,7 @@ export default async function ClassDetailPage({
                     {sessions.map((session) => (
                       <Link
                         key={session.id}
-                        href={`/${locale}/cart?session=${session.id}`}
+                        href={`/${locale}/classes/${classData.slug}/book?session=${session.id}`}
                         className={`block rounded-xl border-2 p-4 transition-all hover:shadow-md ${
                           isCooking
                             ? "border-coral/30 hover:border-coral"

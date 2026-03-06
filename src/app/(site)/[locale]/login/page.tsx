@@ -19,6 +19,12 @@ export default async function LoginPage({
   const queryParams = (await searchParams) ?? {};
   const error = typeof queryParams.error === "string" ? queryParams.error : "";
   const logoutSuccess = queryParams.logout === 'success';
+  const nextPathRaw = typeof queryParams.next === "string" ? queryParams.next : "";
+  const isValidNextPath =
+    nextPathRaw.startsWith(`/${locale}/`) &&
+    !nextPathRaw.startsWith("//") &&
+    !nextPathRaw.includes("://");
+  const nextPath = isValidNextPath ? nextPathRaw : "";
 
   await ensureDefaultAdmin();
 
@@ -27,6 +33,7 @@ export default async function LoginPage({
     const localeValue = formData.get("locale");
     const identifier = formData.get("identifier");
     const password = formData.get("password");
+    const nextValue = formData.get("nextPath");
 
     if (
       typeof identifier !== "string" ||
@@ -47,8 +54,24 @@ export default async function LoginPage({
       path: "/",
     });
 
-    const target = user.role === "ADMIN" ? "admin" : "account";
-    redirect(`/${localeValue ?? "en"}/${target}`);
+    const localeString = typeof localeValue === "string" ? localeValue : "en";
+    const nextTarget =
+      typeof nextValue === "string" &&
+      nextValue.startsWith(`/${localeString}/`) &&
+      !nextValue.startsWith("//") &&
+      !nextValue.includes("://")
+        ? nextValue
+        : "";
+
+    if (user.role === "ADMIN") {
+      redirect(`/${localeString}/admin`);
+    }
+
+    if (nextTarget) {
+      redirect(nextTarget);
+    }
+
+    redirect(`/${localeString}/account`);
   }
 
   const t = {
@@ -120,6 +143,7 @@ export default async function LoginPage({
           {/* Login Form */}
           <form action={handleLogin} className="grid gap-6">
             <input type="hidden" name="locale" value={locale} />
+            <input type="hidden" name="nextPath" value={nextPath} />
 
             <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
               <span className="flex items-center gap-1">
