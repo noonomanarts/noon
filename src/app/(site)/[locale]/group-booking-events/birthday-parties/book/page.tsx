@@ -197,14 +197,23 @@ export default function BirthdayPartyBookingPage() {
 
     setLoading(true);
     try {
+      const requestPayload = {
+        eventType: 'BIRTHDAY_PARTY' as const,
+        preferredLanguage: locale,
+        selectedDate: formData.selectedDate,
+        selectedTime: formData.selectedTime,
+        numberOfParticipants: Number(formData.numberOfParticipants),
+        childAge: Number(formData.childAge),
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        specialRequests: formData.specialRequests.trim(),
+      };
+
       const response = await fetch('/api/public/event-bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventType: 'BIRTHDAY_PARTY',
-          preferredLanguage: locale,
-          ...formData,
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       const payload = await response.json().catch(() => ({} as Record<string, unknown>));

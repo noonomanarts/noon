@@ -221,14 +221,25 @@ export default function CookingCompetitionBookingPage() {
 
     setLoading(true);
     try {
+      const requestPayload = {
+        eventType: 'COOKING_COMPETITION' as const,
+        preferredLanguage: locale,
+        selectedDate: bookingData.selectedDate,
+        selectedTime: bookingData.selectedTime,
+        packageType: bookingData.packageType,
+        gifts: bookingData.gifts,
+        fullName: bookingData.fullName?.trim(),
+        email: bookingData.email?.trim(),
+        phoneNumber: bookingData.phoneNumber?.trim(),
+        companyOrGroupName: bookingData.companyOrGroupName?.trim(),
+        numberOfParticipants: Number(bookingData.numberOfParticipants),
+        specialRequests: bookingData.specialRequests?.trim(),
+      };
+
       const response = await fetch('/api/public/event-bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventType: 'COOKING_COMPETITION',
-          preferredLanguage: locale,
-          ...bookingData,
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       const payload = await response.json().catch(() => ({} as Record<string, unknown>));

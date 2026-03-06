@@ -25,7 +25,6 @@ export default function PrivateClassBookingPage() {
     classType,
     selectedDate: '',
     selectedTime: '',
-    packageType: '' as 'BASIC' | 'PREMIUM' | '',
     numberOfParticipants: 8,
     preferredDish: '',
     fullName: '',
@@ -147,14 +146,25 @@ export default function PrivateClassBookingPage() {
 
     setLoading(true);
     try {
+      const requestPayload = {
+        eventType: 'PRIVATE_CLASS' as const,
+        preferredLanguage: locale,
+        classType: formData.classType,
+        selectedDate: formData.selectedDate,
+        selectedTime: formData.selectedTime,
+        numberOfParticipants: Number(formData.numberOfParticipants),
+        preferredDish: formData.preferredDish.trim(),
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim(),
+        phoneNumber: formData.phoneNumber.trim(),
+        companyOrGroupName: formData.companyOrGroupName.trim(),
+        specialRequests: formData.specialRequests.trim(),
+      };
+
       const response = await fetch('/api/public/event-bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventType: 'PRIVATE_CLASS',
-          preferredLanguage: locale,
-          ...formData,
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       const payload = await response.json().catch(() => ({} as Record<string, unknown>));
