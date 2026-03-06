@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createEventBooking } from '@/lib/db/events';
 import { getUserByEmail, createUser, getUserById } from '@/lib/db/users';
 import { cookies } from 'next/headers';
+import { isDateInPast, isValidEmail, isValidPhone } from '@/lib/forms/eventBooking';
 
 const EVENT_TYPES = new Set(['COOKING_COMPETITION', 'PRIVATE_CLASS', 'BIRTHDAY_PARTY']);
 const PACKAGE_TYPES = new Set(['STANDARD', 'PREMIUM']);
+const PRIVATE_CLASS_TYPES = new Set(['cooking', 'arts-crafts']);
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 function parseSafeString(value: unknown, maxLength = 255): string {
@@ -63,16 +65,17 @@ export async function POST(request: NextRequest) {
     const selectedDateRaw = parseSafeString(body.selectedDate, 20);
     const selectedTime = parseSafeString(body.selectedTime, 10);
     const packageTypeRaw = parseSafeString(body.packageType, 40);
+    const classTypeRaw = parseSafeString(body.classType, 40);
     const fullName = parseSafeString(body.fullName, 255);
     const email = parseSafeString(body.email, 255).toLowerCase();
     const phoneNumber = parseSafeString(body.phoneNumber, 50);
     const companyOrGroupName = parseSafeString(body.companyOrGroupName, 255) || undefined;
-    const specialRequests = parseSafeString(body.specialRequests, 3000) || undefined;
+    const specialRequestsRaw = parseSafeString(body.specialRequests, 3000);
     const preferredDish = parseSafeString(body.preferredDish, 255) || undefined;
     const preferredLanguage = parseSafeString(body.preferredLanguage, 20);
     const numberOfParticipants = parseParticipantCount(body.numberOfParticipants);
     const sanitizedGifts = sanitizeGifts(body.gifts);
-    const childAge = Number(body.childAge);
+    const childAge = parseParticipantCount(body.childAge);
 
     // Validation
     if (!eventType || !selectedDateRaw || !selectedTime || !fullName || !email || !phoneNumber) {
@@ -104,9 +107,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (selectedDate.getTime() < today.getTime()) {
+    if (isDateInPast(selectedDateRaw)) {
       return NextResponse.json(
         { error: 'Selected date cannot be in the past' },
         { status: 400 }
@@ -120,9 +121,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (eventType === 'BIRTHDAY_PARTY' && Number.isFinite(childAge) && childAge < 10) {
+    if (eventType === 'BIRTHDAY_PARTY' && (!Number.isInteger(childAge) || childAge < 10)) {
       return NextResponse.json(
-        { error: 'Birthday party minimum age is 10' },
+        { error: 'Birthday party age is required and minimum age is 10' },
         { status: 400 }
       );
     }
@@ -146,16 +147,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (eventType === 'PRIVATE_CLASS' && classTypeRaw && !PRIVATE_CLASS_TYPES.has(classTypeRaw)) {
+      return NextResponse.json(
+        { error: 'Invalid private class type' },
+        { status: 400 }
+      );
+    }
+
+    if (!isValidEmail(email)) {
       return NextResponse.json(
         { error: 'Invalid email' },
         { status: 400 }
       );
     }
 
-    const phoneRegex = /^[\d\s+()-]+$/;
-    if (!phoneRegex.test(phoneNumber)) {
+    if (!isValidPhone(phoneNumber)) {
       return NextResponse.json(
         { error: 'Invalid phone number' },
         { status: 400 }
@@ -231,6 +237,21 @@ export async function POST(request: NextRequest) {
       numberOfGroups = Math.ceil(numberOfParticipants / 2);
     }
 
+    const metadataParts: string[] = [];
+    if (eventType === 'PRIVATE_CLASS' && PRIVATE_CLASS_TYPES.has(classTypeRaw)) {
+      metadataParts.push(`Private class type: ${classTypeRaw}`);
+    }
+    if (eventType === 'BIRTHDAY_PARTY') {
+      metadataParts.push(`Child age: ${childAge}`);
+    }
+    if (preferredLanguage) {
+      metadataParts.push(`Preferred language: ${preferredLanguage}`);
+    }
+
+    const mergedSpecialRequests = [specialRequestsRaw, metadataParts.join(' | ')]
+      .filter(Boolean)
+      .join(specialRequestsRaw ? '\n' : '') || undefined;
+
     // Create event booking
     const eventBooking = await createEventBooking({
       userId,
@@ -246,7 +267,7 @@ export async function POST(request: NextRequest) {
       phoneNumber,
       companyOrGroupName,
       preferredDish: eventType === 'PRIVATE_CLASS' ? preferredDish : undefined,
-      specialRequests,
+      specialRequests: mergedSpecialRequests,
       totalAmount,
     });
 

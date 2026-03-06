@@ -13,6 +13,7 @@ export async function findManyEventBookings(options: {
     eventType?: EventType;
     status?: EventStatus;
     userId?: string;
+    search?: string;
   };
   orderBy?: { [key: string]: 'asc' | 'desc' };
   skip?: number;
@@ -33,6 +34,17 @@ export async function findManyEventBookings(options: {
   if (options.where?.userId) {
     conditions.push(`e.user_id = $${paramIndex++}`);
     values.push(options.where.userId);
+  }
+  if (options.where?.search) {
+    conditions.push(`(
+      e.booking_number ILIKE $${paramIndex}
+      OR e.full_name ILIKE $${paramIndex}
+      OR e.email ILIKE $${paramIndex}
+      OR e.phone_number ILIKE $${paramIndex}
+      OR COALESCE(e.company_or_group_name, '') ILIKE $${paramIndex}
+    )`);
+    values.push(`%${options.where.search}%`);
+    paramIndex += 1;
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';

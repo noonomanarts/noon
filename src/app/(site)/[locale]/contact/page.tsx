@@ -10,6 +10,8 @@ import {
   MdCheckCircle,
 } from "react-icons/md";
 import { FaWhatsapp, FaInstagram } from "react-icons/fa6";
+import BookingFormError from "@/components/site/BookingFormError";
+import { isValidEmail, isValidPhone } from "@/lib/forms/eventBooking";
 
 export default function ContactPage({
   params,
@@ -56,6 +58,14 @@ export default function ContactPage({
       locale === "ar"
         ? "حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى."
         : "An error occurred. Please try again.",
+    invalidEmail:
+      locale === "ar"
+        ? "يرجى إدخال بريد إلكتروني صحيح."
+        : "Please enter a valid email address.",
+    invalidPhone:
+      locale === "ar"
+        ? "يرجى إدخال رقم هاتف صحيح."
+        : "Please enter a valid phone number.",
     required: locale === "ar" ? "مطلوب" : "required",
     visitUs: locale === "ar" ? "زورنا" : "Visit Us",
     callUs: locale === "ar" ? "اتصل بنا" : "Call Us",
@@ -82,12 +92,22 @@ export default function ContactPage({
 
     const formData = new FormData(e.currentTarget);
     const data = {
-      name: formData.get("name") as string,
-      email: formData.get("email") as string,
-      phone: formData.get("phone") as string,
-      subject: formData.get("subject") as string,
-      message: formData.get("message") as string,
+      name: String(formData.get("name") ?? "").trim(),
+      email: String(formData.get("email") ?? "").trim(),
+      phone: String(formData.get("phone") ?? "").trim(),
+      subject: String(formData.get("subject") ?? "").trim(),
+      message: String(formData.get("message") ?? "").trim(),
     };
+
+    if (!isValidEmail(data.email)) {
+      setError(t.invalidEmail);
+      return;
+    }
+
+    if (data.phone.length > 0 && !isValidPhone(data.phone)) {
+      setError(t.invalidPhone);
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -270,11 +290,7 @@ export default function ContactPage({
               />
             </label>
 
-            {error ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
-                {error}
-              </div>
-            ) : null}
+            <BookingFormError message={error} />
 
             <button
               type="submit"

@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createContactMessage } from "@/lib/db/contacts";
 import { notifyRole } from "@/lib/notificationService";
+import { isValidEmail, isValidPhone } from "@/lib/forms/eventBooking";
+
+function parseSafeString(value: unknown, maxLength = 3000): string {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, maxLength);
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, phone, subject, message } = body;
+    const name = parseSafeString(body.name, 255);
+    const email = parseSafeString(body.email, 255).toLowerCase();
+    const phone = parseSafeString(body.phone, 50);
+    const subject = parseSafeString(body.subject, 255);
+    const message = parseSafeString(body.message, 4000);
 
     // Validation
     if (!name || !email || !subject || !message) {
@@ -16,10 +26,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       return NextResponse.json(
         { error: "Invalid email format" },
+        { status: 400 }
+      );
+    }
+
+    if (phone && !isValidPhone(phone)) {
+      return NextResponse.json(
+        { error: "Invalid phone format" },
         { status: 400 }
       );
     }

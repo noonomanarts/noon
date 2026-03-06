@@ -19,34 +19,32 @@ import {
 
 type EventBooking = {
   id: string;
+  bookingNumber: string;
   eventType: string;
   status: string;
-  eventDate: string | null;
-  participantsCount: number | null;
+  selectedDate: string | null;
+  selectedTime: string | null;
+  numberOfParticipants: number | null;
   totalAmount: number | null;
   currency: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string | null;
-  companyName: string | null;
-  notes: string | null;
+  fullName: string;
+  email: string;
+  phoneNumber: string | null;
+  companyOrGroupName: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 const eventTypeLabels: Record<string, { en: string; ar: string }> = {
   COOKING_COMPETITION: { en: "Cooking Competition", ar: "مسابقة الطبخ" },
-  PRIVATE_COOKING: { en: "Private Cooking", ar: "طبخ خاص" },
-  PRIVATE_ARTS: { en: "Private Arts & Crafts", ar: "فنون وحرف خاصة" },
+  PRIVATE_CLASS: { en: "Private Class", ar: "درس خاص" },
   BIRTHDAY_PARTY: { en: "Birthday Party", ar: "حفلة عيد ميلاد" },
-  CORPORATE_EVENT: { en: "Corporate Event", ar: "فعالية شركات" },
-  OTHER: { en: "Other", ar: "أخرى" },
 };
 
 const statusLabels: Record<string, { en: string; ar: string; color: string }> = {
   NEW: { en: "New", ar: "جديد", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
   IN_PROGRESS: { en: "In Progress", ar: "قيد المعالجة", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" },
-  PENDING_CLIENT: { en: "Pending Client", ar: "بانتظار العميل", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" },
+  PENDING_CLIENT_CONFIRMATION: { en: "Pending Client", ar: "بانتظار العميل", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" },
   CLIENT_CONFIRMED: { en: "Confirmed", ar: "مؤكد", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" },
   PENDING_PAYMENT: { en: "Pending Payment", ar: "بانتظار الدفع", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" },
   COMPLETED: { en: "Completed", ar: "مكتمل", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400" },
@@ -80,6 +78,7 @@ export default function AdminEventsPage() {
     participants: isAr ? "المشاركين" : "Participants",
     amount: isAr ? "المبلغ" : "Amount",
     date: isAr ? "التاريخ" : "Date",
+    time: isAr ? "الوقت" : "Time",
     actions: isAr ? "الإجراءات" : "Actions",
     view: isAr ? "عرض" : "View",
     edit: isAr ? "تعديل" : "Edit",
@@ -242,6 +241,9 @@ export default function AdminEventsPage() {
                     {t.date}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">
+                    {t.time}
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">
                     {t.participants}
                   </th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">
@@ -265,14 +267,14 @@ export default function AdminEventsPage() {
                       <td className="px-4 py-4">
                         <div>
                           <p className="font-medium text-zinc-900 dark:text-white">
-                            {event.contactName}
+                            {event.fullName}
                           </p>
                           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                            {event.contactEmail}
+                            {event.email}
                           </p>
-                          {event.companyName && (
+                          {event.companyOrGroupName && (
                             <p className="text-xs text-zinc-500">
-                              {event.companyName}
+                              {event.companyOrGroupName}
                             </p>
                           )}
                         </div>
@@ -291,14 +293,19 @@ export default function AdminEventsPage() {
                       </td>
                       <td className="px-4 py-4">
                         <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                          {formatDate(event.eventDate)}
+                          {formatDate(event.selectedDate)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                          {event.selectedTime || t.notSet}
                         </span>
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
                           <HiOutlineUsers className="h-4 w-4 text-zinc-400" />
                           <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                            {event.participantsCount || "-"}
+                            {event.numberOfParticipants || "-"}
                           </span>
                         </div>
                       </td>

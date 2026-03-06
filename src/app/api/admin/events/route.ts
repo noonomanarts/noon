@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const eventType = searchParams.get('eventType');
     const status = searchParams.get('status');
+    const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const skip = (page - 1) * limit;
@@ -14,11 +15,13 @@ export async function GET(request: NextRequest) {
     const where: Record<string, string> = {};
     if (eventType) where.eventType = eventType;
     if (status) where.status = status;
+    if (search && search.trim()) where.search = search.trim();
 
     const { events, total } = await findManyEventBookings({
       where: where as {
         eventType?: 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY';
         status?: 'NEW' | 'IN_PROGRESS' | 'PENDING_CLIENT_CONFIRMATION' | 'CLIENT_CONFIRMED' | 'PENDING_PAYMENT' | 'COMPLETED' | 'CANCELLED';
+        search?: string;
       },
       orderBy: { created_at: 'desc' },
       skip,
