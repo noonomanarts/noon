@@ -7,10 +7,10 @@
 
 This repository implements the **Noon** website: marketing pages plus booking/event flows and dashboards.
 
-**Source of truth for product requirements:** `A.md`.
-If anything conflicts with `A.md`, follow `A.md`.
+**Source of truth for product requirements:** `AGENT.md`.
+If anything conflicts with `AGENT.md`, follow `AGENT.md`.
 
-### What the product includes (from `A.md`)
+### What the product includes (from `AGENT.md`)
 
 - **Header**: Logo, Login, Cart, Search, Language switch (English/Arabic), navigation menu
   - Pages: Home, About Us, Classes, Group Booking & Events, Noon Recommends, Contact Us, My Account
@@ -404,6 +404,6 @@ Key forms:
 
 Repository references:
 
-- Requirements: `A.md`
+- Requirements: `AGENT.md`
 - Tooling: `package.json`
 - Config: `next.config.ts`, `eslint.config.mjs`, `tsconfig.json`

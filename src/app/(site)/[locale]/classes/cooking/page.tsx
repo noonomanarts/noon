@@ -202,12 +202,19 @@ export default async function CookingClassesPage({
 
   // Group classes by sub-category
   const subCategories = {
-    APPETIZERS: classesWithSessions.filter((c) => c.subCategory === "APPETIZERS"),
+    APPETIZERS: classesWithSessions.filter(
+      (c) => c.subCategory === "APPETIZERS_SNACKS" || c.subCategory === "APPETIZERS"
+    ),
     MAIN_DISHES: classesWithSessions.filter((c) => c.subCategory === "MAIN_DISHES"),
-    DESSERTS: classesWithSessions.filter((c) => c.subCategory === "DESSERTS"),
+    DESSERTS: classesWithSessions.filter(
+      (c) => c.subCategory === "DESSERTS_BAKING" || c.subCategory === "DESSERTS"
+    ),
     MOM_AND_KID: classesWithSessions.filter((c) => c.subCategory === "MOM_AND_KID"),
     OTHER: classesWithSessions.filter(
-      (c) => !["APPETIZERS", "MAIN_DISHES", "DESSERTS", "MOM_AND_KID"].includes(c.subCategory as string)
+      (c) =>
+        !["APPETIZERS_SNACKS", "APPETIZERS", "MAIN_DISHES", "DESSERTS_BAKING", "DESSERTS", "MOM_AND_KID"].includes(
+          c.subCategory as string
+        )
     ),
   };
 

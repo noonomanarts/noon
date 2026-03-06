@@ -6,6 +6,75 @@ import { getHomeContent } from "@/lib/homeContent";
 import HeroAnimation from "@/components/site/HeroAnimation";
 import AnimatedCounter from "@/components/site/AnimatedCounter";
 import BubblesAnimation from "@/components/site/BubblesAnimation";
+import { findClassSessions, findManyClasses } from "@/lib/db/classes";
+
+type UpcomingCard = {
+  id: string;
+  title: string;
+  datetimeText: string;
+  priceText: string;
+  imageSrc: string;
+};
+
+async function resolveUpcomingItems(
+  locale: Locale,
+  fallback: UpcomingCard[]
+): Promise<UpcomingCard[]> {
+  try {
+    const classes = await findManyClasses({ status: "PUBLISHED", limit: 16 });
+    const sessionsByClass = await Promise.all(
+      classes.map(async (classItem) => {
+        const sessions = await findClassSessions(classItem.id, {
+          upcomingOnly: true,
+          limit: 1,
+        });
+        return { classItem, sessions };
+      })
+    );
+
+    const upcoming = sessionsByClass
+      .flatMap(({ classItem, sessions }) =>
+        sessions.map((session) => ({
+          id: `${classItem.id}-${session.id}`,
+          title:
+            locale === "ar" && classItem.titleAr
+              ? classItem.titleAr
+              : classItem.title,
+          imageSrc: classItem.image || "/og-image.png",
+          startTime: new Date(session.startTime),
+          priceText: `${classItem.price.toFixed(3)} ${classItem.currency}`,
+        }))
+      )
+      .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+      .slice(0, 3)
+      .map((item) => {
+        const localeCode = locale === "ar" ? "ar-OM" : "en-OM";
+        const date = item.startTime.toLocaleDateString(localeCode, {
+          month: "short",
+          day: "numeric",
+        });
+        const time = item.startTime.toLocaleTimeString(localeCode, {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        return {
+          id: item.id,
+          title: item.title,
+          datetimeText: `${date} · ${time}`,
+          priceText: item.priceText,
+          imageSrc: item.imageSrc,
+        };
+      });
+
+    if (upcoming.length > 0) {
+      return upcoming;
+    }
+  } catch {
+    // Fallback to static content when database is unavailable.
+  }
+
+  return fallback;
+}
 
 function Section({
   title,
@@ -36,6 +105,10 @@ export default async function HomePage({
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const content = getHomeContent(locale);
+  const upcomingItems = await resolveUpcomingItems(
+    locale,
+    content.upcoming.items as UpcomingCard[]
+  );
   const heroHeadline =
     locale === "ar"
       ? "حيث يتحول الطبخ إلى تجربة"
@@ -204,7 +277,7 @@ export default async function HomePage({
       {/* Upcoming */}
       <Section title={content.upcoming.title}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {content.upcoming.items.slice(0, 3).map((c) => (
+          {upcomingItems.slice(0, 3).map((c) => (
             <article
               key={c.id}
               className="noon-card overflow-hidden rounded-3xl border shadow-sm"

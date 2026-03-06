@@ -44,6 +44,7 @@ export default async function Header({ locale }: { locale: Locale }) {
   const initialCartCount = initialCart.items.reduce((sum, item) => sum + item.quantity, 0);
 
   const t = {
+    home: locale === "ar" ? "الرئيسية" : "Home",
     about: locale === "ar" ? "من نحن" : "About",
     classes: locale === "ar" ? "دورات" : "Classes",
     cooking: locale === "ar" ? "دورات الطبخ" : "Cooking classes",
@@ -54,6 +55,7 @@ export default async function Header({ locale }: { locale: Locale }) {
     privateClasses: locale === "ar" ? "دروس خاصة" : "Private classes",
     birthday: locale === "ar" ? "حفلات أعياد الميلاد" : "Birthday parties",
     recommends: locale === "ar" ? "توصيات" : "Recommends",
+    search: locale === "ar" ? "بحث" : "Search",
     contact: locale === "ar" ? "تواصل" : "Contact",
     dashboard: locale === "ar" ? "لوحة التحكم" : "Dashboard",
     account: locale === "ar" ? "حساب" : "Account",
@@ -84,6 +86,7 @@ export default async function Header({ locale }: { locale: Locale }) {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+          <NavLink href={`/${locale}`}>{t.home}</NavLink>
           <NavLink href={`/${locale}/about`}>{t.about}</NavLink>
           <Dropdown label={t.classes}>
             <NavLink href={`/${locale}/classes/cooking`}>{t.cooking}</NavLink>
@@ -105,6 +108,7 @@ export default async function Header({ locale }: { locale: Locale }) {
           </Dropdown>
 
           <NavLink href={`/${locale}/noon-recommends`}>{t.recommends}</NavLink>
+          <NavLink href={`/${locale}/search`}>{t.search}</NavLink>
           <NavLink href={`/${locale}/contact`}>{t.contact}</NavLink>
           <NavLink href={`/${locale}/account`}>{t.account}</NavLink>
         </nav>
@@ -145,6 +149,7 @@ export default async function Header({ locale }: { locale: Locale }) {
 
           <div className="md:hidden">
             <Dropdown label={locale === "ar" ? "القائمة" : "Menu"} align="end">
+              <NavLink href={`/${locale}`}>{t.home}</NavLink>
               <NavLink href={`/${locale}/about`}>{t.about}</NavLink>
               <NavLink href={`/${locale}/classes/cooking`}>{t.cooking}</NavLink>
               <NavLink href={`/${locale}/classes/arts-crafts`}>{t.arts}</NavLink>
@@ -159,6 +164,7 @@ export default async function Header({ locale }: { locale: Locale }) {
                 {t.birthday}
               </NavLink>
               <NavLink href={`/${locale}/noon-recommends`}>{t.recommends}</NavLink>
+              <NavLink href={`/${locale}/search`}>{t.search}</NavLink>
               <NavLink href={`/${locale}/contact`}>{t.contact}</NavLink>
               <NavLink href={`/${locale}/account`}>{t.account}</NavLink>
             </Dropdown>

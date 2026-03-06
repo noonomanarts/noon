@@ -1,36 +1,9 @@
 import type { Metadata } from "next";
-import { Cairo, Inter, Playfair_Display, Noto_Naskh_Arabic } from "next/font/google";
 import { headers } from "next/headers";
 import ThemeInitScript from "@/components/site/ThemeInitScript";
 import LocaleSync from "@/components/site/LocaleSync";
 import OverlayScrollbarsProvider from "@/components/site/OverlayScrollbarsProvider";
 import "./globals.css";
-
-// Using Inter as a professional geometric sans-serif (similar to Orkney)
-// Replace with Orkney local font files when available
-const inter = Inter({
-  variable: "--font-english",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const cairo = Cairo({
-  variable: "--font-arabic",
-  subsets: ["arabic", "latin"],
-  display: "swap",
-});
-
-const playfair = Playfair_Display({
-  variable: "--font-hero-en",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const naskh = Noto_Naskh_Arabic({
-  variable: "--font-hero-ar",
-  subsets: ["arabic"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://noonomanarts.com'),
@@ -101,7 +74,7 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${cairo.variable} ${playfair.variable} ${naskh.variable} bg-white text-zinc-900 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-100`}
+        className="bg-white text-zinc-900 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-100"
         style={{
           fontFamily: locale === "ar" 
             ? "var(--font-arabic), system-ui, sans-serif"
@@ -115,4 +88,3 @@ export default async function RootLayout({
     </html>
   );
 }
-

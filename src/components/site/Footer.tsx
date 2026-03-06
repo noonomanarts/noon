@@ -82,13 +82,17 @@ export default function Footer({ locale }: { locale: Locale }) {
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
             <a
-              href="#"
+              href="https://instagram.com/noon"
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
             >
               Instagram
             </a>
             <a
-              href="#"
+              href="https://facebook.com/noonomanarts"
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-100"
             >
               Facebook

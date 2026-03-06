@@ -1,32 +1,163 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createEventBooking } from '@/lib/db/events';
-import { getUserByEmail, createUser } from '@/lib/db/users';
+import { getUserByEmail, createUser, getUserById } from '@/lib/db/users';
 import { cookies } from 'next/headers';
+
+const EVENT_TYPES = new Set(['COOKING_COMPETITION', 'PRIVATE_CLASS', 'BIRTHDAY_PARTY']);
+const PACKAGE_TYPES = new Set(['STANDARD', 'PREMIUM']);
+const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+function parseSafeString(value: unknown, maxLength = 255): string {
+  if (typeof value !== 'string') return '';
+  return value.trim().slice(0, maxLength);
+}
+
+function parseParticipantCount(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? parsed : NaN;
+}
+
+function sanitizeGifts(value: unknown): Array<{
+  id: string;
+  name: string;
+  price: number;
+  scope?: string;
+}> {
+  if (!Array.isArray(value)) return [];
+
+  const sanitized: Array<{ id: string; name: string; price: number; scope?: string }> = [];
+
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue;
+    const candidate = item as Record<string, unknown>;
+    const id = parseSafeString(candidate.id, 80);
+    const name = parseSafeString(candidate.name, 200);
+    const scope = parseSafeString(candidate.scope, 80);
+    const price = Number(candidate.price);
+
+    if (!id || !name || !Number.isFinite(price) || price < 0) {
+      continue;
+    }
+
+    sanitized.push({ id, name, price, scope: scope || undefined });
+    if (sanitized.length >= 20) break;
+  }
+
+  return sanitized;
+}
+
+function validateParticipantsByEvent(eventType: string, participants: number): boolean {
+  if (!Number.isInteger(participants)) return false;
+  if (eventType === 'COOKING_COMPETITION') return participants >= 8 && participants <= 40;
+  if (eventType === 'PRIVATE_CLASS') return participants >= 8 && participants <= 32;
+  if (eventType === 'BIRTHDAY_PARTY') return participants >= 1 && participants <= 16;
+  return false;
+}
 
 // POST: Create event booking from public (website)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const {
-      eventType,
-      selectedDate,
-      selectedTime,
-      packageType,
-      numberOfParticipants,
-      gifts,
-      fullName,
-      email,
-      phoneNumber,
-      companyOrGroupName,
-      specialRequests,
-      preferredDish,
-    } = body;
+    const eventType = parseSafeString(body.eventType, 80);
+    const selectedDateRaw = parseSafeString(body.selectedDate, 20);
+    const selectedTime = parseSafeString(body.selectedTime, 10);
+    const packageTypeRaw = parseSafeString(body.packageType, 40);
+    const fullName = parseSafeString(body.fullName, 255);
+    const email = parseSafeString(body.email, 255).toLowerCase();
+    const phoneNumber = parseSafeString(body.phoneNumber, 50);
+    const companyOrGroupName = parseSafeString(body.companyOrGroupName, 255) || undefined;
+    const specialRequests = parseSafeString(body.specialRequests, 3000) || undefined;
+    const preferredDish = parseSafeString(body.preferredDish, 255) || undefined;
+    const preferredLanguage = parseSafeString(body.preferredLanguage, 20);
+    const numberOfParticipants = parseParticipantCount(body.numberOfParticipants);
+    const sanitizedGifts = sanitizeGifts(body.gifts);
+    const childAge = Number(body.childAge);
 
     // Validation
-    if (!eventType || !selectedDate || !selectedTime || !fullName || !email || !phoneNumber || !numberOfParticipants) {
+    if (!eventType || !selectedDateRaw || !selectedTime || !fullName || !email || !phoneNumber) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    if (!EVENT_TYPES.has(eventType)) {
+      return NextResponse.json(
+        { error: 'Invalid event type' },
+        { status: 400 }
+      );
+    }
+
+    if (!TIME_PATTERN.test(selectedTime)) {
+      return NextResponse.json(
+        { error: 'Invalid time format' },
+        { status: 400 }
+      );
+    }
+
+    const selectedDate = new Date(`${selectedDateRaw}T00:00:00`);
+    if (Number.isNaN(selectedDate.getTime())) {
+      return NextResponse.json(
+        { error: 'Invalid date' },
+        { status: 400 }
+      );
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate.getTime() < today.getTime()) {
+      return NextResponse.json(
+        { error: 'Selected date cannot be in the past' },
+        { status: 400 }
+      );
+    }
+
+    if (!validateParticipantsByEvent(eventType, numberOfParticipants)) {
+      return NextResponse.json(
+        { error: 'Invalid number of participants for this event type' },
+        { status: 400 }
+      );
+    }
+
+    if (eventType === 'BIRTHDAY_PARTY' && Number.isFinite(childAge) && childAge < 10) {
+      return NextResponse.json(
+        { error: 'Birthday party minimum age is 10' },
+        { status: 400 }
+      );
+    }
+
+    const packageType =
+      packageTypeRaw && PACKAGE_TYPES.has(packageTypeRaw)
+        ? (packageTypeRaw as 'STANDARD' | 'PREMIUM')
+        : undefined;
+
+    if (eventType === 'COOKING_COMPETITION' && !packageType) {
+      return NextResponse.json(
+        { error: 'Package type is required for cooking competition' },
+        { status: 400 }
+      );
+    }
+
+    if (eventType !== 'COOKING_COMPETITION' && packageTypeRaw && !packageType) {
+      return NextResponse.json(
+        { error: 'Invalid package type' },
+        { status: 400 }
+      );
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email' },
+        { status: 400 }
+      );
+    }
+
+    const phoneRegex = /^[\d\s+()-]+$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      return NextResponse.json(
+        { error: 'Invalid phone number' },
         { status: 400 }
       );
     }
@@ -34,28 +165,35 @@ export async function POST(request: NextRequest) {
     // Check if user is logged in
     const cookieStore = await cookies();
     const sessionId = cookieStore.get('noon_session')?.value;
-    
-    let userId = sessionId;
-    
+
+    let userId: string | undefined;
+
+    if (sessionId) {
+      const sessionUser = await getUserById(sessionId);
+      if (sessionUser) {
+        userId = sessionUser.id;
+      }
+    }
+
     // If not logged in, try to find user by email or create guest entry
     if (!userId) {
       const existingUser = await getUserByEmail(email);
-      
+
       if (existingUser) {
         userId = existingUser.id;
       } else {
         // Create a customer account for them
         const tempPassword = Math.random().toString(36).slice(-8);
-        
+
         const newUser = await createUser({
           email,
           password: tempPassword,
           fullName,
           phoneNumber,
           role: 'CUSTOMER',
-          preferredLanguage: 'ENGLISH',
+          preferredLanguage: preferredLanguage === 'ar' ? 'ARABIC' : 'ENGLISH',
         });
-        
+
         if (newUser) {
           userId = newUser.id;
         } else {
@@ -69,38 +207,45 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calculate total amount (placeholder - should be calculated based on package + gifts)
-    let totalAmount = 0;
-    if (packageType === 'STANDARD') {
-      totalAmount = 2500; // Base price for standard
-    } else if (packageType === 'PREMIUM') {
-      totalAmount = 3500; // Base price for premium
-    }
-    
-    if (gifts && Array.isArray(gifts)) {
-      gifts.forEach((gift: { price: number }) => {
-        totalAmount += gift.price;
-      });
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unable to resolve user account' },
+        { status: 500 }
+      );
     }
 
-    // Calculate number of groups (simplified)
-    const numberOfGroups = Math.ceil(numberOfParticipants / 5);
+    const giftsTotal = sanitizedGifts.reduce((sum, gift) => sum + gift.price, 0);
+
+    // Keep amount as preliminary estimate; admin can update final pricing later.
+    let totalAmount: number | undefined;
+    if (eventType === 'COOKING_COMPETITION') {
+      totalAmount = (packageType === 'PREMIUM' ? 3500 : 2500) + giftsTotal;
+    } else if (giftsTotal > 0) {
+      totalAmount = giftsTotal;
+    }
+
+    let numberOfGroups: number | undefined;
+    if (eventType === 'COOKING_COMPETITION') {
+      numberOfGroups = Math.max(2, Math.min(8, Math.ceil(numberOfParticipants / 5)));
+    } else if (eventType === 'PRIVATE_CLASS') {
+      numberOfGroups = Math.ceil(numberOfParticipants / 2);
+    }
 
     // Create event booking
     const eventBooking = await createEventBooking({
       userId,
-      eventType,
-      selectedDate: new Date(selectedDate),
+      eventType: eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY',
+      selectedDate,
       selectedTime,
       packageType,
       numberOfParticipants,
       numberOfGroups,
-      gifts: gifts ? { items: gifts } : undefined,
+      gifts: sanitizedGifts.length > 0 ? { items: sanitizedGifts } : undefined,
       fullName,
       email,
       phoneNumber,
       companyOrGroupName,
-      preferredDish,
+      preferredDish: eventType === 'PRIVATE_CLASS' ? preferredDish : undefined,
       specialRequests,
       totalAmount,
     });

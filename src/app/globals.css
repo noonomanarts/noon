@@ -5,6 +5,12 @@
 
 /* Noon Brand Colors */
 :root {
+  /* Font fallbacks (avoid network fetch dependency for builds) */
+  --font-english: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-arabic: "Noto Naskh Arabic", "Cairo", Tahoma, Arial, sans-serif;
+  --font-hero-en: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-hero-ar: "Noto Naskh Arabic", "Amiri", "Times New Roman", serif;
+
   --noon-coral: #f77d6b;
   --noon-coral-strong: #ef6b58;
   --noon-yellow: #f2cb56;
