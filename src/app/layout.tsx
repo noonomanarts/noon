@@ -82,7 +82,7 @@ export default async function RootLayout({
       </head>
       <body
         data-overlayscrollbars-initialize
-        className="bg-white text-zinc-900 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-100"
+        className="bg-[color:var(--background)] text-[color:var(--text)] antialiased transition-colors"
         style={{
           fontFamily: locale === "ar" 
             ? "var(--font-arabic), system-ui, sans-serif"

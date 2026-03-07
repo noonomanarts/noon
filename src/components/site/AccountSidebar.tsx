@@ -32,7 +32,7 @@ export function AccountSidebar({ locale }: AccountSidebarProps) {
   ];
 
   return (
-    <aside className="rounded-2xl border border-zinc-200/70 bg-white p-3 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900">
+    <aside className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-3 shadow-sm">
       <nav className="space-y-1">
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -44,8 +44,8 @@ export function AccountSidebar({ locale }: AccountSidebarProps) {
               href={item.href}
               className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                 active
-                  ? 'noon-btn-teal text-zinc-950'
-                  : 'text-zinc-700 hover:bg-[color:var(--noon-teal-soft)] dark:text-zinc-300 dark:hover:bg-zinc-800'
+                  ? 'bg-[color:var(--primary)] text-[color:var(--primary-foreground)] shadow-sm'
+                  : 'text-[color:var(--text-muted)] hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]'
               }`}
             >
               <Icon className="size-4" />
@@ -57,7 +57,7 @@ export function AccountSidebar({ locale }: AccountSidebarProps) {
         <LogoutButton
           locale={locale}
           label={isArabic ? 'تسجيل الخروج' : 'Logout'}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[color:var(--text-muted)] transition-colors hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
         />
       </nav>
     </aside>

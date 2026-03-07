@@ -57,53 +57,61 @@
 }
 
 :root {
-  /* Light theme - clean and professional */
-  --background: #f7f1e8;
-  --foreground: #18181b;
-  --surface: #fbf7f1;
-  --muted: #f1e8db;
-  --muted-foreground: #71717a;
-  --border: #e4e4e7;
+  /* Light theme - Noon Atelier */
+  --background: #f5ecdf;
+  --foreground: #1f1a15;
+  --surface: #fffaf3;
+  --muted: #f0e3d1;
+  --muted-foreground: #7a6d5f;
+  --border: #dfcfbc;
 
   /* Typography tokens */
-  --text: #18181b;
-  --text-muted: #52525b;
-  --text-subtle: #71717a;
+  --text: #211b16;
+  --text-muted: #625646;
+  --text-subtle: #817261;
 
   /* Brand + UI tokens */
-  --primary: #18181b;
-  --primary-hover: #27272a;
+  --primary: #0f766e;
+  --primary-hover: #0d655f;
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --accent: #f4f4f5;
-  --accent-foreground: #18181b;
-  --focus: rgba(24, 24, 27, 0.2);
+  --secondary: #efe2d0;
+  --secondary-foreground: #211b16;
+  --accent: #f5ddcf;
+  --accent-foreground: #211b16;
+  --focus: rgba(15, 118, 110, 0.22);
+  --backdrop-pattern:
+    radial-gradient(42rem 22rem at 12% -8%, rgba(23, 176, 173, 0.12), transparent 70%),
+    radial-gradient(38rem 20rem at 90% 2%, rgba(247, 125, 107, 0.14), transparent 72%),
+    linear-gradient(180deg, rgba(255, 250, 243, 0.82), rgba(245, 236, 223, 0.94));
 
   color-scheme: light;
 }
 
 .dark {
-  /* Dark theme - elegant and modern */
-  --background: #09090b;
-  --foreground: #fafafa;
-  --surface: #18181b;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --border: #27272a;
+  /* Dark theme - Midnight Atelier */
+  --background: #0f0d0b;
+  --foreground: #f8efe5;
+  --surface: #17130f;
+  --muted: #231c15;
+  --muted-foreground: #b9ab9a;
+  --border: #2f271f;
 
-  --text: #fafafa;
-  --text-muted: #a1a1aa;
-  --text-subtle: #71717a;
+  --text: #f8efe5;
+  --text-muted: #b9ab9a;
+  --text-subtle: #8f8170;
 
-  --primary: #fafafa;
-  --primary-hover: #ffffff;
-  --primary-foreground: #09090b;
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
-  --focus: rgba(250, 250, 250, 0.2);
+  --primary: #2ec4b6;
+  --primary-hover: #47d2c5;
+  --primary-foreground: #0f0d0b;
+  --secondary: #231c15;
+  --secondary-foreground: #f8efe5;
+  --accent: #2b2119;
+  --accent-foreground: #f8efe5;
+  --focus: rgba(46, 196, 182, 0.28);
+  --backdrop-pattern:
+    radial-gradient(40rem 20rem at 16% -8%, rgba(23, 176, 173, 0.16), transparent 70%),
+    radial-gradient(36rem 20rem at 86% 0%, rgba(247, 125, 107, 0.12), transparent 72%),
+    linear-gradient(180deg, rgba(23, 19, 15, 0.86), rgba(15, 13, 11, 0.94));
 
   color-scheme: dark;
 }
@@ -126,7 +134,9 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image: var(--backdrop-pattern);
+  background-repeat: no-repeat;
   color: var(--text);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -149,14 +159,16 @@ body {
 }
 
 /* Hide default scrollbar for OverlayScrollbars containers */
-[data-overlayscrollbars-initialize],
-[data-overlayscrollbars] {
+[data-overlay-scrollbars],
+[data-overlayscrollbars],
+[data-overlayscrollbars-initialize]:not(html):not(body) {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
 }
 
-[data-overlayscrollbars-initialize]::-webkit-scrollbar,
-[data-overlayscrollbars]::-webkit-scrollbar {
+[data-overlay-scrollbars]::-webkit-scrollbar,
+[data-overlayscrollbars]::-webkit-scrollbar,
+[data-overlayscrollbars-initialize]:not(html):not(body)::-webkit-scrollbar {
   display: none !important;
   width: 0 !important;
   height: 0 !important;

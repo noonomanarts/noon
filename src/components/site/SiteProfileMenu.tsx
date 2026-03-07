@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { FiChevronDown, FiSettings, FiUser } from 'react-icons/fi';
+import { FiChevronDown, FiGrid, FiSettings, FiUser } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 import LogoutButton from '@/components/site/LogoutButton';
 
@@ -19,12 +19,13 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
   const containerRef = useRef<HTMLDivElement>(null);
   const isArabic = locale === 'ar';
 
-  const dashboardHref = role === 'ADMIN' ? `/${locale}/admin` : `/${locale}/account`;
+  const accountHref = `/${locale}/account/profile`;
+  const dashboardHref = `/${locale}/admin`;
 
   const t = {
-    account: isArabic ? 'حسابي' : 'My Account',
+    account: isArabic ? 'ملفي الشخصي' : 'My Account',
     settings: isArabic ? 'الإعدادات' : 'Settings',
-    dashboard: role === 'ADMIN' ? (isArabic ? 'لوحة التحكم' : 'Dashboard') : (isArabic ? 'الحساب' : 'Account'),
+    dashboard: isArabic ? 'لوحة التحكم' : 'Dashboard',
     logout: isArabic ? 'تسجيل الخروج' : 'Logout',
   };
 
@@ -99,12 +100,22 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
           </div>
 
           <Link
-            href={dashboardHref}
+            href={accountHref}
             className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
             <FiUser className="size-4" />
-            {t.dashboard}
+            {t.account}
           </Link>
+
+          {role === 'ADMIN' ? (
+            <Link
+              href={dashboardHref}
+              className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              <FiGrid className="size-4" />
+              {t.dashboard}
+            </Link>
+          ) : null}
 
           <Link
             href={`/${locale}/account/settings`}

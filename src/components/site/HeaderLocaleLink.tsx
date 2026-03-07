@@ -32,7 +32,7 @@ export default function HeaderLocaleLink({ locale }: { locale: Locale }) {
   return (
     <Link
       href={href}
-      className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+      className="inline-flex items-center justify-center rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-2.5 py-1.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
       aria-label={locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}
     >
       {nextLocale.toUpperCase()}

@@ -140,7 +140,7 @@ export default function ThemeToggle({
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex size-10 cursor-pointer list-none items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+        className="inline-flex size-10 cursor-pointer list-none items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] shadow-sm transition hover:bg-[color:var(--muted)]"
         aria-label={label}
         title={label}
       >
@@ -148,7 +148,7 @@ export default function ThemeToggle({
       </button>
 
       {isOpen && (
-        <div className="absolute end-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-1.5 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="absolute end-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-1.5 shadow-xl">
           <div className="space-y-0.5">
             <Option
               label={lightLabel}
@@ -188,13 +188,13 @@ function Option({
       className={
         "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition " +
         (isActive
-          ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-          : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/50 dark:hover:text-zinc-100")
+          ? "bg-[color:var(--muted)] text-[color:var(--text)]"
+          : "text-[color:var(--text-muted)] hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]")
       }
     >
       <span>{label}</span>
       {isActive ? (
-        <svg viewBox="0 0 20 20" className="size-4 text-zinc-900 dark:text-zinc-100" fill="currentColor" aria-hidden="true">
+        <svg viewBox="0 0 20 20" className="size-4 text-[color:var(--text)]" fill="currentColor" aria-hidden="true">
           <path
             fillRule="evenodd"
             d="M16.704 5.29a1 1 0 010 1.42l-7.25 7.25a1 1 0 01-1.415 0l-3.25-3.25a1 1 0 011.414-1.414l2.543 2.543 6.543-6.543a1 1 0 011.415-.006z"

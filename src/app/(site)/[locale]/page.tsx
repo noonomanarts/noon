@@ -13,10 +13,7 @@ import {
   sanitizeSitePageSettings,
   type SitePageSettings,
 } from "@/lib/admin/sitePages";
-import {
-  FiArrowRight,
-  FiCalendar,
-} from "react-icons/fi";
+import { FiArrowRight, FiCalendar, FiClock } from "react-icons/fi";
 
 type UpcomingCard = {
   id: string;
@@ -110,18 +107,30 @@ async function resolveUpcomingItems(
 
 function Section({
   title,
+  description,
   children,
 }: {
   title: string;
+  description?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="py-12">
+    <section className="py-14 sm:py-16">
       <div className="mx-auto w-full max-w-6xl px-4">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100" style={{ color: 'var(--text)' }}>
-            {title}
-          </h2>
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <div className="max-w-2xl space-y-2">
+            <h2
+              className="text-2xl font-semibold tracking-tight text-[color:var(--text)] sm:text-3xl"
+              style={{ fontFamily: "var(--font-hero-en), var(--font-english), serif" }}
+            >
+              {title}
+            </h2>
+            {description ? (
+              <p className="text-sm leading-6 text-[color:var(--text-muted)] sm:text-base">
+                {description}
+              </p>
+            ) : null}
+          </div>
         </div>
         {children}
       </div>
@@ -136,121 +145,147 @@ export default async function HomePage({
 }) {
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
+  const isArabic = locale === "ar";
+
   const content = getHomeContent(locale);
   const homePageSettings = await resolveHomePageSettings();
   const upcomingItems = await resolveUpcomingItems(
     locale,
     content.upcoming.items as UpcomingCard[]
   );
-  const heroHeadingFromSettings = locale === "ar" ? homePageSettings?.headingAr : homePageSettings?.headingEn;
-  const heroSubheadingFromSettings = locale === "ar" ? homePageSettings?.subheadingAr : homePageSettings?.subheadingEn;
-  const heroPrimaryCtaFromSettings =
-    locale === "ar" ? homePageSettings?.homeHero.primaryCtaAr : homePageSettings?.homeHero.primaryCtaEn;
-  const heroSecondaryCtaFromSettings =
-    locale === "ar" ? homePageSettings?.homeHero.secondaryCtaAr : homePageSettings?.homeHero.secondaryCtaEn;
-  const heroTrustLineFromSettings =
-    locale === "ar" ? homePageSettings?.homeHero.trustLineAr : homePageSettings?.homeHero.trustLineEn;
+
+  const heroHeadingFromSettings = isArabic
+    ? homePageSettings?.headingAr
+    : homePageSettings?.headingEn;
+  const heroSubheadingFromSettings = isArabic
+    ? homePageSettings?.subheadingAr
+    : homePageSettings?.subheadingEn;
+  const heroPrimaryCtaFromSettings = isArabic
+    ? homePageSettings?.homeHero.primaryCtaAr
+    : homePageSettings?.homeHero.primaryCtaEn;
+  const heroSecondaryCtaFromSettings = isArabic
+    ? homePageSettings?.homeHero.secondaryCtaAr
+    : homePageSettings?.homeHero.secondaryCtaEn;
+  const heroTrustLineFromSettings = isArabic
+    ? homePageSettings?.homeHero.trustLineAr
+    : homePageSettings?.homeHero.trustLineEn;
+
   const heroHeadline =
     heroHeadingFromSettings?.trim() ||
     content.hero.headline?.trim() ||
-    (locale === "ar"
+    (isArabic
       ? "حيث يتحول الطبخ إلى تجربة"
       : "Where cooking becomes an experience.");
-  const heroSubheadline = heroSubheadingFromSettings?.trim() || content.hero.subheadline?.trim() || "";
+  const heroSubheadline =
+    heroSubheadingFromSettings?.trim() || content.hero.subheadline?.trim() || "";
+
   const heroSlideImages =
-    homePageSettings?.homeHero.slideImages && homePageSettings.homeHero.slideImages.length > 0
+    homePageSettings?.homeHero.slideImages &&
+    homePageSettings.homeHero.slideImages.length > 0
       ? homePageSettings.homeHero.slideImages
       : heroSlides;
+
   const heroAutoplayMs = homePageSettings?.homeHero.autoplayMs ?? 3800;
   const heroKpis = content.numbers.items.slice(0, 3);
+
   const heroUi = {
     exploreClasses:
       heroPrimaryCtaFromSettings?.trim() || content.hero.ctaExploreClasses,
-    bookEvent: heroSecondaryCtaFromSettings?.trim() || (locale === "ar" ? "احجز فعالية" : "Book an event"),
-    trustLine: heroTrustLineFromSettings?.trim()
-      || (locale === "ar"
+    bookEvent:
+      heroSecondaryCtaFromSettings?.trim() ||
+      (isArabic ? "احجز فعالية" : "Book an event"),
+    trustLine:
+      heroTrustLineFromSettings?.trim() ||
+      (isArabic
         ? "تجربة موثوقة للمجموعات والعائلات والأفراد."
         : "Trusted classes and events for teams, families, and individuals."),
+    numbersLabel: isArabic ? "أرقامنا" : "Our Impact",
+    classesCaption: isArabic
+      ? "برامج متجددة بلمسة إبداعية."
+      : "Signature programs crafted for every level.",
+    upcomingCaption: isArabic
+      ? "جلسات قادمة جاهزة للحجز."
+      : "Handpicked sessions you can book right away.",
+    whyCaption: isArabic
+      ? "الفرق الحقيقي في تجربة نون."
+      : "What truly sets the Noon experience apart.",
   };
 
   return (
-    <div>
-      {/* Hero */}
-      <section className="relative isolate overflow-hidden bg-[#f6efe3] dark:bg-[#050505]">
-        <div className="absolute inset-0">
-          <Image
-            src={content.hero.backgroundImageSrc ?? "/og-image.png"}
-            alt=""
-            fill
-            priority
-            className="object-cover opacity-[0.16] dark:opacity-[0.12]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-[#fbf4e8]/93 via-[#f4e7d6]/95 to-[#efe0cc]/96 dark:from-[#040404]/92 dark:via-[#070707]/95 dark:to-[#0a0a0a]/96" />
-          <div className="pointer-events-none absolute -left-20 top-8 h-64 w-64 rounded-full bg-teal/20 blur-3xl dark:bg-teal/10" />
-        </div>
+    <div className="relative overflow-x-clip pb-8">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[42rem]">
+        <div className="absolute -left-20 top-10 h-80 w-80 rounded-full bg-teal/20 blur-3xl dark:bg-teal/10" />
+        <div className="absolute right-0 top-32 h-96 w-96 rounded-full bg-coral/20 blur-3xl dark:bg-coral/10" />
+      </div>
 
-        <div className="relative z-10">
-          <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:py-16 lg:py-20">
-            <div className="grid gap-10 lg:grid-cols-[1.12fr_0.88fr] lg:items-center">
-              <div className="space-y-7">
-                <h1
-                  className="max-w-3xl text-4xl font-semibold leading-[1.08] tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-5xl lg:text-6xl"
-                  style={{
-                    fontFamily:
-                      locale === "ar"
-                        ? "var(--font-hero-ar), var(--font-arabic), serif"
-                        : "var(--font-hero-en), var(--font-english), serif",
-                  }}
+      <section className="relative isolate pt-8 sm:pt-10 lg:pt-12">
+        <div className="mx-auto w-full max-w-6xl px-4">
+          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div className="space-y-7">
+              <h1
+                className="max-w-3xl text-4xl font-semibold leading-[1.03] tracking-tight text-[color:var(--text)] sm:text-5xl lg:text-6xl"
+                style={{
+                  fontFamily: isArabic
+                    ? "var(--font-hero-ar), var(--font-arabic), serif"
+                    : "var(--font-hero-en), var(--font-english), serif",
+                }}
+              >
+                {heroHeadline}
+              </h1>
+
+              {heroSubheadline ? (
+                <p className="max-w-2xl text-base leading-8 text-[color:var(--text-muted)] sm:text-lg">
+                  {heroSubheadline}
+                </p>
+              ) : null}
+
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href={`/${locale}/classes/cooking`}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] shadow-lg shadow-black/15 transition hover:-translate-y-0.5 hover:bg-[color:var(--primary-hover)]"
                 >
-                  {heroHeadline}
-                </h1>
+                  {heroUi.exploreClasses}
+                  <FiArrowRight className="size-4" />
+                </Link>
+                <Link
+                  href={`/${locale}/group-booking-events`}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-3 text-sm font-semibold text-[color:var(--text)] transition hover:-translate-y-0.5 hover:bg-[color:var(--muted)]"
+                >
+                  {heroUi.bookEvent}
+                  <FiCalendar className="size-4" />
+                </Link>
+              </div>
 
-                {heroSubheadline ? (
-                  <p className="max-w-2xl text-base leading-7 text-zinc-700 dark:text-zinc-300 sm:text-lg">
-                    {heroSubheadline}
-                  </p>
-                ) : null}
+              <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 text-sm leading-7 text-[color:var(--text-muted)] shadow-sm">
+                {heroUi.trustLine}
+              </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <Link
-                    href={`/${locale}/classes/cooking`}
-                    className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-teal-500 via-teal-600 to-cyan-600 px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-teal-500/30 transition hover:-translate-y-0.5 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
-                  >
-                    {heroUi.exploreClasses}
-                    <FiArrowRight className="size-4" />
-                  </Link>
-                  <Link
-                    href={`/${locale}/group-booking-events`}
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-300 bg-white/85 px-6 py-3 text-sm font-semibold text-zinc-800 shadow-sm transition hover:-translate-y-0.5 hover:border-zinc-400 hover:bg-white dark:border-zinc-700 dark:bg-zinc-900/75 dark:text-zinc-100 dark:hover:border-zinc-600"
-                  >
-                    {heroUi.bookEvent}
-                    <FiCalendar className="size-4" />
-                  </Link>
-                </div>
-
-                <div className="rounded-2xl border border-zinc-200/70 bg-white/75 p-4 text-sm text-zinc-700 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/65 dark:text-zinc-300">
-                  {heroUi.trustLine}
-                </div>
-
+              <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-3 shadow-sm">
+                <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-subtle)]">
+                  {heroUi.numbersLabel}
+                </p>
                 <div className="grid gap-3 sm:grid-cols-3">
                   {heroKpis.map((item) => (
                     <div
                       key={`hero-kpi-${item.value}-${item.label}`}
-                      className="rounded-2xl border border-zinc-200/70 bg-white/80 p-4 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/70"
+                      className="rounded-2xl bg-[color:var(--muted)] px-4 py-3"
                     >
-                      <p className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{item.value}</p>
-                      <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">{item.label}</p>
+                      <p className="text-xl font-bold text-[color:var(--text)]">{item.value}</p>
+                      <p className="mt-1 text-xs text-[color:var(--text-muted)]">{item.label}</p>
                     </div>
                   ))}
                 </div>
               </div>
+            </div>
 
-              <div className="relative">
-                <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] shadow-xl">
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-2 rounded-[2rem] bg-gradient-to-br from-teal/35 via-transparent to-coral/35 blur-md" />
+              <div className="relative rounded-[2rem] border border-[color:var(--border)] bg-[color:var(--surface)] p-3 shadow-2xl">
+                <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem]">
                   <HeroSlideshow
                     images={heroSlideImages}
                     intervalMs={heroAutoplayMs}
-                    alt={locale === "ar" ? "صور من فعاليات ودورات نون" : "Noon classes and events slideshow"}
+                    alt={isArabic ? "صور من فعاليات ودورات نون" : "Noon classes and events slideshow"}
                   />
                 </div>
               </div>
@@ -259,131 +294,118 @@ export default async function HomePage({
         </div>
       </section>
 
-      {/* Our courses */}
-      <section className="py-12">
-        <div className="mx-auto w-full max-w-6xl px-4">
-          <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-2 sm:grid-cols-2">
-            <Link
-              href={`/${locale}/classes/cooking`}
-              className="group w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <div className="relative aspect-square w-full">
-                <Image
-                  src="/images/cooking.png"
-                  alt={locale === "ar" ? "دورات الطبخ" : "Cooking classes"}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {locale === "ar" ? "دورات الطبخ" : "Cooking classes"}
-                    </div>
-                    <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                      {locale === "ar"
-                        ? "وصفات، مهارات، وتجربة ممتعة."
-                        : "Recipes, skills, and a great experience."}
-                    </div>
-                  </div>
-                  <span className="inline-flex rounded-full bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition group-hover:bg-teal-700">
-                    {locale === "ar" ? "استكشف" : "Explore"}
-                  </span>
-                </div>
-              </div>
-            </Link>
+      <Section title={content.courses.title} description={heroUi.classesCaption}>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Link
+            href={`/${locale}/classes/cooking`}
+            className="group overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+          >
+            <div className="relative aspect-[5/4] overflow-hidden">
+              <Image
+                src="/images/cooking.png"
+                alt={isArabic ? "دورات الطبخ" : "Cooking classes"}
+                fill
+                className="object-cover transition duration-500 group-hover:scale-[1.03]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
+            </div>
+            <div className="space-y-2 p-5">
+              <h3 className="text-lg font-semibold text-[color:var(--text)]">
+                {isArabic ? "دورات الطبخ" : "Cooking classes"}
+              </h3>
+              <p className="text-sm text-[color:var(--text-muted)]">
+                {isArabic
+                  ? "من أساسيات الطبخ حتى التجارب المتقدمة بطابع عملي ممتع."
+                  : "From foundations to advanced techniques in a practical, immersive format."}
+              </p>
+              <span className="inline-flex items-center gap-1 pt-1 text-sm font-semibold text-[color:var(--primary)]">
+                {isArabic ? "استكشف" : "Explore"}
+                <FiArrowRight className="size-4" />
+              </span>
+            </div>
+          </Link>
 
-            <Link
-              href={`/${locale}/classes/arts-crafts`}
-              className="group w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <div className="relative aspect-square w-full">
-                <Image
-                  src="/images/art.png"
-                  alt={locale === "ar" ? "فنون وحرف" : "Arts & crafts classes"}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {locale === "ar" ? "فنون وحرف" : "Arts & crafts classes"}
+          <Link
+            href={`/${locale}/classes/arts-crafts`}
+            className="group overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+          >
+            <div className="relative aspect-[5/4] overflow-hidden">
+              <Image
+                src="/images/art.png"
+                alt={isArabic ? "فنون وحرف" : "Arts & crafts classes"}
+                fill
+                className="object-cover transition duration-500 group-hover:scale-[1.03]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
+            </div>
+            <div className="space-y-2 p-5">
+              <h3 className="text-lg font-semibold text-[color:var(--text)]">
+                {isArabic ? "فنون وحرف" : "Arts & crafts classes"}
+              </h3>
+              <p className="text-sm text-[color:var(--text-muted)]">
+                {isArabic
+                  ? "جلسات إبداعية تدمج الحرفة والفن في بيئة ملهمة."
+                  : "Creative sessions that blend craftsmanship and artistic expression."}
+              </p>
+              <span className="inline-flex items-center gap-1 pt-1 text-sm font-semibold text-[color:var(--primary)]">
+                {isArabic ? "استكشف" : "Explore"}
+                <FiArrowRight className="size-4" />
+              </span>
+            </div>
+          </Link>
+        </div>
+      </Section>
+
+      <section className="py-8 sm:py-10">
+        <div className="mx-auto w-full max-w-6xl px-4">
+          <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm sm:p-7">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {content.numbers.items.map((item) => {
+                const match = String(item.value).match(/(\d+)/);
+                const numericValue = match ? Number(match[1]) : 0;
+                const suffix = match ? String(item.value).replace(match[1], "") : "";
+
+                return (
+                  <div
+                    key={`${item.value}-${item.label}`}
+                    className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-5 text-center"
+                  >
+                    <div className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">
+                      <AnimatedCounter value={numericValue} suffix={suffix} />
                     </div>
-                    <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-                      {locale === "ar"
-                        ? "حِرف، فنون، ووقت إبداعي."
-                        : "Crafts, art, and creative time."}
-                    </div>
+                    <div className="mt-1 text-xs text-[color:var(--text-muted)]">{item.label}</div>
                   </div>
-                  <span className="inline-flex rounded-full bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition group-hover:bg-purple-700">
-                    {locale === "ar" ? "استكشف" : "Explore"}
-                  </span>
-                </div>
-              </div>
-            </Link>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Numbers */}
-      <section className="py-12">
-        <div className="mx-auto w-full max-w-6xl px-4">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {content.numbers.items.map((item) => {
-              const match = String(item.value).match(/(\d+)/);
-              const numericValue = match ? Number(match[1]) : 0;
-              const suffix = match ? String(item.value).replace(match[1], "") : "";
-
-              return (
-                <div
-                  key={`${item.value}-${item.label}`}
-                  className="noon-card rounded-3xl border p-6 text-center shadow-sm"
-                >
-                  <div className="noon-text text-2xl font-semibold tracking-tight">
-                    <AnimatedCounter value={numericValue} suffix={suffix} />
-                  </div>
-                  <div className="noon-text-muted mt-1 text-sm">
-                    {item.label}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Upcoming */}
-      <Section title={content.upcoming.title}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <Section title={content.upcoming.title} description={heroUi.upcomingCaption}>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {upcomingItems.slice(0, 3).map((c) => (
             <article
               key={c.id}
-              className="noon-card overflow-hidden rounded-3xl border shadow-sm"
+              className="group overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="noon-muted relative aspect-16/10">
-                <Image src={c.imageSrc} alt="" fill className="object-cover" />
+              <div className="relative aspect-[16/11] overflow-hidden">
+                <Image src={c.imageSrc} alt="" fill className="object-cover transition duration-500 group-hover:scale-[1.03]" />
               </div>
-              <div className="space-y-3 p-6">
-                <div>
-                  <h3 className="noon-text text-base font-semibold">
-                    {c.title}
-                  </h3>
-                  <p className="noon-text-muted mt-1 text-sm">
-                    {c.datetimeText}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="noon-text text-sm font-semibold">
-                    {c.priceText}
-                  </div>
+              <div className="space-y-3 p-5">
+                <h3 className="line-clamp-1 text-base font-semibold text-[color:var(--text)]">{c.title}</h3>
+                <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)]">
+                  <FiClock className="size-3.5" />
+                  {c.datetimeText}
+                </p>
+                <div className="flex items-center justify-between pt-1">
+                  <div className="text-sm font-semibold text-[color:var(--text)]">{c.priceText}</div>
                   <Link
                     href={`/${locale}/classes/cooking`}
-                    className="noon-btn noon-btn-sm noon-btn-primary"
+                    className="inline-flex items-center gap-1 rounded-full bg-[color:var(--primary)] px-3.5 py-1.5 text-xs font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
                   >
                     {content.upcoming.bookNowLabel}
+                    <FiArrowRight className="size-3.5" />
                   </Link>
                 </div>
               </div>
@@ -392,35 +414,29 @@ export default async function HomePage({
         </div>
       </Section>
 
-      {/* Why Noon */}
-      <Section title={content.whyNoon.title}>
+      <Section title={content.whyNoon.title} description={heroUi.whyCaption}>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {content.whyNoon.items.map((item) => (
+          {content.whyNoon.items.map((item, index) => (
             <div
               key={item.title}
-              className="noon-card rounded-3xl border p-6 shadow-sm"
+              className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm"
             >
-              <div className="noon-text text-sm font-semibold">
-                {item.title}
+              <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--muted)] text-xs font-semibold text-[color:var(--text-muted)]">
+                {String(index + 1).padStart(2, "0")}
               </div>
-              <div className="noon-text-muted mt-2 text-sm leading-6">
-                {item.description}
-              </div>
+              <h3 className="text-base font-semibold text-[color:var(--text)]">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">{item.description}</p>
             </div>
           ))}
         </div>
       </Section>
 
-      {/* Partners */}
-      <Section title={content.partners.title}>
-        <p className="noon-text-muted max-w-3xl text-sm leading-6">
-          {content.partners.description}
-        </p>
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <Section title={content.partners.title} description={content.partners.description}>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {content.partners.items.map((p) => (
             <div
               key={p.id}
-              className="noon-card noon-text-muted flex items-center justify-center rounded-2xl border px-4 py-6 text-center text-sm font-semibold shadow-sm"
+              className="flex min-h-24 items-center justify-center rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-5 text-center text-sm font-semibold text-[color:var(--text-muted)] shadow-sm transition hover:-translate-y-0.5 hover:text-[color:var(--text)]"
             >
               {p.logoText ?? p.name}
             </div>
