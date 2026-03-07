@@ -97,6 +97,8 @@ async function ensureShopOrdersTables(): Promise<void> {
       city VARCHAR(80) NOT NULL,
       area VARCHAR(120) NOT NULL,
       street_address TEXT NOT NULL,
+      delivery_latitude DOUBLE PRECISION,
+      delivery_longitude DOUBLE PRECISION,
       postal_code VARCHAR(30),
       recipient_full_name VARCHAR(160) NOT NULL,
       recipient_phone VARCHAR(30) NOT NULL,
@@ -122,6 +124,8 @@ async function ensureShopOrdersTables(): Promise<void> {
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(120)`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS admin_notes TEXT`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT`);
+  await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivery_latitude DOUBLE PRECISION`);
+  await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivery_longitude DOUBLE PRECISION`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMP WITH TIME ZONE`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP WITH TIME ZONE`);
@@ -246,6 +250,8 @@ function mapShopOrder(row: Record<string, unknown>): ShopOrder {
     city: row.city as string,
     area: row.area as string,
     street_address: row.street_address as string,
+    delivery_latitude: row.delivery_latitude !== null && row.delivery_latitude !== undefined ? Number(row.delivery_latitude) : null,
+    delivery_longitude: row.delivery_longitude !== null && row.delivery_longitude !== undefined ? Number(row.delivery_longitude) : null,
     postal_code: (row.postal_code as string | null) ?? null,
     recipient_full_name: row.recipient_full_name as string,
     recipient_phone: row.recipient_phone as string,

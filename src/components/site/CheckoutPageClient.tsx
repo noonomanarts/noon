@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
+import { MuscatLocationPicker } from '@/components/site/MuscatLocationPicker';
 
 type CartApiItem = {
   productId: string;
@@ -52,6 +53,11 @@ type CheckoutResult = {
   };
 };
 
+type DeliveryLocation = {
+  lat: number;
+  lng: number;
+};
+
 const SHIPPING_FEE = 2;
 
 export default function CheckoutPageClient({ locale }: { locale: Locale }) {
@@ -67,6 +73,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const [message, setMessage] = useState<string | null>(null);
   const [unauthorized, setUnauthorized] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<DeliveryLocation | null>(null);
 
   const [form, setForm] = useState({
     area: '',
@@ -118,6 +125,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
     backToCart: isArabic ? 'العودة للسلة' : 'Back to cart',
     required: isArabic ? 'هذا الحقل مطلوب' : 'This field is required',
+    locationRequired: isArabic ? 'يرجى تحديد لوكيشن التوصيل على الخريطة.' : 'Please pick the delivery location on the map.',
     items: isArabic ? 'منتجات' : 'items',
   };
 
@@ -170,6 +178,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const walletBalance = wallet?.balance ?? 0;
   const hasEnoughBalance = walletBalance >= total;
   const hasItems = (cart?.items.length ?? 0) > 0;
+  const isLocationMissing = selectedLocation === null;
 
   const requiredMissing = useMemo(() => {
     return (
@@ -266,12 +275,20 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
       return;
     }
 
+    if (isLocationMissing) {
+      setError(t.locationRequired);
+      return;
+    }
+
     setProcessing(true);
     try {
       const response = await fetch('/api/shop/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          location: selectedLocation,
+        }),
       });
 
       const payload = (await response.json().catch(() => ({}))) as CheckoutResult & {
@@ -463,6 +480,11 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
                   />
                 </label>
+                <MuscatLocationPicker
+                  locale={locale}
+                  value={selectedLocation}
+                  onChange={setSelectedLocation}
+                />
                 <label className="space-y-1 text-sm">
                   <span className="text-[color:var(--text)]">{t.postalCode}</span>
                   <input
@@ -563,7 +585,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             <button
               type="button"
               onClick={() => void submitCheckout()}
-              disabled={processing || requiredMissing || !hasEnoughBalance}
+              disabled={processing || requiredMissing || isLocationMissing || !hasEnoughBalance}
               className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {processing ? t.processing : t.payWallet}

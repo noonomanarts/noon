@@ -417,6 +417,8 @@ export interface ShopOrder {
   city: string;
   area: string;
   street_address: string;
+  delivery_latitude: number | null;
+  delivery_longitude: number | null;
   postal_code: string | null;
   recipient_full_name: string;
   recipient_phone: string;

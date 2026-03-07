@@ -6,6 +6,39 @@ import { CART_COOKIE_NAME, emptyCart, parseCartCookie, serializeCartCookie } fro
 
 const SHIPPING_FEE = 2;
 const DELIVERY_CITY = 'Muscat';
+const MUSCAT_BOUNDS = {
+  west: 58.03,
+  south: 23.2,
+  east: 58.95,
+  north: 23.9,
+} as const;
+
+function parseMuscatLocation(value: unknown): { latitude: number; longitude: number } | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const maybeLat = Number((value as { lat?: unknown }).lat);
+  const maybeLng = Number((value as { lng?: unknown }).lng);
+
+  if (!Number.isFinite(maybeLat) || !Number.isFinite(maybeLng)) {
+    return null;
+  }
+
+  if (
+    maybeLng < MUSCAT_BOUNDS.west ||
+    maybeLng > MUSCAT_BOUNDS.east ||
+    maybeLat < MUSCAT_BOUNDS.south ||
+    maybeLat > MUSCAT_BOUNDS.north
+  ) {
+    return null;
+  }
+
+  return {
+    latitude: Number(maybeLat.toFixed(6)),
+    longitude: Number(maybeLng.toFixed(6)),
+  };
+}
 
 function generateOrderNumber(): string {
   const now = new Date();
@@ -37,6 +70,10 @@ export async function POST(request: NextRequest) {
       recipientFullName?: string;
       recipientPhone?: string;
       notes?: string;
+      location?: {
+        lat?: number;
+        lng?: number;
+      };
     };
 
     const city = DELIVERY_CITY;
@@ -46,9 +83,14 @@ export async function POST(request: NextRequest) {
     const recipientFullName = typeof body.recipientFullName === 'string' ? body.recipientFullName.trim() : '';
     const recipientPhone = typeof body.recipientPhone === 'string' ? body.recipientPhone.trim() : '';
     const notes = typeof body.notes === 'string' ? body.notes.trim() : '';
+    const location = parseMuscatLocation(body.location);
 
     if (!area || !streetAddress || !recipientFullName || !recipientPhone) {
       return NextResponse.json({ error: 'Please complete all required address fields' }, { status: 400 });
+    }
+
+    if (!location) {
+      return NextResponse.json({ error: 'Please select a valid delivery location in Muscat' }, { status: 400 });
     }
 
     const cartCookie = cookieStore.get(CART_COOKIE_NAME)?.value;
@@ -72,6 +114,8 @@ export async function POST(request: NextRequest) {
           city VARCHAR(80) NOT NULL,
           area VARCHAR(120) NOT NULL,
           street_address TEXT NOT NULL,
+          delivery_latitude DOUBLE PRECISION,
+          delivery_longitude DOUBLE PRECISION,
           postal_code VARCHAR(30),
           recipient_full_name VARCHAR(160) NOT NULL,
           recipient_phone VARCHAR(30) NOT NULL,
@@ -97,6 +141,8 @@ export async function POST(request: NextRequest) {
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(120)`);
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS admin_notes TEXT`);
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT`);
+      await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivery_latitude DOUBLE PRECISION`);
+      await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivery_longitude DOUBLE PRECISION`);
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMP WITH TIME ZONE`);
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE`);
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP WITH TIME ZONE`);
@@ -245,13 +291,13 @@ export async function POST(request: NextRequest) {
 
       const orderInsert = await client.query(
         `INSERT INTO shop_orders (
-          order_number, user_id, status, city, area, street_address, postal_code,
+          order_number, user_id, status, city, area, street_address, delivery_latitude, delivery_longitude, postal_code,
           recipient_full_name, recipient_phone, notes,
           subtotal, shipping_fee, total_amount, currency, payment_method, wallet_transaction_id, paid_at
         ) VALUES (
-          $1, $2, 'PAID', $3, $4, $5, $6,
-          $7, $8, $9,
-          $10, $11, $12, $13, 'WALLET', $14, NOW()
+          $1, $2, 'PAID', $3, $4, $5, $6, $7, $8,
+          $9, $10, $11,
+          $12, $13, $14, $15, 'WALLET', $16, NOW()
         ) RETURNING id, order_number`,
         [
           orderNumber,
@@ -259,6 +305,8 @@ export async function POST(request: NextRequest) {
           city,
           area,
           streetAddress,
+          location.latitude,
+          location.longitude,
           postalCode || null,
           recipientFullName,
           recipientPhone,
@@ -312,6 +360,10 @@ export async function POST(request: NextRequest) {
           totalAmount,
           currency: String(walletRow.currency || 'OMR'),
           itemsCount: orderItems.reduce((sum, item) => sum + item.quantity, 0),
+          location: {
+            lat: location.latitude,
+            lng: location.longitude,
+          },
         },
         wallet: {
           balance: newBalance,
