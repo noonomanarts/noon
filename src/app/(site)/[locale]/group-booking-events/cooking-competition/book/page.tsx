@@ -304,7 +304,7 @@ export default function CookingCompetitionBookingPage() {
                   className={`flex h-10 w-10 items-center justify-center rounded-full font-bold transition-all ${
                     currentStep >= step
                       ? 'text-white shadow-lg'
-                      : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                      : 'bg-zinc-200 text-[color:var(--text-muted)] dark:bg-zinc-800 dark:text-zinc-400'
                   }`}
                   style={currentStep >= step ? { background: 'var(--noon-coral-gradient)' } : {}}
                 >
@@ -325,33 +325,33 @@ export default function CookingCompetitionBookingPage() {
         <BookingFormError message={error} />
 
         {/* Step Content */}
-        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
           {/* Step 1: Date & Time Selection */}
           {currentStep === 1 && (
             <div className="space-y-6 p-8">
               <div className="mb-6 flex items-center gap-3">
                 <IoCalendar className="h-8 w-8 text-teal" />
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.step1Title}</h2>
+                <h2 className="text-2xl font-bold text-[color:var(--text)] dark:text-white">{t.step1Title}</h2>
               </div>
               
               {/* Brief */}
               <div className="rounded-xl border-2 border-coral/20 bg-coral/5 p-6 dark:border-coral/30 dark:bg-coral/10">
                 <div className="mb-3 flex items-center gap-2">
                   <GiCookingPot className="h-6 w-6 text-coral" />
-                  <h3 className="font-bold text-zinc-900 dark:text-white">{t.briefTitle}</h3>
+                  <h3 className="font-bold text-[color:var(--text)] dark:text-white">{t.briefTitle}</h3>
                 </div>
                 <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{t.briefText}</p>
               </div>
 
               {/* Date Selection */}
               <div>
-                <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
                   <IoCalendar className="h-5 w-5 text-yellow" />
                   {t.selectDate}
                 </label>
                 <input
                   type="date"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.selectedDate || ''}
                   onChange={(e) =>
                     setBookingData({ ...bookingData, selectedDate: e.target.value })
@@ -362,12 +362,12 @@ export default function CookingCompetitionBookingPage() {
 
               {/* Time Selection */}
               <div>
-                <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
                   <MdSchedule className="h-5 w-5 text-purple" />
                   {t.selectTime}
                 </label>
                 <select
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.selectedTime || ''}
                   onChange={(e) =>
                   setBookingData({ ...bookingData, selectedTime: e.target.value })
@@ -389,7 +389,7 @@ export default function CookingCompetitionBookingPage() {
           <div className="space-y-8 p-8">
             <div className="mb-6 flex items-center gap-3">
               <BiSolidGift className="h-8 w-8 text-purple" />
-              <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.step2Title}</h2>
+              <h2 className="text-2xl font-bold text-[color:var(--text)] dark:text-white">{t.step2Title}</h2>
             </div>
 
             {/* Package Options */}
@@ -402,7 +402,7 @@ export default function CookingCompetitionBookingPage() {
                 className={`group cursor-pointer overflow-hidden rounded-2xl border-2 transition-all hover:shadow-xl ${
                   bookingData.packageType === 'STANDARD'
                     ? 'shadow-xl'
-                    : 'border-zinc-200 dark:border-zinc-800'
+                    : 'border-[color:var(--border)] dark:border-zinc-800'
                 }`}
                 style={bookingData.packageType === 'STANDARD' ? { borderColor: 'var(--noon-teal)' } : {}}
               >
@@ -410,7 +410,7 @@ export default function CookingCompetitionBookingPage() {
                   <h3 className="mb-2 text-2xl font-bold" style={bookingData.packageType === 'STANDARD' ? { color: 'white' } : { color: 'var(--noon-teal)' }}>
                     {t.standardPackage}
                   </h3>
-                  <p className={bookingData.packageType === 'STANDARD' ? 'text-white' : 'text-zinc-600 dark:text-zinc-400'}>
+                  <p className={bookingData.packageType === 'STANDARD' ? 'text-white' : 'text-[color:var(--text-muted)] dark:text-zinc-400'}>
                     {t.standardSubtitle}
                   </p>
                 </div>
@@ -439,7 +439,7 @@ export default function CookingCompetitionBookingPage() {
                 className={`group relative cursor-pointer overflow-hidden rounded-2xl border-2 transition-all hover:shadow-xl ${
                   bookingData.packageType === 'PREMIUM'
                     ? 'shadow-2xl'
-                    : 'border-zinc-200 dark:border-zinc-800'
+                    : 'border-[color:var(--border)] dark:border-zinc-800'
                 }`}
                 style={bookingData.packageType === 'PREMIUM' ? { borderColor: 'var(--noon-purple)' } : {}}
               >
@@ -454,7 +454,7 @@ export default function CookingCompetitionBookingPage() {
                   <h3 className="mb-2 text-2xl font-bold" style={bookingData.packageType === 'PREMIUM' ? { color: 'white' } : { color: 'var(--noon-purple)' }}>
                     {t.premiumPackage}
                   </h3>
-                  <p className={bookingData.packageType === 'PREMIUM' ? 'text-white' : 'text-zinc-600 dark:text-zinc-400'}>
+                  <p className={bookingData.packageType === 'PREMIUM' ? 'text-white' : 'text-[color:var(--text-muted)] dark:text-zinc-400'}>
                     {t.premiumSubtitle}
                   </p>
                 </div>
@@ -467,7 +467,7 @@ export default function CookingCompetitionBookingPage() {
                   ].map((item, i) => (
                     <div key={i} className="flex items-center gap-3">
                       <item.Icon className="h-6 w-6 text-purple" />
-                      <span className="text-sm font-semibold text-zinc-900 dark:text-white">
+                      <span className="text-sm font-semibold text-[color:var(--text)] dark:text-white">
                         <strong>{item.label}:</strong> {item.value}
                       </span>
                     </div>
@@ -477,13 +477,13 @@ export default function CookingCompetitionBookingPage() {
             </div>
 
             {/* Gift Add-ons */}
-            <div className="rounded-2xl border border-zinc-200 p-8 dark:border-zinc-700" style={{ background: 'var(--noon-yellow-gradient)' }}>
-              <h3 className="mb-6 text-2xl font-bold text-zinc-900">{t.giftAddons}</h3>
+            <div className="rounded-2xl border border-[color:var(--border)] p-8 dark:border-zinc-700" style={{ background: 'var(--noon-yellow-gradient)' }}>
+              <h3 className="mb-6 text-2xl font-bold text-[color:var(--text)]">{t.giftAddons}</h3>
               <div className="space-y-4">
                 {giftOptions.map((gift) => (
                   <div 
                     key={gift.id} 
-                    className="rounded-xl border border-zinc-200 bg-white/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-800/80"
+                    className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-800/80"
                   >
                     <div className="flex items-start gap-6">
                       <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30">
@@ -492,7 +492,7 @@ export default function CookingCompetitionBookingPage() {
                         </div>
                       </div>
                       <div className="flex-1">
-                        <h4 className="mb-2 text-lg font-bold text-zinc-900 dark:text-white">
+                        <h4 className="mb-2 text-lg font-bold text-[color:var(--text)] dark:text-white">
                           {locale === 'ar' ? gift.nameAr : gift.name}
                         </h4>
                         <p className="mb-4 text-2xl font-bold text-coral">
@@ -506,7 +506,7 @@ export default function CookingCompetitionBookingPage() {
                                 g => g.id === gift.id && g.scope === 'ALL_PARTICIPANTS'
                               )
                                 ? 'text-white shadow-lg'
-                                : 'border-2 bg-white text-zinc-700 hover:shadow-md dark:bg-zinc-800 dark:text-zinc-200'
+                                : 'border-2 bg-[color:var(--surface)] text-zinc-700 hover:shadow-md dark:bg-zinc-800 dark:text-zinc-200'
                             }`}
                             style={bookingData.gifts?.some(
                               g => g.id === gift.id && g.scope === 'ALL_PARTICIPANTS'
@@ -522,7 +522,7 @@ export default function CookingCompetitionBookingPage() {
                                 g => g.id === gift.id && g.scope === 'WINNING_TEAM'
                               )
                                 ? 'text-white shadow-lg'
-                                : 'border-2 bg-white text-zinc-700 hover:shadow-md dark:bg-zinc-800 dark:text-zinc-200'
+                                : 'border-2 bg-[color:var(--surface)] text-zinc-700 hover:shadow-md dark:bg-zinc-800 dark:text-zinc-200'
                             }`}
                             style={bookingData.gifts?.some(
                               g => g.id === gift.id && g.scope === 'WINNING_TEAM'
@@ -546,18 +546,18 @@ export default function CookingCompetitionBookingPage() {
           <div className="space-y-6 p-8">
             <div className="mb-6 flex items-center gap-3">
               <MdBusiness className="h-8 w-8 text-yellow" />
-              <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.step3Title}</h2>
+              <h2 className="text-2xl font-bold text-[color:var(--text)] dark:text-white">{t.step3Title}</h2>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
               <div>
-                <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
                   <MdGroup className="h-5 w-5 text-teal" />
                   {t.fullName} *
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.fullName || ''}
                   onChange={(e) =>
                     setBookingData({ ...bookingData, fullName: e.target.value })
@@ -567,13 +567,13 @@ export default function CookingCompetitionBookingPage() {
               </div>
 
               <div>
-                <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
                   <MdEmail className="h-5 w-5 text-purple" />
                   {t.email} *
                 </label>
                 <input
                   type="email"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.email || ''}
                   onChange={(e) =>
                     setBookingData({ ...bookingData, email: e.target.value })
@@ -583,13 +583,13 @@ export default function CookingCompetitionBookingPage() {
               </div>
 
               <div>
-                <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
                   <MdPhone className="h-5 w-5 text-yellow" />
                   {t.phoneNumber} *
                 </label>
                 <input
                   type="tel"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.phoneNumber || ''}
                   onChange={(e) =>
                     setBookingData({ ...bookingData, phoneNumber: e.target.value })
@@ -599,13 +599,13 @@ export default function CookingCompetitionBookingPage() {
               </div>
 
               <div>
-                <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
                   <MdBusiness className="h-5 w-5 text-teal" />
                   {t.companyName}
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.companyOrGroupName || ''}
                   onChange={(e) =>
                     setBookingData({
@@ -617,7 +617,7 @@ export default function CookingCompetitionBookingPage() {
               </div>
 
               <div>
-                <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+                <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
                   <MdGroup className="h-5 w-5 text-purple" />
                   {t.numberOfParticipants} *
                 </label>
@@ -625,7 +625,7 @@ export default function CookingCompetitionBookingPage() {
                   type="number"
                   min="8"
                   max="40"
-                  className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                   value={bookingData.numberOfParticipants || ''}
                   onChange={(e) =>
                     setBookingData({
@@ -639,12 +639,12 @@ export default function CookingCompetitionBookingPage() {
             </div>
 
             <div>
-              <label className="mb-3 flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+              <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
                 <HiSparkles className="h-5 w-5 text-yellow" />
                 {t.specialRequests}
               </label>
               <textarea
-                className="w-full rounded-xl border-2 border-zinc-200 px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                 rows={4}
                 value={bookingData.specialRequests || ''}
                 onChange={(e) =>
@@ -658,7 +658,7 @@ export default function CookingCompetitionBookingPage() {
 
             {/* Summary */}
             <div className="rounded-xl border-2 border-coral/20 bg-coral/5 p-6 dark:border-coral/30 dark:bg-coral/10">
-              <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-zinc-900 dark:text-white">
+              <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-[color:var(--text)] dark:text-white">
                 <IoCheckmarkCircle className="h-6 w-6 text-coral" />
                 {t.bookingSummary}
               </h3>
@@ -691,10 +691,10 @@ export default function CookingCompetitionBookingPage() {
             <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full" style={{ background: 'var(--noon-coral-gradient)' }}>
               <IoCheckmarkCircle className="h-14 w-14 text-white" />
             </div>
-            <h2 className="mb-4 text-3xl font-bold text-zinc-900 dark:text-white">
+            <h2 className="mb-4 text-3xl font-bold text-[color:var(--text)] dark:text-white">
               {t.confirmationTitle}
             </h2>
-            <p className="mx-auto mb-8 max-w-2xl text-zinc-600 dark:text-zinc-400">
+            <p className="mx-auto mb-8 max-w-2xl text-[color:var(--text-muted)] dark:text-zinc-400">
               {t.confirmationMessage}
             </p>
             {bookingNumber ? (
@@ -715,7 +715,7 @@ export default function CookingCompetitionBookingPage() {
 
         {/* Navigation Buttons */}
         {currentStep < 4 && (
-          <div className="flex justify-between border-t border-zinc-200 p-6 dark:border-zinc-800">
+          <div className="flex justify-between border-t border-[color:var(--border)] p-6 dark:border-zinc-800">
             <button
               onClick={handleBack}
               disabled={currentStep === 1 || loading}

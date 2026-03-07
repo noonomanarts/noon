@@ -5,11 +5,7 @@ import { getUserById } from '@/lib/db/users';
 import { CART_COOKIE_NAME, emptyCart, parseCartCookie, serializeCartCookie } from '@/lib/cart';
 
 const SHIPPING_FEE = 2;
-
-function isAllowedCity(city: string): boolean {
-  const normalized = city.trim().toLowerCase();
-  return normalized === 'muscat' || normalized === 'مسقط';
-}
+const DELIVERY_CITY = 'Muscat';
 
 function generateOrderNumber(): string {
   const now = new Date();
@@ -35,7 +31,6 @@ export async function POST(request: NextRequest) {
     }
 
     const body = (await request.json()) as {
-      city?: string;
       area?: string;
       streetAddress?: string;
       postalCode?: string;
@@ -44,7 +39,7 @@ export async function POST(request: NextRequest) {
       notes?: string;
     };
 
-    const city = typeof body.city === 'string' ? body.city.trim() : '';
+    const city = DELIVERY_CITY;
     const area = typeof body.area === 'string' ? body.area.trim() : '';
     const streetAddress = typeof body.streetAddress === 'string' ? body.streetAddress.trim() : '';
     const postalCode = typeof body.postalCode === 'string' ? body.postalCode.trim() : '';
@@ -52,12 +47,8 @@ export async function POST(request: NextRequest) {
     const recipientPhone = typeof body.recipientPhone === 'string' ? body.recipientPhone.trim() : '';
     const notes = typeof body.notes === 'string' ? body.notes.trim() : '';
 
-    if (!city || !area || !streetAddress || !recipientFullName || !recipientPhone) {
+    if (!area || !streetAddress || !recipientFullName || !recipientPhone) {
       return NextResponse.json({ error: 'Please complete all required address fields' }, { status: 400 });
-    }
-
-    if (!isAllowedCity(city)) {
-      return NextResponse.json({ error: 'Delivery is available in Muscat only' }, { status: 400 });
     }
 
     const cartCookie = cookieStore.get(CART_COOKIE_NAME)?.value;
@@ -220,20 +211,21 @@ export async function POST(request: NextRequest) {
       const shippingFee = SHIPPING_FEE;
       const totalAmount = Number((subtotal + shippingFee).toFixed(3));
 
-      const walletBalance = Number(walletRow.balance);
-      const walletAvailable = Number(walletRow.available_balance);
+      const walletBalance = Number(walletRow.balance ?? 0);
+      const walletAvailable = Number(walletRow.available_balance ?? walletRow.balance ?? 0);
 
-      if (walletBalance < totalAmount || walletAvailable < totalAmount) {
+      if (!Number.isFinite(walletBalance) || walletBalance < totalAmount) {
         await client.query('ROLLBACK');
         return NextResponse.json({
           error: 'Insufficient wallet balance',
           required: totalAmount,
-          available: Number(walletAvailable.toFixed(3)),
+          available: Number(walletBalance.toFixed(3)),
+          withdrawable: Number(walletAvailable.toFixed(3)),
         }, { status: 409 });
       }
 
       const newBalance = Number((walletBalance - totalAmount).toFixed(3));
-      const newAvailable = Number((walletAvailable - totalAmount).toFixed(3));
+      const newAvailable = Number(Math.min(walletAvailable, newBalance).toFixed(3));
 
       const walletTxResult = await client.query(
         `INSERT INTO wallet_transactions (wallet_id, amount, type, reason, status)

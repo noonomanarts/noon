@@ -59,7 +59,7 @@ export default function CartLinkWithCount({
   return (
     <Link
       href={`/${locale}/cart`}
-      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-2.5 py-1.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
     >
       <span className="inline-flex items-center gap-2">
         <span className="relative inline-flex">
@@ -69,7 +69,7 @@ export default function CartLinkWithCount({
             <path d="M9 22a1 1 0 100-2 1 1 0 000 2zM18 22a1 1 0 100-2 1 1 0 000 2z" />
           </svg>
           {count > 0 && (
-            <span className="absolute -right-2 -top-2 inline-flex min-w-4 items-center justify-center rounded-full bg-zinc-900 px-1 text-[10px] font-semibold text-white dark:bg-white dark:text-zinc-900">
+            <span className="absolute -right-2 -top-2 inline-flex min-w-4 items-center justify-center rounded-full bg-[color:var(--primary)] px-1 text-[10px] font-semibold text-[color:var(--primary-foreground)]">
               {count > 99 ? '99+' : count}
             </span>
           )}

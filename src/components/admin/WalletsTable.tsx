@@ -616,10 +616,10 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                   {locale === "ar" ? "رقم الهاتف" : "Phone Number"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
-                  {locale === "ar" ? "الرصيد الإجمالي" : "Total Balance"}
+                  {locale === "ar" ? "رصيد المحفظة (للدفع)" : "Wallet Balance (for payments)"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
-                  {locale === "ar" ? "المقدار القابل للسحب" : "Withdrawable Amount"}
+                  {locale === "ar" ? "المقدار القابل للسحب (نقدًا)" : "Withdrawable Amount (cash out)"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                   {locale === "ar" ? "المبلغ المحجوز" : "Blocked Amount"}
@@ -768,7 +768,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 mr-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors duration-200">
                 <FiCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
-              <span className="font-medium">{locale === "ar" ? "تعديل المتاح" : "Edit Available"}</span>
+              <span className="font-medium">{locale === "ar" ? "تعديل القابل للسحب" : "Edit Withdrawable"}</span>
             </button>
             <button
               onClick={() => {
@@ -1055,7 +1055,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
               <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border border-blue-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-800/30">
                 <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
-                  {locale === "ar" ? "سيتم تحديث المقدار القابل للسحب للمستخدم المحدد" : "Withdrawable amount will be updated for the selected user"}
+                  {locale === "ar" ? "سيتم تحديث المبلغ القابل للسحب النقدي للمستخدم المحدد" : "Cash-withdrawable amount will be updated for the selected user"}
                 </p>
               </div>
             </div>

@@ -19,6 +19,10 @@
   --noon-purple-strong: #6a347b;
   --noon-teal: #17b0ad;
   --noon-teal-strong: #109d9a;
+  --noon-coral-soft: color-mix(in oklab, var(--noon-coral) 18%, white);
+  --noon-yellow-soft: color-mix(in oklab, var(--noon-yellow) 28%, white);
+  --noon-purple-soft: color-mix(in oklab, var(--noon-purple) 16%, white);
+  --noon-teal-soft: color-mix(in oklab, var(--noon-teal) 18%, white);
 
   /* Shared brand gradients */
   --noon-coral-gradient: linear-gradient(

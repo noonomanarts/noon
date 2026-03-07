@@ -361,16 +361,16 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
     <>
       {/* Deposit Modal */}
       {showDepositModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/30 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
-            <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-[color:var(--surface)]/30 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[color:var(--surface)] shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
+            <div className="border-b border-[color:var(--border)]/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-zinc-900 dark:text-white bg-gradient-to-r from-teal to-teal-light bg-clip-text text-transparent">
+                <h3 className="text-xl font-semibold text-[color:var(--text)] dark:text-white bg-gradient-to-r from-teal to-teal-light bg-clip-text text-transparent">
                   {isArabic ? "شحن المحفظة" : "Wallet Top-up"}
                 </h3>
                 <button
                   onClick={() => setShowDepositModal(false)}
-                  className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors duration-200"
+                  className="text-zinc-400 hover:text-[color:var(--text-muted)] dark:hover:text-zinc-300 rounded-full p-1 hover:bg-[color:var(--muted)] dark:hover:bg-zinc-700 transition-colors duration-200"
                 >
                   <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -414,17 +414,17 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                 </p>
                  <p className="mt-1 text-xs text-teal-800 dark:text-teal-300">
                    {isArabic
-                     ? 'سيتم اعتماد الرصيد بعد تأكيد عملية الدفع من البوابة.'
-                     : 'Balance is credited after payment gateway confirmation.'}
+                     ? 'بعد تأكيد الدفع، يضاف هذا المبلغ إلى رصيد الشراء وليس للمبلغ القابل للسحب.'
+                     : 'After payment confirmation, this amount is added to purchase balance, not withdrawable amount.'}
                  </p>
               </div>
             </div>
 
-            <div className="border-t border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
+            <div className="border-t border-[color:var(--border)]/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowDepositModal(false)}
-                  className="rounded-lg border border-zinc-300 px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:border-zinc-400 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-all duration-200"
+                  className="rounded-lg border border-zinc-300 px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-[color:var(--muted)] hover:border-zinc-400 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-all duration-200"
                   disabled={loading}
                 >
                   {isArabic ? "إلغاء" : "Cancel"}
@@ -451,16 +451,16 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
 
       {/* Withdraw Modal */}
       {showWithdrawModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-white/30 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
-            <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-[color:var(--surface)]/30 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[color:var(--surface)] shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
+            <div className="border-b border-[color:var(--border)]/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-zinc-900 dark:text-white bg-gradient-to-r from-coral to-coral-light bg-clip-text text-transparent">
+                <h3 className="text-xl font-semibold text-[color:var(--text)] dark:text-white bg-gradient-to-r from-coral to-coral-light bg-clip-text text-transparent">
                   {isArabic ? "طلب سحب رصيد" : "Request Withdrawal"}
                 </h3>
                 <button
                   onClick={() => setShowWithdrawModal(false)}
-                  className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 rounded-full p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors duration-200"
+                  className="text-zinc-400 hover:text-[color:var(--text-muted)] dark:hover:text-zinc-300 rounded-full p-1 hover:bg-[color:var(--muted)] dark:hover:bg-zinc-700 transition-colors duration-200"
                 >
                   <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -511,11 +511,11 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
               </div>
             </div>
 
-            <div className="border-t border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
+            <div className="border-t border-[color:var(--border)]/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowWithdrawModal(false)}
-                  className="rounded-lg border border-zinc-300 px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:border-zinc-400 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-all duration-200"
+                  className="rounded-lg border border-zinc-300 px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-[color:var(--muted)] hover:border-zinc-400 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-all duration-200"
                   disabled={loading}
                 >
                   {isArabic ? "إلغاء" : "Cancel"}
@@ -540,7 +540,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200/40 p-6">
+      <div className="bg-[color:var(--surface)] rounded-xl shadow-sm border border-[color:var(--border)]/40 p-6">
       <h3 className="text-lg font-semibold mb-4">
         {isArabic ? 'المحفظة' : 'Wallet'}
       </h3>
@@ -553,8 +553,8 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
 
       {/* Balance */}
       <div className="noon-soft-teal rounded-lg p-4 mb-4 border border-teal/20 dark:border-teal/30">
-        <div className="text-sm text-gray-600 mb-1">
-          {isArabic ? 'الرصيد الإجمالي' : 'Total Balance'}
+        <div className="text-sm text-[color:var(--text-muted)] mb-1">
+          {isArabic ? 'رصيد المحفظة (للدفع)' : 'Wallet Balance (for payments)'}
         </div>
         <div className="text-2xl font-bold text-teal-700 dark:text-teal-300">
           {walletData.balance.toFixed(3)} {walletData.currency}
@@ -562,25 +562,25 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
       </div>
 
       <div className="noon-soft-yellow rounded-lg p-4 mb-6 border border-yellow/30 dark:border-yellow/35">
-        <div className="text-sm text-gray-600 mb-1">
-          {isArabic ? 'المقدار القابل للسحب' : 'Withdrawable Amount'}
+        <div className="text-sm text-[color:var(--text-muted)] mb-1">
+          {isArabic ? 'المقدار القابل للسحب (نقدًا)' : 'Withdrawable Amount (cash out)'}
         </div>
         <div className="text-xl font-semibold text-yellow-800 dark:text-yellow-300">
           {walletData.available_balance?.toFixed(3) || '0.000'} {walletData.currency}
         </div>
-        <div className="text-xs text-gray-500 mt-1">
-          {isArabic ? 'يجب الموافقة من الإدارة للسحب' : 'Admin approval required for withdrawal'}
+        <div className="text-xs text-[color:var(--text-subtle)] mt-1">
+          {isArabic ? 'للسحب النقدي فقط ويتطلب موافقة الإدارة' : 'For cash withdrawal only, admin approval required'}
         </div>
       </div>
 
       <div className="noon-soft-coral rounded-lg p-4 mb-6 border border-coral/20 dark:border-coral/30">
-        <div className="text-sm text-gray-600 mb-1">
+        <div className="text-sm text-[color:var(--text-muted)] mb-1">
           {isArabic ? 'المبلغ المحجوز' : 'Blocked Amount'}
         </div>
         <div className="text-xl font-semibold text-coral dark:text-coral-light">
           {blockedBalance.toFixed(3)} {walletData.currency}
         </div>
-        <div className="text-xs text-gray-500 mt-1">
+        <div className="text-xs text-[color:var(--text-subtle)] mt-1">
           {isArabic ? 'طلبات سحب قيد المراجعة' : 'Pending withdrawal requests'}
         </div>
       </div>
@@ -612,7 +612,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
 
       {/* Transfer Form */}
       {showTransfer && (
-        <div className="border border-zinc-200/60 rounded-lg p-4 mb-6 bg-gray-50/50">
+        <div className="border border-[color:var(--border)]/60 rounded-lg p-4 mb-6 bg-gray-50/50">
           <h4 className="font-medium mb-3">
             {isArabic ? 'تحويل الأموال' : 'Transfer Funds'}
           </h4>
@@ -670,7 +670,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
         </h4>
         <div className="space-y-2">
           {transactionsData.length === 0 ? (
-            <p className="text-gray-500 text-sm">
+            <p className="text-[color:var(--text-subtle)] text-sm">
               {isArabic ? 'لم يتم العثور على معاملات' : 'No transactions found'}
             </p>
           ) : (
@@ -681,9 +681,9 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                     {transaction.type.replace('_', ' ')}
                   </div>
                   {transaction.reason && (
-                    <div className="text-sm text-gray-600">{transaction.reason}</div>
+                    <div className="text-sm text-[color:var(--text-muted)]">{transaction.reason}</div>
                   )}
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-[color:var(--text-subtle)]">
                     {new Date(transaction.created_at).toLocaleDateString(locale === 'ar' ? 'ar' : 'en')}
                   </div>
                   {transaction.type === 'WITHDRAWAL_REQUEST' && transaction.status === 'PENDING' && (
@@ -709,8 +709,8 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
         </div>
 
         {transactionsData.length > transactionsPerPage && (
-          <div className="mt-4 flex items-center justify-between border-t border-zinc-200/70 pt-4 dark:border-zinc-700/60">
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="mt-4 flex items-center justify-between border-t border-[color:var(--border)]/70 pt-4 dark:border-zinc-700/60">
+            <p className="text-xs text-[color:var(--text-subtle)] dark:text-zinc-400">
               {isArabic
                 ? `صفحة ${effectiveTransactionsPage} من ${transactionsTotalPages}`
                 : `Page ${effectiveTransactionsPage} of ${transactionsTotalPages}`}
@@ -719,14 +719,14 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
               <button
                 onClick={() => setTransactionsPage(Math.max(1, effectiveTransactionsPage - 1))}
                 disabled={effectiveTransactionsPage === 1}
-                className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-[color:var(--muted)] disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 {isArabic ? 'السابق' : 'Previous'}
               </button>
               <button
                 onClick={() => setTransactionsPage(Math.min(transactionsTotalPages, effectiveTransactionsPage + 1))}
                 disabled={effectiveTransactionsPage === transactionsTotalPages}
-                className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-[color:var(--muted)] disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               >
                 {isArabic ? 'التالي' : 'Next'}
               </button>

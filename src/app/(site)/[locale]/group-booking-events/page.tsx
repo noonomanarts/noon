@@ -46,14 +46,14 @@ export default async function GroupBookingEventsPage({
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
       <div className="mx-auto w-full max-w-7xl px-4 py-12">
         <div className="mb-12 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:bg-[color:var(--muted)] dark:text-[color:var(--text)]">
             <IoCalendar className="h-5 w-5" />
             {isArabic ? "حجوزات وفعاليات المجموعات" : "Group Bookings & Events"}
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-zinc-900 dark:text-white sm:text-5xl">
+          <h1 className="text-4xl font-bold tracking-tight text-[color:var(--text)] dark:text-white sm:text-5xl">
             {isArabic ? "الفعاليات الجماعية" : "Group Events"}
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-zinc-600 dark:text-zinc-400">
+          <p className="mx-auto mt-4 max-w-2xl text-[color:var(--text-muted)] dark:text-zinc-400">
             {isArabic
               ? "اختر نوع الفعالية المناسبة لمجموعتك وابدأ طلب الحجز بخطوات واضحة."
               : "Choose the event experience that fits your group and submit your booking request in a few steps."}
@@ -65,15 +65,15 @@ export default async function GroupBookingEventsPage({
             <Link
               key={card.href}
               href={card.href}
-              className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+              className="group overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
             >
               <div className={`bg-gradient-to-r ${card.gradient} p-6`}>
                 <card.Icon className="h-12 w-12 text-white" />
               </div>
               <div className="space-y-3 p-6">
-                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">{card.title}</h2>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">{card.description}</p>
-                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                <h2 className="text-xl font-bold text-[color:var(--text)] dark:text-white">{card.title}</h2>
+                <p className="text-sm text-[color:var(--text-muted)] dark:text-zinc-400">{card.description}</p>
+                <p className="text-sm font-semibold text-[color:var(--text)] dark:text-zinc-100">
                   {isArabic ? "عرض التفاصيل" : "View details"} →
                 </p>
               </div>

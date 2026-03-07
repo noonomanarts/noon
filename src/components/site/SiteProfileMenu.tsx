@@ -73,19 +73,19 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((previous) => !previous)}
-        className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-sm font-medium text-zinc-900 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+        className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-2.5 py-1.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
       >
-        <span className="relative h-7 w-7 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+        <span className="relative h-7 w-7 overflow-hidden rounded-full bg-[color:var(--muted)]">
           {profileImage ? (
             <Image src={profileImage} alt={fullName} fill sizes="28px" className="object-cover" />
           ) : (
-            <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-zinc-700 dark:text-zinc-200">
+            <span className="flex h-full w-full items-center justify-center text-xs font-semibold text-[color:var(--text-muted)]">
               {initial}
             </span>
           )}
         </span>
         <span className="hidden max-w-[110px] truncate sm:inline">{fullName}</span>
-        <FiChevronDown className="size-4 text-zinc-500" />
+        <FiChevronDown className="size-4 text-[color:var(--text-subtle)]" />
       </button>
 
       <div
@@ -93,15 +93,15 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
           isOpen ? 'visible opacity-100' : 'pointer-events-none invisible opacity-0'
         }`}
       >
-        <div className="rounded-xl border border-zinc-200 bg-white p-2 shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
-          <div className="mb-2 border-b border-zinc-200 px-2 pb-2 dark:border-zinc-700">
-            <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{fullName}</p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">{role}</p>
+        <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-2 shadow-xl">
+          <div className="mb-2 border-b border-[color:var(--border)] px-2 pb-2">
+            <p className="truncate text-sm font-semibold text-[color:var(--text)]">{fullName}</p>
+            <p className="text-xs text-[color:var(--text-subtle)]">{role}</p>
           </div>
 
           <Link
             href={accountHref}
-            className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
           >
             <FiUser className="size-4" />
             {t.account}
@@ -110,7 +110,7 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
           {role === 'ADMIN' ? (
             <Link
               href={dashboardHref}
-              className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
             >
               <FiGrid className="size-4" />
               {t.dashboard}
@@ -119,7 +119,7 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
 
           <Link
             href={`/${locale}/account/settings`}
-            className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
           >
             <FiSettings className="size-4" />
             {t.settings}

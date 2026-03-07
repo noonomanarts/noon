@@ -95,7 +95,7 @@ export default async function AboutPage({
             {t.aboutBody}
           </p>
         </div>
-        <div className="relative aspect-square w-full max-w-sm justify-self-center overflow-hidden rounded-3xl border border-zinc-200/70 bg-zinc-50 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900">
+        <div className="relative aspect-square w-full max-w-sm justify-self-center overflow-hidden rounded-3xl border border-[color:var(--border)]/70 bg-[color:var(--muted)] shadow-sm dark:border-zinc-800/60 dark:bg-zinc-900">
           <Image
             src="/images/cooking.png"
             alt={locale === "ar" ? "تجربة طبخ" : "Cooking experience"}
@@ -116,9 +116,9 @@ export default async function AboutPage({
             {t.aboutBody}
           </p>
         </div>
-        <div className="rounded-3xl border border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-950">
+        <div className="rounded-3xl border border-[color:var(--border)]/70 bg-[color:var(--surface)] p-6 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-950">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-2xl border border-zinc-200/70 bg-zinc-50 dark:border-zinc-800/60 dark:bg-zinc-900">
+            <div className="relative aspect-square w-24 shrink-0 overflow-hidden rounded-2xl border border-[color:var(--border)]/70 bg-[color:var(--muted)] dark:border-zinc-800/60 dark:bg-zinc-900">
               <Image
                 src="/images/logo-noon.png"
                 alt={locale === "ar" ? "المؤسسة" : "Founder"}
@@ -148,9 +148,9 @@ export default async function AboutPage({
           {whatWeDo.map((item) => (
             <li
               key={item}
-              className="flex items-start gap-2 rounded-2xl border border-zinc-200/70 bg-white p-4 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-950"
+              className="flex items-start gap-2 rounded-2xl border border-[color:var(--border)]/70 bg-[color:var(--surface)] p-4 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-950"
             >
-              <span className="mt-1 size-2 rounded-full bg-zinc-900 dark:bg-white" />
+              <span className="mt-1 size-2 rounded-full bg-zinc-900 dark:bg-[color:var(--surface)]" />
               <span>{item}</span>
             </li>
           ))}
@@ -165,9 +165,9 @@ export default async function AboutPage({
           {team.map((member) => (
             <div
               key={member.name}
-              className="rounded-2xl border border-zinc-200/70 bg-white p-4 text-sm shadow-sm dark:border-zinc-800/60 dark:bg-zinc-950"
+              className="rounded-2xl border border-[color:var(--border)]/70 bg-[color:var(--surface)] p-4 text-sm shadow-sm dark:border-zinc-800/60 dark:bg-zinc-950"
             >
-              <div className="relative mb-3 aspect-square w-20 overflow-hidden rounded-2xl border border-zinc-200/70 bg-zinc-50 dark:border-zinc-800/60 dark:bg-zinc-900">
+              <div className="relative mb-3 aspect-square w-20 overflow-hidden rounded-2xl border border-[color:var(--border)]/70 bg-[color:var(--muted)] dark:border-zinc-800/60 dark:bg-zinc-900">
                 <Image
                   src="/images/art.png"
                   alt={member.name}
@@ -190,7 +190,7 @@ export default async function AboutPage({
           </h2>
           <Link
             href={`/${locale}/trainers`}
-            className="text-sm font-medium text-zinc-900 underline-offset-4 transition hover:underline dark:text-zinc-100"
+            className="text-sm font-medium text-[color:var(--text)] underline-offset-4 transition hover:underline dark:text-zinc-100"
           >
             {t.trainersCta}
           </Link>
@@ -199,9 +199,9 @@ export default async function AboutPage({
           {trainers.map((trainer) => (
             <div
               key={trainer.name}
-              className="flex items-center gap-3 rounded-2xl border border-zinc-200/70 bg-white p-4 text-sm shadow-sm dark:border-zinc-800/60 dark:bg-zinc-950"
+              className="flex items-center gap-3 rounded-2xl border border-[color:var(--border)]/70 bg-[color:var(--surface)] p-4 text-sm shadow-sm dark:border-zinc-800/60 dark:bg-zinc-950"
             >
-              <div className="relative aspect-square w-12 overflow-hidden rounded-xl border border-zinc-200/70 bg-zinc-50 dark:border-zinc-800/60 dark:bg-zinc-900">
+              <div className="relative aspect-square w-12 overflow-hidden rounded-xl border border-[color:var(--border)]/70 bg-[color:var(--muted)] dark:border-zinc-800/60 dark:bg-zinc-900">
                 <Image
                   src="/images/cooking.png"
                   alt={trainer.name}
@@ -217,8 +217,8 @@ export default async function AboutPage({
       </section>
 
       <section className="mt-14">
-        <div className="grid gap-6 rounded-3xl border border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-950 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div className="relative aspect-square w-full max-w-sm overflow-hidden rounded-2xl border border-zinc-200/70 bg-zinc-50 dark:border-zinc-800/60 dark:bg-zinc-900">
+        <div className="grid gap-6 rounded-3xl border border-[color:var(--border)]/70 bg-[color:var(--surface)] p-6 shadow-sm dark:border-zinc-800/60 dark:bg-zinc-950 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="relative aspect-square w-full max-w-sm overflow-hidden rounded-2xl border border-[color:var(--border)]/70 bg-[color:var(--muted)] dark:border-zinc-800/60 dark:bg-zinc-900">
             <Image
               src="/images/art.png"
               alt={locale === "ar" ? "فريق نون" : "Noon team"}

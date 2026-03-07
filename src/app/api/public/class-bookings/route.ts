@@ -259,12 +259,12 @@ export async function POST(request: NextRequest) {
       throw new ApiError('Wallet currency does not match class currency', 409);
     }
 
-    if (walletBalance < totalAmount || walletAvailable < totalAmount) {
+    if (!Number.isFinite(walletBalance) || walletBalance < totalAmount) {
       throw new ApiError('Insufficient wallet balance', 409);
     }
 
     const newBalance = Number((walletBalance - totalAmount).toFixed(3));
-    const newAvailable = Number((walletAvailable - totalAmount).toFixed(3));
+    const newAvailable = Number(Math.min(walletAvailable, newBalance).toFixed(3));
 
     const walletTxResult = await client.query(
       `INSERT INTO wallet_transactions (wallet_id, amount, type, reason, status)

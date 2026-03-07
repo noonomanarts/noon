@@ -89,19 +89,19 @@ export default function LogoutButton({
                 }
               }}
             >
-              <div className="w-full max-w-md overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
-                <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-700">
+              <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-2xl dark:border-zinc-700 dark:bg-zinc-900">
+                <div className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-4 dark:border-zinc-700">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex size-8 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
                       <FiAlertTriangle className="size-4" />
                     </span>
-                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{text.title}</h3>
+                    <h3 className="text-sm font-semibold text-[color:var(--text)] dark:text-zinc-100">{text.title}</h3>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setShowConfirm(false)}
-                    className="rounded-lg p-1.5 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                    className="rounded-lg p-1.5 text-[color:var(--text-subtle)] transition hover:bg-[color:var(--muted)] hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
                     aria-label={isArabic ? 'إغلاق' : 'Close'}
                   >
                     <FiX className="size-4" />
@@ -109,14 +109,14 @@ export default function LogoutButton({
                 </div>
 
                 <div className="px-5 py-4">
-                  <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-300">{text.description}</p>
+                  <p className="text-sm leading-6 text-[color:var(--text-muted)] dark:text-zinc-300">{text.description}</p>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 border-t border-zinc-200 px-5 py-4 dark:border-zinc-700">
+                <div className="flex items-center justify-end gap-2 border-t border-[color:var(--border)] px-5 py-4 dark:border-zinc-700">
                   <button
                     type="button"
                     onClick={() => setShowConfirm(false)}
-                    className="rounded-xl border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    className="rounded-xl border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-[color:var(--muted)] dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
                   >
                     {text.cancel}
                   </button>

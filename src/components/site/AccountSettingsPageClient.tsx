@@ -211,9 +211,9 @@ export default function AccountSettingsPageClient({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">{t.title}</h2>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t.subtitle}</p>
+      <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
+        <h2 className="text-xl font-semibold text-[color:var(--text)]">{t.title}</h2>
+        <p className="mt-2 text-sm text-[color:var(--text-muted)]">{t.subtitle}</p>
 
         <div className="mt-5 flex flex-wrap gap-2">
           <button
@@ -222,7 +222,7 @@ export default function AccountSettingsPageClient({
             className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
               activeTab === 'profile'
                 ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal-strong)]'
-                : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700'
+                : 'bg-[color:var(--muted)] text-[color:var(--text-muted)] hover:bg-[color:var(--border)]'
             }`}
           >
             <FiUser className="size-4" />
@@ -235,7 +235,7 @@ export default function AccountSettingsPageClient({
             className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
               activeTab === 'security'
                 ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal-strong)]'
-                : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700'
+                : 'bg-[color:var(--muted)] text-[color:var(--text-muted)] hover:bg-[color:var(--border)]'
             }`}
           >
             <FiShield className="size-4" />
@@ -257,19 +257,19 @@ export default function AccountSettingsPageClient({
       ) : null}
 
       {activeTab === 'profile' && (
-        <div className="rounded-2xl border border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
           <div className="grid gap-6 lg:grid-cols-[140px_1fr]">
             <div className="flex flex-col items-center gap-3">
-              <span className="relative size-24 overflow-hidden rounded-full border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
+              <span className="relative size-24 overflow-hidden rounded-full border border-[color:var(--border)] bg-[color:var(--muted)]">
                 {form.profileImage ? (
                   <Image src={form.profileImage} alt={form.fullName} fill sizes="96px" className="object-cover" />
                 ) : (
-                  <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-zinc-600 dark:text-zinc-200">
+                  <span className="flex h-full w-full items-center justify-center text-2xl font-semibold text-[color:var(--text-muted)]">
                     {avatarFallback}
                   </span>
                 )}
               </span>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{initialUser.email}</p>
+              <p className="text-xs text-[color:var(--text-subtle)]">{initialUser.email}</p>
 
               <div className="flex w-full flex-col gap-2">
                 <input
@@ -289,7 +289,7 @@ export default function AccountSettingsPageClient({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingAvatar}
-                  className="rounded-lg border border-zinc-300 px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-xs font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--muted)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {uploadingAvatar ? t.uploadingPhoto : t.uploadPhoto}
                 </button>
@@ -307,39 +307,39 @@ export default function AccountSettingsPageClient({
                   </button>
                 ) : null}
 
-                <p className="text-center text-[11px] text-zinc-500 dark:text-zinc-400">{t.uploadHint}</p>
+                <p className="text-center text-[11px] text-[color:var(--text-subtle)]">{t.uploadHint}</p>
               </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-1 text-sm sm:col-span-2">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.fullName}</span>
+                <span className="text-[color:var(--text-muted)]">{t.fullName}</span>
                 <input
                   value={form.fullName}
                   onChange={(event) => setForm((previous) => ({ ...previous, fullName: event.target.value }))}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-4 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                 />
               </label>
 
               <label className="space-y-1 text-sm">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.email}</span>
+                <span className="text-[color:var(--text-muted)]">{t.email}</span>
                 <input
                   value={initialUser.email}
                   readOnly
-                  className="w-full cursor-not-allowed rounded-xl border border-zinc-200 bg-zinc-100 px-3 py-2.5 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                  className="w-full cursor-not-allowed rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2.5 text-[color:var(--text-muted)]"
                 />
               </label>
 
               <label className="space-y-1 text-sm">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.phoneNumber}</span>
+                <span className="text-[color:var(--text-muted)]">{t.phoneNumber}</span>
                 <input
                   value={form.phoneNumber}
                   onChange={(event) => setForm((previous) => ({ ...previous, phoneNumber: event.target.value }))}
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-4 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                 />
               </label>
               <label className="space-y-1 text-sm sm:col-span-2">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.preferredLanguage}</span>
+                <span className="text-[color:var(--text-muted)]">{t.preferredLanguage}</span>
                 <select
                   value={form.preferredLanguage}
                   onChange={(event) =>
@@ -348,7 +348,7 @@ export default function AccountSettingsPageClient({
                       preferredLanguage: event.target.value as 'ENGLISH' | 'ARABIC',
                     }))
                   }
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-4 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                 >
                   <option value="ENGLISH">{t.english}</option>
                   <option value="ARABIC">{t.arabic}</option>
@@ -372,41 +372,41 @@ export default function AccountSettingsPageClient({
       )}
 
       {activeTab === 'security' && (
-        <div className="rounded-2xl border border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900">
+        <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <FiLock className="size-5 text-[color:var(--noon-teal)]" />
-            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">{t.securityTitle}</h3>
+            <h3 className="text-lg font-semibold text-[color:var(--text)]">{t.securityTitle}</h3>
           </div>
-          <p className="mb-6 text-sm text-zinc-600 dark:text-zinc-400">{t.securityHint}</p>
+          <p className="mb-6 text-sm text-[color:var(--text-muted)]">{t.securityHint}</p>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-1 text-sm sm:col-span-2">
-              <span className="text-zinc-600 dark:text-zinc-300">{t.currentPassword}</span>
+              <span className="text-[color:var(--text-muted)]">{t.currentPassword}</span>
               <input
                 type="password"
                 value={form.currentPassword}
                 onChange={(event) => setForm((previous) => ({ ...previous, currentPassword: event.target.value }))}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-4 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
               />
             </label>
 
             <label className="space-y-1 text-sm">
-              <span className="text-zinc-600 dark:text-zinc-300">{t.newPassword}</span>
+              <span className="text-[color:var(--text-muted)]">{t.newPassword}</span>
               <input
                 type="password"
                 value={form.newPassword}
                 onChange={(event) => setForm((previous) => ({ ...previous, newPassword: event.target.value }))}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-4 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
               />
             </label>
 
             <label className="space-y-1 text-sm">
-              <span className="text-zinc-600 dark:text-zinc-300">{t.confirmPassword}</span>
+              <span className="text-[color:var(--text-muted)]">{t.confirmPassword}</span>
               <input
                 type="password"
                 value={form.confirmPassword}
                 onChange={(event) => setForm((previous) => ({ ...previous, confirmPassword: event.target.value }))}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-4 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
               />
             </label>
 
@@ -415,7 +415,7 @@ export default function AccountSettingsPageClient({
                 type="button"
                 onClick={() => void handleUpdatePassword()}
                 disabled={savingSecurity}
-                className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+                className="inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <FiLock className="size-4" />
                 {savingSecurity ? t.saving : t.updatePassword}

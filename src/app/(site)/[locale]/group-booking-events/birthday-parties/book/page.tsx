@@ -258,7 +258,7 @@ export default function BirthdayPartyBookingPage() {
                     ? 'bg-gradient-to-br from-coral to-coral-light text-white shadow-lg'
                     : step === s
                     ? 'border-2 border-coral bg-coral/10 text-coral'
-                    : 'border-2 border-[color:var(--border)] bg-white text-gray-400'
+                    : 'border-2 border-[color:var(--border)] bg-[color:var(--surface)] text-gray-400'
                 }`}
               >
                 {step > s ? (
@@ -281,7 +281,7 @@ export default function BirthdayPartyBookingPage() {
           ))}
         </div>
 
-        <div className="rounded-2xl border-2 border-coral/20 bg-white p-8 shadow-xl">
+        <div className="rounded-2xl border-2 border-coral/20 bg-[color:var(--surface)] p-8 shadow-xl">
         <BookingFormError message={error} />
 
         {step === 1 && (
@@ -538,7 +538,7 @@ export default function BirthdayPartyBookingPage() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
+                <div className="flex items-start gap-4 rounded-xl bg-[color:var(--surface)]/50 p-4">
                   <IoCalendar className="mt-1 text-xl text-coral" />
                   <div className="flex-1">
                     <span className="text-sm text-[color:var(--text-muted)]">{t.summaryDateTime}</span>
@@ -546,7 +546,7 @@ export default function BirthdayPartyBookingPage() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
+                <div className="flex items-start gap-4 rounded-xl bg-[color:var(--surface)]/50 p-4">
                   <MdGroup className="mt-1 text-xl text-yellow" />
                   <div className="flex-1">
                     <span className="text-sm text-[color:var(--text-muted)]">{t.summaryPartyDetails}</span>
@@ -556,7 +556,7 @@ export default function BirthdayPartyBookingPage() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
+                <div className="flex items-start gap-4 rounded-xl bg-[color:var(--surface)]/50 p-4">
                   <MdPerson className="mt-1 text-xl text-teal" />
                   <div className="flex-1">
                     <span className="text-sm text-[color:var(--text-muted)]">{t.summaryParent}</span>
@@ -564,7 +564,7 @@ export default function BirthdayPartyBookingPage() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
+                <div className="flex items-start gap-4 rounded-xl bg-[color:var(--surface)]/50 p-4">
                   <MdEmail className="mt-1 text-xl text-purple" />
                   <div className="flex-1">
                     <span className="text-sm text-[color:var(--text-muted)]">{t.summaryContact}</span>
@@ -574,7 +574,7 @@ export default function BirthdayPartyBookingPage() {
                 </div>
 
                 {formData.specialRequests && (
-                  <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
+                  <div className="flex items-start gap-4 rounded-xl bg-[color:var(--surface)]/50 p-4">
                     <HiSparkles className="mt-1 text-xl text-coral" />
                     <div className="flex-1">
                       <span className="text-sm text-[color:var(--text-muted)]">{t.summarySpecial}</span>

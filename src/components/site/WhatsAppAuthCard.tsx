@@ -213,9 +213,9 @@ export default function WhatsAppAuthCard({
   };
 
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-5 dark:border-zinc-800 dark:bg-zinc-900/40">
-      <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t.title}</h3>
-      <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t.subtitle}</p>
+    <section className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)]/70 p-5 dark:border-zinc-800 dark:bg-zinc-900/40">
+      <h3 className="text-base font-semibold text-[color:var(--text)] dark:text-zinc-100">{t.title}</h3>
+      <p className="mt-1 text-sm text-[color:var(--text-muted)] dark:text-zinc-400">{t.subtitle}</p>
 
       {error ? (
         <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
@@ -237,19 +237,19 @@ export default function WhatsAppAuthCard({
                 value={registerForm.firstName}
                 onChange={(event) => setRegisterForm((prev) => ({ ...prev, firstName: event.target.value }))}
                 placeholder={t.firstName}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
               <input
                 value={registerForm.middleName}
                 onChange={(event) => setRegisterForm((prev) => ({ ...prev, middleName: event.target.value }))}
                 placeholder={t.middleName}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
               <input
                 value={registerForm.lastName}
                 onChange={(event) => setRegisterForm((prev) => ({ ...prev, lastName: event.target.value }))}
                 placeholder={t.lastName}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
             </div>
 
@@ -259,14 +259,14 @@ export default function WhatsAppAuthCard({
                 value={registerForm.email}
                 onChange={(event) => setRegisterForm((prev) => ({ ...prev, email: event.target.value }))}
                 placeholder={t.email}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
               <input
                 type="date"
                 value={registerForm.dateOfBirth}
                 onChange={(event) => setRegisterForm((prev) => ({ ...prev, dateOfBirth: event.target.value }))}
                 max={new Date().toISOString().split('T')[0]}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
             </div>
 
@@ -276,7 +276,7 @@ export default function WhatsAppAuthCard({
                 onChange={(event) =>
                   setRegisterForm((prev) => ({ ...prev, preferredLanguage: event.target.value as 'en' | 'ar' }))
                 }
-                className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               >
                 <option value="en">{t.english}</option>
                 <option value="ar">{t.arabic}</option>
@@ -287,7 +287,7 @@ export default function WhatsAppAuthCard({
                 value={registerForm.password}
                 onChange={(event) => setRegisterForm((prev) => ({ ...prev, password: event.target.value }))}
                 placeholder={t.password}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
 
               <input
@@ -295,7 +295,7 @@ export default function WhatsAppAuthCard({
                 value={registerForm.confirmPassword}
                 onChange={(event) => setRegisterForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
                 placeholder={t.confirmPassword}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
             </div>
           </>
@@ -307,7 +307,7 @@ export default function WhatsAppAuthCard({
           placeholder={t.phone}
           lang="en"
           dir="ltr"
-          className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+          className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
         />
 
         <div className="grid gap-2 sm:grid-cols-2">
@@ -326,7 +326,7 @@ export default function WhatsAppAuthCard({
             placeholder={t.code}
             lang="en"
             dir="ltr"
-            className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+            className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           />
         </div>
 
@@ -334,7 +334,7 @@ export default function WhatsAppAuthCard({
           type="button"
           onClick={() => void verifyCode()}
           disabled={verifying}
-          className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+          className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-[color:var(--surface)] dark:text-[color:var(--text)] dark:hover:bg-[color:var(--muted)]"
         >
           {verifying ? t.verifying : t.verifyAndContinue}
         </button>

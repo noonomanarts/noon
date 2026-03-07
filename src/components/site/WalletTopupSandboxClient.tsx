@@ -117,17 +117,30 @@ export default function WalletTopupSandboxClient({
 
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-2xl px-4 py-12">
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading...</p>
+      <div className="relative overflow-x-clip pb-16">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[28rem]">
+          <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
+          <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+        </div>
+        <div className="mx-auto w-full max-w-2xl px-4 py-12">
+          <p className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text-muted)]">
+            Loading...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-12">
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t.subtitle}</p>
+    <div className="relative overflow-x-clip pb-16">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[28rem]">
+        <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
+        <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+      </div>
+      <div className="mx-auto w-full max-w-2xl px-4 py-12">
+      <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
+        <h1 className="text-2xl font-semibold text-[color:var(--text)]">{t.title}</h1>
+        <p className="mt-2 text-sm text-[color:var(--text-muted)]">{t.subtitle}</p>
 
         {error && (
           <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
@@ -136,10 +149,10 @@ export default function WalletTopupSandboxClient({
         )}
 
         {payment && (
-          <div className="mt-5 space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm dark:border-zinc-700 dark:bg-zinc-800">
-            <p className="text-zinc-700 dark:text-zinc-300">{t.reference}: <span className="font-semibold">{payment.reference}</span></p>
-            <p className="text-zinc-700 dark:text-zinc-300">{t.amount}: <span className="font-semibold">{payment.amount.toFixed(3)} {payment.currency}</span></p>
-            <p className="text-zinc-700 dark:text-zinc-300">{t.status}: <span className="font-semibold">{payment.status}</span></p>
+          <div className="mt-5 space-y-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 text-sm">
+            <p className="text-[color:var(--text-muted)]">{t.reference}: <span className="font-semibold text-[color:var(--text)]">{payment.reference}</span></p>
+            <p className="text-[color:var(--text-muted)]">{t.amount}: <span className="font-semibold text-[color:var(--text)]">{payment.amount.toFixed(3)} {payment.currency}</span></p>
+            <p className="text-[color:var(--text-muted)]">{t.status}: <span className="font-semibold text-[color:var(--text)]">{payment.status}</span></p>
           </div>
         )}
 
@@ -164,7 +177,7 @@ export default function WalletTopupSandboxClient({
             type="button"
             onClick={() => void completePayment('CANCELLED')}
             disabled={!payment || processing || payment.status !== 'PENDING'}
-            className="inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className="inline-flex rounded-lg border border-[color:var(--border)] px-4 py-2 text-sm font-medium text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {t.cancelNow}
           </button>
@@ -172,10 +185,11 @@ export default function WalletTopupSandboxClient({
 
         <Link
           href={safeReturnUrl}
-          className="mt-4 inline-flex text-sm font-medium text-zinc-700 underline hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+          className="mt-4 inline-flex text-sm font-medium text-[color:var(--text-muted)] underline hover:text-[color:var(--text)]"
         >
           {t.back}
         </Link>
+      </div>
       </div>
     </div>
   );

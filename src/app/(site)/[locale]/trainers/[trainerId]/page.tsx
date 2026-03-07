@@ -79,7 +79,7 @@ export default async function TrainerProfilePage({
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
       <div className="mx-auto w-full max-w-7xl px-4 py-12">
         {/* Trainer Header Card */}
-        <div className="mb-12 overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="mb-12 overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-2xl dark:border-zinc-800 dark:bg-zinc-900">
           <div className="grid gap-8 lg:grid-cols-5">
             {/* Profile Image */}
             <div className="lg:col-span-2">
@@ -106,14 +106,14 @@ export default async function TrainerProfilePage({
                   <GiChefToque className="h-5 w-5" />
                   {t.trainer}
                 </div>
-                <h1 className="mb-4 text-4xl font-bold tracking-tight text-zinc-900 dark:text-white">
+                <h1 className="mb-4 text-4xl font-bold tracking-tight text-[color:var(--text)] dark:text-white">
                   {trainer.fullName}
                 </h1>
               </div>
 
               {/* Bio */}
               <div className="rounded-xl border-2 border-coral/20 bg-coral/5 p-6 dark:border-coral/30 dark:bg-coral/10">
-                <h2 className="mb-3 flex items-center gap-2 text-xl font-bold text-zinc-900 dark:text-white">
+                <h2 className="mb-3 flex items-center gap-2 text-xl font-bold text-[color:var(--text)] dark:text-white">
                   <HiSparkles className="h-6 w-6 text-coral" />
                   {t.aboutTrainer}
                 </h2>
@@ -123,16 +123,16 @@ export default async function TrainerProfilePage({
               </div>
 
               {(trainerExperience || trainerExpertise.length > 0) && (
-                <div className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-900/60">
+                <div className="space-y-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-5 dark:border-zinc-800 dark:bg-zinc-900/60">
                   {trainerExperience ? (
                     <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                      <span className="font-bold text-zinc-900 dark:text-white">{t.experience}:</span>{" "}
+                      <span className="font-bold text-[color:var(--text)] dark:text-white">{t.experience}:</span>{" "}
                       {trainerExperience} {t.years}
                     </p>
                   ) : null}
                   {trainerExpertise.length > 0 ? (
                     <div>
-                      <p className="mb-2 text-sm font-bold text-zinc-900 dark:text-white">{t.expertise}</p>
+                      <p className="mb-2 text-sm font-bold text-[color:var(--text)] dark:text-white">{t.expertise}</p>
                       <div className="flex flex-wrap gap-2">
                         {trainerExpertise.map((item) => (
                           <span
@@ -151,15 +151,15 @@ export default async function TrainerProfilePage({
               {/* Contact Info */}
               {(trainer.email || trainer.phoneNumber || trainerSocialLinks) && (
                 <div className="space-y-3">
-                  <h3 className="font-bold text-zinc-900 dark:text-white">{t.contactInfo}</h3>
+                  <h3 className="font-bold text-[color:var(--text)] dark:text-white">{t.contactInfo}</h3>
                   {trainer.email && (
-                    <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
+                    <div className="flex items-center gap-3 text-[color:var(--text-muted)] dark:text-zinc-400">
                       <MdEmail className="h-5 w-5 text-purple" />
                       <span>{trainer.email}</span>
                     </div>
                   )}
                   {trainer.phoneNumber && (
-                    <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
+                    <div className="flex items-center gap-3 text-[color:var(--text-muted)] dark:text-zinc-400">
                       <MdPhone className="h-5 w-5 text-teal" />
                       <span>{trainer.phoneNumber}</span>
                     </div>
@@ -170,12 +170,12 @@ export default async function TrainerProfilePage({
                       const href = toExternalUrl(value);
                       if (!href) return null;
                       return (
-                        <div key={key} className="text-zinc-600 dark:text-zinc-400">
+                        <div key={key} className="text-[color:var(--text-muted)] dark:text-zinc-400">
                           <a
                             href={href}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm underline decoration-zinc-300 underline-offset-4 hover:text-zinc-900 dark:hover:text-zinc-100"
+                            className="text-sm underline decoration-zinc-300 underline-offset-4 hover:text-[color:var(--text)] dark:hover:text-zinc-100"
                           >
                             {t.visit} {key}
                           </a>
@@ -218,12 +218,12 @@ export default async function TrainerProfilePage({
 
         {/* Upcoming Classes Section */}
         <section className="mb-16">
-          <h2 className="mb-8 text-2xl font-bold text-zinc-900 dark:text-white">
+          <h2 className="mb-8 text-2xl font-bold text-[color:var(--text)] dark:text-white">
             {t.upcomingClasses}
           </h2>
           {upcomingClasses.length === 0 ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-zinc-600 dark:text-zinc-400">{t.noUpcomingClasses}</p>
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-[color:var(--text-muted)] dark:text-zinc-400">{t.noUpcomingClasses}</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -231,7 +231,7 @@ export default async function TrainerProfilePage({
                 <Link
                   key={cls.id as string}
                   href={`/${locale}/classes/${cls.slug}`}
-                  className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+                  className="group overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition-all hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
                 >
                   {cls.image && (
                     <div className="relative h-48 w-full overflow-hidden">
@@ -244,7 +244,7 @@ export default async function TrainerProfilePage({
                     </div>
                   )}
                   <div className="p-5">
-                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                    <h3 className="text-lg font-bold text-[color:var(--text)] dark:text-white">
                       {locale === "ar" && cls.titleAr ? cls.titleAr : cls.title}
                     </h3>
                     <div className="mt-2 flex items-center justify-between">
@@ -264,12 +264,12 @@ export default async function TrainerProfilePage({
 
         {/* Previous Classes Section */}
         <section>
-          <h2 className="mb-8 text-2xl font-bold text-zinc-900 dark:text-white">
+          <h2 className="mb-8 text-2xl font-bold text-[color:var(--text)] dark:text-white">
             {t.previousClasses}
           </h2>
           {previousClasses.length === 0 ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-zinc-600 dark:text-zinc-400">{t.noPreviousClasses}</p>
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-[color:var(--text-muted)] dark:text-zinc-400">{t.noPreviousClasses}</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -277,7 +277,7 @@ export default async function TrainerProfilePage({
                 <Link
                   key={cls.id as string}
                   href={`/${locale}/classes/${cls.slug}`}
-                  className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+                  className="group overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition-all hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
                 >
                   {cls.image && (
                     <div className="relative h-48 w-full overflow-hidden">
@@ -290,7 +290,7 @@ export default async function TrainerProfilePage({
                     </div>
                   )}
                   <div className="p-5">
-                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                    <h3 className="text-lg font-bold text-[color:var(--text)] dark:text-white">
                       {locale === "ar" && cls.titleAr ? cls.titleAr : cls.title}
                     </h3>
                     <div className="mt-2 text-sm font-semibold text-coral">

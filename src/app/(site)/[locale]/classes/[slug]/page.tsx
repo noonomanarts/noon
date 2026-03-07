@@ -96,7 +96,7 @@ export default async function ClassDetailPage({
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
             <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text)] shadow-sm">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[color:var(--surface)]/95 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text)] shadow-sm">
                 <Icon className={`h-4 w-4 ${isCooking ? "text-coral" : "text-purple"}`} />
                 {t.category}: {isCooking ? t.cooking : t.artsCrafts}
               </div>

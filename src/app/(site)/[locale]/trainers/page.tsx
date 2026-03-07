@@ -34,21 +34,21 @@ export default async function TrainersPage({
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-[color:var(--muted)] dark:bg-zinc-950">
       <div className="mx-auto w-full max-w-7xl px-4 py-12">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
+          <h1 className="text-3xl font-bold text-[color:var(--text)] dark:text-white">
             {t.title}
           </h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-[color:var(--text-muted)] dark:text-zinc-400">
             {t.subtitle}
           </p>
         </div>
 
         {trainers.length === 0 ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-10 text-center dark:border-zinc-800 dark:bg-zinc-900">
             <GiChefToque className="mx-auto h-12 w-12 text-zinc-400" />
-            <p className="mt-4 text-zinc-600 dark:text-zinc-400">
+            <p className="mt-4 text-[color:var(--text-muted)] dark:text-zinc-400">
               {t.noTrainers}
             </p>
           </div>
@@ -60,7 +60,7 @@ export default async function TrainersPage({
                 <Link
                   key={trainer.id as string}
                   href={`/${locale}/trainers/${trainer.id}`}
-                  className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm transition-all hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+                  className="group overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition-all hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
                 >
                   <div className="relative aspect-square w-full overflow-hidden bg-gradient-to-br from-coral to-coral-light">
                     {trainer.profileImage ? (
@@ -77,7 +77,7 @@ export default async function TrainersPage({
                     )}
                   </div>
                   <div className="p-5">
-                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                    <h3 className="text-lg font-bold text-[color:var(--text)] dark:text-white">
                       {trainer.fullName}
                     </h3>
                     {profile?.expertise && (profile.expertise as string[]).length > 0 && (
@@ -93,7 +93,7 @@ export default async function TrainersPage({
                       </div>
                     )}
                     {profile?.experience && (
-                      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                      <p className="mt-2 text-sm text-[color:var(--text-muted)] dark:text-zinc-400">
                         {profile.experience} {t.experience}
                       </p>
                     )}

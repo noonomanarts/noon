@@ -74,22 +74,25 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-zinc-200/40 p-6">
-      <h3 className="text-lg font-semibold mb-4">
+    <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
+      <h3 className="mb-4 text-lg font-semibold text-[color:var(--text)]">
         {isArabic ? 'طلباتي' : 'My Orders'}
       </h3>
 
       {allOrders.length === 0 ? (
-        <p className="text-gray-500">
+        <p className="text-[color:var(--text-subtle)]">
           {isArabic ? 'لم يتم العثور على طلبات' : 'No orders found'}
         </p>
       ) : (
         <div className="space-y-4">
           {paginatedOrders.map((order) => (
-            <div key={order.id} className="border border-zinc-200/60 rounded-lg p-4 hover:shadow-md transition-shadow bg-gradient-to-r from-white to-gray-50/30">
+            <div
+              key={order.id}
+              className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] p-4 transition-shadow hover:shadow-md"
+            >
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <h4 className="font-medium">
+                  <h4 className="font-medium text-[color:var(--text)]">
                     {order.type === 'class' ? (
                       isArabic ? 'حجز فصل' : 'Class Booking'
                     ) : order.type === 'shop' ? (
@@ -98,7 +101,7 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
                       isArabic ? 'حدث جماعي' : 'Group Event'
                     )}
                   </h4>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-[color:var(--text-muted)]">
                     {isArabic ? 'رقم الطلب:' : 'Order #:'} {'order_number' in order ? order.order_number : order.booking_number}
                   </p>
                 </div>
@@ -107,31 +110,31 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
                 </span>
               </div>
 
-              <div className="text-sm text-gray-600 mb-2">
+              <div className="mb-2 text-sm text-[color:var(--text-muted)]">
                 {isArabic ? 'تاريخ الإنشاء:' : 'Created:'} {new Date(order.created_at).toLocaleDateString(locale === 'ar' ? 'ar' : 'en')}
               </div>
 
               {order.type === 'class' && 'total_amount' in order && order.total_amount && (
-                <div className="text-sm font-medium">
+                <div className="text-sm font-medium text-[color:var(--text)]">
                   {isArabic ? 'المجموع:' : 'Total:'} {order.total_amount.toFixed(3)} {order.currency}
                 </div>
               )}
 
               {order.type === 'event' && 'total_amount' in order && order.total_amount && (
-                <div className="text-sm font-medium">
+                <div className="text-sm font-medium text-[color:var(--text)]">
                   {isArabic ? 'المجموع:' : 'Total:'} {order.total_amount.toFixed(3)} {order.currency}
                 </div>
               )}
 
               {order.type === 'shop' && (
                 <div className="space-y-1 text-sm">
-                  <div className="font-medium">
+                  <div className="font-medium text-[color:var(--text)]">
                     {isArabic ? 'المجموع:' : 'Total:'} {order.total_amount.toFixed(3)} {order.currency}
                   </div>
-                  <div className="text-gray-600">
+                  <div className="text-[color:var(--text-muted)]">
                     {isArabic ? 'العنوان:' : 'Address:'} {order.city} - {order.area}
                   </div>
-                  <div className="text-gray-600">
+                  <div className="text-[color:var(--text-muted)]">
                     {isArabic ? 'عدد المنتجات:' : 'Items:'} {order.items.reduce((sum, item) => sum + item.quantity, 0)}
                   </div>
                 </div>
@@ -141,7 +144,7 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
                 <div className="mt-3">
                   <Link
                     href={`/${locale}/account/orders/${order.id}`}
-                    className="text-sm font-medium text-[color:var(--noon-teal)] hover:text-[color:var(--noon-teal-dark)]"
+                    className="text-sm font-medium text-[color:var(--primary)] hover:text-[color:var(--primary-hover)]"
                   >
                     {isArabic ? 'عرض التفاصيل' : 'View Details'} →
                   </Link>
@@ -151,8 +154,8 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
           ))}
 
           {allOrders.length > ordersPerPage && (
-            <div className="flex items-center justify-between border-t border-zinc-200/70 pt-4 dark:border-zinc-700/60">
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            <div className="flex items-center justify-between border-t border-[color:var(--border)] pt-4">
+              <p className="text-xs text-[color:var(--text-subtle)]">
                 {isArabic
                   ? `صفحة ${effectivePage} من ${totalPages}`
                   : `Page ${effectivePage} of ${totalPages}`}

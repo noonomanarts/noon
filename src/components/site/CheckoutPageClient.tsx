@@ -69,7 +69,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(null);
 
   const [form, setForm] = useState({
-    city: isArabic ? 'مسقط' : 'Muscat',
     area: '',
     streetAddress: '',
     postalCode: '',
@@ -91,6 +90,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     goToShop: isArabic ? 'الذهاب للمتجر' : 'Go to shop',
     shippingInfo: isArabic ? 'معلومات الشحن' : 'Shipping Information',
     city: isArabic ? 'المدينة' : 'City',
+    cityValue: isArabic ? 'مسقط' : 'Muscat',
     area: isArabic ? 'المنطقة' : 'Area',
     streetAddress: isArabic ? 'العنوان التفصيلي' : 'Street Address',
     postalCode: isArabic ? 'الرمز البريدي (اختياري)' : 'Postal Code (Optional)',
@@ -99,13 +99,13 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     notes: isArabic ? 'ملاحظات (اختياري)' : 'Notes (Optional)',
     onlyMuscat: isArabic ? 'التوصيل داخل مسقط فقط.' : 'Delivery is available in Muscat only.',
     orderSummary: isArabic ? 'ملخص الطلب' : 'Order Summary',
-    walletBalance: isArabic ? 'رصيد المحفظة المتاح' : 'Available Wallet Balance',
+    walletBalance: isArabic ? 'رصيد المحفظة' : 'Wallet Balance',
     subtotal: isArabic ? 'الإجمالي الفرعي' : 'Subtotal',
     shipping: isArabic ? 'رسوم التوصيل' : 'Shipping Fee',
     total: isArabic ? 'الإجمالي النهائي' : 'Total',
     payWallet: isArabic ? 'الدفع من المحفظة' : 'Pay with Wallet',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
-    insufficient: isArabic ? 'الرصيد غير كافٍ. قم بشحن المحفظة.' : 'Insufficient balance. Top up your wallet.',
+    insufficient: isArabic ? 'رصيد المحفظة غير كافٍ للدفع. قم بشحن المحفظة.' : 'Wallet balance is insufficient for payment. Top up your wallet.',
     topupTitle: isArabic ? 'شحن المحفظة' : 'Top Up Wallet',
     topupHint: isArabic ? 'يمكنك زيادة الرصيد مباشرة قبل الدفع.' : 'You can increase your balance before payment.',
     topupAmount: isArabic ? 'مبلغ الشحن' : 'Top Up Amount',
@@ -167,8 +167,8 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const subtotal = cart?.summary.subtotal ?? 0;
   const currency = cart?.summary.currency ?? wallet?.currency ?? 'OMR';
   const total = Number((subtotal + SHIPPING_FEE).toFixed(3));
-  const availableBalance = wallet?.available_balance ?? 0;
-  const hasEnoughBalance = availableBalance >= total;
+  const walletBalance = wallet?.balance ?? 0;
+  const hasEnoughBalance = walletBalance >= total;
   const hasItems = (cart?.items.length ?? 0) > 0;
 
   const requiredMissing = useMemo(() => {
@@ -439,14 +439,12 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
               <p className="mt-1 text-xs text-[color:var(--text-subtle)]">{t.onlyMuscat}</p>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <label className="space-y-1 text-sm">
+                <div className="space-y-1 text-sm">
                   <span className="text-[color:var(--text)]">{t.city}</span>
-                  <input
-                    value={form.city}
-                    onChange={(event) => setForm((prev) => ({ ...prev, city: event.target.value }))}
-                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-[color:var(--text)]"
-                  />
-                </label>
+                  <div className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-[color:var(--text)]">
+                    {t.cityValue}
+                  </div>
+                </div>
                 <label className="space-y-1 text-sm">
                   <span className="text-[color:var(--text)]">{t.area}</span>
                   <input
@@ -534,7 +532,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
               <div className="flex items-center justify-between">
                 <span>{t.walletBalance}</span>
                 <span className="font-semibold">
-                  {availableBalance.toFixed(3)} {currency}
+                  {walletBalance.toFixed(3)} {currency}
                 </span>
               </div>
               <div className="flex items-center justify-between">
