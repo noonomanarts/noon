@@ -80,6 +80,10 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   const t = {
     title: isArabic ? 'إتمام الطلب' : 'Checkout',
+    subtitle: isArabic
+      ? 'راجعي بيانات التوصيل ثم أكملي الدفع من المحفظة.'
+      : 'Review shipping details and complete payment with your wallet.',
+    loading: isArabic ? 'جاري تحميل بيانات الطلب...' : 'Loading checkout data...',
     loginRequired: isArabic ? 'يرجى تسجيل الدخول لإتمام الطلب.' : 'Please login to complete checkout.',
     goToLogin: isArabic ? 'تسجيل الدخول' : 'Go to login',
     empty: isArabic ? 'السلة فارغة. أضف منتجات أولاً.' : 'Your cart is empty. Add products first.',
@@ -106,12 +110,15 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     topupHint: isArabic ? 'يمكنك زيادة الرصيد مباشرة قبل الدفع.' : 'You can increase your balance before payment.',
     topupAmount: isArabic ? 'مبلغ الشحن' : 'Top Up Amount',
     topupAction: isArabic ? 'شحن الآن' : 'Top Up Now',
-    topupRedirect: isArabic ? 'سيتم تحويلك الآن لبوابة الدفع التجريبية.' : 'You will now be redirected to sandbox payment gateway.',
+    topupRedirect: isArabic
+      ? 'سيتم تحويلك الآن لبوابة الدفع التجريبية.'
+      : 'You will now be redirected to sandbox payment gateway.',
     successTitle: isArabic ? 'تم تأكيد الطلب بنجاح' : 'Order confirmed successfully',
     orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',
     continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
     backToCart: isArabic ? 'العودة للسلة' : 'Back to cart',
     required: isArabic ? 'هذا الحقل مطلوب' : 'This field is required',
+    items: isArabic ? 'منتجات' : 'items',
   };
 
   const loadData = useCallback(async () => {
@@ -295,24 +302,38 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-6xl px-4 py-12">
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">Loading...</p>
+      <div className="relative overflow-x-clip pb-16">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
+          <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
+          <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+        </div>
+        <div className="mx-auto w-full max-w-6xl px-4 py-12">
+          <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-5 text-sm text-[color:var(--text-muted)] shadow-sm">
+            {t.loading}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (unauthorized) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 py-12">
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
-          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">{t.loginRequired}</p>
-          <Link
-            href={`/${locale}/login`}
-            className="mt-4 inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            {t.goToLogin}
-          </Link>
+      <div className="relative overflow-x-clip pb-16">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
+          <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
+          <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+        </div>
+        <div className="mx-auto w-full max-w-3xl px-4 py-12">
+          <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
+            <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">{t.title}</h1>
+            <p className="mt-3 text-sm text-[color:var(--text-muted)]">{t.loginRequired}</p>
+            <Link
+              href={`/${locale}/login`}
+              className="mt-5 inline-flex rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+            >
+              {t.goToLogin}
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -320,28 +341,34 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   if (checkoutResult) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 py-12">
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-900/40 dark:bg-emerald-900/20">
-          <h1 className="text-2xl font-semibold text-emerald-900 dark:text-emerald-200">{t.successTitle}</h1>
-          <p className="mt-3 text-sm text-emerald-800 dark:text-emerald-300">
-            {t.orderNumber}: <span className="font-semibold">{checkoutResult.order.orderNumber}</span>
-          </p>
-          <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-300">
-            {t.total}: {checkoutResult.order.totalAmount.toFixed(3)} {checkoutResult.order.currency}
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href={`/${locale}/shop`}
-              className="inline-flex rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              {t.continueShopping}
-            </Link>
-            <Link
-              href={`/${locale}/cart`}
-              className="inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
-            >
-              {t.backToCart}
-            </Link>
+      <div className="relative overflow-x-clip pb-16">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
+          <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
+          <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+        </div>
+        <div className="mx-auto w-full max-w-3xl px-4 py-12">
+          <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-7 shadow-sm">
+            <h1 className="text-2xl font-semibold text-emerald-900 dark:text-emerald-200">{t.successTitle}</h1>
+            <p className="mt-3 text-sm text-emerald-800 dark:text-emerald-300">
+              {t.orderNumber}: <span className="font-semibold">{checkoutResult.order.orderNumber}</span>
+            </p>
+            <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-300">
+              {t.total}: {checkoutResult.order.totalAmount.toFixed(3)} {checkoutResult.order.currency}
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href={`/${locale}/shop`}
+                className="inline-flex rounded-xl bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+              >
+                {t.continueShopping}
+              </Link>
+              <Link
+                href={`/${locale}/cart`}
+                className="inline-flex rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
+              >
+                {t.backToCart}
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -350,23 +377,29 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   if (!hasItems) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 py-12">
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
-          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">{t.empty}</p>
-          <div className="mt-4 flex gap-3">
-            <Link
-              href={`/${locale}/cart`}
-              className="inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
-            >
-              {t.goToCart}
-            </Link>
-            <Link
-              href={`/${locale}/shop`}
-              className="inline-flex rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              {t.goToShop}
-            </Link>
+      <div className="relative overflow-x-clip pb-16">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
+          <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
+          <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+        </div>
+        <div className="mx-auto w-full max-w-3xl px-4 py-12">
+          <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
+            <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">{t.title}</h1>
+            <p className="mt-3 text-sm text-[color:var(--text-muted)]">{t.empty}</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link
+                href={`/${locale}/cart`}
+                className="inline-flex rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
+              >
+                {t.goToCart}
+              </Link>
+              <Link
+                href={`/${locale}/shop`}
+                className="inline-flex rounded-xl bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+              >
+                {t.goToShop}
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -374,158 +407,204 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-12">
-      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{t.title}</h1>
+    <div className="relative overflow-x-clip pb-16">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
+        <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
+        <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+      </div>
 
-      {error && (
-        <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
-          {error}
-        </div>
-      )}
-      {message && (
-        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">
-          {message}
-        </div>
-      )}
-
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
-        <section className="space-y-6">
-          <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.shippingInfo}</h2>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.onlyMuscat}</p>
-
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <label className="space-y-1 text-sm">
-                <span className="text-zinc-700 dark:text-zinc-300">{t.city}</span>
-                <input
-                  value={form.city}
-                  onChange={(event) => setForm((prev) => ({ ...prev, city: event.target.value }))}
-                  className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-zinc-700 dark:text-zinc-300">{t.area}</span>
-                <input
-                  value={form.area}
-                  onChange={(event) => setForm((prev) => ({ ...prev, area: event.target.value }))}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-              </label>
-              <label className="space-y-1 text-sm sm:col-span-2">
-                <span className="text-zinc-700 dark:text-zinc-300">{t.streetAddress}</span>
-                <input
-                  value={form.streetAddress}
-                  onChange={(event) => setForm((prev) => ({ ...prev, streetAddress: event.target.value }))}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-zinc-700 dark:text-zinc-300">{t.postalCode}</span>
-                <input
-                  value={form.postalCode}
-                  onChange={(event) => setForm((prev) => ({ ...prev, postalCode: event.target.value }))}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-zinc-700 dark:text-zinc-300">{t.recipientFullName}</span>
-                <input
-                  value={form.recipientFullName}
-                  onChange={(event) => setForm((prev) => ({ ...prev, recipientFullName: event.target.value }))}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-              </label>
-              <label className="space-y-1 text-sm sm:col-span-2">
-                <span className="text-zinc-700 dark:text-zinc-300">{t.recipientPhone}</span>
-                <input
-                  value={form.recipientPhone}
-                  onChange={(event) => setForm((prev) => ({ ...prev, recipientPhone: event.target.value }))}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-              </label>
-              <label className="space-y-1 text-sm sm:col-span-2">
-                <span className="text-zinc-700 dark:text-zinc-300">{t.notes}</span>
-                <textarea
-                  value={form.notes}
-                  onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
-                  rows={3}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-              </label>
-            </div>
-          </div>
-
+      <div className="mx-auto w-full max-w-6xl px-4 py-12">
+        <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
+          <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)] sm:text-4xl">{t.title}</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
+            {t.subtitle}
+          </p>
         </section>
 
-        <aside className="h-fit rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.orderSummary}</h2>
-          <div className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
-            <div className="flex items-center justify-between">
-              <span>{t.walletBalance}</span>
-              <span className="font-semibold">{availableBalance.toFixed(3)} {currency}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>{t.subtotal}</span>
-              <span>{subtotal.toFixed(3)} {currency}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>{t.shipping}</span>
-              <span>{SHIPPING_FEE.toFixed(3)} {currency}</span>
-            </div>
-            <div className="mt-2 border-t border-zinc-200 pt-2 text-base font-semibold text-zinc-900 dark:border-zinc-700 dark:text-zinc-100">
-              <div className="flex items-center justify-between">
-                <span>{t.total}</span>
-                <span>{total.toFixed(3)} {currency}</span>
-              </div>
-            </div>
+        {error ? (
+          <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
+            {error}
           </div>
+        ) : null}
+        {message ? (
+          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">
+            {message}
+          </div>
+        ) : null}
 
-          {!hasEnoughBalance && (
-            <p className="mt-3 text-xs text-rose-700 dark:text-rose-300">{t.insufficient}</p>
-          )}
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
+          <section className="space-y-6">
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+              <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.shippingInfo}</h2>
+              <p className="mt-1 text-xs text-[color:var(--text-subtle)]">{t.onlyMuscat}</p>
 
-          <button
-            type="button"
-            onClick={() => void submitCheckout()}
-            disabled={processing || requiredMissing || !hasEnoughBalance}
-            className="mt-5 inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-          >
-            {processing ? t.processing : t.payWallet}
-          </button>
-
-          {!hasEnoughBalance && (
-            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/40 dark:bg-emerald-900/20">
-              <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">{t.topupTitle}</h3>
-              <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">{t.topupHint}</p>
-              <div className="mt-3 flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0.001"
-                  step="0.001"
-                  value={topupAmount}
-                  onChange={(event) => setTopupAmount(event.target.value)}
-                  placeholder={t.topupAmount}
-                  className="min-w-0 flex-1 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-emerald-800 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-                <button
-                  type="button"
-                  onClick={() => void handleTopup()}
-                  disabled={topupLoading}
-                  className="inline-flex shrink-0 whitespace-nowrap rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-900 hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-900/30"
-                >
-                  {topupLoading ? t.processing : t.topupAction}
-                </button>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <label className="space-y-1 text-sm">
+                  <span className="text-[color:var(--text)]">{t.city}</span>
+                  <input
+                    value={form.city}
+                    onChange={(event) => setForm((prev) => ({ ...prev, city: event.target.value }))}
+                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-[color:var(--text)]"
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[color:var(--text)]">{t.area}</span>
+                  <input
+                    value={form.area}
+                    onChange={(event) => setForm((prev) => ({ ...prev, area: event.target.value }))}
+                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                  />
+                </label>
+                <label className="space-y-1 text-sm sm:col-span-2">
+                  <span className="text-[color:var(--text)]">{t.streetAddress}</span>
+                  <input
+                    value={form.streetAddress}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, streetAddress: event.target.value }))
+                    }
+                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[color:var(--text)]">{t.postalCode}</span>
+                  <input
+                    value={form.postalCode}
+                    onChange={(event) => setForm((prev) => ({ ...prev, postalCode: event.target.value }))}
+                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-[color:var(--text)]">{t.recipientFullName}</span>
+                  <input
+                    value={form.recipientFullName}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, recipientFullName: event.target.value }))
+                    }
+                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                  />
+                </label>
+                <label className="space-y-1 text-sm sm:col-span-2">
+                  <span className="text-[color:var(--text)]">{t.recipientPhone}</span>
+                  <input
+                    value={form.recipientPhone}
+                    onChange={(event) =>
+                      setForm((prev) => ({ ...prev, recipientPhone: event.target.value }))
+                    }
+                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                  />
+                </label>
+                <label className="space-y-1 text-sm sm:col-span-2">
+                  <span className="text-[color:var(--text)]">{t.notes}</span>
+                  <textarea
+                    value={form.notes}
+                    onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
+                    rows={3}
+                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                  />
+                </label>
               </div>
             </div>
-          )}
 
-          <Link
-            href={`/${locale}/cart`}
-            className="mt-3 inline-flex w-full items-center justify-center rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            {t.backToCart}
-          </Link>
-        </aside>
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+              <h3 className="text-base font-semibold text-[color:var(--text)]">{t.orderSummary}</h3>
+              <div className="mt-3 space-y-2">
+                {(cart?.items ?? []).map((item) => (
+                  <div
+                    key={item.productId}
+                    className="flex items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-sm"
+                  >
+                    <Link
+                      href={`/${locale}/shop/product/${item.product.slug}`}
+                      className="line-clamp-1 max-w-[75%] font-medium text-[color:var(--text)] hover:underline"
+                    >
+                      {isArabic ? item.product.name_ar : item.product.name_en} x{item.quantity}
+                    </Link>
+                    <span className="text-[color:var(--text-muted)]">
+                      {item.lineTotal.toFixed(3)} {item.product.currency}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <aside className="h-fit rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm lg:sticky lg:top-24">
+            <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.orderSummary}</h2>
+            <div className="mt-4 space-y-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 text-sm text-[color:var(--text)]">
+              <div className="flex items-center justify-between">
+                <span>{t.walletBalance}</span>
+                <span className="font-semibold">
+                  {availableBalance.toFixed(3)} {currency}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>{t.subtotal}</span>
+                <span>{subtotal.toFixed(3)} {currency}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>{t.shipping}</span>
+                <span>{SHIPPING_FEE.toFixed(3)} {currency}</span>
+              </div>
+              <div className="mt-2 border-t border-[color:var(--border)] pt-2 text-base font-semibold">
+                <div className="flex items-center justify-between">
+                  <span>{t.total}</span>
+                  <span>
+                    {total.toFixed(3)} {currency}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs font-normal text-[color:var(--text-subtle)]">
+                  {(cart?.summary.totalQuantity ?? 0).toString()} {t.items}
+                </p>
+              </div>
+            </div>
+
+            {!hasEnoughBalance ? (
+              <p className="mt-3 text-xs text-rose-700 dark:text-rose-300">{t.insufficient}</p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => void submitCheckout()}
+              disabled={processing || requiredMissing || !hasEnoughBalance}
+              className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {processing ? t.processing : t.payWallet}
+            </button>
+
+            {!hasEnoughBalance ? (
+              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/40 dark:bg-emerald-900/20">
+                <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">{t.topupTitle}</h3>
+                <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">{t.topupHint}</p>
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0.001"
+                    step="0.001"
+                    value={topupAmount}
+                    onChange={(event) => setTopupAmount(event.target.value)}
+                    placeholder={t.topupAmount}
+                    className="min-w-0 flex-1 rounded-xl border border-emerald-400/60 bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleTopup()}
+                    disabled={topupLoading}
+                    className="inline-flex shrink-0 whitespace-nowrap rounded-xl border border-emerald-400/60 px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-500/10 disabled:opacity-60"
+                  >
+                    {topupLoading ? t.processing : t.topupAction}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            <Link
+              href={`/${locale}/cart`}
+              className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
+            >
+              {t.backToCart}
+            </Link>
+          </aside>
+        </div>
       </div>
     </div>
   );

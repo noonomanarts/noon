@@ -183,7 +183,13 @@ export default function PrivateClassBookingPage() {
   };
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-4xl px-4 py-12">
+    <div className="relative min-h-screen overflow-x-clip pb-10">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[26rem]">
+        <div className="absolute -left-20 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
+        <div className="absolute right-0 top-14 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+      </div>
+
+      <div className="mx-auto w-full max-w-4xl px-4 py-12">
       <div className="mb-8 text-center">
         <h1 className="noon-text mb-4 text-3xl font-bold">
           {classType === 'cooking' ? t.cookingClass : t.artsCraftsClass}
@@ -194,19 +200,21 @@ export default function PrivateClassBookingPage() {
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <div
-                className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                  step >= s ? 'bg-blue-600 text-white' : 'bg-gray-200'
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
+                  step >= s
+                    ? 'bg-[color:var(--primary)] text-[color:var(--primary-foreground)]'
+                    : 'bg-[color:var(--muted)] text-[color:var(--text-subtle)]'
                 }`}
               >
                 {s}
               </div>
-              {s < 3 && <div className="h-0.5 w-12 bg-gray-300" />}
+              {s < 3 && <div className="h-0.5 w-12 bg-[color:var(--border)]" />}
             </div>
           ))}
         </div>
       </div>
 
-      <div className="rounded-lg border bg-white p-8 shadow-sm">
+      <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 shadow-sm">
         <BookingFormError message={error} />
 
         {step === 1 && (
@@ -217,7 +225,7 @@ export default function PrivateClassBookingPage() {
               <label className="noon-text mb-2 block font-semibold">{t.selectDate}</label>
               <input
                 type="date"
-                className="w-full rounded-lg border px-4 py-2"
+                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                 value={formData.selectedDate}
                 onChange={(e) => setFormData({ ...formData, selectedDate: e.target.value })}
                 min={new Date().toISOString().split('T')[0]}
@@ -227,7 +235,7 @@ export default function PrivateClassBookingPage() {
             <div>
               <label className="noon-text mb-2 block font-semibold">{t.selectTime}</label>
               <select
-                className="w-full rounded-lg border px-4 py-2"
+                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                 value={formData.selectedTime}
                 onChange={(e) => setFormData({ ...formData, selectedTime: e.target.value })}
               >
@@ -247,7 +255,7 @@ export default function PrivateClassBookingPage() {
                 type="number"
                 min="8"
                 max="32"
-                className="w-full rounded-lg border px-4 py-2"
+                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                 value={formData.numberOfParticipants}
                 onChange={(e) =>
                   setFormData({
@@ -256,7 +264,7 @@ export default function PrivateClassBookingPage() {
                   })
                 }
               />
-              <p className="mt-1 text-xs text-gray-500">8-32 {t.participants}</p>
+              <p className="mt-1 text-xs text-[color:var(--text-subtle)]">8-32 {t.participants}</p>
             </div>
 
             {classType === 'cooking' && (
@@ -266,7 +274,7 @@ export default function PrivateClassBookingPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-lg border px-4 py-2"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                   value={formData.preferredDish}
                   onChange={(e) =>
                     setFormData({ ...formData, preferredDish: e.target.value })
@@ -289,7 +297,7 @@ export default function PrivateClassBookingPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-lg border px-4 py-2"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   required
@@ -302,7 +310,7 @@ export default function PrivateClassBookingPage() {
                 </label>
                 <input
                   type="email"
-                  className="w-full rounded-lg border px-4 py-2"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
@@ -315,7 +323,7 @@ export default function PrivateClassBookingPage() {
                 </label>
                 <input
                   type="tel"
-                  className="w-full rounded-lg border px-4 py-2"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                   value={formData.phoneNumber}
                   onChange={(e) =>
                     setFormData({ ...formData, phoneNumber: e.target.value })
@@ -330,7 +338,7 @@ export default function PrivateClassBookingPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-lg border px-4 py-2"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                   value={formData.companyOrGroupName}
                   onChange={(e) =>
                     setFormData({ ...formData, companyOrGroupName: e.target.value })
@@ -344,7 +352,7 @@ export default function PrivateClassBookingPage() {
                 {t.specialRequests}
               </label>
               <textarea
-                className="w-full rounded-lg border px-4 py-2"
+                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                 rows={4}
                 value={formData.specialRequests}
                 onChange={(e) =>
@@ -359,8 +367,8 @@ export default function PrivateClassBookingPage() {
           <div className="space-y-6">
             <h2 className="noon-text text-2xl font-bold">{t.reviewTitle}</h2>
             
-            <div className="rounded-lg bg-gray-50 p-4">
-              <div className="space-y-2 text-sm">
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
+              <div className="space-y-2 text-sm text-[color:var(--text)]">
                 <div><strong>{t.summaryDate}:</strong> {formData.selectedDate}</div>
                 <div><strong>{t.summaryTime}:</strong> {formData.selectedTime}</div>
                 <div><strong>{t.summaryParticipants}:</strong> {formData.numberOfParticipants}</div>
@@ -377,21 +385,21 @@ export default function PrivateClassBookingPage() {
 
         {step === 4 && (
           <div className="py-12 text-center">
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-              <span className="text-4xl">✓</span>
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[color:var(--muted)]">
+              <span className="text-4xl text-teal">✓</span>
             </div>
             <h2 className="noon-text mb-4 text-2xl font-bold">{t.confirmationTitle}</h2>
             <p className="noon-text-muted mx-auto mb-8 max-w-2xl">
               {t.confirmationMessage}
             </p>
             {bookingNumber ? (
-              <p className="mb-6 text-sm font-semibold text-zinc-700">
+              <p className="mb-6 text-sm font-semibold text-[color:var(--text)]">
                 {t.bookingNumber}: {bookingNumber}
               </p>
             ) : null}
             <button
               onClick={() => router.push(`/${locale}`)}
-              className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+              className="rounded-xl bg-[color:var(--primary)] px-6 py-3 font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
             >
               {t.backToHome}
             </button>
@@ -406,7 +414,7 @@ export default function PrivateClassBookingPage() {
                 setStep(step - 1);
               }}
               disabled={step === 1 || loading}
-              className="rounded-lg border px-6 py-2 font-semibold disabled:opacity-50"
+              className="rounded-xl border border-[color:var(--border)] px-6 py-2 font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--muted)] disabled:opacity-50 disabled:hover:bg-transparent"
             >
               {t.back}
             </button>
@@ -422,7 +430,7 @@ export default function PrivateClassBookingPage() {
                   loading ||
                   (step === 1 && (!formData.selectedDate || !formData.selectedTime))
                 }
-                className="rounded-lg bg-blue-600 px-6 py-2 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                className="rounded-xl bg-[color:var(--primary)] px-6 py-2 font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:opacity-50"
               >
                 {t.next}
               </button>
@@ -430,13 +438,14 @@ export default function PrivateClassBookingPage() {
               <button
                 onClick={handleSubmit}
                 disabled={loading || !formData.fullName || !formData.email || !formData.phoneNumber}
-                className="rounded-lg bg-green-600 px-6 py-2 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                className="rounded-xl bg-teal px-6 py-2 font-semibold text-white transition hover:bg-teal-light disabled:opacity-50"
               >
                 {loading ? t.loading : t.submit}
               </button>
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

@@ -35,12 +35,12 @@ export default async function ClassBookingPage({
 
   if (sessions.length === 0) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-4 py-12">
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="mx-auto w-full max-w-5xl px-4 py-12">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
+          <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">
             {locale === 'ar' ? 'لا توجد جلسات قادمة حالياً' : 'No upcoming sessions right now'}
           </h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-[color:var(--text-muted)]">
             {locale === 'ar'
               ? 'يرجى العودة لاحقاً أو اختيار دورة أخرى.'
               : 'Please check back later or pick another class.'}
@@ -52,12 +52,12 @@ export default async function ClassBookingPage({
 
   if (!hasBookableSession) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-4 py-12">
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-700 dark:bg-zinc-900">
-          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+      <div className="mx-auto w-full max-w-5xl px-4 py-12">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
+          <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">
             {locale === 'ar' ? 'كل الجلسات القادمة ممتلئة حالياً' : 'All upcoming sessions are currently full'}
           </h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-[color:var(--text-muted)]">
             {locale === 'ar'
               ? 'يرجى اختيار دورة أخرى أو المحاولة لاحقاً عند إضافة جلسات جديدة.'
               : 'Please choose another class or try again later when new sessions are added.'}

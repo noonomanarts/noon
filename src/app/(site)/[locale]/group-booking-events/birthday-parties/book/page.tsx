@@ -258,7 +258,7 @@ export default function BirthdayPartyBookingPage() {
                     ? 'bg-gradient-to-br from-coral to-coral-light text-white shadow-lg'
                     : step === s
                     ? 'border-2 border-coral bg-coral/10 text-coral'
-                    : 'border-2 border-gray-200 bg-white text-gray-400'
+                    : 'border-2 border-[color:var(--border)] bg-white text-gray-400'
                 }`}
               >
                 {step > s ? (
@@ -304,21 +304,21 @@ export default function BirthdayPartyBookingPage() {
                   <div className="flex items-center gap-3">
                     <MdGroup className="text-xl text-yellow" />
                     <div>
-                      <span className="text-sm text-gray-600">{t.packageParticipantsLabel}:</span>
+                      <span className="text-sm text-[color:var(--text-muted)]">{t.packageParticipantsLabel}:</span>
                       <p className="font-semibold">{t.packageParticipantsValue}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <MdSchedule className="text-xl text-yellow" />
                     <div>
-                      <span className="text-sm text-gray-600">{t.packageDurationLabel}:</span>
+                      <span className="text-sm text-[color:var(--text-muted)]">{t.packageDurationLabel}:</span>
                       <p className="font-semibold">{t.packageDurationValue}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <MdCake className="text-xl text-yellow" />
                     <div>
-                      <span className="text-sm text-gray-600">{t.packageAgeLabel}:</span>
+                      <span className="text-sm text-[color:var(--text-muted)]">{t.packageAgeLabel}:</span>
                       <p className="font-semibold">{t.packageAgeValue}</p>
                     </div>
                   </div>
@@ -375,7 +375,7 @@ export default function BirthdayPartyBookingPage() {
                 </label>
                 <input
                   type="date"
-                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition-all focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
                   value={formData.selectedDate}
                   onChange={(e) => setFormData({ ...formData, selectedDate: e.target.value })}
                   min={new Date().toISOString().split('T')[0]}
@@ -388,7 +388,7 @@ export default function BirthdayPartyBookingPage() {
                   {t.selectTime}
                 </label>
                 <select
-                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition-all focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
                   value={formData.selectedTime}
                   onChange={(e) => setFormData({ ...formData, selectedTime: e.target.value })}
                 >
@@ -411,7 +411,7 @@ export default function BirthdayPartyBookingPage() {
                   type="number"
                   min="1"
                   max="16"
-                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition-all focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
                   value={formData.numberOfParticipants}
                   onChange={(e) =>
                     setFormData({
@@ -421,7 +421,7 @@ export default function BirthdayPartyBookingPage() {
                   }
                   placeholder={t.participantsPlaceholder}
                 />
-                <p className="mt-2 text-xs text-gray-500">{t.maxParticipants}</p>
+                <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{t.maxParticipants}</p>
               </div>
 
               <div>
@@ -432,7 +432,7 @@ export default function BirthdayPartyBookingPage() {
                 <input
                   type="number"
                   min="10"
-                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition-all focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
                   value={formData.childAge}
                   onChange={(e) =>
                     setFormData({
@@ -442,7 +442,7 @@ export default function BirthdayPartyBookingPage() {
                   }
                   placeholder={t.childAgePlaceholder}
                 />
-                <p className="mt-2 text-xs text-gray-500">{t.minimumAge}</p>
+                <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{t.minimumAge}</p>
               </div>
             </div>
           </div>
@@ -463,7 +463,7 @@ export default function BirthdayPartyBookingPage() {
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition-all focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   placeholder={t.fullNamePlaceholder}
@@ -479,7 +479,7 @@ export default function BirthdayPartyBookingPage() {
                   </label>
                   <input
                     type="email"
-                    className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-yellow focus:outline-none focus:ring-2 focus:ring-yellow/20"
+                    className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition-all focus:border-yellow focus:outline-none focus:ring-2 focus:ring-yellow/20"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder={t.emailPlaceholder}
@@ -494,7 +494,7 @@ export default function BirthdayPartyBookingPage() {
                   </label>
                   <input
                     type="tel"
-                    className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-yellow focus:outline-none focus:ring-2 focus:ring-yellow/20"
+                    className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition-all focus:border-yellow focus:outline-none focus:ring-2 focus:ring-yellow/20"
                     value={formData.phoneNumber}
                     onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                     placeholder={t.phonePlaceholder}
@@ -509,7 +509,7 @@ export default function BirthdayPartyBookingPage() {
                   {t.specialRequests}
                 </label>
                 <textarea
-                  className="w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
+                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition-all focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
                   rows={4}
                   value={formData.specialRequests}
                   onChange={(e) =>
@@ -541,7 +541,7 @@ export default function BirthdayPartyBookingPage() {
                 <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
                   <IoCalendar className="mt-1 text-xl text-coral" />
                   <div className="flex-1">
-                    <span className="text-sm text-gray-600">{t.summaryDateTime}</span>
+                    <span className="text-sm text-[color:var(--text-muted)]">{t.summaryDateTime}</span>
                     <p className="font-semibold">{formData.selectedDate} {locale === 'ar' ? 'الساعة' : 'at'} {formData.selectedTime}</p>
                   </div>
                 </div>
@@ -549,7 +549,7 @@ export default function BirthdayPartyBookingPage() {
                 <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
                   <MdGroup className="mt-1 text-xl text-yellow" />
                   <div className="flex-1">
-                    <span className="text-sm text-gray-600">{t.summaryPartyDetails}</span>
+                    <span className="text-sm text-[color:var(--text-muted)]">{t.summaryPartyDetails}</span>
                     <p className="font-semibold">
                       {formData.numberOfParticipants} {t.participants} • {t.childAge}: {formData.childAge}
                     </p>
@@ -559,7 +559,7 @@ export default function BirthdayPartyBookingPage() {
                 <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
                   <MdPerson className="mt-1 text-xl text-teal" />
                   <div className="flex-1">
-                    <span className="text-sm text-gray-600">{t.summaryParent}</span>
+                    <span className="text-sm text-[color:var(--text-muted)]">{t.summaryParent}</span>
                     <p className="font-semibold">{formData.fullName}</p>
                   </div>
                 </div>
@@ -567,7 +567,7 @@ export default function BirthdayPartyBookingPage() {
                 <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
                   <MdEmail className="mt-1 text-xl text-purple" />
                   <div className="flex-1">
-                    <span className="text-sm text-gray-600">{t.summaryContact}</span>
+                    <span className="text-sm text-[color:var(--text-muted)]">{t.summaryContact}</span>
                     <p className="font-semibold">{formData.email}</p>
                     <p className="font-semibold">{formData.phoneNumber}</p>
                   </div>
@@ -577,7 +577,7 @@ export default function BirthdayPartyBookingPage() {
                   <div className="flex items-start gap-4 rounded-xl bg-white/50 p-4">
                     <HiSparkles className="mt-1 text-xl text-coral" />
                     <div className="flex-1">
-                      <span className="text-sm text-gray-600">{t.summarySpecial}</span>
+                      <span className="text-sm text-[color:var(--text-muted)]">{t.summarySpecial}</span>
                       <p className="font-semibold">{formData.specialRequests}</p>
                     </div>
                   </div>
@@ -589,8 +589,8 @@ export default function BirthdayPartyBookingPage() {
               <div className="flex items-start gap-3">
                 <HiSparkles className="mt-1 text-xl text-yellow" />
                 <div className="text-sm">
-                  <p className="font-semibold text-yellow-dark">{t.noteTitle}</p>
-                  <p className="text-gray-600">{t.noteText}</p>
+                  <p className="font-semibold text-yellow">{t.noteTitle}</p>
+                  <p className="text-[color:var(--text-muted)]">{t.noteText}</p>
                 </div>
               </div>
             </div>

@@ -19,6 +19,28 @@
   --noon-purple-strong: #6a347b;
   --noon-teal: #17b0ad;
   --noon-teal-strong: #109d9a;
+
+  /* Shared brand gradients */
+  --noon-coral-gradient: linear-gradient(
+    135deg,
+    var(--noon-coral) 0%,
+    var(--noon-coral-strong) 100%
+  );
+  --noon-yellow-gradient: linear-gradient(
+    135deg,
+    var(--noon-yellow) 0%,
+    var(--noon-yellow-strong) 100%
+  );
+  --noon-purple-gradient: linear-gradient(
+    135deg,
+    var(--noon-purple) 0%,
+    var(--noon-purple-strong) 100%
+  );
+  --noon-teal-gradient: linear-gradient(
+    135deg,
+    var(--noon-teal) 0%,
+    var(--noon-teal-strong) 100%
+  );
 }
 
 /* OverlayScrollbars Theme Customization */
@@ -188,6 +210,13 @@ body {
 }
 
 @layer utilities {
+  .noon-bg {
+    background-color: var(--background);
+    background-image: var(--backdrop-pattern);
+    background-repeat: no-repeat;
+    color: var(--text);
+  }
+
   /* Theme-aware surfaces for cards/boxes/popovers */
   .noon-surface {
     background-color: var(--surface) !important;

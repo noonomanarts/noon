@@ -42,6 +42,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
 
   const t = {
     title: isArabic ? 'السلة' : 'Shopping Cart',
+    subtitle: isArabic ? 'محصولات انتخاب‌شده را بررسی و برای پرداخت آماده کنید.' : 'Review your selected products and continue to checkout.',
     empty: isArabic ? 'السلة فارغة حالياً.' : 'Your cart is currently empty.',
     backToShop: isArabic ? 'العودة للمتجر' : 'Back to shop',
     category: isArabic ? 'التصنيف' : 'Category',
@@ -53,6 +54,9 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
     proceedCheckout: isArabic ? 'المتابعة إلى الدفع' : 'Proceed to checkout',
     increase: isArabic ? 'زيادة' : 'Increase',
     decrease: isArabic ? 'تقليل' : 'Decrease',
+    loading: isArabic ? 'جاري تحميل السلة...' : 'Loading cart...',
+    noImage: isArabic ? 'بدون صورة' : 'No image',
+    items: isArabic ? 'منتجات' : 'items',
   };
 
   const loadCart = useCallback(async () => {
@@ -131,8 +135,19 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
   const hasItems = items.length > 0;
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-12">
-      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{t.title}</h1>
+    <div className="relative overflow-x-clip pb-16">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
+        <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
+        <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+      </div>
+
+      <div className="mx-auto w-full max-w-6xl px-4 py-12">
+      <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
+        <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)] sm:text-4xl">{t.title}</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
+          {t.subtitle}
+        </p>
+      </section>
 
       {error && (
         <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
@@ -141,13 +156,15 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
       )}
 
       {loading ? (
-        <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">Loading...</p>
+        <div className="mt-6 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-4 text-sm text-[color:var(--text-muted)]">
+          {t.loading}
+        </div>
       ) : !hasItems ? (
-        <div className="mt-8 rounded-xl border border-zinc-200 bg-zinc-50 p-8 text-center dark:border-zinc-700 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.empty}</p>
+        <div className="mt-8 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-10 text-center shadow-sm">
+          <p className="text-sm text-[color:var(--text-muted)]">{t.empty}</p>
           <Link
             href={`/${locale}/shop`}
-            className="mt-4 inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className="mt-5 inline-flex rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
           >
             {t.backToShop}
           </Link>
@@ -156,50 +173,53 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
           <section className="space-y-3">
             {items.map((item) => (
-              <article key={item.productId} className="grid gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900 md:grid-cols-[100px_1fr_auto] md:items-center">
-                <div className="relative h-24 w-full overflow-hidden rounded-lg bg-zinc-100 md:w-24 dark:bg-zinc-800">
+              <article
+                key={item.productId}
+                className="grid gap-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 shadow-sm md:grid-cols-[100px_1fr_auto] md:items-center"
+              >
+                <div className="relative h-24 w-full overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] md:w-24">
                   {item.product.image ? (
                     <Image src={item.product.image} alt={isArabic ? item.product.name_ar : item.product.name_en} fill sizes="96px" className="object-cover" />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-xs text-zinc-500 dark:text-zinc-400">No image</div>
+                    <div className="flex h-full items-center justify-center text-xs text-[color:var(--text-subtle)]">{t.noImage}</div>
                   )}
                 </div>
 
                 <div className="space-y-1">
-                  <Link href={`/${locale}/shop/product/${item.product.slug}`} className="line-clamp-1 text-sm font-semibold text-zinc-900 hover:underline dark:text-zinc-100">
+                  <Link href={`/${locale}/shop/product/${item.product.slug}`} className="line-clamp-1 text-sm font-semibold text-[color:var(--text)] hover:underline">
                     {isArabic ? item.product.name_ar : item.product.name_en}
                   </Link>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="text-xs text-[color:var(--text-subtle)]">
                     {t.category}: {isArabic ? item.product.category_name_ar : item.product.category_name_en}
                   </p>
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <p className="text-sm font-semibold text-[color:var(--text)]">
                     {item.product.price.toFixed(3)} {item.product.currency}
                   </p>
                 </div>
 
                 <div className="space-y-2 md:text-right">
-                  <div className="inline-flex items-center overflow-hidden rounded-md border border-zinc-300 dark:border-zinc-600">
+                  <div className="inline-flex items-center overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]">
                     <button
                       type="button"
                       disabled={savingItemId === item.productId || item.quantity <= 1}
                       onClick={() => void updateQuantity(item.productId, item.quantity - 1)}
-                      className="px-2 py-1 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                      className="px-2 py-1 text-sm text-[color:var(--text)] hover:bg-[color:var(--surface)] disabled:opacity-40"
                       aria-label={t.decrease}
                     >
                       −
                     </button>
-                    <span className="px-3 py-1 text-sm text-zinc-900 dark:text-zinc-100">{item.quantity}</span>
+                    <span className="px-3 py-1 text-sm text-[color:var(--text)]">{item.quantity}</span>
                     <button
                       type="button"
                       disabled={savingItemId === item.productId || item.quantity >= item.product.stock_quantity}
                       onClick={() => void updateQuantity(item.productId, item.quantity + 1)}
-                      className="px-2 py-1 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-40 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                      className="px-2 py-1 text-sm text-[color:var(--text)] hover:bg-[color:var(--surface)] disabled:opacity-40"
                       aria-label={t.increase}
                     >
                       +
                     </button>
                   </div>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.total}: {item.lineTotal.toFixed(3)} {item.product.currency}</p>
+                  <p className="text-xs text-[color:var(--text-subtle)]">{t.total}: {item.lineTotal.toFixed(3)} {item.product.currency}</p>
                   <button
                     type="button"
                     disabled={savingItemId === item.productId}
@@ -213,18 +233,24 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
             ))}
           </section>
 
-          <aside className="h-fit rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900">
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.subtotal}</p>
-            <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{subtotal.toFixed(3)} {currency}</p>
+          <aside className="h-fit rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm lg:sticky lg:top-24">
+            <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
+              <p className="text-sm text-[color:var(--text-muted)]">{t.subtotal}</p>
+              <p className="mt-2 text-2xl font-semibold text-[color:var(--text)]">{subtotal.toFixed(3)} {currency}</p>
+              <p className="mt-1 text-xs text-[color:var(--text-subtle)]">
+                {payload?.summary.totalQuantity ?? 0} {t.items}
+              </p>
+            </div>
             <Link
               href={`/${locale}/checkout`}
-              className="mt-4 inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
             >
               {t.proceedCheckout}
             </Link>
           </aside>
         </div>
       )}
+      </div>
     </div>
   );
 }

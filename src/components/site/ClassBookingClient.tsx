@@ -463,7 +463,7 @@ export default function ClassBookingClient({
   if (result) {
     return (
       <div className="mx-auto w-full max-w-3xl px-4 py-12">
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-900/20">
+        <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-8 shadow-sm">
           <h1 className="text-2xl font-bold text-emerald-900 dark:text-emerald-200">{t.successTitle}</h1>
           <p className="mt-3 text-sm text-emerald-800 dark:text-emerald-300">
             {t.bookingNumber}: <span className="font-semibold">{result.booking.bookingNumber}</span>
@@ -474,13 +474,13 @@ export default function ClassBookingClient({
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href={`/${locale}/account/orders`}
-              className="inline-flex rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              className="inline-flex rounded-xl bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
             >
               {t.goOrders}
             </Link>
             <Link
               href={`/${locale}/classes/${slug}`}
-              className="inline-flex rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              className="inline-flex rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
             >
               {t.goClass}
             </Link>
@@ -491,9 +491,15 @@ export default function ClassBookingClient({
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-12">
-      <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">{t.title}</h1>
-      <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t.subtitle}</p>
+    <div className="relative overflow-x-clip pb-16">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
+        <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
+        <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+      </div>
+
+      <div className="mx-auto w-full max-w-6xl px-4 py-12">
+      <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)]">{t.title}</h1>
+      <p className="mt-2 text-sm text-[color:var(--text-muted)]">{t.subtitle}</p>
 
       {error && (
         <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
@@ -508,8 +514,8 @@ export default function ClassBookingClient({
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
         <section className="space-y-6">
-          <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.session}</h2>
+          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.session}</h2>
             <div className="mt-4 grid gap-3">
               {sessions.map((session) => (
                 <button
@@ -517,18 +523,18 @@ export default function ClassBookingClient({
                   type="button"
                   onClick={() => setSelectedSessionId(session.id)}
                   disabled={session.seatsAvailable <= 0}
-                  className={`rounded-lg border p-3 text-start transition ${
+                  className={`rounded-xl border p-3 text-start transition ${
                     selectedSessionId === session.id
-                      ? 'border-zinc-900 bg-zinc-50 dark:border-zinc-200 dark:bg-zinc-800/60'
+                      ? 'border-[color:var(--primary)] bg-[color:var(--muted)]'
                       : session.seatsAvailable <= 0
-                        ? 'cursor-not-allowed border-zinc-200 opacity-60 dark:border-zinc-700'
-                        : 'border-zinc-200 hover:border-zinc-300 dark:border-zinc-700 dark:hover:border-zinc-500'
+                        ? 'cursor-not-allowed border-[color:var(--border)] opacity-60'
+                        : 'border-[color:var(--border)] hover:border-[color:var(--primary)]/60'
                   }`}
                 >
-                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <p className="text-sm font-semibold text-[color:var(--text)]">
                     {formatSessionDate(locale, session.startTime)}
                   </p>
-                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                  <p className="mt-1 text-xs text-[color:var(--text-muted)]">
                     {formatSessionTime(locale, session.startTime)} •{' '}
                     {session.seatsAvailable > 0
                       ? `${session.seatsAvailable} ${isArabic ? 'مقعد متاح' : 'seats available'}`
@@ -539,26 +545,26 @@ export default function ClassBookingClient({
             </div>
           </div>
 
-          <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.bookingFor}</h2>
+          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.bookingFor}</h2>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <label className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+              <label className="flex items-center gap-2 rounded-xl border border-[color:var(--border)] px-3 py-2 text-sm text-[color:var(--text)]">
                 <input type="radio" checked={bookingFor === 'self'} onChange={() => setBookingFor('self')} />
                 <span>{t.self}</span>
               </label>
-              <label className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+              <label className="flex items-center gap-2 rounded-xl border border-[color:var(--border)] px-3 py-2 text-sm text-[color:var(--text)]">
                 <input type="radio" checked={bookingFor === 'other'} onChange={() => setBookingFor('other')} />
                 <span>{t.other}</span>
               </label>
             </div>
 
             <label className="mt-4 block text-sm">
-              <span className="mb-1 block text-zinc-700 dark:text-zinc-300">{t.participantsCount}</span>
+              <span className="mb-1 block text-[color:var(--text)]">{t.participantsCount}</span>
               <select
                 value={participantCount}
                 onChange={(event) => setParticipantCount(Number(event.target.value))}
                 disabled={!hasBookableSeats}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
               >
                 {Array.from({ length: participantOptionMax }, (_, index) => index + 1).map((count) => (
                   <option key={count} value={count}>
@@ -572,12 +578,15 @@ export default function ClassBookingClient({
             )}
           </div>
 
-          <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.participants}</h2>
+          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.participants}</h2>
             <div className="mt-4 space-y-5">
               {participants.map((participant, index) => (
-                <div key={`participant-${index}`} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
-                  <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                <div
+                  key={`participant-${index}`}
+                  className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4"
+                >
+                  <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">
                     {t.participant} {index + 1}
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -585,31 +594,31 @@ export default function ClassBookingClient({
                       value={participant.firstName}
                       onChange={(event) => updateParticipant(index, 'firstName', event.target.value)}
                       placeholder={t.firstName}
-                      className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
                     />
                     <input
                       value={participant.middleName}
                       onChange={(event) => updateParticipant(index, 'middleName', event.target.value)}
                       placeholder={t.middleName}
-                      className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
                     />
                     <input
                       value={participant.lastName}
                       onChange={(event) => updateParticipant(index, 'lastName', event.target.value)}
                       placeholder={t.lastName}
-                      className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
                     />
                     <input
                       type="date"
                       value={participant.dateOfBirth}
                       onChange={(event) => updateParticipant(index, 'dateOfBirth', event.target.value)}
                       max={new Date().toISOString().split('T')[0]}
-                      className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
                     />
                     <select
                       value={participant.preferredLanguage}
                       onChange={(event) => updateParticipant(index, 'preferredLanguage', event.target.value)}
-                      className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
                     >
                       <option value="en">{isArabic ? 'الإنجليزية' : 'English'}</option>
                       <option value="ar">{isArabic ? 'العربية' : 'Arabic'}</option>
@@ -620,42 +629,42 @@ export default function ClassBookingClient({
             </div>
           </div>
 
-          <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{terms.title}</h2>
-            <ul className="mt-3 list-disc space-y-1 ps-5 text-sm text-zinc-600 dark:text-zinc-300">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-[color:var(--text)]">{terms.title}</h2>
+            <ul className="mt-3 list-disc space-y-1 ps-5 text-sm text-[color:var(--text-muted)]">
               {terms.lines.map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ul>
-            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+            <p className="mt-3 text-xs text-[color:var(--text-subtle)]">
               <Link href={`/${locale}/terms`} className="underline">
                 {isArabic ? 'قراءة صفحة الشروط الكاملة' : 'Read full terms page'}
               </Link>
             </p>
-            <label className="mt-4 flex items-start gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+            <label className="mt-4 flex items-start gap-2 text-sm text-[color:var(--text)]">
               <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-0.5" />
               <span>{t.agree}</span>
             </label>
           </div>
 
-          <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
             <label className="text-sm">
-              <span className="mb-1 block text-zinc-700 dark:text-zinc-300">{t.specialRequests}</span>
+              <span className="mb-1 block text-[color:var(--text)]">{t.specialRequests}</span>
               <textarea
                 rows={4}
                 value={specialRequests}
                 onChange={(event) => setSpecialRequests(event.target.value)}
-                className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
               />
             </label>
           </div>
         </section>
 
-        <aside className="h-fit rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+        <aside className="h-fit rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+          <h2 className="text-lg font-semibold text-[color:var(--text)]">
             {isArabic && classData.titleAr ? classData.titleAr : classData.title}
           </h2>
-          <div className="mt-4 space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
+          <div className="mt-4 space-y-2 text-sm text-[color:var(--text)]">
             <div className="flex items-center justify-between">
               <span>{t.participantsCount}</span>
               <span className="font-semibold">{participantCount}</span>
@@ -666,7 +675,7 @@ export default function ClassBookingClient({
                 {loadingWallet ? '...' : `${(wallet?.available_balance ?? 0).toFixed(3)} ${wallet?.currency ?? classData.currency}`}
               </span>
             </div>
-            <div className="border-t border-zinc-200 pt-2 text-base font-semibold text-zinc-900 dark:border-zinc-700 dark:text-zinc-100">
+            <div className="border-t border-[color:var(--border)] pt-2 text-base font-semibold text-[color:var(--text)]">
               <div className="flex items-center justify-between">
                 <span>{t.total}</span>
                 <span>{totalAmount.toFixed(3)} {classData.currency}</span>
@@ -678,7 +687,7 @@ export default function ClassBookingClient({
             type="button"
             onClick={() => void submitBooking()}
             disabled={processing || loadingWallet || !selectedSession || !hasBookableSeats || !hasEnoughBalance}
-            className="mt-5 inline-flex w-full items-center justify-center rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {processing ? t.processing : t.submit}
           </button>
@@ -694,13 +703,13 @@ export default function ClassBookingClient({
                   step="0.001"
                   value={topupAmount}
                   onChange={(event) => setTopupAmount(event.target.value)}
-                  className="min-w-0 flex-1 rounded-lg border border-emerald-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-emerald-800 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="min-w-0 flex-1 rounded-xl border border-emerald-400/60 bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
                 />
                 <button
                   type="button"
                   onClick={() => void handleTopup()}
                   disabled={topupLoading}
-                  className="inline-flex shrink-0 rounded-lg border border-emerald-300 px-4 py-2 text-sm font-medium text-emerald-900 hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-800 dark:text-emerald-200 dark:hover:bg-emerald-900/30"
+                  className="inline-flex shrink-0 rounded-xl border border-emerald-400/60 px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-500/10 disabled:opacity-60"
                 >
                   {topupLoading ? t.processing : t.topupAction}
                 </button>
@@ -708,6 +717,7 @@ export default function ClassBookingClient({
             </div>
           )}
         </aside>
+      </div>
       </div>
     </div>
   );
