@@ -6,6 +6,13 @@ import { getHomeContent } from "@/lib/homeContent";
 import AnimatedCounter from "@/components/site/AnimatedCounter";
 import HeroSlideshow from "@/components/site/HeroSlideshow";
 import { findClassSessions, findManyClasses } from "@/lib/db/classes";
+import { getAdminSettingsByKey } from "@/lib/db/adminSettings";
+import {
+  getSitePageByKey,
+  makeSitePageSettingsKey,
+  sanitizeSitePageSettings,
+  type SitePageSettings,
+} from "@/lib/admin/sitePages";
 import {
   FiArrowRight,
   FiCalendar,
@@ -27,6 +34,19 @@ const heroSlides = [
   "/images/slides/5.jpg",
   "/images/slides/6.jpg",
 ];
+
+async function resolveHomePageSettings(): Promise<SitePageSettings | null> {
+  const homePage = getSitePageByKey("home");
+  if (!homePage) return null;
+
+  try {
+    const key = makeSitePageSettingsKey(homePage.key);
+    const saved = await getAdminSettingsByKey<Partial<SitePageSettings>>(key);
+    return sanitizeSitePageSettings(homePage, saved);
+  } catch {
+    return sanitizeSitePageSettings(homePage, null);
+  }
+}
 
 async function resolveUpcomingItems(
   locale: Locale,
@@ -117,25 +137,40 @@ export default async function HomePage({
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const content = getHomeContent(locale);
+  const homePageSettings = await resolveHomePageSettings();
   const upcomingItems = await resolveUpcomingItems(
     locale,
     content.upcoming.items as UpcomingCard[]
   );
+  const heroHeadingFromSettings = locale === "ar" ? homePageSettings?.headingAr : homePageSettings?.headingEn;
+  const heroSubheadingFromSettings = locale === "ar" ? homePageSettings?.subheadingAr : homePageSettings?.subheadingEn;
+  const heroPrimaryCtaFromSettings =
+    locale === "ar" ? homePageSettings?.homeHero.primaryCtaAr : homePageSettings?.homeHero.primaryCtaEn;
+  const heroSecondaryCtaFromSettings =
+    locale === "ar" ? homePageSettings?.homeHero.secondaryCtaAr : homePageSettings?.homeHero.secondaryCtaEn;
+  const heroTrustLineFromSettings =
+    locale === "ar" ? homePageSettings?.homeHero.trustLineAr : homePageSettings?.homeHero.trustLineEn;
   const heroHeadline =
+    heroHeadingFromSettings?.trim() ||
     content.hero.headline?.trim() ||
     (locale === "ar"
       ? "حيث يتحول الطبخ إلى تجربة"
       : "Where cooking becomes an experience.");
+  const heroSubheadline = heroSubheadingFromSettings?.trim() || content.hero.subheadline?.trim() || "";
+  const heroSlideImages =
+    homePageSettings?.homeHero.slideImages && homePageSettings.homeHero.slideImages.length > 0
+      ? homePageSettings.homeHero.slideImages
+      : heroSlides;
+  const heroAutoplayMs = homePageSettings?.homeHero.autoplayMs ?? 3800;
   const heroKpis = content.numbers.items.slice(0, 3);
-  const heroSpotlight = upcomingItems[0];
   const heroUi = {
-    bookEvent: locale === "ar" ? "احجز فعالية" : "Book an event",
-    trustLine:
-      locale === "ar"
+    exploreClasses:
+      heroPrimaryCtaFromSettings?.trim() || content.hero.ctaExploreClasses,
+    bookEvent: heroSecondaryCtaFromSettings?.trim() || (locale === "ar" ? "احجز فعالية" : "Book an event"),
+    trustLine: heroTrustLineFromSettings?.trim()
+      || (locale === "ar"
         ? "تجربة موثوقة للمجموعات والعائلات والأفراد."
-        : "Trusted classes and events for teams, families, and individuals.",
-    spotlightLabel: locale === "ar" ? "موعد قريب" : "Next Session",
-    from: locale === "ar" ? "من" : "From",
+        : "Trusted classes and events for teams, families, and individuals."),
   };
 
   return (
@@ -170,9 +205,9 @@ export default async function HomePage({
                   {heroHeadline}
                 </h1>
 
-                {content.hero.subheadline ? (
+                {heroSubheadline ? (
                   <p className="max-w-2xl text-base leading-7 text-zinc-700 dark:text-zinc-300 sm:text-lg">
-                    {content.hero.subheadline}
+                    {heroSubheadline}
                   </p>
                 ) : null}
 
@@ -181,7 +216,7 @@ export default async function HomePage({
                     href={`/${locale}/classes/cooking`}
                     className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-teal-500 via-teal-600 to-cyan-600 px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-teal-500/30 transition hover:-translate-y-0.5 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/60"
                   >
-                    {content.hero.ctaExploreClasses}
+                    {heroUi.exploreClasses}
                     <FiArrowRight className="size-4" />
                   </Link>
                   <Link
@@ -211,24 +246,12 @@ export default async function HomePage({
               </div>
 
               <div className="relative">
-                <div className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white/80 p-3 shadow-xl backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/70">
-                  <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem]">
-                    <HeroSlideshow
-                      images={heroSlides}
-                      alt={locale === "ar" ? "صور من فعاليات ودورات نون" : "Noon classes and events slideshow"}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/65 via-zinc-900/20 to-transparent" />
-                    {heroSpotlight ? (
-                      <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/20 bg-black/35 p-4 text-white backdrop-blur">
-                        <p className="text-[11px] uppercase tracking-[0.14em] text-white/80">{heroUi.spotlightLabel}</p>
-                        <p className="mt-1 line-clamp-1 text-base font-semibold">{heroSpotlight.title}</p>
-                        <p className="mt-1 text-xs text-white/85">{heroSpotlight.datetimeText}</p>
-                        <p className="mt-3 inline-flex rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold">
-                          {heroUi.from} {heroSpotlight.priceText}
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
+                <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem] shadow-xl">
+                  <HeroSlideshow
+                    images={heroSlideImages}
+                    intervalMs={heroAutoplayMs}
+                    alt={locale === "ar" ? "صور من فعاليات ودورات نون" : "Noon classes and events slideshow"}
+                  />
                 </div>
               </div>
             </div>

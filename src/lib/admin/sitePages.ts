@@ -3,6 +3,17 @@ export type SitePageGroup = "core" | "classes" | "events" | "commerce" | "accoun
 export type NavPlacement = "PRIMARY" | "SECONDARY" | "NONE";
 export type PageVisibility = "PUBLISHED" | "DRAFT" | "HIDDEN";
 
+export type HomeHeroSettings = {
+  primaryCtaEn: string;
+  primaryCtaAr: string;
+  secondaryCtaEn: string;
+  secondaryCtaAr: string;
+  trustLineEn: string;
+  trustLineAr: string;
+  slideImages: string[];
+  autoplayMs: number;
+};
+
 export type SitePageDefinition = {
   key: string;
   pathTemplate: string;
@@ -35,6 +46,7 @@ export type SitePageSettings = {
   ogImage: string;
   customCssClass: string;
   notes: string;
+  homeHero: HomeHeroSettings;
 };
 
 export const sitePageCatalog: SitePageDefinition[] = [
@@ -448,6 +460,17 @@ function toKeywordArray(value: unknown, maxItems: number, maxItemLength: number)
   return Array.from(new Set(normalized)).slice(0, maxItems);
 }
 
+function toStringArray(value: unknown, maxItems: number, maxItemLength: number): string[] {
+  const list = Array.isArray(value) ? value : typeof value === "string" ? value.split(",") : [];
+
+  const normalized = list
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean)
+    .map((item) => item.slice(0, maxItemLength));
+
+  return Array.from(new Set(normalized)).slice(0, maxItems);
+}
+
 function toBoolean(value: unknown, fallback: boolean): boolean {
   if (typeof value === "boolean") return value;
   return fallback;
@@ -461,6 +484,12 @@ function toVisibility(value: unknown, fallback: PageVisibility): PageVisibility 
 function toNavPlacement(value: unknown, fallback: NavPlacement): NavPlacement {
   if (value === "PRIMARY" || value === "SECONDARY" || value === "NONE") return value;
   return fallback;
+}
+
+function toNumberInRange(value: unknown, fallback: number, min: number, max: number): number {
+  if (typeof value !== "number" || Number.isNaN(value)) return fallback;
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, Math.round(value)));
 }
 
 export function makeSitePageSettingsKey(pageKey: string): string {
@@ -500,6 +529,23 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
     ogImage: "",
     customCssClass: "",
     notes: "",
+    homeHero: {
+      primaryCtaEn: "Explore classes",
+      primaryCtaAr: "استكشف الدورات",
+      secondaryCtaEn: "Book an event",
+      secondaryCtaAr: "احجز فعالية",
+      trustLineEn: "Trusted classes and events for teams, families, and individuals.",
+      trustLineAr: "تجربة موثوقة للمجموعات والعائلات والأفراد.",
+      slideImages: [
+        "/images/slides/1.jpg",
+        "/images/slides/2.jpg",
+        "/images/slides/3.jpg",
+        "/images/slides/4.jpg",
+        "/images/slides/5.jpg",
+        "/images/slides/6.jpg",
+      ],
+      autoplayMs: 3800,
+    },
   };
 }
 
@@ -509,6 +555,9 @@ export function sanitizeSitePageSettings(
 ): SitePageSettings {
   const defaults = getDefaultSitePageSettings(page);
   const source: Partial<SitePageSettings> = { ...defaults, ...(input ?? {}) };
+  const rawSlideImages = input?.homeHero?.slideImages;
+  const hasExplicitSlideImages = Array.isArray(rawSlideImages) || typeof rawSlideImages === "string";
+  const normalizedSlideImages = toStringArray(source.homeHero?.slideImages, 12, 300);
 
   return {
     visibility: toVisibility(source.visibility, defaults.visibility),
@@ -529,5 +578,15 @@ export function sanitizeSitePageSettings(
     ogImage: toSafeString(source.ogImage, 500),
     customCssClass: toSafeString(source.customCssClass, 120),
     notes: toSafeString(source.notes, 4000),
+    homeHero: {
+      primaryCtaEn: toSafeString(source.homeHero?.primaryCtaEn, 120) || defaults.homeHero.primaryCtaEn,
+      primaryCtaAr: toSafeString(source.homeHero?.primaryCtaAr, 120) || defaults.homeHero.primaryCtaAr,
+      secondaryCtaEn: toSafeString(source.homeHero?.secondaryCtaEn, 120) || defaults.homeHero.secondaryCtaEn,
+      secondaryCtaAr: toSafeString(source.homeHero?.secondaryCtaAr, 120) || defaults.homeHero.secondaryCtaAr,
+      trustLineEn: toSafeString(source.homeHero?.trustLineEn, 280) || defaults.homeHero.trustLineEn,
+      trustLineAr: toSafeString(source.homeHero?.trustLineAr, 280) || defaults.homeHero.trustLineAr,
+      slideImages: hasExplicitSlideImages ? normalizedSlideImages : defaults.homeHero.slideImages,
+      autoplayMs: toNumberInRange(source.homeHero?.autoplayMs, defaults.homeHero.autoplayMs, 2000, 12000),
+    },
   };
 }

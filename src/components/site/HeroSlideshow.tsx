@@ -1,7 +1,8 @@
 "use client";
 
+import useEmblaCarousel from "embla-carousel-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 type HeroSlideshowProps = {
   images: string[];
@@ -14,42 +15,47 @@ export default function HeroSlideshow({
   alt,
   intervalMs = 3800,
 }: HeroSlideshowProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    loop: images.length > 1,
+    align: "start",
+    containScroll: "trimSnaps",
+    dragFree: false,
+  });
 
   useEffect(() => {
-    if (images.length <= 1) return;
+    if (!emblaApi || images.length <= 1) return;
 
     const timer = window.setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % images.length);
+      emblaApi.scrollNext();
     }, intervalMs);
 
     return () => window.clearInterval(timer);
-  }, [images.length, intervalMs]);
+  }, [emblaApi, images.length, intervalMs]);
 
   if (images.length === 0) return null;
 
   return (
-    <>
-      {images.map((src, index) => (
-        <Image
-          key={`${src}-${index}`}
-          src={src}
-          alt={alt}
-          fill
-          priority={index === 0}
-          sizes="(max-width: 1024px) 90vw, 36vw"
-          className={`object-cover transition-opacity duration-700 ${index === activeIndex ? "opacity-100" : "opacity-0"}`}
-        />
-      ))}
-
-      <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/25 px-2 py-1 backdrop-blur">
-        {images.map((_, index) => (
-          <span
-            key={`dot-${index}`}
-            className={`h-1.5 rounded-full transition-all duration-300 ${index === activeIndex ? "w-4 bg-white" : "w-1.5 bg-white/55"}`}
-          />
+    <div
+      ref={emblaRef}
+      className="absolute inset-0 touch-pan-y overflow-hidden select-none"
+      role="region"
+      aria-label={alt}
+    >
+      <div className="flex h-full">
+        {images.map((src, index) => (
+          <div key={`${src}-${index}`} className="relative h-full min-w-0 flex-[0_0_100%]">
+            <Image
+              src={src}
+              alt={alt}
+              fill
+              priority={index === 0}
+              sizes="(max-width: 1024px) 90vw, 36vw"
+              draggable={false}
+              className="object-cover"
+            />
+          </div>
         ))}
       </div>
-    </>
+    </div>
   );
 }
