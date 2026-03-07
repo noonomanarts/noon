@@ -1,10 +1,9 @@
-import { isLocale, type Locale } from "@/lib/locale";
 import Link from "next/link";
-import { MdGroup, MdSchedule } from "react-icons/md";
-import { IoTrophy, IoCafe, IoCheckmarkCircle } from "react-icons/io5";
+import { FiArrowRight, FiCalendar, FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
 import { GiCookingPot, GiChefToque } from "react-icons/gi";
-import { BiSolidGift } from "react-icons/bi";
-import { HiSparkles } from "react-icons/hi2";
+import { IoTrophyOutline } from "react-icons/io5";
+
+import { isLocale, type Locale } from "@/lib/locale";
 
 export default async function CookingCompetitionPage({
   params,
@@ -13,219 +12,168 @@ export default async function CookingCompetitionPage({
 }) {
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
+  const isArabic = locale === "ar";
+
+  const t = {
+    eyebrow: isArabic ? "فعاليات المجموعات" : "Group Events",
+    title: isArabic ? "مسابقة الطبخ" : "Cooking Competition",
+    subtitle: isArabic
+      ? "تجربة جماعية تجمع الطهي والتنافس والتعاون ضمن أجواء احترافية ممتعة."
+      : "A team-based culinary challenge that combines cooking, competition, and collaboration.",
+    cta: isArabic ? "احجز المسابقة" : "Book Competition",
+    processTitle: isArabic ? "كيف تسير التجربة" : "How the Experience Works",
+    packageTitle: isArabic ? "الباقات المتاحة" : "Available Packages",
+    readyTitle: isArabic ? "جاهزون للتحدي؟" : "Ready for the Challenge?",
+    readySubtitle: isArabic
+      ? "احجز موعدك وسيتواصل فريق نون لتأكيد التفاصيل."
+      : "Book your date and the Noon team will confirm all details with you.",
+  };
+
+  const steps = [
+    {
+      title: isArabic ? "الترحيب" : "Welcome",
+      desc: isArabic ? "استقبال الضيوف مع قهوة عربية وحلويات." : "Guests are welcomed with Arabic coffee and sweets.",
+      icon: FiUsers,
+    },
+    {
+      title: isArabic ? "تقسيم الفرق" : "Team Draw",
+      desc: isArabic ? "توزيع المشاركين على فرق وسحب صندوق المكونات." : "Participants are split into teams and receive mystery ingredients.",
+      icon: GiChefToque,
+    },
+    {
+      title: isArabic ? "التحدي" : "Cooking Challenge",
+      desc: isArabic ? "تجهيز الأطباق ضمن وقت محدد بإشراف فريق نون." : "Teams cook under time pressure with Noon guidance.",
+      icon: GiCookingPot,
+    },
+    {
+      title: isArabic ? "النتائج" : "Final Vote",
+      desc: isArabic ? "تذوق، تصويت، وإعلان الفريق الفائز." : "Tasting, voting, and winner announcement.",
+      icon: IoTrophyOutline,
+    },
+  ];
+
+  const standardItems = [
+    isArabic ? "8-40 مشارك" : "8-40 participants",
+    isArabic ? "2-8 فرق" : "2-8 teams",
+    isArabic ? "1-2 طبق لكل فريق" : "1-2 dishes per team",
+    isArabic ? "مدة التجربة: 3 ساعات" : "3-hour experience",
+    isArabic ? "المكونات والمعدات مشمولة" : "Ingredients and equipment included",
+  ];
+
+  const premiumItems = [
+    isArabic ? "كل مميزات الباقة القياسية" : "All standard package features",
+    isArabic ? "2-3 أطباق لكل فريق" : "2-3 dishes per team",
+    isArabic ? "مريلة قماش لكل مشارك" : "Fabric apron for each participant",
+    isArabic ? "خيارات هدايا إضافية للفائزين" : "Optional winner gift add-ons",
+    isArabic ? "مناسبة للشركات والفعاليات الخاصة" : "Ideal for corporate and premium events",
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900">
-      <div className="mx-auto w-full max-w-7xl px-4 py-12">
-        {/* Hero Section */}
-        <div className="mb-16 overflow-hidden rounded-3xl border border-zinc-200 bg-gradient-to-br from-orange-50 to-red-50 shadow-2xl dark:border-zinc-800 dark:from-orange-950/30 dark:to-red-950/30">
-          <div className="grid gap-8 lg:grid-cols-2">
-            {/* Text Content */}
-            <div className="p-12">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold" style={{ backgroundColor: '#FF6B6B20', color: '#FF6B6B' }}>
-                <MdGroup className="h-5 w-5" />
-                {locale === "ar" ? "فعاليات المجموعات" : "Group Events"}
-              </div>
-              <h1 className="mb-6 text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                {locale === "ar" ? "مسابقة الطبخ" : "Cooking Competition"}
-              </h1>
-              <p className="mb-8 text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
-                {locale === "ar"
-                  ? "تجربة تنافسية ممتعة للشركات والمجموعات. اطبخ، تنافس، واستمتع مع فريقك في تحدٍ طهي مثير!"
-                  : "An exciting team-building experience for companies and groups. Cook, compete, and have fun with your team in a thrilling culinary challenge!"}
-              </p>
+    <div className="relative overflow-x-clip pb-14">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem]">
+        <div className="absolute -left-20 top-8 h-72 w-72 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
+        <div className="absolute right-0 top-16 h-80 w-80 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+      </div>
 
-              {/* Key Features */}
-              <div className="mb-8 space-y-3">
-                {[
-                  { Icon: MdGroup, color: "#17A2B8", text: locale === "ar" ? "8-40 مشارك" : "8-40 Participants" },
-                  { Icon: MdSchedule, color: "#FFD93D", text: locale === "ar" ? "3 ساعات من المرح" : "3 Hours of Fun" },
-                  { Icon: BiSolidGift, color: "#8E44AD", text: locale === "ar" ? "جوائز للفائزين" : "Prizes for Winners" },
-                  { Icon: GiChefToque, color: "#FF6B6B", text: locale === "ar" ? "بإشراف فريق نون" : "Guided by Noon Team" },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <item.Icon className="h-8 w-8" style={{ color: item.color }} />
-                    <span className="font-semibold text-zinc-800 dark:text-zinc-300">{item.text}</span>
-                  </div>
-                ))}
-              </div>
-
-              <Link
-                href={`/${locale}/group-booking-events/cooking-competition/book`}
-                className="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-lg font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-2xl"
-                style={{ background: 'linear-gradient(135deg, #FF6B6B 0%, #FF9999 100%)' }}
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                {locale === "ar" ? "احجز الآن" : "Book Now"}
-              </Link>
-              <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-500">
-                {locale === "ar"
-                  ? "سيتواصل معك فريقنا لتأكيد التفاصيل"
-                  : "Our team will contact you to confirm details"}
-              </p>
-            </div>
-
-            {/* Image */}
-            <div className="relative h-full min-h-[500px] lg:min-h-0">
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-red-500/20"></div>
-              <div className="flex h-full items-center justify-center p-12">
-                <div className="relative h-64 w-64 rounded-full p-8 shadow-2xl" style={{ background: 'linear-gradient(135deg, #FFD93D 0%, #FFC93C 100%)' }}>
-                  <div className="flex h-full items-center justify-center">
-                    <IoTrophy className="h-40 w-40" style={{ color: '#6C3483' }} />
-                  </div>
-                </div>
-              </div>
-            </div>
+      <section className="mx-auto w-full max-w-6xl px-4 pt-10">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[color:var(--muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
+            <IoTrophyOutline className="h-4 w-4 text-coral" />
+            {t.eyebrow}
           </div>
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[color:var(--text)] sm:text-5xl">
+            {t.title}
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
+            {t.subtitle}
+          </p>
+          <Link
+            href={`/${locale}/group-booking-events/cooking-competition/book`}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-5 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+          >
+            <FiCalendar className="size-4" />
+            {t.cta}
+          </Link>
         </div>
+      </section>
 
-        {/* How It Works */}
-        <div className="mb-16">
-          <h2 className="mb-8 text-center text-3xl font-bold text-zinc-900 dark:text-white">
-            {locale === "ar" ? "كيف تعمل المسابقة" : "How It Works"}
-          </h2>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              {
-                step: "1",
-                Icon: IoCafe,
-                color: "#17A2B8",
-                title: locale === "ar" ? "الترحيب" : "Welcome",
-                desc: locale === "ar" ? "قهوة عربية وحلويات" : "Arabic coffee & sweets",
-              },
-              {
-                step: "2",
-                Icon: MdGroup,
-                color: "#FFD93D",
-                title: locale === "ar" ? "التقسيم" : "Team Draw",
-                desc: locale === "ar" ? "تقسيم الفرق وصندوق المفاجآت" : "Team division & mystery box",
-              },
-              {
-                step: "3",
-                Icon: GiCookingPot,
-                color: "#FF6B6B",
-                title: locale === "ar" ? "الطبخ" : "Cook",
-                desc: locale === "ar" ? "طبخوا وتنافسوا!" : "Cook & compete!",
-              },
-              {
-                step: "4",
-                Icon: IoTrophy,
-                color: "#8E44AD",
-                title: locale === "ar" ? "الفائز" : "Winner",
-                desc: locale === "ar" ? "تصويت وإعلان الفائز" : "Vote & announce winner",
-              },
-            ].map((item) => (
-              <div
-                key={item.step}
-                className="group relative overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-lg transition-all hover:-translate-y-1 hover:shadow-2xl dark:border-zinc-800 dark:bg-zinc-900"
-              >
-                <div className="mb-4 flex items-center justify-between">
-                  <item.Icon className="h-16 w-16" style={{ color: item.color }} />
-                  <span className="text-5xl font-bold" style={{ color: item.color + '40' }}>
-                    {item.step}
-                  </span>
-                </div>
-                <h3 className="mb-2 text-xl font-bold text-zinc-900 dark:text-white">
-                  {item.title}
-                </h3>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Packages Preview */}
-        <div className="mb-16">
-          <h2 className="mb-8 text-center text-3xl font-bold text-zinc-900 dark:text-white">
-            {locale === "ar" ? "الباقات المتاحة" : "Available Packages"}
-          </h2>
-          <div className="grid gap-8 lg:grid-cols-2">
-            {/* Standard */}
-            <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
-              <div className="p-6" style={{ background: 'linear-gradient(135deg, #17A2B820 0%, #17A2B810 100%)' }}>
-                <h3 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">
-                  {locale === "ar" ? "المسابقة القياسية" : "Standard Competition"}
-                </h3>
-                <p className="text-zinc-600 dark:text-zinc-400">
-                  {locale === "ar" ? "تجربة رائعة للفرق" : "Great team experience"}
-                </p>
-              </div>
-              <div className="p-6">
-                <ul className="space-y-3">
-                  {[
-                    locale === "ar" ? "8-40 مشارك" : "8-40 participants",
-                    locale === "ar" ? "2-8 مجموعات" : "2-8 groups",
-                    locale === "ar" ? "صندوق مفاجآت" : "Mystery box",
-                    locale === "ar" ? "معدات ومكونات" : "Equipment & ingredients",
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <IoCheckmarkCircle className="h-5 w-5" style={{ color: '#17A2B8' }} />
-                      <span className="text-zinc-700 dark:text-zinc-300">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Premium */}
-            <div className="relative overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-zinc-900" style={{ borderWidth: '2px', borderColor: '#8E44AD' }}>
-              <div className="absolute right-4 top-4">
-                <span className="rounded-full px-4 py-1 text-sm font-bold text-white" style={{ background: 'linear-gradient(135deg, #FFD93D 0%, #FFC93C 100%)' }}>
-                  {locale === "ar" ? "الأفضل" : "POPULAR"}
+      <section className="mx-auto mt-10 w-full max-w-6xl px-4">
+        <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.processTitle}</h2>
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {steps.map((item, index) => (
+            <article
+              key={item.title}
+              className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm"
+            >
+              <div className="mb-3 flex items-center justify-between">
+                <item.icon className="h-6 w-6 text-[color:var(--primary)]" />
+                <span className="text-xs font-semibold text-[color:var(--text-subtle)]">
+                  {String(index + 1).padStart(2, "0")}
                 </span>
               </div>
-              <div className="p-6" style={{ background: 'linear-gradient(135deg, #8E44AD 0%, #6C3483 100%)' }}>
-                <h3 className="mb-2 text-2xl font-bold text-white">
-                  {locale === "ar" ? "المسابقة المميزة" : "Premium Competition"}
-                </h3>
-                <p style={{ color: '#FFD93D' }}>
-                  {locale === "ar" ? "تجربة لا تُنسى" : "Unforgettable experience"}
-                </p>
-              </div>
-              <div className="p-6">
-                <ul className="space-y-3">
-                  {[
-                    locale === "ar" ? "كل مميزات القياسية" : "All Standard features",
-                    locale === "ar" ? "مرايل قماش لجميع المشاركين" : "Fabric aprons for all",
-                    locale === "ar" ? "هدية إضافية للفريق الفائز" : "Extra gift for winners",
-                    locale === "ar" ? "2-3 أطباق لكل مجموعة" : "2-3 dishes per group",
-                  ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <HiSparkles className="h-5 w-5" style={{ color: '#FFD93D' }} />
-                      <span className="font-semibold text-zinc-900 dark:text-white">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
+              <h3 className="text-base font-semibold text-[color:var(--text)]">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">{item.desc}</p>
+            </article>
+          ))}
         </div>
+      </section>
 
-        {/* CTA Footer */}
-        <div className="text-center">
-          <div className="inline-block rounded-2xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white p-12 shadow-xl dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-900/50">
-            <h3 className="mb-4 text-2xl font-bold text-zinc-900 dark:text-white">
-              {locale === "ar" ? "جاهز للبدء؟" : "Ready to Get Started?"}
+      <section className="mx-auto mt-10 w-full max-w-6xl px-4">
+        <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.packageTitle}</h2>
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
+          <article className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-[color:var(--text)]">
+              {isArabic ? "الباقة القياسية" : "Standard Competition"}
             </h3>
-            <p className="mb-6 text-zinc-600 dark:text-zinc-400">
-              {locale === "ar"
-                ? "احجز مسابقة الطبخ لفريقك اليوم"
-                : "Book a cooking competition for your team today"}
-            </p>
-            <Link
-              href={`/${locale}/group-booking-events/cooking-competition/book`}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 to-red-600 px-10 py-4 text-lg font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-2xl"
-            >
-              {locale === "ar" ? "ابدأ الحجز" : "Start Booking"}
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </Link>
-          </div>
+            <div className="mt-4 space-y-2.5">
+              {standardItems.map((item) => (
+                <p key={item} className="inline-flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
+                  <FiCheckCircle className="mt-0.5 size-4 shrink-0 text-teal" />
+                  {item}
+                </p>
+              ))}
+            </div>
+          </article>
+
+          <article className="rounded-2xl border border-coral/40 bg-[color:var(--surface)] p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-[color:var(--text)]">
+              {isArabic ? "الباقة المميزة" : "Premium Competition"}
+            </h3>
+            <div className="mt-4 space-y-2.5">
+              {premiumItems.map((item) => (
+                <p key={item} className="inline-flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
+                  <FiCheckCircle className="mt-0.5 size-4 shrink-0 text-coral" />
+                  {item}
+                </p>
+              ))}
+            </div>
+          </article>
         </div>
-      </div>
+      </section>
+
+      <section className="mx-auto mt-10 w-full max-w-6xl px-4">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center shadow-sm">
+          <h3 className="text-2xl font-semibold text-[color:var(--text)]">{t.readyTitle}</h3>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-[color:var(--text-muted)]">{t.readySubtitle}</p>
+          <div className="mt-5 inline-flex items-center gap-4 text-xs text-[color:var(--text-subtle)]">
+            <span className="inline-flex items-center gap-1">
+              <FiUsers className="size-3.5" />
+              {isArabic ? "8-40 مشارك" : "8-40 participants"}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <FiClock className="size-3.5" />
+              {isArabic ? "3 ساعات" : "3 hours"}
+            </span>
+          </div>
+          <Link
+            href={`/${locale}/group-booking-events/cooking-competition/book`}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+          >
+            {isArabic ? "ابدأ الحجز" : "Start Booking"}
+            <FiArrowRight className="size-4" />
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

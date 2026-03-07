@@ -1,17 +1,13 @@
 "use client";
 
-import { isLocale, type Locale } from "@/lib/locale";
 import { useEffect, useState, useTransition } from "react";
-import {
-  MdEmail,
-  MdPhone,
-  MdLocationOn,
-  MdSend,
-  MdCheckCircle,
-} from "react-icons/md";
-import { FaWhatsapp, FaInstagram } from "react-icons/fa6";
+import { FaInstagram, FaWhatsapp } from "react-icons/fa6";
+import { FiMail, FiMapPin, FiPhone, FiSend } from "react-icons/fi";
+import { MdCheckCircle } from "react-icons/md";
+
 import BookingFormError from "@/components/site/BookingFormError";
 import { isValidEmail, isValidPhone } from "@/lib/forms/eventBooking";
+import { isLocale, type Locale } from "@/lib/locale";
 
 export default function ContactPage({
   params,
@@ -32,58 +28,36 @@ export default function ContactPage({
   const isArabic = locale === "ar";
 
   const t = {
-    title: locale === "ar" ? "تواصل معنا" : "Contact Us",
-    subtitle:
-      locale === "ar"
-        ? "يسعدنا الرد على استفساراتك ومساعدتك في أي وقت."
-        : "We would love to hear from you and help with your questions.",
-    helper:
-      locale === "ar"
-        ? "فريق نون جاهز لدعمك في تفاصيل الدورات والحجوزات والطلبات الخاصة."
-        : "Our Noon team is ready to support classes, bookings, and special requests.",
-    name: locale === "ar" ? "الاسم الكامل" : "Full Name",
-    email: locale === "ar" ? "البريد الإلكتروني" : "Email",
-    phone: locale === "ar" ? "رقم الهاتف" : "Phone Number",
-    subject: locale === "ar" ? "الموضوع" : "Subject",
-    message: locale === "ar" ? "الرسالة" : "Message",
-    send: locale === "ar" ? "إرسال الرسالة" : "Send Message",
-    sending: locale === "ar" ? "جاري الإرسال..." : "Sending...",
-    successTitle: locale === "ar" ? "تم الإرسال بنجاح!" : "Message Sent!",
-    successMessage:
-      locale === "ar"
-        ? "شكراً لتواصلك معنا. سنرد عليك في أقرب وقت ممكن."
-        : "Thank you for contacting us. We'll get back to you as soon as possible.",
-    sendAnother: locale === "ar" ? "إرسال رسالة أخرى" : "Send Another Message",
-    errorMessage:
-      locale === "ar"
-        ? "حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى."
-        : "An error occurred. Please try again.",
-    invalidEmail:
-      locale === "ar"
-        ? "يرجى إدخال بريد إلكتروني صحيح."
-        : "Please enter a valid email address.",
-    invalidPhone:
-      locale === "ar"
-        ? "يرجى إدخال رقم هاتف صحيح."
-        : "Please enter a valid phone number.",
-    required: locale === "ar" ? "مطلوب" : "required",
-    visitUs: locale === "ar" ? "زورنا" : "Visit Us",
-    callUs: locale === "ar" ? "اتصل بنا" : "Call Us",
-    emailUs: locale === "ar" ? "راسلنا" : "Email Us",
-    followUs: locale === "ar" ? "تابعنا" : "Follow Us",
-    address:
-      locale === "ar"
-        ? "مسقط، سلطنة عمان"
-        : "Muscat, Sultanate of Oman",
-    officeHours:
-      locale === "ar"
-        ? "الأحد - الخميس • 9:00 صباحاً - 6:00 مساءً"
-        : "Sunday - Thursday • 9:00 AM - 6:00 PM",
-    quickResponse:
-      locale === "ar"
-        ? "عادةً نرد خلال يوم عمل واحد."
-        : "We usually reply within one business day.",
-    contactDetails: locale === "ar" ? "معلومات التواصل" : "Contact Details",
+    title: isArabic ? "تواصل معنا" : "Contact Us",
+    subtitle: isArabic
+      ? "فريق نون جاهز للرد على استفساراتك حول الدورات والحجوزات والتجارب الخاصة."
+      : "The Noon team is ready to support your questions on classes, bookings, and private experiences.",
+    helper: isArabic
+      ? "أرسل رسالتك وسنعود إليك خلال يوم عمل واحد عادةً."
+      : "Send us your message and we usually get back within one business day.",
+    name: isArabic ? "الاسم الكامل" : "Full Name",
+    email: isArabic ? "البريد الإلكتروني" : "Email",
+    phone: isArabic ? "رقم الهاتف" : "Phone Number",
+    subject: isArabic ? "الموضوع" : "Subject",
+    message: isArabic ? "الرسالة" : "Message",
+    send: isArabic ? "إرسال الرسالة" : "Send Message",
+    sending: isArabic ? "جاري الإرسال..." : "Sending...",
+    successTitle: isArabic ? "تم إرسال رسالتك" : "Message Sent",
+    successMessage: isArabic
+      ? "شكرًا لتواصلك. سيقوم فريقنا بالرد عليك قريبًا."
+      : "Thank you for contacting us. Our team will reply shortly.",
+    sendAnother: isArabic ? "إرسال رسالة أخرى" : "Send Another Message",
+    invalidEmail: isArabic ? "يرجى إدخال بريد إلكتروني صحيح." : "Please enter a valid email address.",
+    invalidPhone: isArabic ? "يرجى إدخال رقم هاتف صحيح." : "Please enter a valid phone number.",
+    errorMessage: isArabic ? "تعذر إرسال الرسالة. حاول مرة أخرى." : "Could not send your message. Please try again.",
+    visitUs: isArabic ? "الموقع" : "Location",
+    callUs: isArabic ? "الهاتف" : "Phone",
+    emailUs: isArabic ? "البريد" : "Email",
+    followUs: isArabic ? "تابعنا" : "Follow us",
+    address: isArabic ? "مسقط، سلطنة عمان" : "Muscat, Sultanate of Oman",
+    officeHours: isArabic
+      ? "الأحد - الخميس • 9:00 صباحًا - 6:00 مساءً"
+      : "Sunday - Thursday • 9:00 AM - 6:00 PM",
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -130,20 +104,16 @@ export default function ContactPage({
 
   if (isSubmitted) {
     return (
-      <div className="mx-auto flex min-h-[70dvh] w-full max-w-6xl items-center justify-center px-4 py-12">
-        <div className="w-full max-w-lg rounded-3xl border border-zinc-200/70 bg-white p-8 text-center shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full noon-soft-teal">
-            <MdCheckCircle className="h-10 w-10 text-[color:var(--noon-teal-strong)]" />
+      <div className="mx-auto flex min-h-[65dvh] w-full max-w-6xl items-center justify-center px-4 py-12">
+        <div className="w-full max-w-lg rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center shadow-sm">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[color:var(--muted)]">
+            <MdCheckCircle className="h-10 w-10 text-[color:var(--primary)]" />
           </div>
-          <h2 className="mb-3 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            {t.successTitle}
-          </h2>
-          <p className="mb-7 text-sm text-zinc-600 dark:text-zinc-300">
-            {t.successMessage}
-          </p>
+          <h2 className="mb-3 text-2xl font-semibold text-[color:var(--text)]">{t.successTitle}</h2>
+          <p className="mb-7 text-sm text-[color:var(--text-muted)]">{t.successMessage}</p>
           <button
             onClick={() => setIsSubmitted(false)}
-            className="noon-btn-teal rounded-xl px-6 py-3 text-sm font-semibold"
+            className="inline-flex rounded-xl bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
           >
             {t.sendAnother}
           </button>
@@ -153,62 +123,58 @@ export default function ContactPage({
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-10" dir={isArabic ? "rtl" : "ltr"}>
-      <section className="overflow-hidden rounded-3xl border border-zinc-200/70 bg-white shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900">
-        <div className="bg-gradient-to-br from-[color:var(--noon-teal)] to-[color:var(--noon-teal-strong)] px-6 py-10 text-white md:px-10">
-          <div className="max-w-4xl">
-            <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
-              {t.title}
-            </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-white/95">{t.subtitle}</p>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-white/85">{t.helper}</p>
-          </div>
-        </div>
+    <div className="relative mx-auto w-full max-w-6xl px-4 py-10" dir={isArabic ? "rtl" : "ltr"}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
+        <div className="absolute -left-16 top-6 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
+        <div className="absolute right-0 top-20 h-80 w-80 rounded-full bg-coral/16 blur-3xl dark:bg-coral/10" />
+      </div>
+
+      <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
+        <h1 className="text-4xl font-semibold tracking-tight text-[color:var(--text)] sm:text-5xl">{t.title}</h1>
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">{t.subtitle}</p>
+        <p className="mt-2 text-xs text-[color:var(--text-subtle)] sm:text-sm">{t.helper}</p>
       </section>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.6fr]">
+      <section className="mt-8 grid gap-6 lg:grid-cols-[0.95fr_1.55fr]">
         <div className="space-y-4">
-          <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900">
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t.contactDetails}</h2>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t.quickResponse}</p>
+          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+            <p className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)]">
+              <FiMapPin className="size-4 text-coral" />
+              {t.visitUs}
+            </p>
+            <p className="mt-2 text-sm text-[color:var(--text-muted)]">{t.address}</p>
+            <p className="mt-1 text-xs text-[color:var(--text-subtle)]">{t.officeHours}</p>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900">
-            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-lg noon-soft-coral">
-              <MdLocationOn className="h-5 w-5 text-[color:var(--noon-coral-strong)]" />
-            </div>
-            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{t.visitUs}</h3>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t.address}</p>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.officeHours}</p>
-          </div>
-
-          <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900">
-            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center noon-soft-teal rounded-lg">
-              <MdPhone className="h-5 w-5 text-[color:var(--noon-teal-strong)]" />
-            </div>
-            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{t.callUs}</h3>
-            <a href="tel:+96898199508" className="mt-1 block text-sm font-medium text-[color:var(--noon-teal-strong)] hover:underline">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+            <p className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)]">
+              <FiPhone className="size-4 text-teal" />
+              {t.callUs}
+            </p>
+            <a href="tel:+96898199508" className="mt-2 block text-sm font-medium text-[color:var(--primary)] hover:underline">
               +968 98199508
             </a>
           </div>
 
-          <div className="rounded-2xl border border-zinc-200/70 bg-white p-5 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900">
-            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center noon-soft-purple rounded-lg">
-              <MdEmail className="h-5 w-5 text-[color:var(--noon-purple-strong)]" />
-            </div>
-            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{t.emailUs}</h3>
-            <a href="mailto:info@noonomanarts.com" className="mt-1 block text-sm font-medium text-[color:var(--noon-purple-strong)] hover:underline">
+          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+            <p className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)]">
+              <FiMail className="size-4 text-teal" />
+              {t.emailUs}
+            </p>
+            <a href="mailto:info@noonomanarts.com" className="mt-2 block text-sm font-medium text-[color:var(--primary)] hover:underline">
               info@noonomanarts.com
             </a>
 
-            <div className="mt-4">
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.followUs}</h4>
-              <div className="flex gap-3">
+            <div className="mt-5">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[color:var(--text-subtle)]">
+                {t.followUs}
+              </p>
+              <div className="flex gap-2">
                 <a
                   href="https://wa.me/96898199508"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500 text-white transition hover:bg-green-600"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] text-[color:var(--text-muted)] transition hover:text-[color:var(--text)]"
                   aria-label="WhatsApp"
                 >
                   <FaWhatsapp className="h-5 w-5" />
@@ -217,7 +183,7 @@ export default function ContactPage({
                   href="https://instagram.com/noonomanarts"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white transition hover:opacity-90"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] text-[color:var(--text-muted)] transition hover:text-[color:var(--text)]"
                   aria-label="Instagram"
                 >
                   <FaInstagram className="h-5 w-5" />
@@ -227,66 +193,58 @@ export default function ContactPage({
           </div>
         </div>
 
-        <div className="rounded-3xl border border-zinc-200/70 bg-white p-6 shadow-sm dark:border-zinc-800/70 dark:bg-zinc-900 md:p-8">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm md:p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid gap-5 md:grid-cols-2">
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {t.name} <span className="text-[color:var(--noon-coral)]">*</span>
-                </span>
+                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.name}</span>
                 <input
                   type="text"
                   name="name"
                   required
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 transition focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-4 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] transition focus:border-[color:var(--primary)] focus:outline-none focus:ring-4 focus:ring-[color:var(--focus)]"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {t.email} <span className="text-[color:var(--noon-coral)]">*</span>
-                </span>
+                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.email}</span>
                 <input
                   type="email"
                   name="email"
                   required
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 transition focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-4 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] transition focus:border-[color:var(--primary)] focus:outline-none focus:ring-4 focus:ring-[color:var(--focus)]"
                 />
               </label>
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.phone}</span>
+                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.phone}</span>
                 <input
                   type="tel"
                   name="phone"
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 transition focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-4 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] transition focus:border-[color:var(--primary)] focus:outline-none focus:ring-4 focus:ring-[color:var(--focus)]"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                  {t.subject} <span className="text-[color:var(--noon-coral)]">*</span>
-                </span>
+                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.subject}</span>
                 <input
                   type="text"
                   name="subject"
                   required
-                  className="w-full rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 transition focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-4 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] transition focus:border-[color:var(--primary)] focus:outline-none focus:ring-4 focus:ring-[color:var(--focus)]"
                 />
               </label>
             </div>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                {t.message} <span className="text-[color:var(--noon-coral)]">*</span>
-              </span>
+              <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.message}</span>
               <textarea
                 name="message"
                 rows={6}
                 required
-                className="w-full resize-none rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 transition focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-4 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                className="w-full resize-none rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] transition focus:border-[color:var(--primary)] focus:outline-none focus:ring-4 focus:ring-[color:var(--focus)]"
               />
             </label>
 
@@ -295,13 +253,13 @@ export default function ContactPage({
             <button
               type="submit"
               disabled={isPending}
-              className="noon-btn-teal inline-flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--primary)] px-6 py-3.5 text-base font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isPending ? (
                 t.sending
               ) : (
                 <>
-                  <MdSend className="h-5 w-5" />
+                  <FiSend className="h-5 w-5" />
                   {t.send}
                 </>
               )}
