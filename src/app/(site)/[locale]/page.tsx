@@ -3,18 +3,13 @@ import Link from "next/link";
 
 import { isLocale, type Locale } from "@/lib/locale";
 import { getHomeContent } from "@/lib/homeContent";
-import HeroAnimation from "@/components/site/HeroAnimation";
 import AnimatedCounter from "@/components/site/AnimatedCounter";
-import BubblesAnimation from "@/components/site/BubblesAnimation";
+import HeroSlideshow from "@/components/site/HeroSlideshow";
 import { findClassSessions, findManyClasses } from "@/lib/db/classes";
 import {
   FiArrowRight,
   FiCalendar,
-  FiCheckCircle,
-  FiClock,
-  FiUsers,
 } from "react-icons/fi";
-import { HiSparkles } from "react-icons/hi2";
 
 type UpcomingCard = {
   id: string;
@@ -23,6 +18,15 @@ type UpcomingCard = {
   priceText: string;
   imageSrc: string;
 };
+
+const heroSlides = [
+  "/images/slides/1.jpg",
+  "/images/slides/2.jpg",
+  "/images/slides/3.jpg",
+  "/images/slides/4.jpg",
+  "/images/slides/5.jpg",
+  "/images/slides/6.jpg",
+];
 
 async function resolveUpcomingItems(
   locale: Locale,
@@ -123,17 +127,15 @@ export default async function HomePage({
       ? "حيث يتحول الطبخ إلى تجربة"
       : "Where cooking becomes an experience.");
   const heroKpis = content.numbers.items.slice(0, 3);
-  const heroUpcomingPreview = upcomingItems.slice(0, 2);
+  const heroSpotlight = upcomingItems[0];
   const heroUi = {
-    eyebrow: locale === "ar" ? "نون ستوديو • مسقط" : "Noon Studio • Muscat",
     bookEvent: locale === "ar" ? "احجز فعالية" : "Book an event",
-    trustedBy: locale === "ar" ? "تجربة موثوقة للمجموعات والعائلات" : "Trusted by teams, families, and creators",
-    featureOne: locale === "ar" ? "مدربون بخبرة عملية عالية" : "Expert-led, hands-on sessions",
-    featureTwo: locale === "ar" ? "تجربة اجتماعية ممتعة ومُلهمة" : "Social and memorable experiences",
-    featureThree: locale === "ar" ? "رحلة حجز سهلة وسريعة" : "Fast and frictionless booking flow",
-    upcomingNow: locale === "ar" ? "قريباً في نون" : "Happening Soon at Noon",
+    trustLine:
+      locale === "ar"
+        ? "تجربة موثوقة للمجموعات والعائلات والأفراد."
+        : "Trusted classes and events for teams, families, and individuals.",
+    spotlightLabel: locale === "ar" ? "موعد قريب" : "Next Session",
     from: locale === "ar" ? "من" : "From",
-    quickClass: locale === "ar" ? "دروس مختارة" : "Selected Classes",
   };
 
   return (
@@ -146,28 +148,16 @@ export default async function HomePage({
             alt=""
             fill
             priority
-            className="object-cover opacity-[0.18] dark:opacity-[0.14]"
+            className="object-cover opacity-[0.16] dark:opacity-[0.12]"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-[#fbf4e8]/90 via-[#f4e7d6]/92 to-[#efe0cc]/95 dark:from-[#030303]/90 dark:via-[#050505]/92 dark:to-[#090909]/95" />
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute -left-24 top-8 h-64 w-64 rounded-full bg-teal/20 blur-3xl dark:bg-teal/15" />
-            <div className="absolute right-0 top-20 h-80 w-80 rounded-full bg-coral/20 blur-3xl dark:bg-coral/15" />
-            <div className="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-yellow/20 blur-3xl dark:bg-yellow/10" />
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#fbf4e8]/93 via-[#f4e7d6]/95 to-[#efe0cc]/96 dark:from-[#040404]/92 dark:via-[#070707]/95 dark:to-[#0a0a0a]/96" />
+          <div className="pointer-events-none absolute -left-20 top-8 h-64 w-64 rounded-full bg-teal/20 blur-3xl dark:bg-teal/10" />
         </div>
-
-        {/* Bubbles Animation */}
-        <BubblesAnimation count={18} className="z-0 opacity-70" />
 
         <div className="relative z-10">
           <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:py-16 lg:py-20">
-            <div className="grid gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-center">
-              <div className="space-y-8">
-                <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-zinc-700 shadow-sm backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/70 dark:text-zinc-200">
-                  <HiSparkles className="size-3.5 text-coral" />
-                  {heroUi.eyebrow}
-                </div>
-
+            <div className="grid gap-10 lg:grid-cols-[1.12fr_0.88fr] lg:items-center">
+              <div className="space-y-7">
                 <h1
                   className="max-w-3xl text-4xl font-semibold leading-[1.08] tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-5xl lg:text-6xl"
                   style={{
@@ -203,24 +193,8 @@ export default async function HomePage({
                   </Link>
                 </div>
 
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                    {heroUi.trustedBy}
-                  </p>
-                  <ul className="grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2">
-                    <li className="inline-flex items-center gap-2">
-                      <FiCheckCircle className="size-4 text-teal" />
-                      {heroUi.featureOne}
-                    </li>
-                    <li className="inline-flex items-center gap-2">
-                      <FiCheckCircle className="size-4 text-teal" />
-                      {heroUi.featureTwo}
-                    </li>
-                    <li className="inline-flex items-center gap-2 sm:col-span-2">
-                      <FiCheckCircle className="size-4 text-teal" />
-                      {heroUi.featureThree}
-                    </li>
-                  </ul>
+                <div className="rounded-2xl border border-zinc-200/70 bg-white/75 p-4 text-sm text-zinc-700 backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/65 dark:text-zinc-300">
+                  {heroUi.trustLine}
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">
@@ -237,50 +211,24 @@ export default async function HomePage({
               </div>
 
               <div className="relative">
-                <div className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white/80 p-3 shadow-2xl backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/70">
+                <div className="overflow-hidden rounded-[2rem] border border-zinc-200/80 bg-white/80 p-3 shadow-xl backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/70">
                   <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem]">
-                    <Image
-                      src={content.hero.backgroundImageSrc ?? "/og-image.png"}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      priority
+                    <HeroSlideshow
+                      images={heroSlides}
+                      alt={locale === "ar" ? "صور من فعاليات ودورات نون" : "Noon classes and events slideshow"}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/70 via-zinc-900/25 to-transparent" />
-                    <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/20 bg-black/35 p-4 text-white backdrop-blur">
-                      <p className="text-xs uppercase tracking-[0.14em] text-white/80">{heroUi.upcomingNow}</p>
-                      <p className="mt-1 text-lg font-semibold">{heroUi.quickClass}</p>
-                      <div className="mt-2 inline-flex items-center gap-2 text-xs text-white/90">
-                        <FiUsers className="size-3.5" />
-                        8-40
-                        <span className="opacity-50">•</span>
-                        <FiClock className="size-3.5" />
-                        2-3h
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950/65 via-zinc-900/20 to-transparent" />
+                    {heroSpotlight ? (
+                      <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/20 bg-black/35 p-4 text-white backdrop-blur">
+                        <p className="text-[11px] uppercase tracking-[0.14em] text-white/80">{heroUi.spotlightLabel}</p>
+                        <p className="mt-1 line-clamp-1 text-base font-semibold">{heroSpotlight.title}</p>
+                        <p className="mt-1 text-xs text-white/85">{heroSpotlight.datetimeText}</p>
+                        <p className="mt-3 inline-flex rounded-full bg-white/15 px-2.5 py-1 text-xs font-semibold">
+                          {heroUi.from} {heroSpotlight.priceText}
+                        </p>
                       </div>
-                    </div>
+                    ) : null}
                   </div>
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {heroUpcomingPreview.map((item) => (
-                    <div
-                      key={`hero-preview-${item.id}`}
-                      className="rounded-2xl border border-zinc-200/80 bg-white/85 p-4 shadow-lg backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/80"
-                    >
-                      <p className="line-clamp-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{item.title}</p>
-                      <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">{item.datetimeText}</p>
-                      <p className="mt-3 inline-flex rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                        {heroUi.from} {item.priceText}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pointer-events-none absolute -bottom-8 -right-8 hidden h-36 w-36 rounded-full border border-zinc-200/70 bg-white/50 backdrop-blur lg:block dark:border-zinc-700 dark:bg-zinc-900/40">
-                  <HeroAnimation
-                    animationPath="/cooking.json"
-                    className="h-full w-full p-6 opacity-90"
-                  />
                 </div>
               </div>
             </div>
