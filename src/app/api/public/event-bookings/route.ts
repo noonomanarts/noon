@@ -3,6 +3,14 @@ import { createEventBooking } from '@/lib/db/events';
 import { getUserByEmail, createUser, getUserById } from '@/lib/db/users';
 import { cookies } from 'next/headers';
 import { isDateInPast, isValidEmail, isValidPhone } from '@/lib/forms/eventBooking';
+import {
+  addMinutes,
+  buildEventCalendarTitle,
+  eventBookingToCalendarType,
+  isEventSlotAvailable,
+  shouldCreateCleaningBlock,
+} from '@/lib/calendar';
+import { createCalendarEvent } from '@/lib/db/events';
 
 const EVENT_TYPES = new Set(['COOKING_COMPETITION', 'PRIVATE_CLASS', 'BIRTHDAY_PARTY']);
 const PACKAGE_TYPES = new Set(['STANDARD', 'PREMIUM']);
@@ -252,6 +260,23 @@ export async function POST(request: NextRequest) {
       .filter(Boolean)
       .join(specialRequestsRaw ? '\n' : '') || undefined;
 
+    const availability = await isEventSlotAvailable({
+      eventType: eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY',
+      selectedDate: selectedDateRaw,
+      selectedTime,
+      classType:
+        eventType === 'PRIVATE_CLASS' && PRIVATE_CLASS_TYPES.has(classTypeRaw)
+          ? (classTypeRaw as 'cooking' | 'arts-crafts')
+          : undefined,
+    });
+
+    if (!availability.available) {
+      return NextResponse.json(
+        { error: 'Selected slot is no longer available. Please choose another time.' },
+        { status: 409 }
+      );
+    }
+
     // Create event booking
     const eventBooking = await createEventBooking({
       userId,
@@ -271,6 +296,50 @@ export async function POST(request: NextRequest) {
       totalAmount,
     });
 
+    const calendarTitle = buildEventCalendarTitle({
+      eventType: eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY',
+      fullName,
+      companyOrGroupName,
+    });
+
+    await createCalendarEvent({
+      type: eventBookingToCalendarType(eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY'),
+      startDateTime: availability.startDateTime,
+      endDateTime: availability.endDateTime,
+      title: `Requested - ${calendarTitle}`,
+      description: mergedSpecialRequests,
+      eventBookingId: eventBooking.id as string,
+      color:
+        eventType === 'COOKING_COMPETITION'
+          ? '#f97316'
+          : eventType === 'PRIVATE_CLASS'
+            ? '#14b8a6'
+            : '#ec4899',
+    });
+
+    if (
+      shouldCreateCleaningBlock(
+        eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY',
+        classTypeRaw === 'cooking' || classTypeRaw === 'arts-crafts'
+          ? (classTypeRaw as 'cooking' | 'arts-crafts')
+          : undefined
+      )
+    ) {
+      const cleaningStart = new Date(availability.endDateTime);
+      const cleaningEnd = addMinutes(cleaningStart, 180);
+
+      await createCalendarEvent({
+        type: 'CLEANING',
+        startDateTime: cleaningStart,
+        endDateTime: cleaningEnd,
+        title: `Cleaning - ${calendarTitle}`,
+        isBlocked: true,
+        blockReason: 'Post-event cleaning',
+        eventBookingId: eventBooking.id as string,
+        color: '#f59e0b',
+      });
+    }
+
     // TODO: Send confirmation email
     // TODO: Send WhatsApp notification
 
@@ -278,7 +347,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         bookingNumber: eventBooking.bookingNumber,
-        message: 'Booking request submitted successfully',
+        message: 'Booking request submitted successfully and is pending admin confirmation',
       },
       { status: 201 }
     );

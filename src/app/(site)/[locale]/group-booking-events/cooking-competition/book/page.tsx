@@ -9,6 +9,7 @@ import { GiCookingPot } from 'react-icons/gi';
 import { BiSolidGift } from 'react-icons/bi';
 import { HiSparkles } from 'react-icons/hi2';
 import BookingFormError from '@/components/site/BookingFormError';
+import PublicEventAvailabilityPicker from '@/components/site/PublicEventAvailabilityPicker';
 import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
 
 type Step = 1 | 2 | 3 | 4;
@@ -122,8 +123,8 @@ export default function CookingCompetitionBookingPage() {
     // Step 4
     confirmationTitle: locale === 'ar' ? 'شكراً لطلبك!' : 'Thank You for Your Request!',
     confirmationMessage: locale === 'ar'
-      ? 'سيقوم فريقنا بمراجعة التفاصيل والاتصال بك قريباً لتأكيد الحجز وإتمام الدفع. ستصلك رسالة تأكيد عبر البريد الإلكتروني وWhatsApp.'
-      : 'Our team will review the details and contact you shortly to confirm the booking and complete payment. You will receive a confirmation email and WhatsApp message.',
+      ? 'تم حجز الوقت المطلوب مبدئياً. سيقوم فريقنا بمراجعة التفاصيل والاتصال بك قريباً لاعتماد الموعد وإتمام الدفع.'
+      : 'Your requested slot is held temporarily. Our team will review the details and contact you shortly to approve the schedule and complete payment.',
     backToHome: locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home',
     selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
     invalidEmail: locale === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح.' : 'Please enter a valid email address.',
@@ -343,44 +344,19 @@ export default function CookingCompetitionBookingPage() {
                 <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{t.briefText}</p>
               </div>
 
-              {/* Date Selection */}
-              <div>
-                <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
-                  <IoCalendar className="h-5 w-5 text-yellow" />
-                  {t.selectDate}
-                </label>
-                <input
-                  type="date"
-                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                  value={bookingData.selectedDate || ''}
-                  onChange={(e) =>
-                    setBookingData({ ...bookingData, selectedDate: e.target.value })
-                  }
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-
-              {/* Time Selection */}
-              <div>
-                <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
-                  <MdSchedule className="h-5 w-5 text-purple" />
-                  {t.selectTime}
-                </label>
-                <select
-                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                  value={bookingData.selectedTime || ''}
-                  onChange={(e) =>
-                  setBookingData({ ...bookingData, selectedTime: e.target.value })
+              <PublicEventAvailabilityPicker
+                locale={locale}
+                eventType="COOKING_COMPETITION"
+                selectedDate={bookingData.selectedDate || ''}
+                selectedTime={bookingData.selectedTime || ''}
+                onChange={({ date, time }) =>
+                  setBookingData((prev) => ({
+                    ...prev,
+                    selectedDate: date,
+                    selectedTime: time,
+                  }))
                 }
-              >
-                <option value="">{t.selectTimePlaceholder}</option>
-                <option value="09:00">09:00 AM</option>
-                <option value="10:00">10:00 AM</option>
-                <option value="14:00">02:00 PM</option>
-                <option value="16:00">04:00 PM</option>
-                <option value="18:00">06:00 PM</option>
-              </select>
-            </div>
+              />
           </div>
         )}
 

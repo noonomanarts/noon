@@ -389,14 +389,14 @@ export async function findCalendarEvents(options?: {
     let paramIndex = 1;
 
     if (options?.startDate && options?.endDate) {
-      conditions.push(`start_date_time >= $${paramIndex++}`);
+      conditions.push(`ce.end_date_time > $${paramIndex++}`);
       values.push(options.startDate);
-      conditions.push(`start_date_time <= $${paramIndex++}`);
+      conditions.push(`ce.start_date_time < $${paramIndex++}`);
       values.push(options.endDate);
     }
 
     if (options?.type) {
-      conditions.push(`type = $${paramIndex++}`);
+      conditions.push(`ce.type = $${paramIndex++}`);
       values.push(options.type);
     }
 
@@ -561,6 +561,79 @@ export async function getOrCreateWallet(userId: string): Promise<Record<string, 
 }
 
 /**
+ * Update calendar event
+ */
+export async function updateCalendarEvent(
+  id: string,
+  data: Partial<{
+    type: CalendarEventType;
+    startDateTime: Date;
+    endDateTime: Date;
+    title: string;
+    description: string;
+    isBlocked: boolean;
+    blockReason: string;
+    internalNotes: string;
+    visibleToTrainers: boolean;
+    visibleTrainerIds: string[];
+    color: string;
+  }>
+): Promise<Record<string, unknown> | null> {
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  let paramIndex = 1;
+
+  const fieldMap: Record<string, string> = {
+    type: 'type',
+    startDateTime: 'start_date_time',
+    endDateTime: 'end_date_time',
+    title: 'title',
+    description: 'description',
+    isBlocked: 'is_blocked',
+    blockReason: 'block_reason',
+    internalNotes: 'internal_notes',
+    visibleToTrainers: 'visible_to_trainers',
+    visibleTrainerIds: 'visible_trainer_ids',
+    color: 'color',
+  };
+
+  for (const [key, dbField] of Object.entries(fieldMap)) {
+    const value = (data as Record<string, unknown>)[key];
+    if (value !== undefined) {
+      updates.push(`${dbField} = $${paramIndex++}`);
+      values.push(value);
+    }
+  }
+
+  if (updates.length === 0) {
+    const existing = await query(`SELECT * FROM calendar_events WHERE id = $1 LIMIT 1`, [id]);
+    return existing.rows[0] ?? null;
+  }
+
+  updates.push(`updated_at = $${paramIndex++}`);
+  values.push(new Date());
+  values.push(id);
+
+  const result = await query(
+    `UPDATE calendar_events
+     SET ${updates.join(', ')}
+     WHERE id = $${paramIndex}
+     RETURNING *`,
+    values
+  );
+
+  return result.rows[0] ?? null;
+}
+
+/**
+ * Delete calendar event
+ */
+export async function deleteCalendarEvent(id: string): Promise<boolean> {
+  const result = await query(`DELETE FROM calendar_events WHERE id = $1`, [id]);
+  return (result.rowCount ?? 0) > 0;
+}
+
+/**
  * Add credit to wallet
  */
 export async function addWalletCredit(
@@ -612,5 +685,8 @@ export async function getEventBookingsByUserId(userId: string) {
     `SELECT * FROM event_bookings WHERE user_id = $1 ORDER BY created_at DESC`,
     [userId]
   );
-  return result.rows;
+  return result.rows.map((row) => ({
+    ...row,
+    total_amount: row.total_amount !== null && row.total_amount !== undefined ? Number(row.total_amount) : null,
+  }));
 }

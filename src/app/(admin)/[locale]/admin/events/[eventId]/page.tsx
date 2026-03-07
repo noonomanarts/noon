@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   MdArrowBack,
+  MdCheckCircle,
   MdDelete,
   MdEdit,
   MdEvent,
   MdOutlineCalendarToday,
   MdOutlinePerson,
   MdOutlineReceiptLong,
+  MdScheduleSend,
 } from "react-icons/md";
 
 type EventDetails = {
@@ -50,7 +52,7 @@ const eventTypeLabels: Record<string, { en: string; ar: string }> = {
 };
 
 const statusLabels: Record<string, { en: string; ar: string }> = {
-  NEW: { en: "New", ar: "جديد" },
+  NEW: { en: "Awaiting Approval", ar: "بانتظار الاعتماد" },
   IN_PROGRESS: { en: "In Progress", ar: "قيد المعالجة" },
   PENDING_CLIENT_CONFIRMATION: { en: "Pending Client", ar: "بانتظار العميل" },
   CLIENT_CONFIRMED: { en: "Confirmed", ar: "مؤكد" },
@@ -107,6 +109,14 @@ export default function AdminEventDetailsPage({
     calendarType: isAr ? "نوع الحدث" : "Event Type",
     start: isAr ? "البداية" : "Start",
     end: isAr ? "النهاية" : "End",
+    requestedSlot: isAr ? "الوقت المختار من العميل" : "Customer requested slot",
+    reserveNote: isAr
+      ? "هذا الوقت محجوز مؤقتاً من التقويم العام ولن يظهر كوقت متاح حتى تعتمدوه أو تُلغوه."
+      : "This slot is temporarily held out of public availability until you approve it or cancel the request.",
+    approveSlot: isAr ? "تأكيد الوقت في التقويم" : "Approve selected time",
+    markReviewing: isAr ? "وضعه قيد المراجعة" : "Mark reviewing",
+    slotApproved: isAr ? "الوقت معتمد" : "Time approved",
+    slotPending: isAr ? "بانتظار اعتماد الإدارة" : "Awaiting admin approval",
   };
 
   const localeCode = isAr ? "ar-OM" : "en-OM";
@@ -168,6 +178,27 @@ export default function AdminEventDetailsPage({
           throw new Error(isAr ? "تعذر حذف الحجز" : "Failed to delete event booking");
         }
         router.push(`/${locale}/admin/events`);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : isAr ? "حدث خطأ غير متوقع" : "Unexpected error");
+      }
+    });
+  };
+
+  const updateStatus = (status: string) => {
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/admin/events/${eventId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+
+        const payload = (await response.json().catch(() => ({}))) as EventDetails & { error?: string };
+        if (!response.ok) {
+          throw new Error(payload.error || (isAr ? "تعذر تحديث الحالة" : "Failed to update status"));
+        }
+
+        setEvent(payload);
       } catch (err) {
         setError(err instanceof Error ? err.message : isAr ? "حدث خطأ غير متوقع" : "Unexpected error");
       }
@@ -297,6 +328,46 @@ export default function AdminEventDetailsPage({
           <MdOutlineCalendarToday className="h-5 w-5" />
           {t.calendarInfo}
         </h2>
+        <div className="mb-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.requestedSlot}</p>
+              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+                {formatDate(event.selectedDate)} {event.selectedTime ? `• ${event.selectedTime}` : ""}
+              </p>
+              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.reserveNote}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {event.status === "CLIENT_CONFIRMED" ? (
+                <span className="inline-flex items-center gap-2 rounded-xl bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  <MdCheckCircle className="h-4 w-4" />
+                  {t.slotApproved}
+                </span>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => updateStatus("IN_PROGRESS")}
+                    disabled={isPending}
+                    className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  >
+                    <MdScheduleSend className="h-4 w-4" />
+                    {t.markReviewing}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => updateStatus("CLIENT_CONFIRMED")}
+                    disabled={isPending}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    <MdCheckCircle className="h-4 w-4" />
+                    {t.approveSlot}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
         {event.calendarEvent ? (
           <div className="grid gap-3 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2">
             <p><strong>{t.calendarType}:</strong> {event.calendarEvent.type}</p>
@@ -304,7 +375,7 @@ export default function AdminEventDetailsPage({
             <p><strong>{t.end}:</strong> {formatDateTime(event.calendarEvent.endDateTime)}</p>
           </div>
         ) : (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.notSet}</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.slotPending}</p>
         )}
       </section>
     </div>

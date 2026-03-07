@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useTransition } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   MdAdd,
+  MdCheckCircle,
   MdEdit,
   MdDelete,
   MdVisibility,
@@ -42,7 +43,7 @@ const eventTypeLabels: Record<string, { en: string; ar: string }> = {
 };
 
 const statusLabels: Record<string, { en: string; ar: string; color: string }> = {
-  NEW: { en: "New", ar: "جديد", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
+  NEW: { en: "Awaiting Approval", ar: "بانتظار الاعتماد", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" },
   IN_PROGRESS: { en: "In Progress", ar: "قيد المعالجة", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" },
   PENDING_CLIENT_CONFIRMATION: { en: "Pending Client", ar: "بانتظار العميل", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" },
   CLIENT_CONFIRMED: { en: "Confirmed", ar: "مؤكد", color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" },
@@ -85,6 +86,7 @@ export default function AdminEventsPage() {
     delete: isAr ? "حذف" : "Delete",
     confirmDelete: isAr ? "هل أنت متأكد من حذف هذه الفعالية؟" : "Are you sure you want to delete this event?",
     notSet: isAr ? "غير محدد" : "Not set",
+    approve: isAr ? "اعتماد الوقت" : "Approve time",
   };
 
   const fetchEvents = useCallback(async () => {
@@ -124,6 +126,23 @@ export default function AdminEventsPage() {
         }
       } catch (error) {
         console.error("Failed to delete event:", error);
+      }
+    });
+  };
+
+  const handleApprove = async (eventId: string) => {
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/admin/events/${eventId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "CLIENT_CONFIRMED" }),
+        });
+        if (response.ok) {
+          fetchEvents();
+        }
+      } catch (error) {
+        console.error("Failed to approve event:", error);
       }
     });
   };
@@ -339,6 +358,15 @@ export default function AdminEventsPage() {
                           >
                             <MdEdit className="h-5 w-5" />
                           </button>
+                          {event.status !== "CLIENT_CONFIRMED" && event.status !== "CANCELLED" ? (
+                            <button
+                              onClick={() => handleApprove(event.id)}
+                              className="rounded-lg p-2 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300"
+                              title={t.approve}
+                            >
+                              <MdCheckCircle className="h-5 w-5" />
+                            </button>
+                          ) : null}
                           <button
                             onClick={() => handleDelete(event.id)}
                             disabled={isPending}

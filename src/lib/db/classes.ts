@@ -289,7 +289,7 @@ export async function findUniqueClass(
 
   if (include?.reviews) {
     const reviewsResult = await query(
-      `SELECT * FROM reviews WHERE class_id = $1 AND is_approved = true ORDER BY created_at DESC`,
+      `SELECT * FROM reviews WHERE class_id = $1 AND is_visible = true ORDER BY created_at DESC`,
       [row.id]
     );
     classData.reviews = reviewsResult.rows.map(r => ({
@@ -298,7 +298,8 @@ export async function findUniqueClass(
       userId: r.user_id,
       rating: r.rating,
       comment: r.comment,
-      isApproved: r.is_approved,
+      isVerified: r.is_verified,
+      isVisible: r.is_visible,
       createdAt: r.created_at,
     }));
   }
@@ -675,7 +676,7 @@ export async function findClassReviews(classId: string): Promise<{
     `SELECT r.*, u.full_name as user_full_name
      FROM reviews r
      LEFT JOIN users u ON r.user_id = u.id
-     WHERE r.class_id = $1 AND r.is_approved = true
+     WHERE r.class_id = $1 AND r.is_visible = true
      ORDER BY r.created_at DESC`,
     [classId]
   );
@@ -703,7 +704,10 @@ export async function getBookingsByUserId(userId: string) {
     [userId]
   );
 
-  return result.rows;
+  return result.rows.map((row) => ({
+    ...row,
+    total_amount: row.total_amount !== null && row.total_amount !== undefined ? Number(row.total_amount) : null,
+  }));
 }
 
 // Re-export ClassCategory for convenience

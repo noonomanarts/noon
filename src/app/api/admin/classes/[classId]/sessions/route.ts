@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { findUniqueClass, findClassSessions, createClassSession } from '@/lib/db/classes';
 import { createCalendarEvent } from '@/lib/db/events';
 import { query } from '@/lib/db/pool';
+import { findCalendarOccupancy } from '@/lib/calendar';
 
 type Params = {
   params: Promise<{ classId: string }>;
@@ -72,6 +73,25 @@ export async function POST(request: NextRequest, props: Params) {
     const end = endDateTime
       ? new Date(endDateTime)
       : new Date(start.getTime() + (classData.durationMinutes as number) * 60000);
+
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
+      return NextResponse.json({ error: 'Invalid session start or end time' }, { status: 400 });
+    }
+
+    const conflicts = await findCalendarOccupancy({
+      startDateTime: start,
+      endDateTime: end,
+    });
+
+    if (conflicts.length > 0) {
+      return NextResponse.json(
+        {
+          error: 'This time conflicts with an existing class, event, or blocked period',
+          conflicts,
+        },
+        { status: 409 }
+      );
+    }
 
     // Create session
     const session = await createClassSession({

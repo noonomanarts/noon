@@ -318,7 +318,8 @@ export interface Review {
   user_id: string;
   rating: number;
   comment: string | null;
-  is_approved: boolean;
+  is_verified: boolean;
+  is_visible: boolean;
   created_at: Date;
   updated_at: Date;
 }

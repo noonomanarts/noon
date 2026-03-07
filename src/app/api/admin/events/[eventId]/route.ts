@@ -1,6 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { findUniqueEventBooking, updateEventBooking, deleteEventBooking, createCalendarEvent, addWalletCredit } from '@/lib/db/events';
+import {
+  addWalletCredit,
+  createCalendarEvent,
+  deleteEventBooking,
+  findUniqueEventBooking,
+  updateCalendarEvent,
+  updateEventBooking,
+} from '@/lib/db/events';
 import { query } from '@/lib/db/pool';
+import {
+  addMinutes,
+  buildEventCalendarTitle,
+  eventBookingToCalendarType,
+  isEventSlotAvailable,
+  shouldCreateCleaningBlock,
+} from '@/lib/calendar';
+
+function getPrivateClassType(event: Record<string, unknown>): 'cooking' | 'arts-crafts' | undefined {
+  const preferredDish = typeof event.preferredDish === 'string' ? event.preferredDish.trim() : '';
+  if (preferredDish) {
+    return 'cooking';
+  }
+
+  const specialRequests = typeof event.specialRequests === 'string' ? event.specialRequests : '';
+  if (specialRequests.includes('Private class type: arts-crafts')) {
+    return 'arts-crafts';
+  }
+  if (specialRequests.includes('Private class type: cooking')) {
+    return 'cooking';
+  }
+
+  return undefined;
+}
 
 type Params = {
   params: Promise<{ eventId: string }>;
@@ -18,7 +49,9 @@ export async function GET(request: NextRequest, props: Params) {
 
     // Get calendar event
     const calendarResult = await query(
-      `SELECT * FROM calendar_events WHERE event_booking_id = $1`,
+      `SELECT * FROM calendar_events
+       WHERE event_booking_id = $1
+       ORDER BY CASE WHEN type = 'CLEANING' THEN 1 ELSE 0 END, start_date_time ASC`,
       [params.eventId]
     );
 
@@ -54,55 +87,116 @@ export async function PUT(request: NextRequest, props: Params) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
-    // Check if calendar event exists
     const calendarResult = await query(
-      `SELECT * FROM calendar_events WHERE event_booking_id = $1`,
+      `SELECT * FROM calendar_events
+       WHERE event_booking_id = $1
+       ORDER BY CASE WHEN type = 'CLEANING' THEN 1 ELSE 0 END, start_date_time ASC`,
       [params.eventId]
     );
 
-    // If status changed to CLIENT_CONFIRMED, create calendar event
-    if (updateData.status === 'CLIENT_CONFIRMED' && calendarResult.rows.length === 0) {
-      const eventTypeMap: Record<string, string> = {
-        COOKING_COMPETITION: 'COMPETITION',
-        PRIVATE_CLASS: 'PRIVATE_SESSION',
-        BIRTHDAY_PARTY: 'BIRTHDAY_PARTY',
-      };
+    const primaryCalendarEvent = calendarResult.rows.find((row) => row.type !== 'CLEANING') ?? null;
+    const cleaningCalendarEvent = calendarResult.rows.find((row) => row.type === 'CLEANING') ?? null;
+    const eventType = updatedEvent.eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY';
+    const classType = getPrivateClassType(updatedEvent);
+    const selectedDate = typeof updatedEvent.selectedDate === 'string' ? updatedEvent.selectedDate.slice(0, 10) : '';
+    const selectedTime = typeof updatedEvent.selectedTime === 'string' ? updatedEvent.selectedTime : '';
+    const title = buildEventCalendarTitle({
+      eventType,
+      fullName: String(updatedEvent.fullName || ''),
+      companyOrGroupName: typeof updatedEvent.companyOrGroupName === 'string' ? updatedEvent.companyOrGroupName : undefined,
+    });
 
-      const startDateTime = new Date(updatedEvent.selectedDate as Date);
-      const timeStr = updatedEvent.selectedTime as string;
-      const [hours, minutes] = timeStr.split(':');
-      startDateTime.setHours(parseInt(hours), parseInt(minutes));
+    const scheduleChanged =
+      updateData.selectedDate !== undefined ||
+      updateData.selectedTime !== undefined ||
+      updateData.fullName !== undefined ||
+      updateData.companyOrGroupName !== undefined ||
+      updateData.specialRequests !== undefined;
 
-      // Estimate duration (3 hours for competition, 2-3 for others)
-      const duration = updatedEvent.eventType === 'COOKING_COMPETITION' ? 3 : 2.5;
-      const endDateTime = new Date(startDateTime.getTime() + duration * 60 * 60000);
-
-      await createCalendarEvent({
-        type: eventTypeMap[updatedEvent.eventType as string] as 'CLASS' | 'PRIVATE_SESSION' | 'COMPETITION' | 'BIRTHDAY_PARTY' | 'BLOCKED' | 'CLEANING',
-        startDateTime,
-        endDateTime,
-        title: `${updatedEvent.eventType} - ${updatedEvent.companyOrGroupName || updatedEvent.fullName}`,
-        description: (updatedEvent.specialRequests as string) || '',
-        eventBookingId: params.eventId,
+    if (selectedDate && selectedTime && (scheduleChanged || updateData.status === 'CLIENT_CONFIRMED')) {
+      const availability = await isEventSlotAvailable({
+        eventType,
+        selectedDate,
+        selectedTime,
+        classType,
+        excludeEventBookingId: params.eventId,
       });
 
-      // Add cleaning block if cooking-related
-      if (
-        updatedEvent.eventType === 'COOKING_COMPETITION' ||
-        (updatedEvent.eventType === 'PRIVATE_CLASS' && updatedEvent.preferredDish)
-      ) {
-        const cleaningStart = new Date(endDateTime);
-        const cleaningEnd = new Date(cleaningStart.getTime() + 3 * 60 * 60000);
+      if (!availability.available) {
+        return NextResponse.json(
+          { error: 'Selected slot conflicts with another confirmed or held booking' },
+          { status: 409 }
+        );
+      }
 
+      if (primaryCalendarEvent) {
+        await updateCalendarEvent(primaryCalendarEvent.id as string, {
+          type: eventBookingToCalendarType(eventType),
+          startDateTime: availability.startDateTime,
+          endDateTime: availability.endDateTime,
+          title: updateData.status === 'CLIENT_CONFIRMED' || updatedEvent.status === 'CLIENT_CONFIRMED'
+            ? title
+            : `Requested - ${title}`,
+          description: (updatedEvent.specialRequests as string) || '',
+          color:
+            eventType === 'COOKING_COMPETITION'
+              ? '#f97316'
+              : eventType === 'PRIVATE_CLASS'
+                ? '#14b8a6'
+                : '#ec4899',
+        });
+      } else {
         await createCalendarEvent({
-          type: 'CLEANING',
-          startDateTime: cleaningStart,
-          endDateTime: cleaningEnd,
-          title: 'Cleaning - Event',
-          isBlocked: true,
-          blockReason: 'Post-event cleaning',
+          type: eventBookingToCalendarType(eventType),
+          startDateTime: availability.startDateTime,
+          endDateTime: availability.endDateTime,
+          title: updateData.status === 'CLIENT_CONFIRMED' || updatedEvent.status === 'CLIENT_CONFIRMED'
+            ? title
+            : `Requested - ${title}`,
+          description: (updatedEvent.specialRequests as string) || '',
+          eventBookingId: params.eventId,
+          color:
+            eventType === 'COOKING_COMPETITION'
+              ? '#f97316'
+              : eventType === 'PRIVATE_CLASS'
+                ? '#14b8a6'
+                : '#ec4899',
         });
       }
+
+      if (shouldCreateCleaningBlock(eventType, classType)) {
+        const cleaningStart = new Date(availability.endDateTime);
+        const cleaningEnd = addMinutes(cleaningStart, 180);
+
+        if (cleaningCalendarEvent) {
+          await updateCalendarEvent(cleaningCalendarEvent.id as string, {
+            startDateTime: cleaningStart,
+            endDateTime: cleaningEnd,
+            title: `Cleaning - ${title}`,
+            isBlocked: true,
+            blockReason: 'Post-event cleaning',
+            color: '#f59e0b',
+          });
+        } else {
+          await createCalendarEvent({
+            type: 'CLEANING',
+            startDateTime: cleaningStart,
+            endDateTime: cleaningEnd,
+            title: `Cleaning - ${title}`,
+            isBlocked: true,
+            blockReason: 'Post-event cleaning',
+            eventBookingId: params.eventId,
+            color: '#f59e0b',
+          });
+        }
+      }
+    }
+
+    if (updateData.status === 'CANCELLED') {
+      await query(
+        `DELETE FROM calendar_events WHERE event_booking_id = $1`,
+        [params.eventId]
+      );
     }
 
     return NextResponse.json(updatedEvent);

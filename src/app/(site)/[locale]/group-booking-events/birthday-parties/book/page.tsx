@@ -8,6 +8,7 @@ import { IoCalendar, IoCheckmarkCircle, IoClose } from 'react-icons/io5';
 import { GiPartyPopper, GiCupcake } from 'react-icons/gi';
 import { HiSparkles } from 'react-icons/hi2';
 import BookingFormError from '@/components/site/BookingFormError';
+import PublicEventAvailabilityPicker from '@/components/site/PublicEventAvailabilityPicker';
 import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
 
 export default function BirthdayPartyBookingPage() {
@@ -67,8 +68,8 @@ export default function BirthdayPartyBookingPage() {
     
     confirmationTitle: locale === 'ar' ? 'شكراً لطلبك!' : 'Thank You!',
     confirmationMessage: locale === 'ar'
-      ? 'تم استلام طلب حجز حفلة عيد الميلاد. سيتواصل معك فريقنا قريباً.'
-      : 'Your birthday party booking request has been received. Our team will contact you shortly.',
+      ? 'تم استلام طلب حجز حفلة عيد الميلاد وحجز الوقت مبدئياً. سيتواصل معك فريقنا قريباً لتأكيد الموعد.'
+      : 'Your birthday party request was received and the slot is held temporarily. Our team will contact you shortly to confirm the schedule.',
     backToHome: locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home',
     selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
     dateRequired: locale === 'ar' ? 'يرجى اختيار التاريخ.' : 'Please select a date.',
@@ -366,39 +367,19 @@ export default function BirthdayPartyBookingPage() {
               </div>
             </div>
 
-            {/* Date & Time Selection */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <div>
-                <label className="noon-text mb-3 flex items-center gap-2 font-semibold">
-                  <IoCalendar className="text-xl text-coral" />
-                  {t.selectDate}
-                </label>
-                <input
-                  type="date"
-                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition-all focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
-                  value={formData.selectedDate}
-                  onChange={(e) => setFormData({ ...formData, selectedDate: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-
-              <div>
-                <label className="noon-text mb-3 flex items-center gap-2 font-semibold">
-                  <MdSchedule className="text-xl text-coral" />
-                  {t.selectTime}
-                </label>
-                <select
-                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition-all focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
-                  value={formData.selectedTime}
-                  onChange={(e) => setFormData({ ...formData, selectedTime: e.target.value })}
-                >
-                  <option value="">{t.selectTimePlaceholder}</option>
-                  <option value="14:00">02:00 PM</option>
-                  <option value="16:00">04:00 PM</option>
-                  <option value="18:00">06:00 PM</option>
-                </select>
-              </div>
-            </div>
+            <PublicEventAvailabilityPicker
+              locale={locale}
+              eventType="BIRTHDAY_PARTY"
+              selectedDate={formData.selectedDate}
+              selectedTime={formData.selectedTime}
+              onChange={({ date, time }) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  selectedDate: date,
+                  selectedTime: time,
+                }))
+              }
+            />
 
             {/* Party Details */}
             <div className="grid gap-6 md:grid-cols-2">

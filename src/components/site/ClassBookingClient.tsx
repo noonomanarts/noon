@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Locale } from '@/lib/locale';
+import ClassSessionPicker from '@/components/site/ClassSessionPicker';
 
 type SessionItem = {
   id: string;
@@ -97,24 +98,6 @@ function buildSelfParticipant(user: CurrentUserLite): Participant {
     dateOfBirth: normalizedDob,
     preferredLanguage: user.preferredLanguage === 'ARABIC' ? 'ar' : 'en',
   };
-}
-
-function formatSessionDate(locale: Locale, rawDate: string): string {
-  const date = new Date(rawDate);
-  return date.toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
-
-function formatSessionTime(locale: Locale, rawDate: string): string {
-  const date = new Date(rawDate);
-  return date.toLocaleTimeString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function getTerms(locale: Locale, isMomKid: boolean): { title: string; lines: string[] } {
@@ -211,6 +194,15 @@ export default function ClassBookingClient({
   const hasEnoughBalance = (wallet?.available_balance ?? 0) >= totalAmount;
   const isMomKid = classData.subCategory === 'MOM_AND_KID';
   const terms = getTerms(locale, isMomKid);
+  const selectedSessionLabel = selectedSession
+    ? new Date(selectedSession.startTime).toLocaleString(isArabic ? 'ar-OM' : 'en-OM', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : null;
 
   const t = {
     title: isArabic ? 'إتمام حجز الدورة' : 'Complete Class Booking',
@@ -514,36 +506,12 @@ export default function ClassBookingClient({
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
         <section className="space-y-6">
-          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.session}</h2>
-            <div className="mt-4 grid gap-3">
-              {sessions.map((session) => (
-                <button
-                  key={session.id}
-                  type="button"
-                  onClick={() => setSelectedSessionId(session.id)}
-                  disabled={session.seatsAvailable <= 0}
-                  className={`rounded-xl border p-3 text-start transition ${
-                    selectedSessionId === session.id
-                      ? 'border-[color:var(--primary)] bg-[color:var(--muted)]'
-                      : session.seatsAvailable <= 0
-                        ? 'cursor-not-allowed border-[color:var(--border)] opacity-60'
-                        : 'border-[color:var(--border)] hover:border-[color:var(--primary)]/60'
-                  }`}
-                >
-                  <p className="text-sm font-semibold text-[color:var(--text)]">
-                    {formatSessionDate(locale, session.startTime)}
-                  </p>
-                  <p className="mt-1 text-xs text-[color:var(--text-muted)]">
-                    {formatSessionTime(locale, session.startTime)} •{' '}
-                    {session.seatsAvailable > 0
-                      ? `${session.seatsAvailable} ${isArabic ? 'مقعد متاح' : 'seats available'}`
-                      : t.soldOut}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
+          <ClassSessionPicker
+            locale={locale}
+            sessions={sessions}
+            selectedSessionId={selectedSessionId}
+            onSelect={setSelectedSessionId}
+          />
 
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.bookingFor}</h2>
@@ -665,6 +633,10 @@ export default function ClassBookingClient({
             {isArabic && classData.titleAr ? classData.titleAr : classData.title}
           </h2>
           <div className="mt-4 space-y-2 text-sm text-[color:var(--text)]">
+            <div className="flex items-center justify-between">
+              <span>{t.session}</span>
+              <span className="max-w-[180px] text-right font-semibold">{selectedSessionLabel ?? '-'}</span>
+            </div>
             <div className="flex items-center justify-between">
               <span>{t.participantsCount}</span>
               <span className="font-semibold">{participantCount}</span>

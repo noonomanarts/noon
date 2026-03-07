@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { isLocale, type Locale } from '@/lib/locale';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import BookingFormError from '@/components/site/BookingFormError';
+import PublicEventAvailabilityPicker from '@/components/site/PublicEventAvailabilityPicker';
 import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
 
 type ClassType = 'cooking' | 'arts-crafts';
@@ -64,8 +65,8 @@ export default function PrivateClassBookingPage() {
     
     confirmationTitle: locale === 'ar' ? 'شكراً لطلبك!' : 'Thank You!',
     confirmationMessage: locale === 'ar'
-      ? 'تم استلام طلبك. سيتواصل معك فريقنا قريباً.'
-      : 'Your request has been received. Our team will contact you shortly.',
+      ? 'تم استلام طلبك وحجز الوقت مبدئياً. سيقوم فريقنا بمراجعة الطلب وتأكيد الموعد معك قريباً.'
+      : 'Your request was received and the slot is held temporarily. Our team will review it and confirm the schedule with you shortly.',
     backToHome: locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home',
     selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
     dateRequired: locale === 'ar' ? 'يرجى اختيار التاريخ.' : 'Please select a date.',
@@ -220,32 +221,21 @@ export default function PrivateClassBookingPage() {
         {step === 1 && (
           <div className="space-y-6">
             <h2 className="noon-text text-2xl font-bold">{t.selectDateTime}</h2>
-            
-            <div>
-              <label className="noon-text mb-2 block font-semibold">{t.selectDate}</label>
-              <input
-                type="date"
-                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
-                value={formData.selectedDate}
-                onChange={(e) => setFormData({ ...formData, selectedDate: e.target.value })}
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
 
-            <div>
-              <label className="noon-text mb-2 block font-semibold">{t.selectTime}</label>
-              <select
-                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
-                value={formData.selectedTime}
-                onChange={(e) => setFormData({ ...formData, selectedTime: e.target.value })}
-              >
-                <option value="">{t.selectTimePlaceholder}</option>
-                <option value="09:00">09:00 AM</option>
-                <option value="14:00">02:00 PM</option>
-                <option value="16:00">04:00 PM</option>
-                <option value="18:00">06:00 PM</option>
-              </select>
-            </div>
+            <PublicEventAvailabilityPicker
+              locale={locale}
+              eventType="PRIVATE_CLASS"
+              classType={classType}
+              selectedDate={formData.selectedDate}
+              selectedTime={formData.selectedTime}
+              onChange={({ date, time }) =>
+                setFormData((prev) => ({
+                  ...prev,
+                  selectedDate: date,
+                  selectedTime: time,
+                }))
+              }
+            />
 
             <div>
               <label className="noon-text mb-2 block font-semibold">
