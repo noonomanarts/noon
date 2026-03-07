@@ -51,7 +51,14 @@ export default async function RootLayout({
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <html lang={locale} dir={dir} suppressHydrationWarning className="scroll-smooth" data-scroll-behavior="smooth">
+    <html
+      lang={locale}
+      dir={dir}
+      suppressHydrationWarning
+      className="scroll-smooth"
+      data-scroll-behavior="smooth"
+      data-overlayscrollbars-initialize
+    >
       <head>
         <ThemeInitScript />
         <script
@@ -74,6 +81,7 @@ export default async function RootLayout({
         />
       </head>
       <body
+        data-overlayscrollbars-initialize
         className="bg-white text-zinc-900 antialiased transition-colors dark:bg-zinc-950 dark:text-zinc-100"
         style={{
           fontFamily: locale === "ar" 

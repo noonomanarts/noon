@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { useLayoutEffect } from "react";
 import { OverlayScrollbars } from "overlayscrollbars";
 
 const DEFAULT_OPTIONS = {
@@ -20,9 +19,7 @@ function getThemeClass() {
 }
 
 export default function OverlayScrollbarsProvider() {
-  const pathname = usePathname();
-
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof window === "undefined") return;
 
     const instances: Array<{ destroy: () => void }> = [];
@@ -69,7 +66,7 @@ export default function OverlayScrollbarsProvider() {
       observer.disconnect();
       instances.forEach((instance) => instance.destroy());
     };
-  }, [pathname]);
+  }, []);
 
   return null;
 }

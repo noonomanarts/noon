@@ -133,6 +133,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html,
+body {
+  scrollbar-gutter: stable;
+}
+
 /* Smooth scrollbar transition */
 * {
   scrollbar-width: thin;
