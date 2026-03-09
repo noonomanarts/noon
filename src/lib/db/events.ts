@@ -690,3 +690,20 @@ export async function getEventBookingsByUserId(userId: string) {
     total_amount: row.total_amount !== null && row.total_amount !== undefined ? Number(row.total_amount) : null,
   }));
 }
+
+export async function getEventBookingByIdForUser(userId: string, bookingId: string) {
+  const result = await query(
+    `SELECT * FROM event_bookings
+     WHERE user_id = $1 AND id = $2
+     LIMIT 1`,
+    [userId, bookingId]
+  );
+
+  const row = result.rows[0];
+  if (!row) return null;
+
+  return {
+    ...row,
+    total_amount: row.total_amount !== null && row.total_amount !== undefined ? Number(row.total_amount) : null,
+  };
+}

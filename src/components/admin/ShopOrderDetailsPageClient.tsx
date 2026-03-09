@@ -39,6 +39,8 @@ type AdminShopOrder = {
   city: string;
   area: string;
   street_address: string;
+  delivery_latitude: number | null;
+  delivery_longitude: number | null;
   postal_code: string | null;
   recipient_full_name: string;
   recipient_phone: string;
@@ -127,6 +129,11 @@ export default function ShopOrderDetailsPageClient({
     requiredTracking: isArabic ? 'رقم التتبع مطلوب عند الشحن.' : 'Tracking number is required when status is SHIPPED.',
     requiredCancelReason: isArabic ? 'سبب الإلغاء مطلوب عند الإلغاء.' : 'Cancellation reason is required when status is CANCELLED.',
     orderNotes: isArabic ? 'ملاحظات الطلب' : 'Order Notes',
+    deliveryLocation: isArabic ? 'لوكيشن التوصيل' : 'Delivery Location',
+    coordinates: isArabic ? 'الإحداثيات' : 'Coordinates',
+    openGoogleMaps: isArabic ? 'فتح في خرائط Google' : 'Open in Google Maps',
+    mapPreview: isArabic ? 'معاينة الموقع' : 'Location Preview',
+    noLocation: isArabic ? 'لم يتم حفظ لوكيشن لهذا الطلب.' : 'No location was saved for this order.',
   };
 
   const statusLabelMap: Record<ShopOrderStatus, { en: string; ar: string }> = {
@@ -152,6 +159,20 @@ export default function ShopOrderDetailsPageClient({
     if (!trimmed) return '?';
     return trimmed.charAt(0).toUpperCase();
   };
+
+  const hasDeliveryLocation =
+    typeof order.delivery_latitude === 'number' &&
+    Number.isFinite(order.delivery_latitude) &&
+    typeof order.delivery_longitude === 'number' &&
+    Number.isFinite(order.delivery_longitude);
+
+  const googleMapsUrl = hasDeliveryLocation
+    ? `https://www.google.com/maps/search/?api=1&query=${order.delivery_latitude},${order.delivery_longitude}`
+    : null;
+
+  const googleMapsEmbedUrl = hasDeliveryLocation
+    ? `https://maps.google.com/maps?q=${order.delivery_latitude},${order.delivery_longitude}&z=15&output=embed`
+    : null;
 
   const saveOrderUpdate = async () => {
     if (draft.status === 'SHIPPED' && !draft.trackingNumber.trim()) {
@@ -316,6 +337,46 @@ export default function ShopOrderDetailsPageClient({
             <span className="font-semibold">{t.orderNotes}: </span>{order.notes}
           </div>
         )}
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">{t.deliveryLocation}</p>
+            {hasDeliveryLocation ? (
+              <>
+                <p className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.coordinates}</p>
+                <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300">
+                  {order.delivery_latitude!.toFixed(6)}, {order.delivery_longitude!.toFixed(6)}
+                </p>
+                <a
+                  href={googleMapsUrl!}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex rounded-lg bg-[color:var(--noon-teal)] px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+                >
+                  {t.openGoogleMaps}
+                </a>
+              </>
+            ) : (
+              <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-300">{t.noLocation}</p>
+            )}
+          </div>
+
+          <div className="overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
+            {googleMapsEmbedUrl ? (
+              <iframe
+                title={t.mapPreview}
+                src={googleMapsEmbedUrl}
+                className="h-[320px] w-full border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            ) : (
+              <div className="flex h-[320px] items-center justify-center px-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                {t.noLocation}
+              </div>
+            )}
+          </div>
+        </div>
 
         <div className="mt-4 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">

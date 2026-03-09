@@ -1178,6 +1178,47 @@ export async function getShopOrderForAdminById(orderId: string): Promise<
   };
 }
 
+export async function getShopOrderByIdForUser(userId: string, orderId: string): Promise<
+  (ShopOrder & {
+    items: ShopOrderItem[];
+    history: ShopOrderStatusHistory[];
+  }) | null
+> {
+  await ensureShopOrdersTables();
+
+  const orderResult = await pool.query(
+    `SELECT *
+     FROM shop_orders
+     WHERE id = $1 AND user_id = $2
+     LIMIT 1`,
+    [orderId, userId]
+  );
+
+  if (!orderResult.rows[0]) return null;
+
+  const itemsResult = await pool.query(
+    `SELECT *
+     FROM shop_order_items
+     WHERE order_id = $1
+     ORDER BY created_at ASC`,
+    [orderId]
+  );
+
+  const historyResult = await pool.query(
+    `SELECT *
+     FROM shop_order_status_history
+     WHERE order_id = $1
+     ORDER BY created_at DESC`,
+    [orderId]
+  );
+
+  return {
+    ...mapShopOrder(orderResult.rows[0]),
+    items: itemsResult.rows.map((itemRow) => mapShopOrderItem(itemRow)),
+    history: historyResult.rows.map((historyRow) => mapShopOrderStatusHistory(historyRow)),
+  };
+}
+
 const SHOP_ORDER_ALLOWED_TRANSITIONS: Record<ShopOrderStatus, ShopOrderStatus[]> = {
   PAID: ['PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'CANCELLED'],
   PROCESSING: ['READY_TO_SHIP', 'SHIPPED', 'CANCELLED'],

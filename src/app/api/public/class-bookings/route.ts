@@ -15,9 +15,7 @@ class ApiError extends Error {
 }
 
 type ParticipantPayload = {
-  firstName: string;
-  middleName?: string;
-  lastName: string;
+  fullName: string;
   dateOfBirth: string;
   preferredLanguage: 'en' | 'ar';
 };
@@ -37,13 +35,14 @@ function parseParticipants(value: unknown): ParticipantPayload[] {
   for (const rawParticipant of value) {
     if (!rawParticipant || typeof rawParticipant !== 'object') continue;
     const row = rawParticipant as Record<string, unknown>;
+    const fullName = parseSafeString(row.fullName, 240);
     const firstName = parseSafeString(row.firstName, 120);
-    const middleName = parseSafeString(row.middleName, 120);
     const lastName = parseSafeString(row.lastName, 120);
     const dateOfBirth = parseSafeString(row.dateOfBirth, 20);
     const preferredLanguage = parseSafeString(row.preferredLanguage, 10);
+    const normalizedFullName = fullName || [firstName, lastName].filter(Boolean).join(' ').trim();
 
-    if (!firstName || !lastName || !dateOfBirth) {
+    if (!normalizedFullName || !dateOfBirth) {
       continue;
     }
 
@@ -57,9 +56,7 @@ function parseParticipants(value: unknown): ParticipantPayload[] {
     }
 
     participants.push({
-      firstName,
-      middleName: middleName || undefined,
-      lastName,
+      fullName: normalizedFullName,
       dateOfBirth,
       preferredLanguage: preferredLanguage as 'en' | 'ar',
     });
@@ -84,8 +81,6 @@ function generateBookingNumber(): string {
   return `CLS-${y}${m}${d}-${random}`;
 }
 
-type ParticipantWithFullName = ParticipantPayload & { fullName: string };
-
 async function insertBookingWithRetry(args: {
   client: {
     query: (text: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>;
@@ -93,7 +88,7 @@ async function insertBookingWithRetry(args: {
   userId: string;
   classId: string;
   sessionId: string;
-  participants: ParticipantWithFullName[];
+  participants: ParticipantPayload[];
   numberOfParticipants: number;
   totalAmount: number;
   currency: string;
@@ -280,17 +275,12 @@ export async function POST(request: NextRequest) {
       [newBalance, newAvailable, wallet.id]
     );
 
-    const normalizedParticipants: ParticipantWithFullName[] = participants.map((participant) => ({
-      ...participant,
-      fullName: [participant.firstName, participant.middleName, participant.lastName].filter(Boolean).join(' '),
-    }));
-
     const booking = await insertBookingWithRetry({
       client,
       userId: user.id,
       classId,
       sessionId: sessionIdInput,
-      participants: normalizedParticipants,
+      participants,
       numberOfParticipants,
       totalAmount,
       currency: bookingCurrency,

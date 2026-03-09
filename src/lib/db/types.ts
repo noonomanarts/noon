@@ -203,6 +203,19 @@ export interface ClassSession {
   grocery_list: string | null;
   workshop_brief: string | null;
   photos: string[];
+  trainer_photos: string[];
+  highlighted_ingredients: Array<{
+    name: string;
+    source: string;
+    photo: string;
+  }>;
+  final_recipe_title: string | null;
+  final_recipe_pdf: string | null;
+  final_recipe_brief: string | null;
+  final_recipe_visible_to_customers: boolean;
+  final_recipe_published_at: Date | null;
+  admin_workshop_notes: string | null;
+  admin_workshop_notes_photo: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -222,6 +235,19 @@ export interface ClassSessionPublic {
   groceryList: string | null;
   workshopBrief: string | null;
   photos: string[];
+  trainerPhotos: string[];
+  highlightedIngredients: Array<{
+    name: string;
+    source: string;
+    photo: string;
+  }>;
+  finalRecipeTitle: string | null;
+  finalRecipePdf: string | null;
+  finalRecipeBrief: string | null;
+  finalRecipeVisibleToCustomers: boolean;
+  finalRecipePublishedAt: Date | null;
+  adminWorkshopNotes: string | null;
+  adminWorkshopNotesPhoto: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

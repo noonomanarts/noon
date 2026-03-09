@@ -5,6 +5,8 @@ import { query } from "./pool";
 import { generateUUID } from "./uuid";
 import type { ClassCategory as ClassCategoryType, ClassSubCategory, ClassStatus, ClassPublic } from "./types";
 import { ClassCategory } from "./types";
+import { ensureClassFinanceSchema } from "./classFinance";
+import { ensureRecipeManagementSchema } from "./recipeManagement";
 
 // Extended ClassPublic with trainer info
 export interface ClassWithTrainer extends ClassPublic {
@@ -25,6 +27,7 @@ export async function findManyClasses(options: {
   trainerId?: string;
   limit?: number;
 }): Promise<ClassWithTrainer[]> {
+  await ensureClassFinanceSchema();
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -80,6 +83,9 @@ export async function findManyClasses(options: {
     status: row.status,
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
+    trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
+    noonSharePercent: parseFloat(row.noon_share_percent || 0),
+    expenseSharePercent: parseFloat(row.expense_share_percent || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
@@ -110,6 +116,7 @@ export async function findManyClassesPaginated(options: {
   skip?: number;
   take?: number;
 }): Promise<{ classes: Record<string, unknown>[]; total: number }> {
+  await ensureClassFinanceSchema();
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -183,9 +190,14 @@ export async function findManyClassesPaginated(options: {
     status: row.status,
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
+    trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
+    noonSharePercent: parseFloat(row.noon_share_percent || 0),
+    expenseSharePercent: parseFloat(row.expense_share_percent || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
+    closedAt: row.closed_at,
+    closedByUserId: row.closed_by_user_id,
     trainer: row.u_trainer_id ? {
       id: row.u_trainer_id,
       fullName: row.trainer_full_name,
@@ -204,6 +216,7 @@ export async function findUniqueClass(
   where: { slug?: string; id?: string; status?: ClassStatus },
   include?: { trainer?: boolean; sessions?: boolean; reviews?: boolean }
 ): Promise<Record<string, unknown> | null> {
+  await ensureClassFinanceSchema();
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -256,9 +269,14 @@ export async function findUniqueClass(
     status: row.status,
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
+    trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
+    noonSharePercent: parseFloat(row.noon_share_percent || 0),
+    expenseSharePercent: parseFloat(row.expense_share_percent || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
+    closedAt: row.closed_at,
+    closedByUserId: row.closed_by_user_id,
   };
 
   if (include?.trainer) {
@@ -328,7 +346,11 @@ export async function createClass(data: {
   currency?: string;
   metaTitle?: string;
   metaDescription?: string;
+  trainerSharePercent?: number;
+  noonSharePercent?: number;
+  expenseSharePercent?: number;
 }): Promise<Record<string, unknown>> {
+  await ensureClassFinanceSchema();
   const id = generateUUID();
   const now = new Date();
 
@@ -336,8 +358,10 @@ export async function createClass(data: {
     `INSERT INTO classes (
       id, slug, title, title_ar, description, description_ar, category, sub_category,
       trainer_id, price, currency, seats_total, seats_available, duration_minutes,
-      image, images, status, meta_title, meta_description, created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+      image, images, status, meta_title, meta_description,
+      trainer_share_percent, noon_share_percent, expense_share_percent,
+      created_at, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
     RETURNING *`,
     [
       id,
@@ -359,6 +383,9 @@ export async function createClass(data: {
       data.status || 'DRAFT',
       data.metaTitle || null,
       data.metaDescription || null,
+      data.trainerSharePercent ?? 0,
+      data.noonSharePercent ?? 0,
+      data.expenseSharePercent ?? 0,
       now,
       now,
     ]
@@ -385,9 +412,14 @@ export async function createClass(data: {
     status: row.status,
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
+    trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
+    noonSharePercent: parseFloat(row.noon_share_percent || 0),
+    expenseSharePercent: parseFloat(row.expense_share_percent || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
+    closedAt: row.closed_at,
+    closedByUserId: row.closed_by_user_id,
   };
 }
 
@@ -414,9 +446,15 @@ export async function updateClass(
     currency: string;
     metaTitle: string;
     metaDescription: string;
-    publishedAt: Date;
+    publishedAt: Date | null;
+    trainerSharePercent: number;
+    noonSharePercent: number;
+    expenseSharePercent: number;
+    closedAt: Date | null;
+    closedByUserId: string | null;
   }>
 ): Promise<Record<string, unknown> | null> {
+  await ensureClassFinanceSchema();
   const updates: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -440,6 +478,11 @@ export async function updateClass(
     metaTitle: 'meta_title',
     metaDescription: 'meta_description',
     publishedAt: 'published_at',
+    trainerSharePercent: 'trainer_share_percent',
+    noonSharePercent: 'noon_share_percent',
+    expenseSharePercent: 'expense_share_percent',
+    closedAt: 'closed_at',
+    closedByUserId: 'closed_by_user_id',
   };
 
   for (const [key, dbField] of Object.entries(fieldMap)) {
@@ -485,9 +528,14 @@ export async function updateClass(
     status: row.status,
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
+    trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
+    noonSharePercent: parseFloat(row.noon_share_percent || 0),
+    expenseSharePercent: parseFloat(row.expense_share_percent || 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
+    closedAt: row.closed_at,
+    closedByUserId: row.closed_by_user_id,
   };
 }
 
@@ -694,8 +742,22 @@ export async function findClassReviews(classId: string): Promise<{
  * Get bookings by user ID
  */
 export async function getBookingsByUserId(userId: string) {
+  await ensureRecipeManagementSchema();
   const result = await query(
-    `SELECT b.*, c.title, c.title_ar, cs.start_date_time, cs.end_date_time
+    `SELECT
+      b.*,
+      c.title,
+      c.title_ar,
+      cs.start_date_time,
+      cs.end_date_time,
+      CASE
+        WHEN cs.final_recipe_visible_to_customers = true THEN COALESCE(cs.final_recipe_pdf, cs.recipe_pdf)
+        ELSE NULL
+      END AS customer_recipe_pdf,
+      CASE
+        WHEN cs.final_recipe_visible_to_customers = true THEN cs.final_recipe_title
+        ELSE NULL
+      END AS customer_recipe_title
      FROM bookings b
      LEFT JOIN classes c ON b.class_id = c.id
      LEFT JOIN class_sessions cs ON b.session_id = cs.id
@@ -708,6 +770,45 @@ export async function getBookingsByUserId(userId: string) {
     ...row,
     total_amount: row.total_amount !== null && row.total_amount !== undefined ? Number(row.total_amount) : null,
   }));
+}
+
+export async function getBookingByIdForUser(userId: string, bookingId: string) {
+  await ensureRecipeManagementSchema();
+  const result = await query(
+    `SELECT
+      b.*,
+      c.title,
+      c.title_ar,
+      c.slug,
+      cs.start_date_time,
+      cs.end_date_time,
+      CASE
+        WHEN cs.final_recipe_visible_to_customers = true THEN COALESCE(cs.final_recipe_pdf, cs.recipe_pdf)
+        ELSE NULL
+      END AS customer_recipe_pdf,
+      CASE
+        WHEN cs.final_recipe_visible_to_customers = true THEN cs.final_recipe_title
+        ELSE NULL
+      END AS customer_recipe_title,
+      CASE
+        WHEN cs.final_recipe_visible_to_customers = true THEN cs.final_recipe_brief
+        ELSE NULL
+      END AS customer_recipe_brief
+     FROM bookings b
+     LEFT JOIN classes c ON b.class_id = c.id
+     LEFT JOIN class_sessions cs ON b.session_id = cs.id
+     WHERE b.user_id = $1 AND b.id = $2
+     LIMIT 1`,
+    [userId, bookingId]
+  );
+
+  const row = result.rows[0];
+  if (!row) return null;
+
+  return {
+    ...row,
+    total_amount: row.total_amount !== null && row.total_amount !== undefined ? Number(row.total_amount) : null,
+  };
 }
 
 // Re-export ClassCategory for convenience

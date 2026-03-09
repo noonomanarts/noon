@@ -78,6 +78,25 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
     return Number.isFinite(amount) ? amount.toFixed(3) : null;
   };
 
+  const getPaymentStatusText = (status: string) => {
+    const statusMap: Record<string, { en: string; ar: string }> = {
+      PENDING: { en: 'Pending Payment', ar: 'بانتظار الدفع' },
+      PAID: { en: 'Paid', ar: 'مدفوع' },
+      REFUNDED: { en: 'Refunded', ar: 'مسترجع' },
+      FAILED: { en: 'Failed', ar: 'فشل الدفع' },
+    };
+
+    return statusMap[status]?.[locale] || status;
+  };
+
+  const getPaymentMethodText = (method: string | null | undefined) => {
+    if (method === 'WALLET') {
+      return isArabic ? 'المحفظة' : 'Wallet';
+    }
+
+    return method || (isArabic ? 'غير محدد' : 'Not set');
+  };
+
   return (
     <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
       <h3 className="mb-4 text-lg font-semibold text-[color:var(--text)]">
@@ -120,14 +139,24 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
               </div>
 
               {order.type === 'class' && 'total_amount' in order && order.total_amount !== null && order.total_amount !== undefined && (
-                <div className="text-sm font-medium text-[color:var(--text)]">
-                  {isArabic ? 'المجموع:' : 'Total:'} {formatAmount(order.total_amount) ?? '-'} {order.currency}
+                <div className="space-y-1 text-sm">
+                  <div className="font-medium text-[color:var(--text)]">
+                    {isArabic ? 'المجموع:' : 'Total:'} {formatAmount(order.total_amount) ?? '-'} {order.currency}
+                  </div>
+                  <div className="text-[color:var(--text-muted)]">
+                    {isArabic ? 'الدفع:' : 'Payment:'} {getPaymentStatusText(order.payment_status)} • {getPaymentMethodText(order.payment_method)}
+                  </div>
                 </div>
               )}
 
               {order.type === 'event' && 'total_amount' in order && order.total_amount !== null && order.total_amount !== undefined && (
-                <div className="text-sm font-medium text-[color:var(--text)]">
-                  {isArabic ? 'المجموع:' : 'Total:'} {formatAmount(order.total_amount) ?? '-'} {order.currency}
+                <div className="space-y-1 text-sm">
+                  <div className="font-medium text-[color:var(--text)]">
+                    {isArabic ? 'المجموع:' : 'Total:'} {formatAmount(order.total_amount) ?? '-'} {order.currency}
+                  </div>
+                  <div className="text-[color:var(--text-muted)]">
+                    {isArabic ? 'الدفع:' : 'Payment:'} {getPaymentStatusText(order.payment_status)} • {getPaymentMethodText(order.payment_method)}
+                  </div>
                 </div>
               )}
 
@@ -135,6 +164,9 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
                 <div className="space-y-1 text-sm">
                   <div className="font-medium text-[color:var(--text)]">
                     {isArabic ? 'المجموع:' : 'Total:'} {order.total_amount.toFixed(3)} {order.currency}
+                  </div>
+                  <div className="text-[color:var(--text-muted)]">
+                    {isArabic ? 'الدفع:' : 'Payment:'} {getPaymentStatusText('PAID')} • {getPaymentMethodText(order.payment_method)}
                   </div>
                   <div className="text-[color:var(--text-muted)]">
                     {isArabic ? 'العنوان:' : 'Address:'} {order.city} - {order.area}

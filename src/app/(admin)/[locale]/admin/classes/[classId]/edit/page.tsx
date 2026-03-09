@@ -53,6 +53,9 @@ interface FormData {
   currency: string;
   seatsTotal: string;
   durationMinutes: string;
+  trainerSharePercent: string;
+  noonSharePercent: string;
+  expenseSharePercent: string;
   status: ClassStatus;
   metaTitle: string;
   metaDescription: string;
@@ -103,6 +106,9 @@ export default function EditClassPage() {
     currency: 'AED',
     seatsTotal: '',
     durationMinutes: '',
+    trainerSharePercent: '50',
+    noonSharePercent: '30',
+    expenseSharePercent: '20',
     status: 'DRAFT',
     metaTitle: '',
     metaDescription: ''
@@ -147,6 +153,9 @@ export default function EditClassPage() {
         currency: data.currency || 'AED',
         seatsTotal: data.seatsTotal?.toString() || '',
         durationMinutes: data.durationMinutes?.toString() || '',
+        trainerSharePercent: data.trainerSharePercent?.toString() || '50',
+        noonSharePercent: data.noonSharePercent?.toString() || '30',
+        expenseSharePercent: data.expenseSharePercent?.toString() || '20',
         status: data.status || 'DRAFT',
         metaTitle: data.metaTitle || '',
         metaDescription: data.metaDescription || ''
@@ -289,6 +298,20 @@ export default function EditClassPage() {
     else if (parseInt(formData.seatsTotal) < 1) newErrors.seatsTotal = 'Must have at least 1 seat';
     if (!formData.durationMinutes) newErrors.durationMinutes = 'Duration is required';
     else if (parseInt(formData.durationMinutes) < 1) newErrors.durationMinutes = 'Duration must be positive';
+    if (!formData.trainerSharePercent) newErrors.trainerSharePercent = 'Trainer share is required';
+    if (!formData.noonSharePercent) newErrors.noonSharePercent = 'Noon share is required';
+    if (!formData.expenseSharePercent) newErrors.expenseSharePercent = 'Expense share is required';
+
+    const trainerSharePercent = parseFloat(formData.trainerSharePercent);
+    const noonSharePercent = parseFloat(formData.noonSharePercent);
+    const expenseSharePercent = parseFloat(formData.expenseSharePercent);
+    const totalFinancePercent = trainerSharePercent + noonSharePercent + expenseSharePercent;
+
+    if ([trainerSharePercent, noonSharePercent, expenseSharePercent].some((value) => Number.isNaN(value) || value < 0)) {
+      newErrors.finance = 'Finance percentages must be valid positive numbers';
+    } else if (Math.abs(totalFinancePercent - 100) > 0.01) {
+      newErrors.finance = 'Trainer, Noon, and expense percentages must total 100%';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -356,6 +379,9 @@ export default function EditClassPage() {
         currency: formData.currency,
         seatsTotal: parseInt(formData.seatsTotal),
         durationMinutes: parseInt(formData.durationMinutes),
+        trainerSharePercent: parseFloat(formData.trainerSharePercent),
+        noonSharePercent: parseFloat(formData.noonSharePercent),
+        expenseSharePercent: parseFloat(formData.expenseSharePercent),
         status: formData.status,
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description
@@ -800,6 +826,78 @@ export default function EditClassPage() {
                   {errors.durationMinutes}
                 </p>
               )}
+            </div>
+
+            <div className="md:col-span-3 mt-2">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 dark:border-emerald-900/30 dark:bg-emerald-900/10">
+                <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                  {isRTL ? 'التوزيع المالي للكلاس' : 'Class Finance Split'}
+                </p>
+                <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">
+                  {isRTL
+                    ? 'يجب أن يكون مجموع النسب 100٪ حتى يمكن إغلاق الكلاس وتسويته مالياً.'
+                    : 'The total must equal 100% before the class can be closed and settled.'}
+                </p>
+                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {isRTL ? 'نسبة المدرب %' : 'Trainer Share %'}
+                    </label>
+                    <input
+                      type="number"
+                      name="trainerSharePercent"
+                      value={formData.trainerSharePercent}
+                      onChange={handleInputChange}
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      className={`${inputBase} ${errors.trainerSharePercent || errors.finance ? 'border-red-500 dark:border-red-400' : ''}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {isRTL ? 'نسبة نون %' : 'Noon Share %'}
+                    </label>
+                    <input
+                      type="number"
+                      name="noonSharePercent"
+                      value={formData.noonSharePercent}
+                      onChange={handleInputChange}
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      className={`${inputBase} ${errors.noonSharePercent || errors.finance ? 'border-red-500 dark:border-red-400' : ''}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      {isRTL ? 'نسبة المصاريف %' : 'Expense Share %'}
+                    </label>
+                    <input
+                      type="number"
+                      name="expenseSharePercent"
+                      value={formData.expenseSharePercent}
+                      onChange={handleInputChange}
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      className={`${inputBase} ${errors.expenseSharePercent || errors.finance ? 'border-red-500 dark:border-red-400' : ''}`}
+                    />
+                  </div>
+                </div>
+                <p className="mt-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {isRTL ? 'المجموع' : 'Total'}:{' '}
+                  {(
+                    (parseFloat(formData.trainerSharePercent || '0') || 0) +
+                    (parseFloat(formData.noonSharePercent || '0') || 0) +
+                    (parseFloat(formData.expenseSharePercent || '0') || 0)
+                  ).toFixed(2)}
+                  %
+                </p>
+                {errors.finance ? (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400">{errors.finance}</p>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>

@@ -63,8 +63,10 @@ export default async function AdminLayout({
     adminPanel: locale === "ar" ? "لوحة الإدارة" : "Admin Panel",
     management: locale === "ar" ? "لوحة التحكم" : "Management Panel",
     overview: locale === "ar" ? "نظرة عامة" : "Overview",
+    finance: locale === "ar" ? "المالية" : "Finance",
     dashboard: locale === "ar" ? "لوحة التحكم" : "Dashboard",
     analytics: locale === "ar" ? "التحليلات" : "Analytics",
+    financeReports: locale === "ar" ? "المالية والتقارير" : "Finance & Reports",
     classesEvents: locale === "ar" ? "الدورات والفعاليات" : "Classes & Events",
     classes: locale === "ar" ? "الدورات" : "Classes",
     timetable: locale === "ar" ? "الجدول الزمني" : "Timetable",
@@ -104,6 +106,12 @@ export default async function AdminLayout({
       items: [
         { iconName: "FiGrid" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.dashboard, href: `/${locale}/admin` },
         { iconName: "FiTrendingUp" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.analytics, href: `/${locale}/admin/analytics` },
+      ],
+    },
+    {
+      section: t.finance,
+      items: [
+        { iconName: "FiCreditCard" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.financeReports, href: `/${locale}/admin/finance` },
       ],
     },
     {

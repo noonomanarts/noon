@@ -16,9 +16,7 @@ type SessionItem = {
 };
 
 type Participant = {
-  firstName: string;
-  middleName: string;
-  lastName: string;
+  fullName: string;
   dateOfBirth: string;
   preferredLanguage: 'en' | 'ar';
 };
@@ -54,48 +52,18 @@ type BookingResult = {
   };
 };
 
-function splitFullName(fullName: string): { firstName: string; middleName: string; lastName: string } {
-  const tokens = fullName.trim().split(/\s+/).filter(Boolean);
-  if (tokens.length <= 1) {
-    return {
-      firstName: tokens[0] ?? '',
-      middleName: '',
-      lastName: '',
-    };
-  }
-  if (tokens.length === 2) {
-    return {
-      firstName: tokens[0],
-      middleName: '',
-      lastName: tokens[1],
-    };
-  }
-
-  return {
-    firstName: tokens[0],
-    middleName: tokens.slice(1, -1).join(' '),
-    lastName: tokens[tokens.length - 1],
-  };
-}
-
 function emptyParticipant(): Participant {
   return {
-    firstName: '',
-    middleName: '',
-    lastName: '',
+    fullName: '',
     dateOfBirth: '',
     preferredLanguage: 'en',
   };
 }
 
 function buildSelfParticipant(user: CurrentUserLite): Participant {
-  const parts = splitFullName(user.fullName);
-  const normalizedDob = user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : '';
   return {
-    firstName: parts.firstName,
-    middleName: parts.middleName,
-    lastName: parts.lastName,
-    dateOfBirth: normalizedDob,
+    fullName: user.fullName.trim(),
+    dateOfBirth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : '',
     preferredLanguage: user.preferredLanguage === 'ARABIC' ? 'ar' : 'en',
   };
 }
@@ -191,7 +159,7 @@ export default function ClassBookingClient({
   const maxParticipantsAllowed = Math.max(0, Math.min(10, seatsAvailable));
   const participantOptionMax = Math.max(1, maxParticipantsAllowed);
   const totalAmount = Number((classData.price * participantCount).toFixed(3));
-  const hasEnoughBalance = (wallet?.available_balance ?? 0) >= totalAmount;
+  const hasEnoughBalance = (wallet?.balance ?? 0) >= totalAmount;
   const isMomKid = classData.subCategory === 'MOM_AND_KID';
   const terms = getTerms(locale, isMomKid);
   const selectedSessionLabel = selectedSession
@@ -214,14 +182,12 @@ export default function ClassBookingClient({
     participantsCount: isArabic ? 'عدد المشاركين' : 'Number of Participants',
     participants: isArabic ? 'بيانات المشاركين' : 'Participants Details',
     participant: isArabic ? 'مشارك' : 'Participant',
-    firstName: isArabic ? 'الاسم الأول' : 'First Name',
-    middleName: isArabic ? 'الاسم الأوسط' : 'Middle Name',
-    lastName: isArabic ? 'الاسم الأخير' : 'Last Name',
+    fullName: isArabic ? 'الاسم الكامل' : 'Full Name',
     dateOfBirth: isArabic ? 'تاريخ الميلاد' : 'Date of Birth',
     preferredLanguage: isArabic ? 'اللغة المفضلة' : 'Preferred Language',
     specialRequests: isArabic ? 'ملاحظات / طلبات خاصة' : 'Special Requests / Notes',
     agree: isArabic ? 'أوافق على الشروط والأحكام' : 'I agree to the terms and conditions',
-    walletBalance: isArabic ? 'رصيد المحفظة المتاح' : 'Available Wallet Balance',
+    walletBalance: isArabic ? 'الرصيد المتاح للدفع داخل الموقع' : 'Wallet Balance for Website Payments',
     total: isArabic ? 'الإجمالي' : 'Total',
     submit: isArabic ? 'تأكيد ودفع الحجز' : 'Confirm & Pay Booking',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
@@ -232,13 +198,13 @@ export default function ClassBookingClient({
     bookingNumber: isArabic ? 'رقم الحجز' : 'Booking Number',
     goOrders: isArabic ? 'عرض طلباتي' : 'View My Orders',
     goClass: isArabic ? 'العودة للدورة' : 'Back to Class',
-    required: isArabic ? 'يرجى إكمال جميع الحقول المطلوبة.' : 'Please complete all required fields.',
+    required: isArabic ? 'يرجى إكمال بيانات كل مشارك.' : 'Please complete each participant entry.',
     invalidDob: isArabic ? 'تاريخ الميلاد غير صالح.' : 'Invalid date of birth.',
     termsRequired: isArabic ? 'يجب الموافقة على الشروط قبل الدفع.' : 'You must accept terms before payment.',
     seatsError: isArabic ? 'عدد المشاركين أكبر من المقاعد المتاحة في هذه الجلسة.' : 'Participants exceed available seats for this session.',
     soldOut: isArabic ? 'المقاعد مكتملة' : 'Sold out',
     noSeats: isArabic ? 'هذه الجلسة ممتلئة حالياً. اختر جلسة أخرى.' : 'This session is currently full. Please choose another session.',
-    insufficient: isArabic ? 'الرصيد غير كافٍ لإتمام الدفع.' : 'Insufficient wallet balance.',
+    insufficient: isArabic ? 'رصيد المحفظة المستخدم داخل الموقع غير كافٍ لإتمام الدفع.' : 'Your website wallet balance is insufficient for this payment.',
   };
 
   const loadWallet = useCallback(async () => {
@@ -317,7 +283,7 @@ export default function ClassBookingClient({
       const next = [...prev];
       next[index] = {
         ...next[index],
-        [key]: key === 'preferredLanguage' ? (value as 'en' | 'ar') : value,
+        [key]: value,
       };
       return next;
     });
@@ -338,11 +304,7 @@ export default function ClassBookingClient({
     }
 
     for (const participant of participants) {
-      if (
-        participant.firstName.trim().length === 0 ||
-        participant.lastName.trim().length === 0 ||
-        participant.dateOfBirth.trim().length === 0
-      ) {
+      if (participant.fullName.trim().length === 0 || participant.dateOfBirth.trim().length === 0) {
         setError(t.required);
         return false;
       }
@@ -558,39 +520,37 @@ export default function ClassBookingClient({
                     {t.participant} {index + 1}
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    <input
-                      value={participant.firstName}
-                      onChange={(event) => updateParticipant(index, 'firstName', event.target.value)}
-                      placeholder={t.firstName}
-                      className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
-                    />
-                    <input
-                      value={participant.middleName}
-                      onChange={(event) => updateParticipant(index, 'middleName', event.target.value)}
-                      placeholder={t.middleName}
-                      className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
-                    />
-                    <input
-                      value={participant.lastName}
-                      onChange={(event) => updateParticipant(index, 'lastName', event.target.value)}
-                      placeholder={t.lastName}
-                      className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
-                    />
-                    <input
-                      type="date"
-                      value={participant.dateOfBirth}
-                      onChange={(event) => updateParticipant(index, 'dateOfBirth', event.target.value)}
-                      max={new Date().toISOString().split('T')[0]}
-                      className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
-                    />
-                    <select
-                      value={participant.preferredLanguage}
-                      onChange={(event) => updateParticipant(index, 'preferredLanguage', event.target.value)}
-                      className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
-                    >
-                      <option value="en">{isArabic ? 'الإنجليزية' : 'English'}</option>
-                      <option value="ar">{isArabic ? 'العربية' : 'Arabic'}</option>
-                    </select>
+                    <label className="text-sm">
+                      <span className="mb-1.5 block text-[color:var(--text)]">{t.fullName}</span>
+                      <input
+                        value={participant.fullName}
+                        onChange={(event) => updateParticipant(index, 'fullName', event.target.value)}
+                        placeholder={t.fullName}
+                        autoComplete="name"
+                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                      />
+                    </label>
+                    <label className="text-sm">
+                      <span className="mb-1.5 block text-[color:var(--text)]">{t.dateOfBirth}</span>
+                      <input
+                        type="date"
+                        value={participant.dateOfBirth}
+                        onChange={(event) => updateParticipant(index, 'dateOfBirth', event.target.value)}
+                        max={new Date().toISOString().split('T')[0]}
+                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                      />
+                    </label>
+                    <label className="text-sm">
+                      <span className="mb-1.5 block text-[color:var(--text)]">{t.preferredLanguage}</span>
+                      <select
+                        value={participant.preferredLanguage}
+                        onChange={(event) => updateParticipant(index, 'preferredLanguage', event.target.value)}
+                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                      >
+                        <option value="en">{isArabic ? 'الإنجليزية' : 'English'}</option>
+                        <option value="ar">{isArabic ? 'العربية' : 'Arabic'}</option>
+                      </select>
+                    </label>
                   </div>
                 </div>
               ))}
@@ -644,7 +604,7 @@ export default function ClassBookingClient({
             <div className="flex items-center justify-between">
               <span>{t.walletBalance}</span>
               <span className="font-semibold">
-                {loadingWallet ? '...' : `${(wallet?.available_balance ?? 0).toFixed(3)} ${wallet?.currency ?? classData.currency}`}
+                {loadingWallet ? '...' : `${(wallet?.balance ?? 0).toFixed(3)} ${wallet?.currency ?? classData.currency}`}
               </span>
             </div>
             <div className="border-t border-[color:var(--border)] pt-2 text-base font-semibold text-[color:var(--text)]">
