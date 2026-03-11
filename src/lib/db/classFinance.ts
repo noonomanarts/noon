@@ -1,3 +1,9 @@
+import { calculateWorkshopFinanceBreakdown, type TrainerShareTier, type WorkshopCostSettings } from '@/lib/classFinanceRules';
+import {
+  defaultClassFinanceAdminSettings,
+  getAdminSettingsByKey,
+  type ClassFinanceAdminSettings,
+} from '@/lib/db/adminSettings';
 import { pool, query } from './pool';
 
 type QueryResultRow = Record<string, unknown>;
@@ -46,21 +52,34 @@ export type ClassSettlementSnapshot = {
     fullName: string;
   } | null;
   finance: {
-    trainerSharePercent: number;
-    noonSharePercent: number;
-    expenseSharePercent: number;
-    totalPercent: number;
+    fixedCosts: {
+      kitchenUsageRatePerHour: number;
+      workshopContentRatePerParticipant: number;
+      durationHours: number;
+      kitchenUsageAmount: number;
+      workshopContentAmount: number;
+      total: number;
+    };
+    materialsCostAmount: number;
+    trainerFee: {
+      percent: number;
+      baseAmount: number;
+      amount: number;
+    };
+    noonFeeAmount: number;
+    totalCostsAmount: number;
   };
   summary: {
     bookingsCount: number;
     participantsCount: number;
     grossRevenue: number;
-    trainerPayoutAmount: number;
-    adminShareAmount: number;
-    expenseBudgetAmount: number;
-    adminTotalPayoutAmount: number;
-    actualExpensesTotal: number;
-    expenseVarianceAmount: number;
+    fixedCostsAmount: number;
+    materialsCostAmount: number;
+    trainerFeePercent: number;
+    trainerFeeBaseAmount: number;
+    trainerFeeAmount: number;
+    noonFeeAmount: number;
+    totalCostsAmount: number;
   };
   participants: ClassParticipantRow[];
   expenses: ClassExpenseItem[];
@@ -78,7 +97,10 @@ type FinanceClassRow = {
   id: string;
   trainerId: string | null;
   trainerName: string | null;
+  category: 'COOKING' | 'ARTS_CRAFTS';
   currency: string;
+  durationMinutes: number;
+  trainerShareTiers: TrainerShareTier[];
   trainerSharePercent: number;
   noonSharePercent: number;
   expenseSharePercent: number;
@@ -125,39 +147,6 @@ function sanitizeExpenseItems(value: unknown): ClassExpenseItemInput[] {
   return normalized;
 }
 
-function validateFinancePercentages(input: {
-  trainerSharePercent: number;
-  noonSharePercent: number;
-  expenseSharePercent: number;
-}) {
-  const trainerSharePercent = toPercent(input.trainerSharePercent);
-  const noonSharePercent = toPercent(input.noonSharePercent);
-  const expenseSharePercent = toPercent(input.expenseSharePercent);
-  const totalPercent = toPercent(trainerSharePercent + noonSharePercent + expenseSharePercent);
-
-  if (
-    trainerSharePercent < 0 ||
-    noonSharePercent < 0 ||
-    expenseSharePercent < 0 ||
-    trainerSharePercent > 100 ||
-    noonSharePercent > 100 ||
-    expenseSharePercent > 100
-  ) {
-    throw new Error('Finance percentages must be between 0 and 100');
-  }
-
-  if (Math.abs(totalPercent - 100) > 0.01) {
-    throw new Error('Trainer, Noon, and expense percentages must total exactly 100%');
-  }
-
-  return {
-    trainerSharePercent,
-    noonSharePercent,
-    expenseSharePercent,
-    totalPercent,
-  };
-}
-
 export async function ensureClassFinanceSchema(): Promise<void> {
   if (classFinanceSchemaReady) {
     return classFinanceSchemaReady;
@@ -199,6 +188,14 @@ export async function ensureClassFinanceSchema(): Promise<void> {
         admin_total_payout_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
         actual_expenses_total DECIMAL(10, 3) NOT NULL DEFAULT 0,
         expense_variance_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+        kitchen_usage_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+        workshop_content_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+        fixed_costs_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+        materials_cost_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+        trainer_fee_percent DECIMAL(5, 2) NOT NULL DEFAULT 0,
+        trainer_fee_base_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+        noon_fee_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+        total_costs_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
         currency VARCHAR(10) NOT NULL DEFAULT 'OMR',
         trainer_wallet_transaction_id UUID REFERENCES wallet_transactions(id) ON DELETE SET NULL,
         admin_share_wallet_transaction_id UUID REFERENCES wallet_transactions(id) ON DELETE SET NULL,
@@ -213,6 +210,14 @@ export async function ensureClassFinanceSchema(): Promise<void> {
 
     await query(`CREATE INDEX IF NOT EXISTS idx_class_expense_items_class_id ON class_expense_items(class_id)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_class_settlements_class_id ON class_settlements(class_id)`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS kitchen_usage_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS workshop_content_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS fixed_costs_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS materials_cost_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS trainer_fee_percent DECIMAL(5, 2) NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS trainer_fee_base_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS noon_fee_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS total_costs_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
   })().catch((error) => {
     classFinanceSchemaReady = null;
     throw error;
@@ -224,16 +229,20 @@ export async function ensureClassFinanceSchema(): Promise<void> {
 async function getClassFinanceRow(classId: string, db: Queryable): Promise<FinanceClassRow | null> {
   const result = await db.query(
     `SELECT c.id,
+            c.category,
             c.currency,
+            c.duration_minutes,
             c.trainer_id,
             c.trainer_share_percent,
             c.noon_share_percent,
             c.expense_share_percent,
             c.closed_at,
             c.closed_by_user_id,
-            u.full_name AS trainer_name
+            u.full_name AS trainer_name,
+            tp.share_tiers
      FROM classes c
      LEFT JOIN users u ON u.id = c.trainer_id
+     LEFT JOIN trainer_profiles tp ON tp.user_id = c.trainer_id
      WHERE c.id = $1
      LIMIT 1`,
     [classId]
@@ -246,12 +255,47 @@ async function getClassFinanceRow(classId: string, db: Queryable): Promise<Finan
     id: String(row.id),
     trainerId: row.trainer_id ? String(row.trainer_id) : null,
     trainerName: row.trainer_name ? String(row.trainer_name) : null,
+    category: String(row.category) === 'ARTS_CRAFTS' ? 'ARTS_CRAFTS' : 'COOKING',
     currency: String(row.currency || 'OMR'),
+    durationMinutes: Number(row.duration_minutes || 0),
+    trainerShareTiers: Array.isArray(row.share_tiers)
+      ? (row.share_tiers as Array<Record<string, unknown>>)
+          .map((item) => ({
+            minParticipants: Math.max(0, Math.trunc(Number(item.minParticipants ?? 0) || 0)),
+            maxParticipants:
+              item.maxParticipants === null || item.maxParticipants === undefined || item.maxParticipants === ''
+                ? null
+                : Math.max(0, Math.trunc(Number(item.maxParticipants) || 0)),
+            percent: Number((Math.min(100, Math.max(0, Number(item.percent ?? 0) || 0))).toFixed(2)),
+          }))
+          .sort((left, right) => left.minParticipants - right.minParticipants)
+      : [],
     trainerSharePercent: toPercent(row.trainer_share_percent),
     noonSharePercent: toPercent(row.noon_share_percent),
     expenseSharePercent: toPercent(row.expense_share_percent),
     closedAt: row.closed_at ? String(row.closed_at) : null,
     closedByUserId: row.closed_by_user_id ? String(row.closed_by_user_id) : null,
+  };
+}
+
+async function getClassFinanceSettings(): Promise<ClassFinanceAdminSettings> {
+  const saved = await getAdminSettingsByKey<ClassFinanceAdminSettings>('class-finance');
+
+  return {
+    ...defaultClassFinanceAdminSettings,
+    ...(saved ?? {}),
+    cooking: {
+      ...defaultClassFinanceAdminSettings.cooking,
+      ...(saved?.cooking ?? {}),
+    },
+    artsCrafts: {
+      ...defaultClassFinanceAdminSettings.artsCrafts,
+      ...(saved?.artsCrafts ?? {}),
+    },
+    defaultTrainerShareTiers:
+      Array.isArray(saved?.defaultTrainerShareTiers) && saved.defaultTrainerShareTiers.length > 0
+        ? saved.defaultTrainerShareTiers
+        : defaultClassFinanceAdminSettings.defaultTrainerShareTiers,
   };
 }
 
@@ -378,6 +422,7 @@ async function getParticipantRows(classId: string, db: Queryable): Promise<Class
 
 function buildSettlementSnapshot(args: {
   financeRow: FinanceClassRow;
+  classFinanceSettings: ClassFinanceAdminSettings;
   participants: ClassParticipantRow[];
   expenses: ClassExpenseItem[];
   settlement: {
@@ -387,30 +432,36 @@ function buildSettlementSnapshot(args: {
     settledByUserId: string | null;
   } | null;
 }): ClassSettlementSnapshot {
-  const finance = {
-    trainerSharePercent: args.financeRow.trainerSharePercent,
-    noonSharePercent: args.financeRow.noonSharePercent,
-    expenseSharePercent: args.financeRow.expenseSharePercent,
-    totalPercent: toPercent(
-      args.financeRow.trainerSharePercent + args.financeRow.noonSharePercent + args.financeRow.expenseSharePercent
-    ),
-  };
-
   const grossRevenue = toMoney(args.participants.reduce((sum, row) => sum + (row.participantIndex === 1 ? row.totalAmount : 0), 0));
   const participantsCount = args.participants.length;
-  const actualExpensesTotal = toMoney(args.expenses.reduce((sum, item) => sum + item.amount, 0));
-  const trainerPayoutAmount = toMoney((grossRevenue * finance.trainerSharePercent) / 100);
-  const adminShareAmount = toMoney((grossRevenue * finance.noonSharePercent) / 100);
-  const expenseBudgetAmount = toMoney((grossRevenue * finance.expenseSharePercent) / 100);
-  const adminTotalPayoutAmount = toMoney(adminShareAmount + expenseBudgetAmount);
-  const expenseVarianceAmount = toMoney(expenseBudgetAmount - actualExpensesTotal);
+  const materialsCostAmount = toMoney(args.expenses.reduce((sum, item) => sum + item.amount, 0));
+  const categorySettings: WorkshopCostSettings =
+    args.financeRow.category === 'ARTS_CRAFTS'
+      ? args.classFinanceSettings.artsCrafts
+      : args.classFinanceSettings.cooking;
+  const trainerShareTiers =
+    args.financeRow.trainerShareTiers.length > 0
+      ? args.financeRow.trainerShareTiers
+      : args.classFinanceSettings.defaultTrainerShareTiers;
+
+  const finance = calculateWorkshopFinanceBreakdown({
+    grossRevenue,
+    participantsCount,
+    durationMinutes: args.financeRow.durationMinutes,
+    materialsCostAmount,
+    costSettings: categorySettings,
+    trainerShareTiers,
+  });
 
   const warnings: string[] = [];
-  if (Math.abs(finance.totalPercent - 100) > 0.01) {
-    warnings.push('Finance percentages must total 100% before the class can be closed.');
-  }
   if (participantsCount === 0) {
     warnings.push('No paid participants were found for this class.');
+  }
+  if (!args.financeRow.trainerId) {
+    warnings.push('Trainer is missing for this class.');
+  }
+  if (finance.noonFeeAmount < 0) {
+    warnings.push('Noon fee is negative. Reduce material costs or review the workshop revenue before closing.');
   }
   if (args.financeRow.closedAt) {
     warnings.push('This class has already been closed and settled.');
@@ -430,12 +481,13 @@ function buildSettlementSnapshot(args: {
       bookingsCount: new Set(args.participants.map((row) => row.bookingId)).size,
       participantsCount,
       grossRevenue,
-      trainerPayoutAmount,
-      adminShareAmount,
-      expenseBudgetAmount,
-      adminTotalPayoutAmount,
-      actualExpensesTotal,
-      expenseVarianceAmount,
+      fixedCostsAmount: finance.fixedCosts.total,
+      materialsCostAmount: finance.materialsCostAmount,
+      trainerFeePercent: finance.trainerFee.percent,
+      trainerFeeBaseAmount: finance.trainerFee.baseAmount,
+      trainerFeeAmount: finance.trainerFee.amount,
+      noonFeeAmount: finance.noonFeeAmount,
+      totalCostsAmount: finance.totalCostsAmount,
     },
     participants: args.participants,
     expenses: args.expenses,
@@ -451,7 +503,8 @@ export async function getClassSettlementSnapshot(classId: string): Promise<Class
   const financeRow = await getClassFinanceRow(classId, { query });
   if (!financeRow) return null;
 
-  const [participants, expenses, settlement] = await Promise.all([
+  const [classFinanceSettings, participants, expenses, settlement] = await Promise.all([
+    getClassFinanceSettings(),
     getParticipantRows(classId, { query }),
     getExpenseItems(classId, { query }),
     getSettlementRow(classId, { query }),
@@ -459,6 +512,7 @@ export async function getClassSettlementSnapshot(classId: string): Promise<Class
 
   return buildSettlementSnapshot({
     financeRow,
+    classFinanceSettings,
     participants,
     expenses,
     settlement,
@@ -499,6 +553,8 @@ async function upsertSettlementRow(params: {
        trainer_share_percent, noon_share_percent, expense_share_percent,
        trainer_payout_amount, admin_share_amount, expense_budget_amount,
        admin_total_payout_amount, actual_expenses_total, expense_variance_amount,
+       kitchen_usage_amount, workshop_content_amount, fixed_costs_amount, materials_cost_amount,
+       trainer_fee_percent, trainer_fee_base_amount, noon_fee_amount, total_costs_amount,
        currency, trainer_wallet_transaction_id, admin_share_wallet_transaction_id, expense_budget_wallet_transaction_id,
        notes, settled_by_user_id, settled_at, created_at, updated_at
      ) VALUES (
@@ -507,7 +563,9 @@ async function upsertSettlementRow(params: {
        $8, $9, $10,
        $11, $12, $13,
        $14, $15, $16, $17,
-       $18, $19, $20, NOW(), NOW()
+       $18, $19, $20, $21,
+       $22, $23, $24, $25,
+       $26, $27, $28, NOW(), NOW()
      )
      ON CONFLICT (class_id) DO UPDATE SET
        status = EXCLUDED.status,
@@ -522,6 +580,14 @@ async function upsertSettlementRow(params: {
        admin_total_payout_amount = EXCLUDED.admin_total_payout_amount,
        actual_expenses_total = EXCLUDED.actual_expenses_total,
        expense_variance_amount = EXCLUDED.expense_variance_amount,
+      kitchen_usage_amount = EXCLUDED.kitchen_usage_amount,
+      workshop_content_amount = EXCLUDED.workshop_content_amount,
+      fixed_costs_amount = EXCLUDED.fixed_costs_amount,
+      materials_cost_amount = EXCLUDED.materials_cost_amount,
+      trainer_fee_percent = EXCLUDED.trainer_fee_percent,
+      trainer_fee_base_amount = EXCLUDED.trainer_fee_base_amount,
+      noon_fee_amount = EXCLUDED.noon_fee_amount,
+      total_costs_amount = EXCLUDED.total_costs_amount,
        currency = EXCLUDED.currency,
        trainer_wallet_transaction_id = COALESCE(EXCLUDED.trainer_wallet_transaction_id, class_settlements.trainer_wallet_transaction_id),
        admin_share_wallet_transaction_id = COALESCE(EXCLUDED.admin_share_wallet_transaction_id, class_settlements.admin_share_wallet_transaction_id),
@@ -535,15 +601,31 @@ async function upsertSettlementRow(params: {
       params.status,
       params.snapshot.summary.grossRevenue,
       params.snapshot.summary.participantsCount,
-      params.snapshot.finance.trainerSharePercent,
-      params.snapshot.finance.noonSharePercent,
-      params.snapshot.finance.expenseSharePercent,
-      params.snapshot.summary.trainerPayoutAmount,
-      params.snapshot.summary.adminShareAmount,
-      params.snapshot.summary.expenseBudgetAmount,
-      params.snapshot.summary.adminTotalPayoutAmount,
-      params.snapshot.summary.actualExpensesTotal,
-      params.snapshot.summary.expenseVarianceAmount,
+      params.snapshot.summary.trainerFeePercent,
+      params.snapshot.summary.grossRevenue === 0
+        ? 0
+        : toPercent((params.snapshot.summary.noonFeeAmount / params.snapshot.summary.grossRevenue) * 100),
+      params.snapshot.summary.grossRevenue === 0
+        ? 0
+        : toPercent(
+            ((params.snapshot.summary.fixedCostsAmount + params.snapshot.summary.materialsCostAmount) /
+              params.snapshot.summary.grossRevenue) *
+              100
+          ),
+      params.snapshot.summary.trainerFeeAmount,
+      params.snapshot.summary.noonFeeAmount,
+      params.snapshot.summary.fixedCostsAmount,
+      params.snapshot.summary.noonFeeAmount,
+      params.snapshot.summary.materialsCostAmount,
+      0,
+      params.snapshot.finance.fixedCosts.kitchenUsageAmount,
+      params.snapshot.finance.fixedCosts.workshopContentAmount,
+      params.snapshot.summary.fixedCostsAmount,
+      params.snapshot.summary.materialsCostAmount,
+      params.snapshot.summary.trainerFeePercent,
+      params.snapshot.summary.trainerFeeBaseAmount,
+      params.snapshot.summary.noonFeeAmount,
+      params.snapshot.summary.totalCostsAmount,
       params.snapshot.currency,
       params.trainerWalletTransactionId || null,
       params.adminShareWalletTransactionId || null,
@@ -642,13 +724,15 @@ export async function saveClassSettlementDraft(args: {
       expenseItems,
     });
 
-    const [participants, expenses] = await Promise.all([
+    const [classFinanceSettings, participants, expenses] = await Promise.all([
+      getClassFinanceSettings(),
       getParticipantRows(args.classId, client),
       getExpenseItems(args.classId, client),
     ]);
 
     const snapshot = buildSettlementSnapshot({
       financeRow,
+      classFinanceSettings,
       participants,
       expenses,
       settlement: {
@@ -708,12 +792,6 @@ export async function closeClassSettlement(args: {
       throw new Error('Class has already been closed');
     }
 
-    validateFinancePercentages({
-      trainerSharePercent: financeRow.trainerSharePercent,
-      noonSharePercent: financeRow.noonSharePercent,
-      expenseSharePercent: financeRow.expenseSharePercent,
-    });
-
     await replaceExpenseItems({
       db: client,
       classId: args.classId,
@@ -721,13 +799,15 @@ export async function closeClassSettlement(args: {
       expenseItems,
     });
 
-    const [participants, expenses] = await Promise.all([
+    const [classFinanceSettings, participants, expenses] = await Promise.all([
+      getClassFinanceSettings(),
       getParticipantRows(args.classId, client),
       getExpenseItems(args.classId, client),
     ]);
 
     const snapshot = buildSettlementSnapshot({
       financeRow,
+      classFinanceSettings,
       participants,
       expenses,
       settlement: {
@@ -746,32 +826,33 @@ export async function closeClassSettlement(args: {
       throw new Error('Trainer is missing for this class');
     }
 
-    const trainerCredit = await creditWallet({
-      db: client,
-      userId: snapshot.trainer.id,
-      amount: snapshot.summary.trainerPayoutAmount,
-      currency: snapshot.currency,
-      type: 'CLASS_SETTLEMENT_TRAINER',
-      reason: `Trainer payout for class ${args.classId}`,
-    });
+    if (snapshot.summary.noonFeeAmount < 0) {
+      throw new Error('Noon fee is negative. Review fixed and material costs before closing this workshop.');
+    }
 
-    const adminShareCredit = await creditWallet({
-      db: client,
-      userId: args.adminUserId,
-      amount: snapshot.summary.adminShareAmount,
-      currency: snapshot.currency,
-      type: 'CLASS_SETTLEMENT_NOON_SHARE',
-      reason: `Noon share for class ${args.classId}`,
-    });
+    const trainerCredit =
+      snapshot.summary.trainerFeeAmount > 0
+        ? await creditWallet({
+            db: client,
+            userId: snapshot.trainer.id,
+            amount: snapshot.summary.trainerFeeAmount,
+            currency: snapshot.currency,
+            type: 'CLASS_SETTLEMENT_TRAINER',
+            reason: `Trainer payout for class ${args.classId}`,
+          })
+        : { transactionId: null };
 
-    const expenseBudgetCredit = await creditWallet({
-      db: client,
-      userId: args.adminUserId,
-      amount: snapshot.summary.expenseBudgetAmount,
-      currency: snapshot.currency,
-      type: 'CLASS_SETTLEMENT_EXPENSE_BUDGET',
-      reason: `Expense budget for class ${args.classId}`,
-    });
+    const adminShareCredit =
+      snapshot.summary.noonFeeAmount > 0
+        ? await creditWallet({
+            db: client,
+            userId: args.adminUserId,
+            amount: snapshot.summary.noonFeeAmount,
+            currency: snapshot.currency,
+            type: 'CLASS_SETTLEMENT_NOON_SHARE',
+            reason: `Noon fee for class ${args.classId}`,
+          })
+        : { transactionId: null };
 
     await upsertSettlementRow({
       db: client,
@@ -782,7 +863,7 @@ export async function closeClassSettlement(args: {
       status: 'CLOSED',
       trainerWalletTransactionId: trainerCredit.transactionId,
       adminShareWalletTransactionId: adminShareCredit.transactionId,
-      expenseBudgetWalletTransactionId: expenseBudgetCredit.transactionId,
+      expenseBudgetWalletTransactionId: null,
     });
 
     await client.query(

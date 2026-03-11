@@ -4,6 +4,49 @@
 import { query } from "./pool";
 import type { TrainerPublic } from "./types";
 
+export type TrainerShareTierPublic = {
+  minParticipants: number;
+  maxParticipants: number | null;
+  percent: number;
+};
+
+let trainerProfilesFinanceSchemaReady: Promise<void> | null = null;
+
+async function ensureTrainerProfilesFinanceSchema(): Promise<void> {
+  if (trainerProfilesFinanceSchemaReady) return trainerProfilesFinanceSchemaReady;
+
+  trainerProfilesFinanceSchemaReady = (async () => {
+    await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS share_tiers JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  })().catch((error) => {
+    trainerProfilesFinanceSchemaReady = null;
+    throw error;
+  });
+
+  return trainerProfilesFinanceSchemaReady;
+}
+
+function sanitizeShareTiers(value: unknown): TrainerShareTierPublic[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const tier = item as Record<string, unknown>;
+      const minParticipants = Math.max(0, Math.trunc(Number(tier.minParticipants ?? 0) || 0));
+      const rawMax = tier.maxParticipants;
+      const maxParticipants = rawMax === null || rawMax === undefined || rawMax === '' ? null : Math.max(minParticipants, Math.trunc(Number(rawMax) || 0));
+      const percent = Math.min(100, Math.max(0, Number(tier.percent ?? 0) || 0));
+
+      return {
+        minParticipants,
+        maxParticipants,
+        percent: Number(percent.toFixed(2)),
+      };
+    })
+    .filter((item): item is TrainerShareTierPublic => Boolean(item))
+    .sort((left, right) => left.minParticipants - right.minParticipants);
+}
+
 /**
  * Find trainers (users with TRAINER role)
  */
@@ -73,6 +116,7 @@ export interface TrainerProfilePublic {
   expertise: string[];
   experience: number | null;
   socialLinks: Record<string, string> | null;
+  shareTiers: TrainerShareTierPublic[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -82,6 +126,7 @@ export interface TrainerProfilePublic {
  * Find trainer profiles
  */
 export async function findTrainerProfiles(userIds: string[]): Promise<TrainerProfilePublic[]> {
+  await ensureTrainerProfilesFinanceSchema();
   if (userIds.length === 0) return [];
 
   const result = await query(
@@ -96,6 +141,7 @@ export async function findTrainerProfiles(userIds: string[]): Promise<TrainerPro
     expertise: row.expertise || [],
     experience: row.experience,
     socialLinks: row.social_links,
+    shareTiers: sanitizeShareTiers(row.share_tiers),
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -189,18 +235,22 @@ export async function upsertTrainerProfile(data: {
   expertise?: string[];
   experience?: number;
   socialLinks?: Record<string, string>;
+  shareTiers?: TrainerShareTierPublic[];
   isActive?: boolean;
 }): Promise<TrainerProfilePublic> {
+  await ensureTrainerProfilesFinanceSchema();
+
   const result = await query(
-    `INSERT INTO trainer_profiles (user_id, bio, expertise, experience, social_links, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO trainer_profiles (user_id, bio, expertise, experience, social_links, share_tiers, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
      ON CONFLICT (user_id) 
      DO UPDATE SET
        bio = COALESCE($2, trainer_profiles.bio),
        expertise = COALESCE($3, trainer_profiles.expertise),
        experience = COALESCE($4, trainer_profiles.experience),
        social_links = COALESCE($5, trainer_profiles.social_links),
-       is_active = COALESCE($6, trainer_profiles.is_active),
+       share_tiers = COALESCE($6::jsonb, trainer_profiles.share_tiers),
+       is_active = COALESCE($7, trainer_profiles.is_active),
        updated_at = NOW()
      RETURNING *`,
     [
@@ -209,6 +259,7 @@ export async function upsertTrainerProfile(data: {
       data.expertise ?? null,
       data.experience ?? null,
       data.socialLinks ? JSON.stringify(data.socialLinks) : null,
+      data.shareTiers ? JSON.stringify(sanitizeShareTiers(data.shareTiers)) : null,
       data.isActive ?? true,
     ]
   );
@@ -221,6 +272,7 @@ export async function upsertTrainerProfile(data: {
     expertise: row.expertise || [],
     experience: row.experience,
     socialLinks: row.social_links,
+    shareTiers: sanitizeShareTiers(row.share_tiers),
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -231,6 +283,7 @@ export async function upsertTrainerProfile(data: {
  * Get trainer profile
  */
 export async function getTrainerProfile(userId: string): Promise<TrainerProfilePublic | null> {
+  await ensureTrainerProfilesFinanceSchema();
   const result = await query(
     `SELECT * FROM trainer_profiles WHERE user_id = $1`,
     [userId]
@@ -246,6 +299,7 @@ export async function getTrainerProfile(userId: string): Promise<TrainerProfileP
     expertise: row.expertise || [],
     experience: row.experience,
     socialLinks: row.social_links,
+    shareTiers: sanitizeShareTiers(row.share_tiers),
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

@@ -22,6 +22,23 @@ export type WhatsAppAdminSettings = {
   apiCode: string;
 };
 
+export type TrainerParticipantShareTier = {
+  minParticipants: number;
+  maxParticipants: number | null;
+  percent: number;
+};
+
+export type ClassFinanceCategorySettings = {
+  kitchenUsageRatePerHour: number;
+  workshopContentRatePerParticipant: number;
+};
+
+export type ClassFinanceAdminSettings = {
+  cooking: ClassFinanceCategorySettings;
+  artsCrafts: ClassFinanceCategorySettings;
+  defaultTrainerShareTiers: TrainerParticipantShareTier[];
+};
+
 export const defaultGeneralAdminSettings: GeneralAdminSettings = {
   siteName: 'Noon',
   supportEmail: 'support@noonomanarts.com',
@@ -40,6 +57,29 @@ export const defaultWhatsAppAdminSettings: WhatsAppAdminSettings = {
   sendApiUrl: 'https://whatsapp.noonomanarts.com/',
   activeSession: 'default',
   apiCode: '',
+};
+
+export const defaultClassFinanceAdminSettings: ClassFinanceAdminSettings = {
+  cooking: {
+    kitchenUsageRatePerHour: 2.8,
+    workshopContentRatePerParticipant: 0.2,
+  },
+  artsCrafts: {
+    kitchenUsageRatePerHour: 0,
+    workshopContentRatePerParticipant: 0.2,
+  },
+  defaultTrainerShareTiers: [
+    {
+      minParticipants: 0,
+      maxParticipants: 11,
+      percent: 25,
+    },
+    {
+      minParticipants: 12,
+      maxParticipants: null,
+      percent: 30,
+    },
+  ],
 };
 
 async function ensureAdminSettingsTable(): Promise<void> {

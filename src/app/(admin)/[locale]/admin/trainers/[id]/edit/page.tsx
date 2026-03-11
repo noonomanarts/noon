@@ -16,6 +16,11 @@ interface TrainerProfile {
     twitter?: string;
     linkedin?: string;
   };
+  shareTiers: Array<{
+    minParticipants: number;
+    maxParticipants: number | null;
+    percent: number;
+  }>;
   isActive: boolean;
 }
 
@@ -53,6 +58,10 @@ export default function EditTrainerPage() {
   const [facebook, setFacebook] = useState('');
   const [twitter, setTwitter] = useState('');
   const [linkedin, setLinkedin] = useState('');
+  const [shareTiers, setShareTiers] = useState<Array<{ minParticipants: number; maxParticipants: number | null; percent: number }>>([
+    { minParticipants: 0, maxParticipants: 11, percent: 25 },
+    { minParticipants: 12, maxParticipants: null, percent: 30 },
+  ]);
   const [isActive, setIsActive] = useState(true);
 
   const fetchTrainer = useCallback(async () => {
@@ -81,6 +90,14 @@ export default function EditTrainerPage() {
         setFacebook(data.profile.socialLinks?.facebook || '');
         setTwitter(data.profile.socialLinks?.twitter || '');
         setLinkedin(data.profile.socialLinks?.linkedin || '');
+        setShareTiers(
+          Array.isArray(data.profile.shareTiers) && data.profile.shareTiers.length > 0
+            ? data.profile.shareTiers
+            : [
+                { minParticipants: 0, maxParticipants: 11, percent: 25 },
+                { minParticipants: 12, maxParticipants: null, percent: 30 },
+              ]
+        );
         setIsActive(data.profile.isActive ?? true);
       } else {
         setBio('');
@@ -90,6 +107,10 @@ export default function EditTrainerPage() {
         setFacebook('');
         setTwitter('');
         setLinkedin('');
+        setShareTiers([
+          { minParticipants: 0, maxParticipants: 11, percent: 25 },
+          { minParticipants: 12, maxParticipants: null, percent: 30 },
+        ]);
         setIsActive(true);
       }
     } catch (error) {
@@ -181,6 +202,7 @@ export default function EditTrainerPage() {
             twitter: twitter || undefined,
             linkedin: linkedin || undefined,
           },
+          shareTiers,
           isActive,
         }),
       });
@@ -495,6 +517,102 @@ export default function EditTrainerPage() {
                 className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
               />
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
+            Trainer Share Tiers
+          </h2>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
+            Configure the trainer percentage by participant count. These percentages are used in class settlement after fixed and material costs.
+          </p>
+          <div className="space-y-3">
+            {shareTiers.map((tier, index) => (
+              <div key={`tier-${index}`} className="grid gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700 sm:grid-cols-[1fr_1fr_1fr_auto]">
+                <label className="text-sm">
+                  <span className="block text-zinc-700 dark:text-zinc-300">Min Participants</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={tier.minParticipants}
+                    onChange={(e) =>
+                      setShareTiers((prev) =>
+                        prev.map((item, rowIndex) =>
+                          rowIndex === index ? { ...item, minParticipants: Math.max(0, Number(e.target.value || 0)) } : item
+                        )
+                      )
+                    }
+                    className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  />
+                </label>
+                <label className="text-sm">
+                  <span className="block text-zinc-700 dark:text-zinc-300">Max Participants</span>
+                  <input
+                    type="number"
+                    min={tier.minParticipants}
+                    value={tier.maxParticipants ?? ''}
+                    onChange={(e) =>
+                      setShareTiers((prev) =>
+                        prev.map((item, rowIndex) =>
+                          rowIndex === index
+                            ? {
+                                ...item,
+                                maxParticipants: e.target.value === '' ? null : Math.max(item.minParticipants, Number(e.target.value || item.minParticipants)),
+                              }
+                            : item
+                        )
+                      )
+                    }
+                    placeholder="Leave empty for no upper limit"
+                    className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  />
+                </label>
+                <label className="text-sm">
+                  <span className="block text-zinc-700 dark:text-zinc-300">Percent</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={tier.percent}
+                    onChange={(e) =>
+                      setShareTiers((prev) =>
+                        prev.map((item, rowIndex) =>
+                          rowIndex === index ? { ...item, percent: Math.min(100, Math.max(0, Number(e.target.value || 0))) } : item
+                        )
+                      )
+                    }
+                    className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                  />
+                </label>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={() => setShareTiers((prev) => (prev.length > 1 ? prev.filter((_, rowIndex) => rowIndex !== index) : prev))}
+                    className="rounded-lg border border-rose-200 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                setShareTiers((prev) => [
+                  ...prev,
+                  {
+                    minParticipants: prev.length > 0 ? (prev[prev.length - 1].maxParticipants ?? prev[prev.length - 1].minParticipants) + 1 : 0,
+                    maxParticipants: null,
+                    percent: 0,
+                  },
+                ])
+              }
+              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              Add Tier
+            </button>
           </div>
         </div>
 

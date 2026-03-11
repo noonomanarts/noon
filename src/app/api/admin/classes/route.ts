@@ -3,11 +3,6 @@ import { findManyClassesPaginated, createClass, findUniqueClass } from '@/lib/db
 import { verifyTrainer } from '@/lib/db/trainers';
 import { query } from '@/lib/db/pool';
 
-function normalizePercent(value: unknown): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? Number(parsed.toFixed(2)) : NaN;
-}
-
 // GET: List all classes
 export async function GET(request: NextRequest) {
   try {
@@ -109,9 +104,6 @@ export async function POST(request: NextRequest) {
       metaTitle,
       metaDescription,
       currency,
-      trainerSharePercent,
-      noonSharePercent,
-      expenseSharePercent,
     } = body;
 
     if (!title || !description || !category || !subCategory || !trainerId) {
@@ -183,26 +175,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalizedTrainerShare = normalizePercent(trainerSharePercent);
-    const normalizedNoonShare = normalizePercent(noonSharePercent);
-    const normalizedExpenseShare = normalizePercent(expenseSharePercent);
-    const totalShare = Number((normalizedTrainerShare + normalizedNoonShare + normalizedExpenseShare).toFixed(2));
-
-    if (
-      !Number.isFinite(normalizedTrainerShare) ||
-      !Number.isFinite(normalizedNoonShare) ||
-      !Number.isFinite(normalizedExpenseShare) ||
-      normalizedTrainerShare < 0 ||
-      normalizedNoonShare < 0 ||
-      normalizedExpenseShare < 0 ||
-      Math.abs(totalShare - 100) > 0.01
-    ) {
-      return NextResponse.json(
-        { error: 'Trainer, Noon, and expense percentages must total exactly 100' },
-        { status: 400 }
-      );
-    }
-
     // Generate slug from title
     const slug = title
       .toLowerCase()
@@ -247,9 +219,9 @@ export async function POST(request: NextRequest) {
       currency: currency || 'OMR',
       metaTitle,
       metaDescription,
-      trainerSharePercent: normalizedTrainerShare,
-      noonSharePercent: normalizedNoonShare,
-      expenseSharePercent: normalizedExpenseShare,
+      trainerSharePercent: 0,
+      noonSharePercent: 0,
+      expenseSharePercent: 0,
     });
 
     // Get trainer info

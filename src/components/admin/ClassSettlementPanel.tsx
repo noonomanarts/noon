@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { calculateWorkshopFinanceBreakdown } from '@/lib/classFinanceRules';
 import { IoAdd, IoCheckmarkCircle, IoPeopleOutline, IoReceiptOutline, IoWalletOutline } from 'react-icons/io5';
 
 type ExpenseItem = {
@@ -18,21 +19,34 @@ type SettlementSnapshot = {
     fullName: string;
   } | null;
   finance: {
-    trainerSharePercent: number;
-    noonSharePercent: number;
-    expenseSharePercent: number;
-    totalPercent: number;
+    fixedCosts: {
+      kitchenUsageRatePerHour: number;
+      workshopContentRatePerParticipant: number;
+      durationHours: number;
+      kitchenUsageAmount: number;
+      workshopContentAmount: number;
+      total: number;
+    };
+    materialsCostAmount: number;
+    trainerFee: {
+      percent: number;
+      baseAmount: number;
+      amount: number;
+    };
+    noonFeeAmount: number;
+    totalCostsAmount: number;
   };
   summary: {
     bookingsCount: number;
     participantsCount: number;
     grossRevenue: number;
-    trainerPayoutAmount: number;
-    adminShareAmount: number;
-    expenseBudgetAmount: number;
-    adminTotalPayoutAmount: number;
-    actualExpensesTotal: number;
-    expenseVarianceAmount: number;
+    fixedCostsAmount: number;
+    materialsCostAmount: number;
+    trainerFeePercent: number;
+    trainerFeeBaseAmount: number;
+    trainerFeeAmount: number;
+    noonFeeAmount: number;
+    totalCostsAmount: number;
   };
   participants: Array<{
     bookingId: string;
@@ -85,11 +99,6 @@ export default function ClassSettlementPanel({
 
   const [snapshot, setSnapshot] = useState<SettlementSnapshot | null>(null);
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([]);
-  const [finance, setFinance] = useState({
-    trainerSharePercent: 0,
-    noonSharePercent: 0,
-    expenseSharePercent: 0,
-  });
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -104,41 +113,47 @@ export default function ClassSettlementPanel({
       : 'Review participants, record expenses, then close the class and distribute the payouts to wallets.',
     loading: isArabic ? 'جاري تحميل بيانات التسوية...' : 'Loading settlement data...',
     participants: isArabic ? 'المشاركون المسجلون' : 'Registered Participants',
-    expenses: isArabic ? 'مصاريف الكلاس' : 'Class Expenses',
+    expenses: isArabic ? 'تكلفة المواد' : 'Material Costs',
     notes: isArabic ? 'ملاحظات الإدارة' : 'Admin Notes',
     saveDraft: isArabic ? 'حفظ المسودة' : 'Save Draft',
     closingAction: isArabic ? 'إغلاق الكلاس وتحويل المستحقات' : 'Close Class & Payout',
     closingDone: isArabic ? 'تم إغلاق الكلاس وتحويل المستحقات.' : 'Class closed and payouts transferred.',
     saved: isArabic ? 'تم حفظ مسودة التسوية.' : 'Settlement draft saved.',
-    addExpense: isArabic ? 'إضافة مصروف' : 'Add Expense',
-    expenseTitle: isArabic ? 'اسم المصروف' : 'Expense Title',
+    addExpense: isArabic ? 'إضافة تكلفة مواد' : 'Add Material Cost',
+    expenseTitle: isArabic ? 'اسم المادة / التكلفة' : 'Material / Cost Title',
     expenseAmount: isArabic ? 'المبلغ' : 'Amount',
     expenseNotes: isArabic ? 'ملاحظات' : 'Notes',
     remove: isArabic ? 'حذف' : 'Remove',
-    grossRevenue: isArabic ? 'إيراد الكلاس' : 'Gross Revenue',
-    trainerPayout: isArabic ? 'مستحق المدرب' : 'Trainer Payout',
-    adminPayout: isArabic ? 'مستحق الإدارة + المصاريف' : 'Admin Share + Expense Budget',
-    actualExpenses: isArabic ? 'المصاريف الفعلية' : 'Actual Expenses',
-    expenseVariance: isArabic ? 'فرق المصروف' : 'Expense Variance',
+    grossRevenue: isArabic ? 'إجمالي الإيراد' : 'Gross Revenue',
+    fixedCosts: isArabic ? 'التكاليف الثابتة' : 'Fixed Costs',
+    materialsCosts: isArabic ? 'تكلفة المواد' : 'Material Costs',
+    trainerPayout: isArabic ? 'أتعاب المدرب' : 'Trainer Fee',
+    adminPayout: isArabic ? 'رسوم نون' : 'Noon Fee',
+    totalCosts: isArabic ? 'إجمالي التكاليف' : 'Total Costs',
     bookedBy: isArabic ? 'الحجز باسم' : 'Booked By',
     participantName: isArabic ? 'اسم المشارك' : 'Participant Name',
     booking: isArabic ? 'الحجز' : 'Booking',
     session: isArabic ? 'الجلسة' : 'Session',
     dob: isArabic ? 'الميلاد' : 'DOB',
     language: isArabic ? 'اللغة' : 'Language',
-    finance: isArabic ? 'توزيع النسب' : 'Finance Split',
-    trainerShare: isArabic ? 'نسبة المدرب' : 'Trainer Share',
-    noonShare: isArabic ? 'نسبة نون' : 'Noon Share',
-    expenseShare: isArabic ? 'نسبة المصاريف' : 'Expense Share',
-    totalShare: isArabic ? 'المجموع' : 'Total',
+    finance: isArabic ? 'تفصيل الورشة المالي' : 'Workshop Finance Breakdown',
+    kitchenUsage: isArabic ? 'استخدام المطبخ' : 'Kitchen Usage',
+    workshopContent: isArabic ? 'محتوى الورشة' : 'Workshop Content',
+    fixedCostFormula: isArabic ? 'تحسب تلقائياً من مدة الورشة وعدد المشاركين.' : 'Calculated automatically from workshop duration and participant count.',
+    trainerRule: isArabic ? 'تحسب على الإيراد المتبقي بعد التكاليف الثابتة وتكلفة المواد.' : 'Calculated from revenue remaining after fixed costs and material costs.',
+    trainerBase: isArabic ? 'الأساس المحتسب' : 'Fee Base',
+    remainingAfterCosts: isArabic ? 'المتبقي لنون' : 'Remaining for Noon',
     closed: isArabic ? 'مغلق' : 'Closed',
     open: isArabic ? 'مفتوح' : 'Open',
     noParticipants: isArabic ? 'لا يوجد مشاركون مدفوعون لهذا الكلاس حتى الآن.' : 'No paid participants for this class yet.',
-    noExpenses: isArabic ? 'لم يتم تسجيل أي مصروف بعد.' : 'No expenses recorded yet.',
+    noExpenses: isArabic ? 'لم يتم تسجيل أي تكلفة مواد بعد.' : 'No material costs recorded yet.',
     closedAt: isArabic ? 'تاريخ الإغلاق' : 'Closed At',
     plannerHint: isArabic
-      ? 'إيداع الإدارة يتم بناءً على نسبة نون + نسبة المصاريف المعرّفة على الكلاس. المصاريف الفعلية هنا للمتابعة والمراجعة.'
-      : 'Admin payout uses the configured Noon share plus expense budget. Actual expenses here are for tracking and review.',
+      ? 'التكاليف الثابتة تحسب تلقائياً: استخدام المطبخ = 2.8 × مدة الورشة بالساعات، ومحتوى الورشة = 0.2 × عدد المشاركين. تكلفة المواد تضاف يدوياً.'
+      : 'Fixed costs are automatic: kitchen usage = 2.8 x workshop duration in hours, and workshop content = 0.2 x participant count. Material costs are added manually.',
+    negativeNoonFee: isArabic
+      ? 'رسوم نون أصبحت سالبة. راجع تكاليف المواد أو الإيراد قبل الإغلاق.'
+      : 'Noon fee is negative. Review material costs or revenue before closing.',
   };
 
   const formatMoney = (value: number, currency: string) =>
@@ -155,7 +170,7 @@ export default function ClassSettlementPanel({
     return new Intl.DateTimeFormat(localeCode, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
   };
 
-  const loadSnapshot = async () => {
+  const loadSnapshot = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -172,62 +187,38 @@ export default function ClassSettlementPanel({
           ? payload.expenses.map((item) => ({ id: item.id, title: item.title, amount: item.amount, notes: item.notes }))
           : [emptyExpense()]
       );
-      setFinance({
-        trainerSharePercent: payload.finance.trainerSharePercent,
-        noonSharePercent: payload.finance.noonSharePercent,
-        expenseSharePercent: payload.finance.expenseSharePercent,
-      });
       setNotes(payload.settlement?.notes || '');
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Failed to load class settlement');
     } finally {
       setLoading(false);
     }
-  };
+  }, [classId]);
 
   useEffect(() => {
     void loadSnapshot();
-  }, [classId]);
+  }, [loadSnapshot]);
 
   const canEdit = snapshot?.settlement?.status !== 'CLOSED' && classStatus !== 'COMPLETED';
-  const financeTotal = useMemo(
-    () => finance.trainerSharePercent + finance.noonSharePercent + finance.expenseSharePercent,
-    [finance]
-  );
   const totalExpenseAmount = useMemo(
     () => expenseItems.reduce((sum, item) => sum + (Number.isFinite(item.amount) ? item.amount : 0), 0),
     [expenseItems]
   );
   const grossRevenue = snapshot?.summary.grossRevenue ?? 0;
-  const trainerPayoutPreview = useMemo(
-    () => Number(((grossRevenue * finance.trainerSharePercent) / 100).toFixed(3)),
-    [finance.trainerSharePercent, grossRevenue]
-  );
-  const adminSharePreview = useMemo(
-    () => Number(((grossRevenue * finance.noonSharePercent) / 100).toFixed(3)),
-    [finance.noonSharePercent, grossRevenue]
-  );
-  const expenseBudgetPreview = useMemo(
-    () => Number(((grossRevenue * finance.expenseSharePercent) / 100).toFixed(3)),
-    [finance.expenseSharePercent, grossRevenue]
-  );
-  const adminTotalPayoutPreview = useMemo(
-    () => Number((adminSharePreview + expenseBudgetPreview).toFixed(3)),
-    [adminSharePreview, expenseBudgetPreview]
-  );
+  const financePreview = useMemo(() => {
+    if (!snapshot) return null;
 
-  const persistFinance = async () => {
-    const response = await fetch(`/api/admin/classes/${classId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(finance),
+    return calculateWorkshopFinanceBreakdown({
+      grossRevenue,
+      participantsCount: snapshot.summary.participantsCount,
+      durationMinutes: Math.round(snapshot.finance.fixedCosts.durationHours * 60),
+      materialsCostAmount: totalExpenseAmount,
     });
+  }, [grossRevenue, snapshot, totalExpenseAmount]);
 
-    const payload = (await response.json().catch(() => ({}))) as { error?: string };
-    if (!response.ok) {
-      throw new Error(payload.error || 'Failed to update class finance');
-    }
-  };
+  const canClosePreview = Boolean(
+    snapshot && snapshot.summary.participantsCount > 0 && snapshot.trainer?.id && (financePreview?.noonFeeAmount ?? -1) >= 0
+  );
 
   const handleSaveDraft = async () => {
     setSaving(true);
@@ -235,8 +226,6 @@ export default function ClassSettlementPanel({
     setSuccess(null);
 
     try {
-      await persistFinance();
-
       const response = await fetch(`/api/admin/classes/${classId}/settlement`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -267,8 +256,6 @@ export default function ClassSettlementPanel({
     setSuccess(null);
 
     try {
-      await persistFinance();
-
       const response = await fetch(`/api/admin/classes/${classId}/settlement/close`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -356,27 +343,27 @@ export default function ClassSettlementPanel({
           </p>
         </div>
         <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.trainerPayout}</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.fixedCosts}</p>
           <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-            {formatMoney(trainerPayoutPreview, snapshot.currency)}
+            {formatMoney(financePreview?.fixedCosts.total ?? snapshot.summary.fixedCostsAmount, snapshot.currency)}
           </p>
         </div>
         <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.adminPayout}</p>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-            {formatMoney(adminTotalPayoutPreview, snapshot.currency)}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.actualExpenses}</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.materialsCosts}</p>
           <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
             {formatMoney(totalExpenseAmount, snapshot.currency)}
           </p>
         </div>
         <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.expenseVariance}</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.trainerPayout}</p>
           <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-            {formatMoney(expenseBudgetPreview - totalExpenseAmount, snapshot.currency)}
+            {formatMoney(financePreview?.trainerFee.amount ?? snapshot.summary.trainerFeeAmount, snapshot.currency)}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.adminPayout}</p>
+          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+            {formatMoney(financePreview?.noonFeeAmount ?? snapshot.summary.noonFeeAmount, snapshot.currency)}
           </p>
         </div>
       </div>
@@ -511,72 +498,64 @@ export default function ClassSettlementPanel({
               <IoWalletOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.finance}</h3>
             </div>
+            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.fixedCostFormula}</p>
             <div className="mt-4 space-y-3 text-sm">
-              <div className="flex items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
-                <span className="text-zinc-500 dark:text-zinc-400">{t.trainerShare}</span>
-                {canEdit ? (
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={finance.trainerSharePercent}
-                    onChange={(event) =>
-                      setFinance((prev) => ({ ...prev, trainerSharePercent: Number(event.target.value || 0) }))
-                    }
-                    className="w-28 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-right text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-                  />
-                ) : (
-                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">{snapshot.finance.trainerSharePercent.toFixed(2)}%</span>
-                )}
+              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">{t.kitchenUsage}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {formatMoney(financePreview?.fixedCosts.kitchenUsageAmount ?? snapshot.finance.fixedCosts.kitchenUsageAmount, snapshot.currency)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {`${snapshot.finance.fixedCosts.kitchenUsageRatePerHour.toFixed(3)} x ${(financePreview?.fixedCosts.durationHours ?? snapshot.finance.fixedCosts.durationHours).toFixed(2)} h`}
+                </p>
               </div>
-              <div className="flex items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
-                <span className="text-zinc-500 dark:text-zinc-400">{t.noonShare}</span>
-                {canEdit ? (
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={finance.noonSharePercent}
-                    onChange={(event) =>
-                      setFinance((prev) => ({ ...prev, noonSharePercent: Number(event.target.value || 0) }))
-                    }
-                    className="w-28 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-right text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-                  />
-                ) : (
-                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">{snapshot.finance.noonSharePercent.toFixed(2)}%</span>
-                )}
+              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">{t.workshopContent}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {formatMoney(financePreview?.fixedCosts.workshopContentAmount ?? snapshot.finance.fixedCosts.workshopContentAmount, snapshot.currency)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {`${snapshot.finance.fixedCosts.workshopContentRatePerParticipant.toFixed(3)} x ${snapshot.summary.participantsCount}`}
+                </p>
               </div>
-              <div className="flex items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
-                <span className="text-zinc-500 dark:text-zinc-400">{t.expenseShare}</span>
-                {canEdit ? (
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={finance.expenseSharePercent}
-                    onChange={(event) =>
-                      setFinance((prev) => ({ ...prev, expenseSharePercent: Number(event.target.value || 0) }))
-                    }
-                    className="w-28 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-right text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-                  />
-                ) : (
-                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">{snapshot.finance.expenseSharePercent.toFixed(2)}%</span>
-                )}
+              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">{t.materialsCosts}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">{formatMoney(totalExpenseAmount, snapshot.currency)}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
-                <span className="text-zinc-500 dark:text-zinc-400">{t.totalShare}</span>
-                <span
-                  className={`font-semibold ${
-                    Math.abs(financeTotal - 100) <= 0.01
-                      ? 'text-emerald-700 dark:text-emerald-300'
-                      : 'text-rose-700 dark:text-rose-300'
-                  }`}
-                >
-                  {financeTotal.toFixed(2)}%
-                </span>
+              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">{t.trainerPayout}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {formatMoney(financePreview?.trainerFee.amount ?? snapshot.summary.trainerFeeAmount, snapshot.currency)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.trainerRule}</p>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {`${t.trainerBase}: ${formatMoney(financePreview?.trainerFee.baseAmount ?? snapshot.summary.trainerFeeBaseAmount, snapshot.currency)} x ${(financePreview?.trainerFee.percent ?? snapshot.summary.trainerFeePercent).toFixed(0)}%`}
+                </p>
+              </div>
+              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">{t.adminPayout}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {formatMoney(financePreview?.noonFeeAmount ?? snapshot.summary.noonFeeAmount, snapshot.currency)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.remainingAfterCosts}</p>
+              </div>
+              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">{t.totalCosts}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {formatMoney(financePreview?.totalCostsAmount ?? snapshot.summary.totalCostsAmount, snapshot.currency)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -604,16 +583,22 @@ export default function ClassSettlementPanel({
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500 dark:text-zinc-400">{t.trainerPayout}</span>
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  {formatMoney(trainerPayoutPreview, snapshot.currency)}
+                  {formatMoney(financePreview?.trainerFee.amount ?? snapshot.summary.trainerFeeAmount, snapshot.currency)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500 dark:text-zinc-400">{t.adminPayout}</span>
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  {formatMoney(adminTotalPayoutPreview, snapshot.currency)}
+                  {formatMoney(financePreview?.noonFeeAmount ?? snapshot.summary.noonFeeAmount, snapshot.currency)}
                 </span>
               </div>
             </div>
+
+            {financePreview && financePreview.noonFeeAmount < 0 ? (
+              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
+                {t.negativeNoonFee}
+              </div>
+            ) : null}
 
             {canEdit ? (
               <div className="mt-5 flex flex-col gap-3">
@@ -628,7 +613,7 @@ export default function ClassSettlementPanel({
                 <button
                   type="button"
                   onClick={() => void handleCloseClass()}
-                  disabled={closing || snapshot.summary.participantsCount === 0 || Math.abs(financeTotal - 100) > 0.01}
+                  disabled={closing || !canClosePreview}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-[color:var(--noon-teal)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <IoCheckmarkCircle className="h-4 w-4" />

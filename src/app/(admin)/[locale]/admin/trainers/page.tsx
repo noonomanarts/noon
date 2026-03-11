@@ -20,6 +20,11 @@ interface Trainer {
     expertise: string[];
     experience: number | null;
     socialLinks: Record<string, string> | null;
+    shareTiers: Array<{
+      minParticipants: number;
+      maxParticipants: number | null;
+      percent: number;
+    }>;
     isActive: boolean;
   } | null;
 }
@@ -241,6 +246,9 @@ export default function AdminTrainersPage() {
                     Experience
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
+                    Share Tiers
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
@@ -251,7 +259,7 @@ export default function AdminTrainersPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {filteredTrainers.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-zinc-500 dark:text-zinc-400">
                       No trainers found
                     </td>
                   </tr>
@@ -294,6 +302,21 @@ export default function AdminTrainersPage() {
                       <td className="px-6 py-4">
                         <div className="text-sm text-zinc-900 dark:text-white">
                           {trainer.profile?.experience ? `${trainer.profile.experience} years` : 'Not set'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
+                          {trainer.profile?.shareTiers?.length ? (
+                            trainer.profile.shareTiers.map((tier, index) => (
+                              <div key={`${trainer.id}-tier-${index}`}>
+                                {tier.minParticipants}
+                                {' - '}
+                                {tier.maxParticipants ?? '+'}: {tier.percent.toFixed(2)}%
+                              </div>
+                            ))
+                          ) : (
+                            <div>Default</div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4">

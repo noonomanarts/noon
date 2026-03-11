@@ -2,11 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { findUniqueClass, updateClass, deleteClass, countClassBookings } from '@/lib/db/classes';
 import { query } from '@/lib/db/pool';
 
-function normalizePercent(value: unknown): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? Number(parsed.toFixed(2)) : NaN;
-}
-
 type Params = {
   params: Promise<{ classId: string }>;
 };
@@ -55,48 +50,6 @@ export async function PUT(request: NextRequest, props: Params) {
     const body = await request.json();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { slug: _, ...updateData } = body;
-
-    const hasFinanceFields =
-      updateData.trainerSharePercent !== undefined ||
-      updateData.noonSharePercent !== undefined ||
-      updateData.expenseSharePercent !== undefined;
-
-    if (hasFinanceFields) {
-      const existingClass = await findUniqueClass({ id: params.classId });
-      if (!existingClass) {
-        return NextResponse.json({ error: 'Class not found' }, { status: 404 });
-      }
-
-      const trainerSharePercent = normalizePercent(
-        updateData.trainerSharePercent ?? existingClass.trainerSharePercent
-      );
-      const noonSharePercent = normalizePercent(
-        updateData.noonSharePercent ?? existingClass.noonSharePercent
-      );
-      const expenseSharePercent = normalizePercent(
-        updateData.expenseSharePercent ?? existingClass.expenseSharePercent
-      );
-      const totalPercent = Number((trainerSharePercent + noonSharePercent + expenseSharePercent).toFixed(2));
-
-      if (
-        !Number.isFinite(trainerSharePercent) ||
-        !Number.isFinite(noonSharePercent) ||
-        !Number.isFinite(expenseSharePercent) ||
-        trainerSharePercent < 0 ||
-        noonSharePercent < 0 ||
-        expenseSharePercent < 0 ||
-        Math.abs(totalPercent - 100) > 0.01
-      ) {
-        return NextResponse.json(
-          { error: 'Trainer, Noon, and expense percentages must total exactly 100' },
-          { status: 400 }
-        );
-      }
-
-      updateData.trainerSharePercent = trainerSharePercent;
-      updateData.noonSharePercent = noonSharePercent;
-      updateData.expenseSharePercent = expenseSharePercent;
-    }
 
     const updatedClass = await updateClass(params.classId, updateData);
 

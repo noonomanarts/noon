@@ -1,8 +1,11 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import {
+  defaultClassFinanceAdminSettings,
   defaultGeneralAdminSettings,
   defaultWhatsAppAdminSettings,
+  type ClassFinanceAdminSettings,
+  type ClassFinanceCategorySettings,
   getAdminSettingsByKey,
   type GeneralAdminSettings,
   type WhatsAppAdminSettings,
@@ -34,6 +37,54 @@ function sanitizeWhatsAppSettings(input: Partial<WhatsAppAdminSettings>): WhatsA
   };
 }
 
+function sanitizeCategorySettings(
+  input: Partial<ClassFinanceCategorySettings>,
+  fallback: ClassFinanceCategorySettings
+): ClassFinanceCategorySettings {
+  return {
+    kitchenUsageRatePerHour: Math.max(0, Number(input.kitchenUsageRatePerHour ?? fallback.kitchenUsageRatePerHour) || 0),
+    workshopContentRatePerParticipant: Math.max(
+      0,
+      Number(input.workshopContentRatePerParticipant ?? fallback.workshopContentRatePerParticipant) || 0
+    ),
+  };
+}
+
+function sanitizeClassFinanceSettings(input: Partial<ClassFinanceAdminSettings>): ClassFinanceAdminSettings {
+  const tiersSource = Array.isArray(input.defaultTrainerShareTiers)
+    ? input.defaultTrainerShareTiers
+    : defaultClassFinanceAdminSettings.defaultTrainerShareTiers;
+
+  const tiers = tiersSource
+    .map((tier, index) => {
+      if (!tier || typeof tier !== 'object') return null;
+      const minParticipants = Math.max(0, Math.trunc(Number(tier.minParticipants ?? 0) || 0));
+      const rawMax = tier.maxParticipants;
+      const maxParticipants = rawMax === null || rawMax === undefined ? null : Math.max(minParticipants, Math.trunc(Number(rawMax) || 0));
+      const percent = Math.min(100, Math.max(0, Number(tier.percent ?? 0) || 0));
+
+      return {
+        minParticipants,
+        maxParticipants,
+        percent: Number(percent.toFixed(2)),
+        order: index,
+      };
+    })
+    .filter((tier): tier is { minParticipants: number; maxParticipants: number | null; percent: number; order: number } => Boolean(tier))
+    .sort((left, right) => left.minParticipants - right.minParticipants || left.order - right.order)
+    .map((tier) => ({
+      minParticipants: tier.minParticipants,
+      maxParticipants: tier.maxParticipants,
+      percent: tier.percent,
+    }));
+
+  return {
+    cooking: sanitizeCategorySettings(input.cooking ?? {}, defaultClassFinanceAdminSettings.cooking),
+    artsCrafts: sanitizeCategorySettings(input.artsCrafts ?? {}, defaultClassFinanceAdminSettings.artsCrafts),
+    defaultTrainerShareTiers: tiers.length > 0 ? tiers : defaultClassFinanceAdminSettings.defaultTrainerShareTiers,
+  };
+}
+
 async function requireAdmin() {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get('noon_session')?.value;
@@ -53,15 +104,17 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const [savedGeneral, savedWhatsApp] = await Promise.all([
+    const [savedGeneral, savedWhatsApp, savedClassFinance] = await Promise.all([
       getAdminSettingsByKey<GeneralAdminSettings>('general'),
       getAdminSettingsByKey<WhatsAppAdminSettings>('whatsapp'),
+      getAdminSettingsByKey<ClassFinanceAdminSettings>('class-finance'),
     ]);
 
     const general = sanitizeGeneralSettings(savedGeneral ?? defaultGeneralAdminSettings);
     const whatsapp = sanitizeWhatsAppSettings(savedWhatsApp ?? defaultWhatsAppAdminSettings);
+    const classFinance = sanitizeClassFinanceSettings(savedClassFinance ?? defaultClassFinanceAdminSettings);
 
-    return NextResponse.json({ general, whatsapp });
+    return NextResponse.json({ general, whatsapp, classFinance });
   } catch (error) {
     console.error('Failed to load admin settings:', error);
     return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 });
@@ -78,11 +131,13 @@ export async function PUT(request: Request) {
     const body = (await request.json().catch(() => ({}))) as {
       general?: Partial<GeneralAdminSettings>;
       whatsapp?: Partial<WhatsAppAdminSettings>;
+      classFinance?: Partial<ClassFinanceAdminSettings>;
     };
 
-    const [currentGeneral, currentWhatsApp] = await Promise.all([
+    const [currentGeneral, currentWhatsApp, currentClassFinance] = await Promise.all([
       getAdminSettingsByKey<GeneralAdminSettings>('general'),
       getAdminSettingsByKey<WhatsAppAdminSettings>('whatsapp'),
+      getAdminSettingsByKey<ClassFinanceAdminSettings>('class-finance'),
     ]);
 
     const mergedGeneralInput = body.general
@@ -93,8 +148,13 @@ export async function PUT(request: Request) {
       ? { ...(currentWhatsApp ?? defaultWhatsAppAdminSettings), ...body.whatsapp }
       : (currentWhatsApp ?? defaultWhatsAppAdminSettings);
 
+    const mergedClassFinanceInput = body.classFinance
+      ? { ...(currentClassFinance ?? defaultClassFinanceAdminSettings), ...body.classFinance }
+      : (currentClassFinance ?? defaultClassFinanceAdminSettings);
+
     const general = sanitizeGeneralSettings(mergedGeneralInput);
     const whatsapp = sanitizeWhatsAppSettings(mergedWhatsAppInput);
+    const classFinance = sanitizeClassFinanceSettings(mergedClassFinanceInput);
 
     await Promise.all([
       upsertAdminSettings({
@@ -107,9 +167,14 @@ export async function PUT(request: Request) {
         value: whatsapp,
         updatedByUserId: admin.id,
       }),
+      upsertAdminSettings({
+        key: 'class-finance',
+        value: classFinance,
+        updatedByUserId: admin.id,
+      }),
     ]);
 
-    return NextResponse.json({ success: true, general, whatsapp });
+    return NextResponse.json({ success: true, general, whatsapp, classFinance });
   } catch (error) {
     console.error('Failed to update admin settings:', error);
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });

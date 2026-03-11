@@ -122,6 +122,11 @@ export interface TrainerProfile {
   expertise: string[];
   experience: number | null;
   social_links: Record<string, string> | null;
+  share_tiers?: Array<{
+    minParticipants: number;
+    maxParticipants: number | null;
+    percent: number;
+  }>;
   is_active: boolean;
   created_at: Date;
   updated_at: Date;

@@ -4,8 +4,10 @@ import { getUserById } from "@/lib/db/users";
 import { isLocale } from "@/lib/locale";
 import AdminSettingsPageClient from "@/components/admin/AdminSettingsPageClient";
 import {
+  defaultClassFinanceAdminSettings,
   defaultGeneralAdminSettings,
   defaultWhatsAppAdminSettings,
+  type ClassFinanceAdminSettings,
   getAdminSettingsByKey,
   type GeneralAdminSettings,
   type WhatsAppAdminSettings,
@@ -34,9 +36,10 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     redirect(`/${locale}/account`);
   }
 
-  const [savedGeneral, savedWhatsApp] = await Promise.all([
+  const [savedGeneral, savedWhatsApp, savedClassFinance] = await Promise.all([
     getAdminSettingsByKey<GeneralAdminSettings>("general"),
     getAdminSettingsByKey<WhatsAppAdminSettings>("whatsapp"),
+    getAdminSettingsByKey<ClassFinanceAdminSettings>("class-finance"),
   ]);
 
   const initialGeneral = {
@@ -49,11 +52,17 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     ...(savedWhatsApp ?? {}),
   };
 
+  const initialClassFinance = {
+    ...defaultClassFinanceAdminSettings,
+    ...(savedClassFinance ?? {}),
+  };
+
   return (
     <AdminSettingsPageClient
       locale={locale}
       initialGeneral={initialGeneral}
       initialWhatsApp={initialWhatsApp}
+      initialClassFinance={initialClassFinance}
     />
   );
 }
