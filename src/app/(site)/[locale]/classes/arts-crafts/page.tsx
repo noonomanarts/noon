@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiArrowRight, FiCalendar, FiClock, FiUsers } from "react-icons/fi";
+import { FiArrowLeft, FiArrowRight, FiCalendar, FiClock, FiUsers } from "react-icons/fi";
 import { HiPaintBrush } from "react-icons/hi2";
 
 import { findClassSessions, findManyClasses } from "@/lib/db/classes";
@@ -44,6 +44,7 @@ export default async function ArtsCraftsClassesPage({
     duration: isArabic ? "المدة" : "Duration",
     minutes: isArabic ? "دقيقة" : "min",
     noUpcomingSessions: isArabic ? "لا توجد مواعيد قادمة حالياً." : "No upcoming sessions yet.",
+    backToClasses: isArabic ? "العودة إلى الدورات" : "Back to classes",
   };
 
   const formatDate = (date: Date | string) => {
@@ -70,12 +71,17 @@ export default async function ArtsCraftsClassesPage({
       </div>
 
       <section className="mx-auto w-full max-w-6xl px-4 pt-10">
+        <div className="mb-4">
+          <Link
+            href={`/${locale}/classes`}
+            className="inline-flex items-center gap-2 border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:shadow-sm"
+          >
+            <FiArrowLeft className="size-4" />
+            {t.backToClasses}
+          </Link>
+        </div>
         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[color:var(--muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
-            <HiPaintBrush className="h-4 w-4 text-teal" />
-            {isArabic ? "فئة الدورات" : "Class Category"}
-          </div>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[color:var(--text)] sm:text-5xl">
+          <h1 className="text-4xl font-semibold tracking-tight text-[color:var(--text)] sm:text-5xl">
             {t.title}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">

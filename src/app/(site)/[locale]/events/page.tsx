@@ -3,6 +3,7 @@ import { GiChefToque, GiPartyPopper } from "react-icons/gi";
 import { IoTrophy } from "react-icons/io5";
 
 import { isLocale, type Locale } from "@/lib/locale";
+import { getReadableTextColor, resolveHeaderColor } from "@/lib/headerBranding";
 
 export default async function EventsPage({
   params,
@@ -12,6 +13,8 @@ export default async function EventsPage({
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const isArabic = locale === "ar";
+  const headerColor = await resolveHeaderColor();
+  const headerButtonTextColor = getReadableTextColor(headerColor);
 
   const t = {
     title: isArabic ? "الفعاليات" : "Events",
@@ -29,17 +32,29 @@ export default async function EventsPage({
       ? "حفلات بطابع طهي ممتع وتجربة لا تُنسى."
       : "Cooking-themed birthday experiences with memorable moments.",
     explore: isArabic ? "استكشف" : "Explore",
+    formats: isArabic ? "أنواع الفعاليات" : "Event formats",
+    readyPrograms: isArabic ? "برامج جاهزة" : "Ready programs",
   };
 
   return (
-    <div className="route-sharp min-h-screen bg-[color:var(--muted)] dark:bg-zinc-950">
-      <div className="mx-auto w-full max-w-6xl px-4 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[color:var(--text)] dark:text-white">{t.title}</h1>
+    <div className="route-sharp bg-[color:var(--muted)] dark:bg-zinc-950">
+      <div className="mx-auto w-full max-w-6xl px-4 pb-8 pt-10">
+        <div className="border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
+          <h1 className="text-3xl font-bold text-[color:var(--text)] dark:text-white sm:text-4xl">{t.title}</h1>
           <p className="mt-2 text-sm text-[color:var(--text-muted)] dark:text-zinc-400">{t.subtitle}</p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="border border-[color:var(--border)] bg-[color:var(--muted)] p-3">
+              <p className="text-xs uppercase tracking-[0.12em] text-[color:var(--text-subtle)]">{t.formats}</p>
+              <p className="mt-1 text-2xl font-extrabold text-[color:var(--text)]">3</p>
+            </div>
+            <div className="border border-[color:var(--border)] bg-[color:var(--muted)] p-3">
+              <p className="text-xs uppercase tracking-[0.12em] text-[color:var(--text-subtle)]">{t.readyPrograms}</p>
+              <p className="mt-1 text-2xl font-extrabold text-[color:var(--text)]">3</p>
+            </div>
+          </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Link
             href={`/${locale}/group-booking-events/cooking-competition`}
             className="group overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
@@ -50,7 +65,10 @@ export default async function EventsPage({
             <div className="p-6">
               <h2 className="text-2xl font-semibold text-[color:var(--text)] dark:text-white">{t.competition}</h2>
               <p className="mt-2 text-sm text-[color:var(--text-muted)] dark:text-zinc-400">{t.competitionDesc}</p>
-              <div className="mt-4 inline-flex items-center text-sm font-semibold text-amber-700 dark:text-amber-300">
+              <div
+                className="mt-5 inline-flex w-full items-center justify-center border border-black/20 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
+                style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
+              >
                 {t.explore}
               </div>
             </div>
@@ -66,7 +84,10 @@ export default async function EventsPage({
             <div className="p-6">
               <h2 className="text-2xl font-semibold text-[color:var(--text)] dark:text-white">{t.privateClasses}</h2>
               <p className="mt-2 text-sm text-[color:var(--text-muted)] dark:text-zinc-400">{t.privateClassesDesc}</p>
-              <div className="mt-4 inline-flex items-center text-sm font-semibold text-teal-700 dark:text-teal-300">
+              <div
+                className="mt-5 inline-flex w-full items-center justify-center border border-black/20 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
+                style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
+              >
                 {t.explore}
               </div>
             </div>
@@ -82,7 +103,10 @@ export default async function EventsPage({
             <div className="p-6">
               <h2 className="text-2xl font-semibold text-[color:var(--text)] dark:text-white">{t.birthday}</h2>
               <p className="mt-2 text-sm text-[color:var(--text-muted)] dark:text-zinc-400">{t.birthdayDesc}</p>
-              <div className="mt-4 inline-flex items-center text-sm font-semibold text-purple-700 dark:text-purple-300">
+              <div
+                className="mt-5 inline-flex w-full items-center justify-center border border-black/20 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
+                style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
+              >
                 {t.explore}
               </div>
             </div>
