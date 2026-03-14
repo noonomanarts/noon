@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 
 import { type Locale } from "@/lib/locale";
 import { getUserById } from "@/lib/db/users";
-import { getReadableTextColor, resolveHeaderColor } from "@/lib/headerBranding";
+import { resolveHeaderColor } from "@/lib/headerBranding";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import { Dropdown } from "@/components/site/Dropdown";
 import SiteProfileMenu from "@/components/site/SiteProfileMenu";
@@ -25,10 +25,10 @@ function NavLink({
   tone?: "dark" | "light";
 }) {
   const topClasses = tone === "light"
-    ? "inline-flex h-11 items-center px-3 text-base font-extrabold text-[#23150f]/95 transition hover:bg-black/10 hover:text-[#23150f]"
+    ? "inline-flex h-11 items-center px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
     : "inline-flex h-11 items-center px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 hover:text-white";
   const panelClasses = tone === "light"
-    ? "flex h-10 items-center px-3 text-sm font-bold text-[#23150f]/95 transition hover:bg-black/10 hover:text-[#23150f]"
+    ? "flex h-10 items-center px-3 text-sm font-bold text-black transition hover:bg-black/10 hover:text-black"
     : "flex h-10 items-center px-3 text-sm font-bold text-white/95 transition hover:bg-white/14 hover:text-white";
 
   return (
@@ -50,20 +50,18 @@ export default async function Header({ locale }: { locale: Locale }) {
   const initialCart = parseCartCookie(cartCookie);
   const initialCartCount = initialCart.items.reduce((sum, item) => sum + item.quantity, 0);
   const headerColor = await resolveHeaderColor();
-  const navTone: "dark" | "light" = getReadableTextColor(headerColor) === "#23150f" ? "light" : "dark";
-  const dropdownButtonClass = navTone === "light"
-    ? "text-[#23150f]/95 hover:bg-black/10 focus-visible:outline-black/60"
-    : "text-white/95 hover:bg-white/14 focus-visible:outline-white/70";
+  const navTone: "dark" | "light" = "light";
+  const dropdownButtonClass = "text-black hover:bg-black/10 hover:text-black focus-visible:outline-black/60";
   const dropdownPanelClass = "mt-0 border-0 shadow-none";
   const headerMenuStyle = {
     backgroundColor: headerColor,
   } as CSSProperties;
   const headerMenuVars = {
     backgroundColor: headerColor,
-    "--text": navTone === "light" ? "#23150f" : "#ffffff",
-    "--text-muted": navTone === "light" ? "rgba(35,21,15,0.86)" : "rgba(255,255,255,0.86)",
-    "--text-subtle": navTone === "light" ? "rgba(35,21,15,0.72)" : "rgba(255,255,255,0.72)",
-    "--muted": navTone === "light" ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.14)",
+    "--text": "#000000",
+    "--text-muted": "rgba(0,0,0,0.86)",
+    "--text-subtle": "rgba(0,0,0,0.72)",
+    "--muted": "rgba(0,0,0,0.10)",
     "--border": "transparent",
   } as CSSProperties;
 
@@ -151,16 +149,20 @@ export default async function Header({ locale }: { locale: Locale }) {
             systemLabel={t.themeSystem}
             menuClassName="mt-0 border-0 bg-transparent shadow-none"
             menuStyle={headerMenuVars}
-            buttonClassName={
-              navTone === "light"
-                ? "inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-[#23150f]/95 transition hover:bg-black/10"
-                : "inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
-            }
+            buttonClassName="inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
           />
 
-          <HeaderLocaleLink locale={locale} />
+          <HeaderLocaleLink
+            locale={locale}
+            className="inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
+          />
 
-          <CartLinkWithCount locale={locale} label={t.cart} initialCount={initialCartCount} />
+          <CartLinkWithCount
+            locale={locale}
+            label={t.cart}
+            initialCount={initialCartCount}
+            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-none px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
+          />
 
           {user ? (
             <SiteProfileMenu
@@ -175,11 +177,7 @@ export default async function Header({ locale }: { locale: Locale }) {
           ) : (
             <Link
               href={`/${locale}/login`} 
-              className={
-                navTone === "light"
-                  ? "inline-flex h-11 items-center justify-center px-3 text-base font-extrabold text-[#23150f]/95 transition hover:bg-black/10"
-                  : "inline-flex h-11 items-center justify-center px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
-              }
+              className="inline-flex h-11 items-center justify-center px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
             >
               {t.login}
             </Link>

@@ -30,7 +30,7 @@ export default async function SiteLocaleLayout({
   return (
     <div className="flex min-h-dvh flex-col">
       <Header locale={locale} />
-      <main className="flex-1">{children}</main>
+      <main className="route-sharp flex-1">{children}</main>
       <Footer locale={locale} />
       <FloatingWhatsAppButton locale={locale} settings={whatsappFloatingButton} />
     </div>

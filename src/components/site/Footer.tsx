@@ -45,6 +45,21 @@ function normalizeExternalHref(value: string): string {
   return `https://${normalized.replace(/^\/+/, "")}`;
 }
 
+function isUrlLike(value: string): boolean {
+  return /^(https?:\/\/)/i.test(value.trim());
+}
+
+function migrateLegacySocialHref(platform: FooterAdminSocialPlatform, href: string): string {
+  const normalized = href.trim().toLowerCase();
+  if (platform === "instagram" && normalized.includes("instagram.com/noonomanarts")) {
+    return "https://www.instagram.com/noon.omanarts";
+  }
+  if (platform === "facebook" && normalized.includes("facebook.com/noonomanarts")) {
+    return "https://www.facebook.com/noon.omanarts/";
+  }
+  return href;
+}
+
 function FooterSocialIcon({ platform }: { platform: FooterAdminSocialPlatform }) {
   return platform === "facebook" ? <IoLogoFacebook className="size-4" /> : <IoLogoInstagram className="size-4" />;
 }
@@ -69,7 +84,10 @@ export default async function Footer({ locale }: { locale: Locale }) {
   const t = {
     tagline: isArabic ? footer.taglineAr : footer.taglineEn,
     navigate: isArabic ? footer.navigateTitleAr : footer.navigateTitleEn,
-    legal: isArabic ? footer.legalTitleAr : footer.legalTitleEn,
+    legal:
+      isArabic
+        ? footer.legalTitleAr
+        : (footer.legalTitleEn.trim().toLowerCase() === "legal" ? "Quick links" : footer.legalTitleEn),
     follow: isArabic ? footer.followTitleAr : footer.followTitleEn,
     location: isArabic ? footer.locationLabelAr : footer.locationLabelEn,
     phone: isArabic ? footer.phoneLabelAr : footer.phoneLabelEn,
@@ -100,16 +118,30 @@ export default async function Footer({ locale }: { locale: Locale }) {
   const socialLinks = footer.socialLinks
     .filter((item) => item.enabled)
     .map((item) => ({
-      href: normalizeExternalHref(item.href),
+      href: normalizeExternalHref(migrateLegacySocialHref(item.platform, item.href)),
       label: isArabic ? item.labelAr : item.labelEn,
       platform: item.platform,
     }));
-  const locationValue = footer.locationValue.trim();
+  const locationValueRaw = footer.locationValue.trim();
+  const locationValue = locationValueRaw.toLowerCase() === "muscat, oman"
+    ? "https://maps.app.goo.gl/9KykbqJSMsxVrkdZA"
+    : locationValueRaw;
+  const locationHref = isUrlLike(locationValue) ? locationValue : "";
+  const locationLinkLabel = isArabic ? "عرض الموقع على الخريطة" : "View on map";
   const phoneValue = footer.phoneValue.trim();
   const emailValue = footer.emailValue.trim();
   const phoneHref = resolveTelHref(phoneValue);
   const emailHref = resolveMailHref(emailValue);
   const homeHref = resolveFooterHref(locale, "/");
+  const contactRowClass = isArabic
+    ? "grid w-full grid-cols-[minmax(0,1fr)_max-content] items-center gap-3"
+    : "grid w-fit min-w-[19rem] grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-3 text-left";
+  const contactLabelClass = `inline-flex items-center gap-2 whitespace-nowrap text-[color:var(--footer-soft)] ${
+    isArabic ? "col-start-2 justify-self-end" : ""
+  }`;
+  const contactValueClass = `font-semibold text-[color:var(--footer-text)] ${
+    isArabic ? "col-start-1 justify-self-start text-left" : "text-left"
+  }`;
 
   return (
     <footer
@@ -131,38 +163,65 @@ export default async function Footer({ locale }: { locale: Locale }) {
               {t.tagline}
             </p>
 
-            <div className="space-y-3 border border-[color:var(--footer-border)] bg-[color:var(--footer-panel)] p-4 text-sm">
-              <div className="flex items-start justify-between gap-3">
-                <p className="inline-flex items-center gap-2 text-[color:var(--footer-soft)]">
+            <div
+              className={`border border-[color:var(--footer-border)] bg-[color:var(--footer-panel)] p-4 text-sm ${
+                isArabic ? "space-y-3" : "flex flex-col items-end gap-3"
+              }`}
+            >
+              <div className={contactRowClass}>
+                <p className={contactLabelClass}>
                   <FiMapPin className="size-4" />
                   {t.location}:
                 </p>
-                <p className="text-end font-semibold text-[color:var(--footer-text)]">{locationValue || "-"}</p>
+                {locationHref ? (
+                  <a
+                    className={`${contactValueClass} transition hover:opacity-80`}
+                    href={locationHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={locationHref}
+                  >
+                    {locationLinkLabel}
+                  </a>
+                ) : (
+                  <p className={contactValueClass}>
+                    {locationValue || "-"}
+                  </p>
+                )}
               </div>
-              <div className="flex items-start justify-between gap-3">
-                <p className="inline-flex items-center gap-2 text-[color:var(--footer-soft)]">
+              <div className={contactRowClass}>
+                <p className={contactLabelClass}>
                   <FiPhone className="size-4" />
                   {t.phone}:
                 </p>
                 {phoneHref ? (
-                  <a className="text-end font-semibold text-[color:var(--footer-text)] transition hover:opacity-80" href={phoneHref}>
+                  <a
+                    className={`${contactValueClass} min-w-[10rem] transition hover:opacity-80`}
+                    href={phoneHref}
+                    dir="ltr"
+                  >
                     {phoneValue}
                   </a>
                 ) : (
-                  <span className="text-end font-semibold text-[color:var(--footer-text)]">-</span>
+                  <span className={`${contactValueClass} min-w-[10rem]`} dir="ltr">
+                    -
+                  </span>
                 )}
               </div>
-              <div className="flex items-start justify-between gap-3">
-                <p className="inline-flex items-center gap-2 text-[color:var(--footer-soft)]">
+              <div className={contactRowClass}>
+                <p className={contactLabelClass}>
                   <FiMail className="size-4" />
                   {t.email}:
                 </p>
                 {emailHref ? (
-                  <a className="text-end font-semibold text-[color:var(--footer-text)] transition hover:opacity-80" href={emailHref}>
+                  <a
+                    className={`${contactValueClass} break-all transition hover:opacity-80`}
+                    href={emailHref}
+                  >
                     {emailValue}
                   </a>
                 ) : (
-                  <span className="text-end font-semibold text-[color:var(--footer-text)]">-</span>
+                  <span className={contactValueClass}>-</span>
                 )}
               </div>
             </div>

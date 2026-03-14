@@ -63,7 +63,7 @@ export default async function ArtsCraftsClassesPage({
   };
 
   return (
-    <div className="relative overflow-x-clip pb-14">
+    <div className="route-sharp relative overflow-x-clip pb-14">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
         <div className="absolute -left-20 top-8 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
         <div className="absolute right-0 top-14 h-80 w-80 rounded-full bg-coral/16 blur-3xl dark:bg-coral/10" />

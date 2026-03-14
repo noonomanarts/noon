@@ -4,13 +4,78 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@font-face {
+  font-family: "Inter";
+  src:
+    local("Inter"),
+    url("/fonts/inter/Inter-400.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src:
+    local("Inter Medium"),
+    local("Inter"),
+    url("/fonts/inter/Inter-500.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src:
+    local("Inter Bold"),
+    local("Inter"),
+    url("/fonts/inter/Inter-700.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cairo";
+  src:
+    local("Cairo"),
+    url("/fonts/cairo/Cairo-400.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cairo";
+  src:
+    local("Cairo Medium"),
+    local("Cairo"),
+    url("/fonts/cairo/Cairo-500.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Cairo";
+  src:
+    local("Cairo Bold"),
+    local("Cairo"),
+    url("/fonts/cairo/Cairo-700.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
 /* Noon Brand Colors */
 :root {
   /* Font fallbacks (avoid network fetch dependency for builds) */
-  --font-english: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --font-arabic: "Noto Naskh Arabic", "Cairo", Tahoma, Arial, sans-serif;
-  --font-hero-en: "Playfair Display", Georgia, "Times New Roman", serif;
-  --font-hero-ar: "Noto Naskh Arabic", "Amiri", "Times New Roman", serif;
+  --font-english: "Inter", "Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif;
+  --font-arabic: "Cairo", "Noto Naskh Arabic", "Tajawal", Tahoma, Arial, sans-serif;
+  --font-hero-en: "Inter", "Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif;
+  --font-hero-ar: "Cairo", "Noto Naskh Arabic", "Tajawal", Tahoma, Arial, sans-serif;
+  --font-home-title-en: "Inter", "Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif;
 
   --noon-coral: #f77d6b;
   --noon-coral-strong: #ef6b58;
@@ -389,6 +454,19 @@ body {
 
 .home-sharp :is(a, button, [role="button"], [class*="rounded"]) {
   border-radius: 0 !important;
+}
+
+.route-sharp * {
+  border-radius: 0 !important;
+}
+
+.route-sharp .keep-profile-round {
+  border-radius: 9999px !important;
+}
+
+.route-sharp .keep-profile-round img,
+.route-sharp .keep-profile-round > img {
+  border-radius: 9999px !important;
 }
 
 @media (prefers-reduced-motion: no-preference) {

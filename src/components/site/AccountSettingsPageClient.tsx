@@ -260,7 +260,7 @@ export default function AccountSettingsPageClient({
         <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
           <div className="grid gap-6 lg:grid-cols-[140px_1fr]">
             <div className="flex flex-col items-center gap-3">
-              <span className="relative size-24 overflow-hidden rounded-full border border-[color:var(--border)] bg-[color:var(--muted)]">
+              <span className="keep-profile-round relative size-24 overflow-hidden rounded-full border border-[color:var(--border)] bg-[color:var(--muted)]">
                 {form.profileImage ? (
                   <Image src={form.profileImage} alt={form.fullName} fill sizes="96px" className="object-cover" />
                 ) : (

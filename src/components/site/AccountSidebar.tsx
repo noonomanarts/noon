@@ -32,7 +32,7 @@ export function AccountSidebar({ locale }: AccountSidebarProps) {
   ];
 
   return (
-    <aside className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-3 shadow-sm">
+    <aside className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-3 shadow-sm">
       <nav className="space-y-1">
         {items.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -42,7 +42,7 @@ export function AccountSidebar({ locale }: AccountSidebarProps) {
             <Link
               key={item.key}
               href={item.href}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-none px-3 py-2.5 text-sm font-medium transition-colors ${
                 active
                   ? 'bg-[color:var(--primary)] text-[color:var(--primary-foreground)] shadow-sm'
                   : 'text-[color:var(--text-muted)] hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]'
@@ -57,7 +57,7 @@ export function AccountSidebar({ locale }: AccountSidebarProps) {
         <LogoutButton
           locale={locale}
           label={isArabic ? 'تسجيل الخروج' : 'Logout'}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[color:var(--text-muted)] transition-colors hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
+          className="flex w-full items-center gap-3 rounded-none px-3 py-2.5 text-sm font-medium text-[color:var(--text-muted)] transition-colors hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
         />
       </nav>
     </aside>

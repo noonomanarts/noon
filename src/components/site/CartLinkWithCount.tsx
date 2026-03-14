@@ -14,10 +14,12 @@ export default function CartLinkWithCount({
   locale,
   label,
   initialCount = 0,
+  className,
 }: {
   locale: Locale;
   label: string;
   initialCount?: number;
+  className?: string;
 }) {
   const [count, setCount] = useState(initialCount);
 
@@ -59,7 +61,10 @@ export default function CartLinkWithCount({
   return (
     <Link
       href={`/${locale}/cart`}
-      className="inline-flex h-11 items-center justify-center gap-1.5 rounded-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
+      className={
+        className ??
+        "inline-flex h-11 items-center justify-center gap-1.5 rounded-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
+      }
     >
       <span className="inline-flex items-center gap-2">
         <span className="relative inline-flex">

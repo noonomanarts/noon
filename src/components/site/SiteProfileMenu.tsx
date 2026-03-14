@@ -42,9 +42,9 @@ export default function SiteProfileMenu({
   };
 
   const initial = fullName.trim().charAt(0).toUpperCase() || 'U';
-  const buttonTextClass = tone === 'light' ? 'text-[#23150f]/95' : 'text-white/95';
+  const buttonTextClass = tone === 'light' ? 'text-black' : 'text-white/95';
   const buttonHoverClass = tone === 'light' ? 'hover:bg-black/10' : 'hover:bg-white/14';
-  const chevronClass = tone === 'light' ? 'text-[#23150f]/75' : 'text-white/80';
+  const chevronClass = tone === 'light' ? 'text-black/80' : 'text-white/80';
   const logoutClass =
     tone === 'light'
       ? 'mt-1 flex w-full items-center gap-2 rounded-none px-2 py-2 text-left text-sm text-rose-700 transition hover:bg-rose-500/15'
@@ -98,7 +98,7 @@ export default function SiteProfileMenu({
           buttonHoverClass,
         ].join(' ')}
       >
-        <span className="relative h-7 w-7 overflow-hidden rounded-full bg-[color:var(--muted)]">
+        <span className="keep-profile-round relative h-7 w-7 overflow-hidden rounded-full bg-[color:var(--muted)]">
           {profileImage ? (
             <Image src={profileImage} alt={fullName} fill sizes="28px" className="object-cover" />
           ) : (

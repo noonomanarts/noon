@@ -29,13 +29,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "File is required" }, { status: 400 });
     }
 
-    if (!file.type.startsWith("image/")) {
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+
+    if (!isImage && !isVideo) {
       return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    const maxFileSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxFileSize) {
       return NextResponse.json(
-        { error: "File size must be 5MB or less" },
+        { error: isVideo ? "Video size must be 50MB or less" : "Image size must be 5MB or less" },
         { status: 400 }
       );
     }
@@ -54,6 +58,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: `/uploads/${safeFolder}/${fileName}` });
   } catch (error) {
     console.error("Error uploading file:", error);
-    return NextResponse.json({ error: "Failed to upload image" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to upload file" }, { status: 500 });
   }
 }

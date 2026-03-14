@@ -9,5 +9,9 @@ export default async function CartPage({
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
 
-  return <CartPageClient locale={locale} />;
+  return (
+    <div className="route-sharp">
+      <CartPageClient locale={locale} />
+    </div>
+  );
 }

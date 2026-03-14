@@ -20,16 +20,16 @@ export default async function AccountLayout({
   }
 
   return (
-    <div className="relative mx-auto w-full max-w-6xl px-4 py-10">
+    <div className="route-sharp relative mx-auto w-full max-w-6xl px-4 py-10">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64">
-        <div className="absolute -left-16 top-4 h-40 w-40 rounded-full bg-teal/15 blur-3xl dark:bg-teal/10" />
-        <div className="absolute right-0 top-10 h-52 w-52 rounded-full bg-coral/15 blur-3xl dark:bg-coral/10" />
+        <div className="absolute -left-16 top-4 h-40 w-40 rounded-none bg-teal/15 blur-3xl dark:bg-teal/10" />
+        <div className="absolute right-0 top-10 h-52 w-52 rounded-none bg-coral/15 blur-3xl dark:bg-coral/10" />
       </div>
 
-      <div className="mb-6 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+      <div className="mb-6 rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="relative size-14 overflow-hidden rounded-full border border-[color:var(--border)] bg-[color:var(--muted)]">
+            <span className="keep-profile-round relative size-14 overflow-hidden rounded-full border border-[color:var(--border)] bg-[color:var(--muted)]">
               {user.profileImage ? (
                 <Image src={user.profileImage} alt={user.fullName} fill sizes="56px" className="object-cover" />
               ) : (
@@ -50,10 +50,10 @@ export default async function AccountLayout({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span className="rounded-full bg-[color:var(--primary)]/15 px-3 py-1 font-semibold text-[color:var(--primary)]">
+            <span className="rounded-none bg-[color:var(--primary)]/15 px-3 py-1 font-semibold text-[color:var(--primary)]">
               {user.role}
             </span>
-            <span className="rounded-full bg-[color:var(--muted)] px-3 py-1 font-medium text-[color:var(--text-muted)]">
+            <span className="rounded-none bg-[color:var(--muted)] px-3 py-1 font-medium text-[color:var(--text-muted)]">
               {user.email}
             </span>
           </div>

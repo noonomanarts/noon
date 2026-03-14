@@ -21,6 +21,10 @@ export function Dropdown({
   const [isOpen, setIsOpen] = useState(false);
   const detailsRef = useRef<HTMLDivElement>(null);
   const alignClass = align === "end" ? "end-0" : "start-0";
+  const hasCustomButtonClass = Boolean(buttonClassName?.trim());
+  const baseButtonClass = hasCustomButtonClass
+    ? "inline-flex h-11 cursor-pointer list-none items-center select-none px-3 text-base font-extrabold transition focus-visible:outline-2 focus-visible:outline-offset-2"
+    : "inline-flex h-11 cursor-pointer list-none items-center select-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70";
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -54,7 +58,7 @@ export function Dropdown({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={[
-          "inline-flex h-11 cursor-pointer list-none items-center select-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70",
+          baseButtonClass,
           buttonClassName ?? "",
         ].join(" ")}
       >

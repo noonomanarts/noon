@@ -109,7 +109,7 @@ export default function AdminPageSettingsClient({
   const [settings, setSettings] = useState<SitePageSettings>(initialSettings);
   const [keywordsEnText, setKeywordsEnText] = useState(() => keywordsToText(initialSettings.keywordsEn));
   const [keywordsArText, setKeywordsArText] = useState(() => keywordsToText(initialSettings.keywordsAr));
-  const [uploadingSlideKey, setUploadingSlideKey] = useState<string | null>(null);
+  const [uploadingHeroMedia, setUploadingHeroMedia] = useState(false);
   const [uploadingCourseImageKey, setUploadingCourseImageKey] = useState<"cooking" | "arts" | null>(null);
   const [uploadingPartnerLogoIndex, setUploadingPartnerLogoIndex] = useState<number | null>(null);
   const [uploadingUpcomingImageIndex, setUploadingUpcomingImageIndex] = useState<number | null>(null);
@@ -178,23 +178,25 @@ export default function AdminPageSettingsClient({
       : "Use an internal path like /classes/cooking or a full external URL.",
     heroPreviewTitle: isArabic ? "معاينة مصغرة للهيرو" : "Hero Mini Preview",
     heroPreviewHint: isArabic
-      ? "هذه معاينة سريعة للشكل النهائي للدكّتين على الهيرو."
-      : "A quick visual preview of how both hero buttons will appear.",
-    heroSlides: isArabic ? "صور السلايدشو" : "Slideshow Images",
+      ? "معاينة سريعة لشكل الخلفية وأزرار الهيرو."
+      : "Quick preview for hero background media and CTA buttons.",
+    heroMediaType: isArabic ? "نوع خلفية الهيرو" : "Hero Background Type",
+    heroMediaTypeImage: isArabic ? "صورة" : "Image",
+    heroMediaTypeVideo: isArabic ? "فيديو" : "Video",
+    heroSlides: isArabic ? "خلفية الهيرو (صورة أو فيديو)" : "Hero Background (Image or Video)",
     heroSlidesHint: isArabic
-      ? "يمكنك تعديل الرابط، حذف الصورة، تغيير ترتيبها، أو رفع صور جديدة."
-      : "You can edit the path, delete, reorder, or upload new slides.",
-    heroSlidesEmpty: isArabic ? "لا توجد صور حالياً. ارفع أول صورة أو أضف رابطاً." : "No slides yet. Upload the first image or add a path.",
-    heroSlidePath: isArabic ? "مسار الصورة" : "Image Path",
-    heroAddSlide: isArabic ? "إضافة مسار فارغ" : "Add Empty Slide",
-    heroUploadSlides: isArabic ? "رفع صور" : "Upload Images",
-    heroReplaceImage: isArabic ? "استبدال" : "Replace",
-    heroRemoveImage: isArabic ? "حذف" : "Remove",
-    heroMoveUp: isArabic ? "أعلى" : "Up",
-    heroMoveDown: isArabic ? "أسفل" : "Down",
-    heroUploadDone: isArabic ? "تم رفع صور الهيرو بنجاح." : "Hero slides uploaded successfully.",
-    heroUploadFailed: isArabic ? "فشل رفع صور الهيرو." : "Failed to upload hero slides.",
-    heroUploading: isArabic ? "جارٍ الرفع..." : "Uploading...",
+      ? "اختر نوع الخلفية أولاً (صورة أو فيديو)، ثم ارفع الملف أو أدخل المسار. الهيرو سيعرض النوع المختار فقط."
+      : "Choose the background type first (image or video), then upload or set a path. Hero will render only the selected type.",
+    heroSlidesEmpty: isArabic ? "لا توجد وسائط حالياً. ارفع صورة أو أضف مسار ملف." : "No media yet. Upload an image or add a media path.",
+    heroSlidePath: isArabic ? "مسار الوسائط" : "Media Path",
+    heroImagePath: isArabic ? "مسار صورة الخلفية" : "Background Image Path",
+    heroVideoPath: isArabic ? "مسار فيديو الخلفية" : "Background Video Path",
+    heroUploadSlides: isArabic ? "رفع وسائط" : "Upload Media",
+    heroReplaceImage: isArabic ? "تغيير الوسائط" : "Change Media",
+    heroRemoveImage: isArabic ? "حذف الوسائط" : "Remove Media",
+    heroUploadDone: isArabic ? "تم تحديث خلفية الهيرو بنجاح." : "Hero background updated successfully.",
+    heroUploadFailed: isArabic ? "فشل رفع وسائط الهيرو." : "Failed to upload hero media.",
+    heroUploading: isArabic ? "جارٍ رفع الوسائط..." : "Uploading media...",
     heroAutoplayMs: isArabic ? "سرعة السلايدشو (ms)" : "Slideshow Speed (ms)",
     heroAutoplayHint: isArabic ? "من 2000 إلى 12000 مللي ثانية." : "Between 2000 and 12000 ms.",
     homeCoursesSection: isArabic ? "إعدادات قسم الدورات" : "Courses Section Settings",
@@ -325,6 +327,11 @@ export default function AdminPageSettingsClient({
   const heroSecondaryColor = normalizeHexColor(settings.homeHero.secondaryCtaColor, "#17b0ad");
   const heroPrimaryPreviewHref = resolvePreviewHref(locale, settings.homeHero.primaryCtaHref, "/classes/cooking");
   const heroSecondaryPreviewHref = resolvePreviewHref(locale, settings.homeHero.secondaryCtaHref, "/classes/arts-crafts");
+  const heroMediaType = settings.homeHero.backgroundMediaType ?? "image";
+  const heroImageSrc = settings.homeHero.backgroundImageSrc?.trim() ?? "";
+  const heroVideoSrc = settings.homeHero.backgroundVideoSrc?.trim() ?? "";
+  const heroMediaIsVideo = heroMediaType === "video";
+  const heroMediaSrc = heroMediaIsVideo ? heroVideoSrc : heroImageSrc;
   const cookingPreviewTitle = (isArabic ? settings.homeCourses.cookingTitleAr : settings.homeCourses.cookingTitleEn).trim() || (isArabic ? "دورات الطبخ" : "Cooking classes");
   const artsPreviewTitle = (isArabic ? settings.homeCourses.artsTitleAr : settings.homeCourses.artsTitleEn).trim() || (isArabic ? "دورات الفنون" : "Arts & crafts classes");
 
@@ -336,12 +343,40 @@ export default function AdminPageSettingsClient({
     setInfo(null);
   };
 
-  const setHomeSlides = (nextSlides: string[]) => {
+  const setHeroMediaType = (nextType: "image" | "video") => {
     setSettings((prev) => ({
       ...prev,
       homeHero: {
         ...prev.homeHero,
-        slideImages: nextSlides.slice(0, 12),
+        backgroundMediaType: nextType,
+      },
+    }));
+  };
+
+  const setHeroImageSrc = (imageSrc: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      homeHero: {
+        ...prev.homeHero,
+        backgroundImageSrc: imageSrc,
+        slideImages:
+          (prev.homeHero.backgroundMediaType ?? "image") === "image" && imageSrc.trim()
+            ? [imageSrc.trim()]
+            : [],
+      },
+    }));
+  };
+
+  const setHeroVideoSrc = (videoSrc: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      homeHero: {
+        ...prev.homeHero,
+        backgroundVideoSrc: videoSrc,
+        slideImages:
+          (prev.homeHero.backgroundMediaType ?? "image") === "video" && videoSrc.trim()
+            ? [videoSrc.trim()]
+            : [],
       },
     }));
   };
@@ -501,27 +536,7 @@ export default function AdminPageSettingsClient({
     });
   };
 
-  const handleSlidePathChange = (index: number, value: string) => {
-    const next = [...settings.homeHero.slideImages];
-    next[index] = value;
-    setHomeSlides(next);
-  };
-
-  const handleSlideMove = (index: number, direction: -1 | 1) => {
-    const targetIndex = index + direction;
-    if (targetIndex < 0 || targetIndex >= settings.homeHero.slideImages.length) return;
-    const next = [...settings.homeHero.slideImages];
-    const [item] = next.splice(index, 1);
-    next.splice(targetIndex, 0, item);
-    setHomeSlides(next);
-  };
-
-  const handleSlideRemove = (index: number) => {
-    const next = settings.homeHero.slideImages.filter((_, idx) => idx !== index);
-    setHomeSlides(next);
-  };
-
-  const uploadImage = async (file: File, folder: string, fallbackError: string): Promise<string> => {
+  const uploadAsset = async (file: File, folder: string, fallbackError: string): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
     formData.append("folder", folder);
@@ -539,43 +554,26 @@ export default function AdminPageSettingsClient({
     return payload.url;
   };
 
-  const handleUploadAppend = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    setUploadingSlideKey("append");
-    setError(null);
-    setInfo(null);
-
-    try {
-      const availableSlots = Math.max(0, 12 - settings.homeHero.slideImages.length);
-      const selectedFiles = Array.from(files).slice(0, availableSlots);
-      const uploadedUrls = await Promise.all(
-        selectedFiles.map((file) => uploadImage(file, "home-hero-slides", t.heroUploadFailed))
-      );
-      setHomeSlides([...settings.homeHero.slideImages, ...uploadedUrls]);
-      setInfo(t.heroUploadDone);
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : t.heroUploadFailed);
-    } finally {
-      setUploadingSlideKey(null);
-    }
-  };
-
-  const handleUploadReplace = async (index: number, file: File | null) => {
+  const handleHeroMediaUpload = async (file: File | null) => {
     if (!file) return;
-    setUploadingSlideKey(`replace-${index}`);
+    setUploadingHeroMedia(true);
     setError(null);
     setInfo(null);
 
     try {
-      const url = await uploadImage(file, "home-hero-slides", t.heroUploadFailed);
-      const next = [...settings.homeHero.slideImages];
-      next[index] = url;
-      setHomeSlides(next);
+      const activeType = settings.homeHero.backgroundMediaType ?? "image";
+      const folder = activeType === "video" ? "home-hero-video" : "home-hero-image";
+      const url = await uploadAsset(file, folder, t.heroUploadFailed);
+      if (activeType === "video") {
+        setHeroVideoSrc(url);
+      } else {
+        setHeroImageSrc(url);
+      }
       setInfo(t.heroUploadDone);
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : t.heroUploadFailed);
     } finally {
-      setUploadingSlideKey(null);
+      setUploadingHeroMedia(false);
     }
   };
 
@@ -586,7 +584,7 @@ export default function AdminPageSettingsClient({
     setInfo(null);
 
     try {
-      const url = await uploadImage(file, "home-courses", t.cardImageUploadFailed);
+      const url = await uploadAsset(file, "home-courses", t.cardImageUploadFailed);
       setSettings((prev) => ({
         ...prev,
         homeCourses: {
@@ -609,7 +607,7 @@ export default function AdminPageSettingsClient({
     setInfo(null);
 
     try {
-      const url = await uploadImage(file, "home-partners", t.partnerLogoUploadFailed);
+      const url = await uploadAsset(file, "home-partners", t.partnerLogoUploadFailed);
       setSettings((prev) => ({
         ...prev,
         homePartners: {
@@ -634,7 +632,7 @@ export default function AdminPageSettingsClient({
     setInfo(null);
 
     try {
-      const url = await uploadImage(file, "home-upcoming", t.upcomingImageUploadFailed);
+      const url = await uploadAsset(file, "home-upcoming", t.upcomingImageUploadFailed);
       setSettings((prev) => ({
         ...prev,
         homeUpcoming: {
@@ -664,10 +662,14 @@ export default function AdminPageSettingsClient({
         keywordsAr: textToKeywords(keywordsArText),
         homeHero: {
           ...settings.homeHero,
-          slideImages: settings.homeHero.slideImages
-            .map((item) => item.trim())
-            .filter(Boolean)
-            .slice(0, 12),
+          backgroundMediaType: settings.homeHero.backgroundMediaType ?? "image",
+          backgroundImageSrc: settings.homeHero.backgroundImageSrc.trim(),
+          backgroundVideoSrc: settings.homeHero.backgroundVideoSrc.trim(),
+          slideImages: [
+            (settings.homeHero.backgroundMediaType ?? "image") === "video"
+              ? settings.homeHero.backgroundVideoSrc.trim()
+              : settings.homeHero.backgroundImageSrc.trim(),
+          ].filter(Boolean),
         },
       };
 
@@ -1063,12 +1065,23 @@ export default function AdminPageSettingsClient({
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.heroPreviewHint}</p>
               </div>
               <div className="relative overflow-hidden border border-zinc-200 bg-zinc-900/80 p-5 dark:border-zinc-700">
-                {settings.homeHero.slideImages[0]?.trim() ? (
-                  <div
-                    className="absolute inset-0 bg-cover bg-center opacity-35"
-                    style={{ backgroundImage: `url("${settings.homeHero.slideImages[0]}")` }}
-                    aria-hidden="true"
-                  />
+                {heroMediaSrc ? (
+                  heroMediaIsVideo ? (
+                    <video
+                      className="absolute inset-0 h-full w-full object-cover opacity-35"
+                      src={heroMediaSrc}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  ) : (
+                    <div
+                      className="absolute inset-0 bg-cover bg-center opacity-35"
+                      style={{ backgroundImage: `url("${heroMediaSrc}")` }}
+                      aria-hidden="true"
+                    />
+                  )
                 ) : null}
                 <div className="absolute inset-0 bg-gradient-to-b from-black/35 to-black/70" aria-hidden="true" />
                 <div className="relative space-y-4">
@@ -1106,140 +1119,117 @@ export default function AdminPageSettingsClient({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm text-zinc-600 dark:text-zinc-300">{t.heroSlides}</span>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setHomeSlides([...settings.homeHero.slideImages, ""])}
-                    disabled={settings.homeHero.slideImages.length >= 12}
-                    className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                  >
-                    <FiPlus className="size-3.5" />
-                    {t.heroAddSlide}
-                  </button>
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">
                     <FiUpload className="size-3.5" />
-                    {uploadingSlideKey === "append" ? t.heroUploading : t.heroUploadSlides}
+                    {uploadingHeroMedia ? t.heroUploading : heroMediaSrc ? t.heroReplaceImage : t.heroUploadSlides}
                     <input
                       type="file"
-                      accept="image/*"
-                      multiple
+                      accept={heroMediaType === "video" ? "video/*" : "image/*"}
                       className="hidden"
-                      disabled={uploadingSlideKey !== null || settings.homeHero.slideImages.length >= 12}
+                      disabled={uploadingHeroMedia}
                       onChange={(event) => {
-                        void handleUploadAppend(event.target.files);
+                        void handleHeroMediaUpload(event.target.files?.[0] ?? null);
                         event.currentTarget.value = "";
                       }}
                     />
                   </label>
+                  {heroMediaSrc ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (heroMediaType === "video") {
+                          setHeroVideoSrc("");
+                        } else {
+                          setHeroImageSrc("");
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-800/70 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                    >
+                      <FiTrash2 className="size-3.5" />
+                      {t.heroRemoveImage}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <span className="text-sm text-zinc-600 dark:text-zinc-300">{t.heroMediaType}</span>
+                <div className="grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setHeroMediaType("image")}
+                  className={`inline-flex items-center justify-center px-3 py-2 text-sm font-semibold transition ${
+                    heroMediaType === "image"
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                      : "border border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {t.heroMediaTypeImage}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHeroMediaType("video")}
+                  className={`inline-flex items-center justify-center px-3 py-2 text-sm font-semibold transition ${
+                    heroMediaType === "video"
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                      : "border border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {t.heroMediaTypeVideo}
+                </button>
                 </div>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.heroSlidesHint}</p>
-
-              {settings.homeHero.slideImages.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-300 px-4 py-5 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                  {t.heroSlidesEmpty}
-                </div>
+              {heroMediaType === "image" ? (
+                <label className="block space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.heroImagePath}</span>
+                  <input
+                    value={heroImageSrc}
+                    onChange={(event) => setHeroImageSrc(event.target.value)}
+                    placeholder="/images/slides/1.jpg"
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
               ) : (
-                <div className="space-y-3">
-                  {settings.homeHero.slideImages.map((slide, index) => (
-                    <div
-                      key={`hero-slide-${index}`}
-                      className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-700 dark:bg-zinc-800/40"
-                    >
-                      <div className="flex flex-col gap-3 sm:flex-row">
-                        <div className="relative h-24 w-full overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100 sm:w-36 dark:border-zinc-700 dark:bg-zinc-800">
-                          {slide.trim() ? (
-                            <div
-                              className="h-full w-full bg-cover bg-center"
-                              style={{ backgroundImage: `url("${slide}")` }}
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-xs text-zinc-500 dark:text-zinc-400">
-                              {isArabic ? "بدون صورة" : "No image"}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1 space-y-2">
-                          <label className="block space-y-1 text-sm">
-                            <span className="text-zinc-600 dark:text-zinc-300">{t.heroSlidePath}</span>
-                            <input
-                              value={slide}
-                              onChange={(event) => handleSlidePathChange(index, event.target.value)}
-                              placeholder="/images/slides/1.jpg"
-                              className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                            />
-                          </label>
-
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleSlideMove(index, -1)}
-                              disabled={index === 0}
-                              className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            >
-                              <FiArrowUp className="size-3.5" />
-                              {t.heroMoveUp}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleSlideMove(index, 1)}
-                              disabled={index === settings.homeHero.slideImages.length - 1}
-                              className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            >
-                              <FiArrowDown className="size-3.5" />
-                              {t.heroMoveDown}
-                            </button>
-                            <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
-                              <FiUpload className="size-3.5" />
-                              {uploadingSlideKey === `replace-${index}` ? t.heroUploading : t.heroReplaceImage}
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                disabled={uploadingSlideKey !== null}
-                                onChange={(event) => {
-                                  void handleUploadReplace(index, event.target.files?.[0] ?? null);
-                                  event.currentTarget.value = "";
-                                }}
-                              />
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => handleSlideRemove(index)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-800/70 dark:text-rose-300 dark:hover:bg-rose-900/20"
-                            >
-                              <FiTrash2 className="size-3.5" />
-                              {t.heroRemoveImage}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <label className="block space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.heroVideoPath}</span>
+                  <input
+                    value={heroVideoSrc}
+                    onChange={(event) => setHeroVideoSrc(event.target.value)}
+                    placeholder="/videos/hero.mp4"
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
               )}
+
+              <div className="relative h-36 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
+                {heroMediaSrc ? (
+                  heroMediaIsVideo ? (
+                    <video
+                      className="h-full w-full object-cover"
+                      src={heroMediaSrc}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                    />
+                  ) : (
+                    <div
+                      className="h-full w-full bg-cover bg-center"
+                      style={{ backgroundImage: `url("${heroMediaSrc}")` }}
+                    />
+                  )
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-zinc-500 dark:text-zinc-400">
+                    {t.heroSlidesEmpty}
+                  </div>
+                )}
+                {heroMediaSrc ? (
+                  <div className="absolute end-2 top-2 bg-black/70 px-2 py-1 text-[10px] font-semibold tracking-wide text-white">
+                    {heroMediaIsVideo ? "VIDEO" : "IMAGE"}
+                  </div>
+                ) : null}
+              </div>
             </div>
-            <label className="space-y-1 text-sm md:col-span-2">
-              <span className="text-zinc-600 dark:text-zinc-300">{t.heroAutoplayMs}</span>
-              <input
-                type="number"
-                min={2000}
-                max={12000}
-                step={100}
-                value={settings.homeHero.autoplayMs}
-                onChange={(event) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    homeHero: {
-                      ...prev.homeHero,
-                      autoplayMs: Number(event.target.value) || prev.homeHero.autoplayMs,
-                    },
-                  }))
-                }
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              />
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.heroAutoplayHint}</p>
-            </label>
           </div>
         </section>
       )}

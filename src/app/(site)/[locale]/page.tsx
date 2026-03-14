@@ -4,7 +4,6 @@ import Link from "next/link";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getHomeContent } from "@/lib/homeContent";
 import AnimatedCounter from "@/components/site/AnimatedCounter";
-import HeroSlideshow from "@/components/site/HeroSlideshow";
 import PartnersCarousel from "@/components/site/PartnersCarousel";
 import { resolveHeaderColor } from "@/lib/headerBranding";
 import { findClassSessions, findManyClasses } from "@/lib/db/classes";
@@ -35,6 +34,12 @@ const heroSlides = [
   "/images/slides/5.jpg",
   "/images/slides/6.jpg",
 ];
+
+function isVideoSource(source: string): boolean {
+  const normalized = source.trim().toLowerCase();
+  if (!normalized) return false;
+  return /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/.test(normalized);
+}
 
 function normalizeHexColor(value: string, fallback: string): string {
   const input = value.trim().toLowerCase();
@@ -166,10 +171,12 @@ async function resolveUpcomingItems(
 function Section({
   title,
   description,
+  isArabic,
   children,
 }: {
   title: string;
   description?: string;
+  isArabic: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -179,7 +186,11 @@ function Section({
           <div className="max-w-2xl space-y-2">
             <h2
               className="text-2xl font-semibold tracking-tight text-[color:var(--text)] sm:text-3xl"
-              style={{ fontFamily: "var(--font-hero-en), var(--font-english), serif" }}
+              style={{
+                fontFamily: isArabic
+                  ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
+                  : "var(--font-home-title-en), var(--font-hero-en), var(--font-english), sans-serif",
+              }}
             >
               {title}
             </h2>
@@ -223,6 +234,9 @@ export default async function HomePage({
   const heroSecondaryHrefFromSettings = homePageSettings?.homeHero.secondaryCtaHref;
   const heroPrimaryColorFromSettings = homePageSettings?.homeHero.primaryCtaColor;
   const heroSecondaryColorFromSettings = homePageSettings?.homeHero.secondaryCtaColor;
+  const heroMediaTypeFromSettings = homePageSettings?.homeHero.backgroundMediaType;
+  const heroImageFromSettings = homePageSettings?.homeHero.backgroundImageSrc;
+  const heroVideoFromSettings = homePageSettings?.homeHero.backgroundVideoSrc;
 
   const heroHeadline =
     heroHeadingFromSettings?.trim() ||
@@ -231,13 +245,22 @@ export default async function HomePage({
       ? "حيث يتحول الطبخ إلى تجربة"
       : "Where cooking becomes an experience.");
 
-  const heroSlideImages =
-    homePageSettings?.homeHero.slideImages &&
-    homePageSettings.homeHero.slideImages.length > 0
-      ? homePageSettings.homeHero.slideImages
-      : heroSlides;
+  const legacyHeroMedia =
+    homePageSettings?.homeHero.slideImages?.find((item) => item.trim()) || heroSlides[0];
+  const legacyHeroMediaIsVideo = isVideoSource(legacyHeroMedia);
+  const heroMediaType = heroMediaTypeFromSettings ?? (legacyHeroMediaIsVideo ? "video" : "image");
+  let heroBackgroundMedia =
+    heroMediaType === "video"
+      ? (heroVideoFromSettings?.trim() ||
+          (legacyHeroMediaIsVideo ? legacyHeroMedia : ""))
+      : (heroImageFromSettings?.trim() ||
+          (!legacyHeroMediaIsVideo ? legacyHeroMedia : heroSlides[0]));
+  let heroBackgroundIsVideo = heroMediaType === "video";
 
-  const heroAutoplayMs = homePageSettings?.homeHero.autoplayMs ?? 3800;
+  if (!heroBackgroundMedia) {
+    heroBackgroundMedia = heroSlides[0];
+    heroBackgroundIsVideo = false;
+  }
   const homeLayout = homePageSettings?.homeLayout;
   const homeCourses = homePageSettings?.homeCourses;
   const homeUpcoming = homePageSettings?.homeUpcoming;
@@ -365,11 +388,26 @@ export default async function HomePage({
     <div className="home-sharp relative overflow-x-clip pb-8">
       {showHero && (
         <section className="relative isolate min-h-[74vh] overflow-hidden border-b border-black/20 sm:min-h-[78vh]">
-          <HeroSlideshow
-            images={heroSlideImages}
-            intervalMs={heroAutoplayMs}
-            alt={isArabic ? "صور من فعاليات ودورات نون" : "Noon classes and events slideshow"}
-          />
+          {heroBackgroundIsVideo ? (
+            <video
+              className="absolute inset-0 h-full w-full object-cover"
+              src={heroBackgroundMedia}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+            />
+          ) : (
+            <Image
+              src={heroBackgroundMedia}
+              alt={isArabic ? "خلفية هيرو نون" : "Noon hero background"}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+            />
+          )}
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,8,7,0.25)_0%,rgba(9,8,7,0.45)_45%,rgba(9,8,7,0.68)_100%)]" />
           <div className="relative z-10 mx-auto flex min-h-[74vh] w-full max-w-6xl items-center justify-center px-4 py-20 text-center sm:min-h-[78vh]">
             <div className="w-full max-w-5xl">
@@ -377,8 +415,8 @@ export default async function HomePage({
                 className="text-5xl font-black leading-[0.95] tracking-[0.01em] text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:text-6xl lg:text-8xl"
                 style={{
                   fontFamily: isArabic
-                    ? "var(--font-hero-ar), var(--font-arabic), serif"
-                    : "var(--font-hero-en), var(--font-english), serif",
+                    ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
+                    : "var(--font-home-title-en), var(--font-hero-en), var(--font-english), sans-serif",
                 }}
               >
                 {heroHeadline}
@@ -412,6 +450,7 @@ export default async function HomePage({
 
       {showCourses && (
         <Section
+          isArabic={isArabic}
           title={
             isArabic
               ? (homeCourses?.titleAr.trim() || content.courses.title)
@@ -512,7 +551,7 @@ export default async function HomePage({
       )}
 
       {showUpcoming && (
-        <Section title={upcomingTitle} description={upcomingDescription}>
+        <Section isArabic={isArabic} title={upcomingTitle} description={upcomingDescription}>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {upcomingItems.map((c) => (
             <article
@@ -547,7 +586,7 @@ export default async function HomePage({
       )}
 
       {showWhyNoon && (
-        <Section title={whyNoonTitle} description={whyNoonDescription}>
+        <Section isArabic={isArabic} title={whyNoonTitle} description={whyNoonDescription}>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {whyNoonItems.map((item, index) => (
             <div
@@ -566,7 +605,7 @@ export default async function HomePage({
       )}
 
       {showPartners && partnerItems.length > 0 && (
-        <Section title={partnersTitle} description={partnersDescription}>
+        <Section isArabic={isArabic} title={partnersTitle} description={partnersDescription}>
         <PartnersCarousel items={partnerItems} isArabic={isArabic} />
         </Section>
       )}
@@ -589,8 +628,8 @@ export default async function HomePage({
                       className="text-5xl font-light leading-none tracking-[0.01em] text-[color:var(--text)] sm:text-6xl"
                       style={{
                         fontFamily: isArabic
-                          ? "var(--font-hero-ar), var(--font-arabic), serif"
-                          : "var(--font-hero-en), var(--font-english), serif",
+                          ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
+                          : "var(--font-hero-en), var(--font-english), sans-serif",
                       }}
                     >
                       <AnimatedCounter value={numericValue} suffix={suffix} />

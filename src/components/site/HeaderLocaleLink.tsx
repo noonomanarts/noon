@@ -20,7 +20,13 @@ function buildSwitchedPath(pathname: string, currentLocale: Locale): string {
   return `/${nextLocale}/${normalizedPath}`;
 }
 
-export default function HeaderLocaleLink({ locale }: { locale: Locale }) {
+export default function HeaderLocaleLink({
+  locale,
+  className,
+}: {
+  locale: Locale;
+  className?: string;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const nextLocale = otherLocale(locale);
@@ -32,7 +38,10 @@ export default function HeaderLocaleLink({ locale }: { locale: Locale }) {
   return (
     <Link
       href={href}
-      className="inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
+      className={
+        className ??
+        "inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
+      }
       aria-label={locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}
     >
       {nextLocale.toUpperCase()}

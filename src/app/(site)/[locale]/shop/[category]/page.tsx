@@ -47,7 +47,7 @@ export default async function ShopCategoryPage({
     (isArabic ? currentCategory.description_ar : currentCategory.description_en) || t.comingSoonDesc;
 
   return (
-    <div className="relative overflow-x-clip pb-16">
+    <div className="route-sharp relative overflow-x-clip pb-16">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
         <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
         <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />

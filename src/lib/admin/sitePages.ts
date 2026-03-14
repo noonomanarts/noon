@@ -2,6 +2,7 @@ export type SitePageGroup = "core" | "classes" | "events" | "commerce" | "accoun
 
 export type NavPlacement = "PRIMARY" | "SECONDARY" | "NONE";
 export type PageVisibility = "PUBLISHED" | "DRAFT" | "HIDDEN";
+export type HomeHeroMediaType = "image" | "video";
 
 export type HomeHeroSettings = {
   primaryCtaEn: string;
@@ -12,6 +13,9 @@ export type HomeHeroSettings = {
   secondaryCtaAr: string;
   secondaryCtaHref: string;
   secondaryCtaColor: string;
+  backgroundMediaType: HomeHeroMediaType;
+  backgroundImageSrc: string;
+  backgroundVideoSrc: string;
   slideImages: string[];
   autoplayMs: number;
 };
@@ -622,6 +626,12 @@ function toSafeHref(value: unknown, fallback: string): string {
   return isInternal || isAbsolute ? normalized : fallback;
 }
 
+function isVideoSource(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return false;
+  return /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/.test(normalized);
+}
+
 function sanitizeHomeNumbersItems(
   value: unknown,
   fallback: HomeNumbersItemSettings[]
@@ -798,14 +808,10 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
       secondaryCtaAr: "احجز فعالية",
       secondaryCtaHref: "/classes/arts-crafts",
       secondaryCtaColor: "#17b0ad",
-      slideImages: [
-        "/images/slides/1.jpg",
-        "/images/slides/2.jpg",
-        "/images/slides/3.jpg",
-        "/images/slides/4.jpg",
-        "/images/slides/5.jpg",
-        "/images/slides/6.jpg",
-      ],
+      backgroundMediaType: "image",
+      backgroundImageSrc: "/images/slides/1.jpg",
+      backgroundVideoSrc: "",
+      slideImages: ["/images/slides/1.jpg"],
       autoplayMs: 3800,
     },
     homeCourses: {
@@ -935,9 +941,21 @@ export function sanitizeSitePageSettings(
 ): SitePageSettings {
   const defaults = getDefaultSitePageSettings(page);
   const source: Partial<SitePageSettings> = { ...defaults, ...(input ?? {}) };
-  const rawSlideImages = input?.homeHero?.slideImages;
-  const hasExplicitSlideImages = Array.isArray(rawSlideImages) || typeof rawSlideImages === "string";
-  const normalizedSlideImages = toStringArray(source.homeHero?.slideImages, 12, 300);
+  const normalizedSlideImages = toStringArray(source.homeHero?.slideImages, 1, 500);
+  const legacyMediaSrc = normalizedSlideImages[0]?.trim() ?? "";
+  const legacyMediaType: HomeHeroMediaType = isVideoSource(legacyMediaSrc) ? "video" : "image";
+  const backgroundMediaType = toOneOf(
+    source.homeHero?.backgroundMediaType,
+    ["image", "video"] as const,
+    legacyMediaSrc ? legacyMediaType : defaults.homeHero.backgroundMediaType
+  );
+  const backgroundImageSrc =
+    toSafeString(source.homeHero?.backgroundImageSrc, 500) ||
+    (legacyMediaSrc && legacyMediaType === "image" ? legacyMediaSrc : defaults.homeHero.backgroundImageSrc);
+  const backgroundVideoSrc =
+    toSafeString(source.homeHero?.backgroundVideoSrc, 500) ||
+    (legacyMediaSrc && legacyMediaType === "video" ? legacyMediaSrc : defaults.homeHero.backgroundVideoSrc);
+  const selectedBackgroundSrc = backgroundMediaType === "video" ? backgroundVideoSrc : backgroundImageSrc;
 
   return {
     visibility: toVisibility(source.visibility, defaults.visibility),
@@ -967,7 +985,10 @@ export function sanitizeSitePageSettings(
       secondaryCtaAr: toSafeString(source.homeHero?.secondaryCtaAr, 120) || defaults.homeHero.secondaryCtaAr,
       secondaryCtaHref: toSafeHref(source.homeHero?.secondaryCtaHref, defaults.homeHero.secondaryCtaHref),
       secondaryCtaColor: toHexColor(source.homeHero?.secondaryCtaColor, defaults.homeHero.secondaryCtaColor),
-      slideImages: hasExplicitSlideImages ? normalizedSlideImages : defaults.homeHero.slideImages,
+      backgroundMediaType,
+      backgroundImageSrc,
+      backgroundVideoSrc,
+      slideImages: selectedBackgroundSrc ? [selectedBackgroundSrc] : [],
       autoplayMs: toNumberInRange(source.homeHero?.autoplayMs, defaults.homeHero.autoplayMs, 2000, 12000),
     },
     homeCourses: {

@@ -35,7 +35,7 @@ export default async function ClassBookingPage({
 
   if (sessions.length === 0) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 py-12">
+      <div className="route-sharp mx-auto w-full max-w-5xl px-4 py-12">
         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
           <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">
             {locale === 'ar' ? 'لا توجد جلسات قادمة حالياً' : 'No upcoming sessions right now'}
@@ -52,7 +52,7 @@ export default async function ClassBookingPage({
 
   if (!hasBookableSession) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 py-12">
+      <div className="route-sharp mx-auto w-full max-w-5xl px-4 py-12">
         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
           <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">
             {locale === 'ar' ? 'كل الجلسات القادمة ممتلئة حالياً' : 'All upcoming sessions are currently full'}
@@ -68,33 +68,35 @@ export default async function ClassBookingPage({
   }
 
   return (
-    <ClassBookingClient
-      locale={locale}
-      slug={slug}
-      classData={{
-        id: classData.id,
-        title: classData.title,
-        titleAr: classData.titleAr,
-        price: classData.price,
-        currency: classData.currency,
-        subCategory: classData.subCategory,
-      }}
-      sessions={sessions.map((session) => ({
-        id: session.id,
-        startTime: session.startTime.toISOString(),
-        endTime: session.endTime ? session.endTime.toISOString() : null,
-        seatsTotal: session.seatsTotal,
-        seatsBooked: session.seatsBooked,
-        seatsAvailable: session.seatsAvailable,
-      }))}
-      initialSessionId={resolvedSearchParams.session}
-      currentUser={{
-        fullName: user.fullName,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : null,
-        preferredLanguage: user.preferredLanguage,
-      }}
-    />
+    <div className="route-sharp">
+      <ClassBookingClient
+        locale={locale}
+        slug={slug}
+        classData={{
+          id: classData.id,
+          title: classData.title,
+          titleAr: classData.titleAr,
+          price: classData.price,
+          currency: classData.currency,
+          subCategory: classData.subCategory,
+        }}
+        sessions={sessions.map((session) => ({
+          id: session.id,
+          startTime: session.startTime.toISOString(),
+          endTime: session.endTime ? session.endTime.toISOString() : null,
+          seatsTotal: session.seatsTotal,
+          seatsBooked: session.seatsBooked,
+          seatsAvailable: session.seatsAvailable,
+        }))}
+        initialSessionId={resolvedSearchParams.session}
+        currentUser={{
+          fullName: user.fullName,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+          dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : null,
+          preferredLanguage: user.preferredLanguage,
+        }}
+      />
+    </div>
   );
 }
