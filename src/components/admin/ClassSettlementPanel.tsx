@@ -208,11 +208,24 @@ export default function ClassSettlementPanel({
   const financePreview = useMemo(() => {
     if (!snapshot) return null;
 
+    const trainerPercent = snapshot.finance.trainerFee.percent;
+
     return calculateWorkshopFinanceBreakdown({
       grossRevenue,
       participantsCount: snapshot.summary.participantsCount,
       durationMinutes: Math.round(snapshot.finance.fixedCosts.durationHours * 60),
       materialsCostAmount: totalExpenseAmount,
+      costSettings: {
+        kitchenUsageRatePerHour: snapshot.finance.fixedCosts.kitchenUsageRatePerHour,
+        workshopContentRatePerParticipant: snapshot.finance.fixedCosts.workshopContentRatePerParticipant,
+      },
+      trainerShareTiers: [
+        {
+          minParticipants: 0,
+          maxParticipants: null,
+          percent: trainerPercent,
+        },
+      ],
     });
   }, [grossRevenue, snapshot, totalExpenseAmount]);
 

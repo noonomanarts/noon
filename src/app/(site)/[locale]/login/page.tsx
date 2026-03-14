@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 
 import { isLocale, type Locale } from "@/lib/locale";
 import { ensureDefaultAdmin, verifyLogin } from "@/lib/authStore";
-import ThemeToggle from "@/components/site/ThemeToggle";
 import WhatsAppAuthCard from "@/components/site/WhatsAppAuthCard";
 
 export default async function LoginPage({
@@ -20,6 +19,8 @@ export default async function LoginPage({
   const error = typeof queryParams.error === "string" ? queryParams.error : "";
   const logoutSuccess = queryParams.logout === 'success';
   const nextPathRaw = typeof queryParams.next === "string" ? queryParams.next : "";
+  const methodRaw = typeof queryParams.method === "string" ? queryParams.method : "";
+  const authMethod = methodRaw === "whatsapp" ? "whatsapp" : "password";
   const isValidNextPath =
     nextPathRaw.startsWith(`/${locale}/`) &&
     !nextPathRaw.startsWith("//") &&
@@ -84,27 +85,22 @@ export default async function LoginPage({
     signIn: locale === "ar" ? "تسجيل الدخول" : "Sign in",
     noAccount: locale === "ar" ? "ليس لديك حساب؟" : "Don't have an account?",
     createAccount: locale === "ar" ? "إنشاء حساب" : "Create one",
-    orWhatsApp: locale === "ar" ? "أو عبر واتساب" : "Or with WhatsApp",
+    tabPassword: locale === "ar" ? "الدخول بكلمة المرور" : "Password Login",
+    tabWhatsApp: locale === "ar" ? "الدخول عبر واتساب" : "WhatsApp Login",
     errorMessage: locale === "ar" ? "بيانات الدخول غير صحيحة" : "Invalid email or password",
     logoutSuccess: locale === 'ar' ? 'تم تسجيل الخروج بنجاح. يمكنك تسجيل الدخول مرة أخرى.' : 'You have been logged out successfully. You can sign in again.',
-    adminNote: locale === "ar" ? "ملاحظة: استخدم admin@noonomanarts.com / admin123 للتجربة" : "Note: Use admin@noonomanarts.com / admin123 for testing",
-    theme: locale === "ar" ? "المظهر" : "Theme",
-    themeLight: locale === "ar" ? "فاتح" : "Light",
-    themeDark: locale === "ar" ? "داكن" : "Dark",
-    themeSystem: locale === "ar" ? "حسب النظام" : "System",
   };
 
+  const passwordTabHref = nextPath
+    ? `/${locale}/login?method=password&next=${encodeURIComponent(nextPath)}`
+    : `/${locale}/login?method=password`;
+  const whatsappTabHref = nextPath
+    ? `/${locale}/login?method=whatsapp&next=${encodeURIComponent(nextPath)}`
+    : `/${locale}/login?method=whatsapp`;
+
   return (
-    <div className="min-h-dvh bg-[color:var(--muted)] px-4 py-12 dark:bg-zinc-950">
+    <div className="home-sharp bg-[color:var(--muted)] px-4 py-12 dark:bg-zinc-950">
       <div className="mx-auto w-full max-w-6xl">
-      <div className="mb-4 flex justify-end">
-        <ThemeToggle
-          label={t.theme}
-          lightLabel={t.themeLight}
-          darkLabel={t.themeDark}
-          systemLabel={t.themeSystem}
-        />
-      </div>
         <div className="mx-auto w-full max-w-xl">
           <div className="rounded-3xl border border-[color:var(--border)]/70 bg-[color:var(--surface)] p-8 shadow-lg dark:border-zinc-800/60 dark:bg-zinc-950">
           {/* Header */}
@@ -130,66 +126,74 @@ export default async function LoginPage({
             </div>
           ) : null}
 
-          {/* Admin Note */}
-          <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-200">
-            <div className="flex items-start gap-2">
-              <svg className="mt-0.5 size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{t.adminNote}</span>
-            </div>
-          </div>
-
-          {/* Login Form */}
-          <form action={handleLogin} className="grid gap-6">
-            <input type="hidden" name="locale" value={locale} />
-            <input type="hidden" name="nextPath" value={nextPath} />
-
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              <span className="flex items-center gap-1">
-                {t.identifier}
-                <span className="text-red-500">*</span>
-              </span>
-              <input
-                type="text"
-                name="identifier"
-                required
-                lang="en"
-                dir="ltr"
-                placeholder="name@example.com"
-                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-              />
-            </label>
-
-            <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-              <span className="flex items-center gap-1">
-                {t.password}
-                <span className="text-red-500">*</span>
-              </span>
-              <input
-                type="password"
-                name="password"
-                required
-                placeholder="••••••••"
-                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-              />
-            </label>
-
-            <button
-              type="submit"
-              className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-800 hover:shadow-xl hover:shadow-zinc-900/30 active:scale-[0.98] dark:bg-[color:var(--surface)] dark:text-[color:var(--text)] dark:shadow-white/20 dark:hover:bg-[color:var(--muted)] dark:hover:shadow-white/30"
+          <div className="mb-6 grid grid-cols-2 border border-zinc-300 dark:border-zinc-700">
+            <Link
+              href={passwordTabHref}
+              className={`px-3 py-2 text-center text-sm font-semibold transition ${
+                authMethod === "password"
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              }`}
             >
-              {t.signIn}
-            </button>
-          </form>
-
-          <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wide text-zinc-400 dark:text-[color:var(--text-subtle)]">
-            <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-            <span>{t.orWhatsApp}</span>
-            <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+              {t.tabPassword}
+            </Link>
+            <Link
+              href={whatsappTabHref}
+              className={`border-s border-zinc-300 px-3 py-2 text-center text-sm font-semibold transition dark:border-zinc-700 ${
+                authMethod === "whatsapp"
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              }`}
+            >
+              {t.tabWhatsApp}
+            </Link>
           </div>
 
-          <WhatsAppAuthCard locale={locale} purpose="login" />
+          {authMethod === "password" ? (
+            <form action={handleLogin} className="grid gap-6">
+              <input type="hidden" name="locale" value={locale} />
+              <input type="hidden" name="nextPath" value={nextPath} />
+
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <span className="flex items-center gap-1">
+                  {t.identifier}
+                  <span className="text-red-500">*</span>
+                </span>
+                <input
+                  type="text"
+                  name="identifier"
+                  required
+                  lang="en"
+                  dir="ltr"
+                  placeholder="name@example.com"
+                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
+                />
+              </label>
+
+              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <span className="flex items-center gap-1">
+                  {t.password}
+                  <span className="text-red-500">*</span>
+                </span>
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  placeholder="••••••••"
+                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
+                />
+              </label>
+
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-800 hover:shadow-xl hover:shadow-zinc-900/30 active:scale-[0.98] dark:bg-[color:var(--surface)] dark:text-[color:var(--text)] dark:shadow-white/20 dark:hover:bg-[color:var(--muted)] dark:hover:shadow-white/30"
+              >
+                {t.signIn}
+              </button>
+            </form>
+          ) : (
+            <WhatsAppAuthCard locale={locale} purpose="login" />
+          )}
 
           {/* Register Link */}
           <div className="mt-8 border-t border-[color:var(--border)] pt-6 text-center text-sm text-[color:var(--text-subtle)] dark:border-zinc-800 dark:text-zinc-400">

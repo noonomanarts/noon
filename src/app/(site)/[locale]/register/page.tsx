@@ -17,6 +17,8 @@ export default async function RegisterPage({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const queryParams = (await searchParams) ?? {};
   const error = typeof queryParams.error === "string" ? queryParams.error : "";
+  const methodRaw = typeof queryParams.method === "string" ? queryParams.method : "";
+  const authMethod = methodRaw === "whatsapp" ? "whatsapp" : "password";
 
   async function handleRegister(formData: FormData) {
     "use server";
@@ -108,7 +110,8 @@ export default async function RegisterPage({
     confirmPassword: locale === "ar" ? "تأكيد كلمة المرور" : "Confirm Password",
     passwordHint: locale === "ar" ? "يجب أن تكون 8 أحرف على الأقل" : "Must be at least 8 characters",
     register: locale === "ar" ? "إنشاء حساب" : "Create Account",
-    orWhatsApp: locale === "ar" ? "أو إنشاء حساب عبر واتساب" : "Or register with WhatsApp",
+    tabPassword: locale === "ar" ? "العضوية بكلمة المرور" : "Password Signup",
+    tabWhatsApp: locale === "ar" ? "العضوية عبر واتساب" : "WhatsApp Signup",
     haveAccount: locale === "ar" ? "لديك حساب بالفعل؟" : "Already have an account?",
     login: locale === "ar" ? "تسجيل الدخول" : "Sign in",
   };
@@ -123,8 +126,11 @@ export default async function RegisterPage({
     server_error: locale === "ar" ? "حدث خطأ، يرجى المحاولة مرة أخرى" : "An error occurred, please try again",
   };
 
+  const passwordTabHref = `/${locale}/register?method=password`;
+  const whatsappTabHref = `/${locale}/register?method=whatsapp`;
+
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-12">
+    <div className="home-sharp mx-auto w-full max-w-6xl px-4 py-12">
       <div className="mx-auto w-full max-w-2xl">
         <div className="rounded-3xl border border-[color:var(--border)]/70 bg-[color:var(--surface)] p-8 shadow-lg dark:border-zinc-800/60 dark:bg-zinc-950">
           {/* Header */}
@@ -137,15 +143,38 @@ export default async function RegisterPage({
             </p>
           </div>
 
+          <div className="mb-6 grid grid-cols-2 border border-zinc-300 dark:border-zinc-700">
+            <Link
+              href={passwordTabHref}
+              className={`px-3 py-2 text-center text-sm font-semibold transition ${
+                authMethod === "password"
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              }`}
+            >
+              {t.tabPassword}
+            </Link>
+            <Link
+              href={whatsappTabHref}
+              className={`border-s border-zinc-300 px-3 py-2 text-center text-sm font-semibold transition dark:border-zinc-700 ${
+                authMethod === "whatsapp"
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              }`}
+            >
+              {t.tabWhatsApp}
+            </Link>
+          </div>
+
           {/* Error Message */}
-          {error && error in errors ? (
+          {authMethod === "password" && error && error in errors ? (
             <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
               {errors[error as keyof typeof errors]}
             </div>
           ) : null}
 
-          {/* Registration Form */}
-          <form action={handleRegister} className="grid gap-6">
+          {authMethod === "password" ? (
+            <form action={handleRegister} className="grid gap-6">
             <input type="hidden" name="locale" value={locale} />
 
             {/* Name Fields */}
@@ -293,15 +322,10 @@ export default async function RegisterPage({
             >
               {t.register}
             </button>
-          </form>
-
-          <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-wide text-zinc-400 dark:text-[color:var(--text-subtle)]">
-            <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-            <span>{t.orWhatsApp}</span>
-            <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-          </div>
-
-          <WhatsAppAuthCard locale={locale} purpose="register" />
+            </form>
+          ) : (
+            <WhatsAppAuthCard locale={locale} purpose="register" />
+          )}
 
           {/* Login Link */}
           <div className="mt-8 border-t border-[color:var(--border)] pt-6 text-center text-sm text-[color:var(--text-subtle)] dark:border-zinc-800 dark:text-zinc-400">
