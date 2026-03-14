@@ -1,14 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import type { CSSProperties } from "react";
 
 import { type Locale } from "@/lib/locale";
 import { getUserById } from "@/lib/db/users";
-import {
-  defaultGeneralAdminSettings,
-  getAdminSettingsByKey,
-  type GeneralAdminSettings,
-} from "@/lib/db/adminSettings";
+import { getReadableTextColor, resolveHeaderColor } from "@/lib/headerBranding";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import { Dropdown } from "@/components/site/Dropdown";
 import SiteProfileMenu from "@/components/site/SiteProfileMenu";
@@ -20,15 +17,19 @@ function NavLink({
   href,
   children,
   variant = "panel",
+  tone = "dark",
 }: {
   href: string;
   children: React.ReactNode;
   variant?: "top" | "panel";
+  tone?: "dark" | "light";
 }) {
-  const topClasses =
-    "inline-flex h-11 items-center px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 hover:text-white";
-  const panelClasses =
-    "flex h-10 items-center px-3 text-sm font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--muted)]";
+  const topClasses = tone === "light"
+    ? "inline-flex h-11 items-center px-3 text-base font-extrabold text-[#23150f]/95 transition hover:bg-black/10 hover:text-[#23150f]"
+    : "inline-flex h-11 items-center px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 hover:text-white";
+  const panelClasses = tone === "light"
+    ? "flex h-10 items-center px-3 text-sm font-bold text-[#23150f]/95 transition hover:bg-black/10 hover:text-[#23150f]"
+    : "flex h-10 items-center px-3 text-sm font-bold text-white/95 transition hover:bg-white/14 hover:text-white";
 
   return (
     <Link
@@ -40,23 +41,6 @@ function NavLink({
   );
 }
 
-async function resolveHeaderColor(): Promise<string> {
-  try {
-    const savedGeneral = await getAdminSettingsByKey<Partial<GeneralAdminSettings>>("general");
-    const raw = (savedGeneral?.headerColor ?? defaultGeneralAdminSettings.headerColor).trim().toLowerCase();
-    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/.test(raw)) {
-      if (raw.length === 4) {
-        const [r, g, b] = raw.slice(1).split("");
-        return `#${r}${r}${g}${g}${b}${b}`;
-      }
-      return raw;
-    }
-    return defaultGeneralAdminSettings.headerColor;
-  } catch {
-    return defaultGeneralAdminSettings.headerColor;
-  }
-}
-
 export default async function Header({ locale }: { locale: Locale }) {
   // Check if user is logged in
   const cookieStore = await cookies();
@@ -66,6 +50,22 @@ export default async function Header({ locale }: { locale: Locale }) {
   const initialCart = parseCartCookie(cartCookie);
   const initialCartCount = initialCart.items.reduce((sum, item) => sum + item.quantity, 0);
   const headerColor = await resolveHeaderColor();
+  const navTone: "dark" | "light" = getReadableTextColor(headerColor) === "#23150f" ? "light" : "dark";
+  const dropdownButtonClass = navTone === "light"
+    ? "text-[#23150f]/95 hover:bg-black/10 focus-visible:outline-black/60"
+    : "text-white/95 hover:bg-white/14 focus-visible:outline-white/70";
+  const dropdownPanelClass = "mt-0 border-0 shadow-none";
+  const headerMenuStyle = {
+    backgroundColor: headerColor,
+  } as CSSProperties;
+  const headerMenuVars = {
+    backgroundColor: headerColor,
+    "--text": navTone === "light" ? "#23150f" : "#ffffff",
+    "--text-muted": navTone === "light" ? "rgba(35,21,15,0.86)" : "rgba(255,255,255,0.86)",
+    "--text-subtle": navTone === "light" ? "rgba(35,21,15,0.72)" : "rgba(255,255,255,0.72)",
+    "--muted": navTone === "light" ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.14)",
+    "--border": "transparent",
+  } as CSSProperties;
 
   const t = {
     about: locale === "ar" ? "من نحن" : "About",
@@ -109,28 +109,38 @@ export default async function Header({ locale }: { locale: Locale }) {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
-          <Dropdown label={t.classes}>
-            <NavLink href={`/${locale}/classes/cooking`}>{t.cooking}</NavLink>
-            <NavLink href={`/${locale}/classes/arts-crafts`}>{t.arts}</NavLink>
+          <Dropdown
+            label={t.classes}
+            buttonClassName={dropdownButtonClass}
+            panelClassName={dropdownPanelClass}
+            panelStyle={headerMenuStyle}
+          >
+            <NavLink href={`/${locale}/classes/cooking`} tone={navTone}>{t.cooking}</NavLink>
+            <NavLink href={`/${locale}/classes/arts-crafts`} tone={navTone}>{t.arts}</NavLink>
           </Dropdown>
 
-          <NavLink href={`/${locale}/shop`} variant="top">{t.shop}</NavLink>
+          <NavLink href={`/${locale}/shop`} variant="top" tone={navTone}>{t.shop}</NavLink>
 
-          <Dropdown label={t.group}>
-            <NavLink href={`/${locale}/group-booking-events/cooking-competition`}>
+          <Dropdown
+            label={t.group}
+            buttonClassName={dropdownButtonClass}
+            panelClassName={dropdownPanelClass}
+            panelStyle={headerMenuStyle}
+          >
+            <NavLink href={`/${locale}/group-booking-events/cooking-competition`} tone={navTone}>
               {t.competition}
             </NavLink>
-            <NavLink href={`/${locale}/group-booking-events/private-classes`}>
+            <NavLink href={`/${locale}/group-booking-events/private-classes`} tone={navTone}>
               {t.privateClasses}
             </NavLink>
-            <NavLink href={`/${locale}/group-booking-events/birthday-parties`}>
+            <NavLink href={`/${locale}/group-booking-events/birthday-parties`} tone={navTone}>
               {t.birthday}
             </NavLink>
           </Dropdown>
 
-          <NavLink href={`/${locale}/noon-recommends`} variant="top">{t.recommends}</NavLink>
-          <NavLink href={`/${locale}/about`} variant="top">{t.about}</NavLink>
-          <NavLink href={`/${locale}/contact`} variant="top">{t.contact}</NavLink>
+          <NavLink href={`/${locale}/noon-recommends`} variant="top" tone={navTone}>{t.recommends}</NavLink>
+          <NavLink href={`/${locale}/about`} variant="top" tone={navTone}>{t.about}</NavLink>
+          <NavLink href={`/${locale}/contact`} variant="top" tone={navTone}>{t.contact}</NavLink>
         </nav>
 
         <div className="ms-auto flex items-center gap-2">
@@ -139,7 +149,13 @@ export default async function Header({ locale }: { locale: Locale }) {
             lightLabel={t.themeLight}
             darkLabel={t.themeDark}
             systemLabel={t.themeSystem}
-            buttonClassName="inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
+            menuClassName="mt-0 border-0 bg-transparent shadow-none"
+            menuStyle={headerMenuVars}
+            buttonClassName={
+              navTone === "light"
+                ? "inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-[#23150f]/95 transition hover:bg-black/10"
+                : "inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
+            }
           />
 
           <HeaderLocaleLink locale={locale} />
@@ -152,33 +168,46 @@ export default async function Header({ locale }: { locale: Locale }) {
               fullName={user.fullName}
               role={user.role}
               profileImage={user.profileImage}
+              tone={navTone}
+              menuClassName="border-0 bg-transparent shadow-none"
+              menuStyle={headerMenuVars}
             />
           ) : (
             <Link
               href={`/${locale}/login`} 
-              className="inline-flex h-11 items-center justify-center px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
+              className={
+                navTone === "light"
+                  ? "inline-flex h-11 items-center justify-center px-3 text-base font-extrabold text-[#23150f]/95 transition hover:bg-black/10"
+                  : "inline-flex h-11 items-center justify-center px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
+              }
             >
               {t.login}
             </Link>
           )}
 
           <div className="md:hidden">
-            <Dropdown label={locale === "ar" ? "القائمة" : "Menu"} align="end">
-              <NavLink href={`/${locale}/classes/cooking`}>{t.cooking}</NavLink>
-              <NavLink href={`/${locale}/classes/arts-crafts`}>{t.arts}</NavLink>
-              <NavLink href={`/${locale}/shop`}>{t.shop}</NavLink>
-              <NavLink href={`/${locale}/group-booking-events/cooking-competition`}>
+            <Dropdown
+              label={locale === "ar" ? "القائمة" : "Menu"}
+              align="end"
+              buttonClassName={dropdownButtonClass}
+              panelClassName={dropdownPanelClass}
+              panelStyle={headerMenuStyle}
+            >
+              <NavLink href={`/${locale}/classes/cooking`} tone={navTone}>{t.cooking}</NavLink>
+              <NavLink href={`/${locale}/classes/arts-crafts`} tone={navTone}>{t.arts}</NavLink>
+              <NavLink href={`/${locale}/shop`} tone={navTone}>{t.shop}</NavLink>
+              <NavLink href={`/${locale}/group-booking-events/cooking-competition`} tone={navTone}>
                 {t.competition}
               </NavLink>
-              <NavLink href={`/${locale}/group-booking-events/private-classes`}>
+              <NavLink href={`/${locale}/group-booking-events/private-classes`} tone={navTone}>
                 {t.privateClasses}
               </NavLink>
-              <NavLink href={`/${locale}/group-booking-events/birthday-parties`}>
+              <NavLink href={`/${locale}/group-booking-events/birthday-parties`} tone={navTone}>
                 {t.birthday}
               </NavLink>
-              <NavLink href={`/${locale}/noon-recommends`}>{t.recommends}</NavLink>
-              <NavLink href={`/${locale}/about`}>{t.about}</NavLink>
-              <NavLink href={`/${locale}/contact`}>{t.contact}</NavLink>
+              <NavLink href={`/${locale}/noon-recommends`} tone={navTone}>{t.recommends}</NavLink>
+              <NavLink href={`/${locale}/about`} tone={navTone}>{t.about}</NavLink>
+              <NavLink href={`/${locale}/contact`} tone={navTone}>{t.contact}</NavLink>
             </Dropdown>
           </div>
         </div>

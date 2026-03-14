@@ -2,13 +2,16 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import {
   defaultClassFinanceAdminSettings,
+  defaultFooterAdminSettings,
   defaultGeneralAdminSettings,
   defaultWhatsAppFloatingButtonSettings,
   defaultWhatsAppAdminSettings,
   type ClassFinanceAdminSettings,
   type ClassFinanceCategorySettings,
+  type FooterAdminSettings,
   getAdminSettingsByKey,
   type GeneralAdminSettings,
+  sanitizeFooterAdminSettings,
   type WhatsAppFloatingButtonIcon,
   type WhatsAppFloatingButtonSettings,
   type WhatsAppAdminSettings,
@@ -163,11 +166,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const [savedGeneral, savedWhatsApp, savedClassFinance, savedWhatsAppFloatingButton] = await Promise.all([
+    const [savedGeneral, savedWhatsApp, savedClassFinance, savedWhatsAppFloatingButton, savedFooter] = await Promise.all([
       getAdminSettingsByKey<GeneralAdminSettings>('general'),
       getAdminSettingsByKey<WhatsAppAdminSettings>('whatsapp'),
       getAdminSettingsByKey<ClassFinanceAdminSettings>('class-finance'),
       getAdminSettingsByKey<WhatsAppFloatingButtonSettings>('whatsapp-floating-button'),
+      getAdminSettingsByKey<FooterAdminSettings>('footer'),
     ]);
 
     const general = sanitizeGeneralSettings(savedGeneral ?? defaultGeneralAdminSettings);
@@ -176,8 +180,9 @@ export async function GET() {
     const whatsappFloatingButton = sanitizeWhatsAppFloatingButtonSettings(
       savedWhatsAppFloatingButton ?? defaultWhatsAppFloatingButtonSettings
     );
+    const footer = sanitizeFooterAdminSettings(savedFooter ?? defaultFooterAdminSettings);
 
-    return NextResponse.json({ general, whatsapp, classFinance, whatsappFloatingButton });
+    return NextResponse.json({ general, whatsapp, classFinance, whatsappFloatingButton, footer });
   } catch (error) {
     console.error('Failed to load admin settings:', error);
     return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 });
@@ -196,13 +201,15 @@ export async function PUT(request: Request) {
       whatsapp?: Partial<WhatsAppAdminSettings>;
       classFinance?: Partial<ClassFinanceAdminSettings>;
       whatsappFloatingButton?: Partial<WhatsAppFloatingButtonSettings>;
+      footer?: Partial<FooterAdminSettings>;
     };
 
-    const [currentGeneral, currentWhatsApp, currentClassFinance, currentWhatsAppFloatingButton] = await Promise.all([
+    const [currentGeneral, currentWhatsApp, currentClassFinance, currentWhatsAppFloatingButton, currentFooter] = await Promise.all([
       getAdminSettingsByKey<GeneralAdminSettings>('general'),
       getAdminSettingsByKey<WhatsAppAdminSettings>('whatsapp'),
       getAdminSettingsByKey<ClassFinanceAdminSettings>('class-finance'),
       getAdminSettingsByKey<WhatsAppFloatingButtonSettings>('whatsapp-floating-button'),
+      getAdminSettingsByKey<FooterAdminSettings>('footer'),
     ]);
 
     const mergedGeneralInput = body.general
@@ -219,11 +226,15 @@ export async function PUT(request: Request) {
     const mergedWhatsAppFloatingButtonInput = body.whatsappFloatingButton
       ? { ...(currentWhatsAppFloatingButton ?? defaultWhatsAppFloatingButtonSettings), ...body.whatsappFloatingButton }
       : (currentWhatsAppFloatingButton ?? defaultWhatsAppFloatingButtonSettings);
+    const mergedFooterInput = body.footer
+      ? { ...(currentFooter ?? defaultFooterAdminSettings), ...body.footer }
+      : (currentFooter ?? defaultFooterAdminSettings);
 
     const general = sanitizeGeneralSettings(mergedGeneralInput);
     const whatsapp = sanitizeWhatsAppSettings(mergedWhatsAppInput);
     const classFinance = sanitizeClassFinanceSettings(mergedClassFinanceInput);
     const whatsappFloatingButton = sanitizeWhatsAppFloatingButtonSettings(mergedWhatsAppFloatingButtonInput);
+    const footer = sanitizeFooterAdminSettings(mergedFooterInput);
 
     await Promise.all([
       upsertAdminSettings({
@@ -246,9 +257,14 @@ export async function PUT(request: Request) {
         value: whatsappFloatingButton,
         updatedByUserId: admin.id,
       }),
+      upsertAdminSettings({
+        key: 'footer',
+        value: footer,
+        updatedByUserId: admin.id,
+      }),
     ]);
 
-    return NextResponse.json({ success: true, general, whatsapp, classFinance, whatsappFloatingButton });
+    return NextResponse.json({ success: true, general, whatsapp, classFinance, whatsappFloatingButton, footer });
   } catch (error) {
     console.error('Failed to update admin settings:', error);
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });

@@ -5,12 +5,15 @@ import { isLocale } from "@/lib/locale";
 import AdminSettingsPageClient from "@/components/admin/AdminSettingsPageClient";
 import {
   defaultClassFinanceAdminSettings,
+  defaultFooterAdminSettings,
   defaultGeneralAdminSettings,
   defaultWhatsAppFloatingButtonSettings,
   defaultWhatsAppAdminSettings,
   type ClassFinanceAdminSettings,
+  type FooterAdminSettings,
   getAdminSettingsByKey,
   type GeneralAdminSettings,
+  sanitizeFooterAdminSettings,
   type WhatsAppFloatingButtonSettings,
   type WhatsAppAdminSettings,
 } from "@/lib/db/adminSettings";
@@ -38,11 +41,12 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     redirect(`/${locale}/account`);
   }
 
-  const [savedGeneral, savedWhatsApp, savedClassFinance, savedWhatsAppFloatingButton] = await Promise.all([
+  const [savedGeneral, savedWhatsApp, savedClassFinance, savedWhatsAppFloatingButton, savedFooter] = await Promise.all([
     getAdminSettingsByKey<GeneralAdminSettings>("general"),
     getAdminSettingsByKey<WhatsAppAdminSettings>("whatsapp"),
     getAdminSettingsByKey<ClassFinanceAdminSettings>("class-finance"),
     getAdminSettingsByKey<WhatsAppFloatingButtonSettings>("whatsapp-floating-button"),
+    getAdminSettingsByKey<FooterAdminSettings>("footer"),
   ]);
 
   const initialGeneral = {
@@ -64,6 +68,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     ...defaultWhatsAppFloatingButtonSettings,
     ...(savedWhatsAppFloatingButton ?? {}),
   };
+  const initialFooter = sanitizeFooterAdminSettings(savedFooter ?? defaultFooterAdminSettings);
 
   return (
     <AdminSettingsPageClient
@@ -72,6 +77,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
       initialWhatsApp={initialWhatsApp}
       initialClassFinance={initialClassFinance}
       initialWhatsAppFloatingButton={initialWhatsAppFloatingButton}
+      initialFooter={initialFooter}
     />
   );
 }

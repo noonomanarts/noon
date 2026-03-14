@@ -46,6 +46,69 @@ export type HomeCoursesSettings = {
   artsIcon: "palette" | "craft" | "brush";
 };
 
+export type HomeUpcomingItemSettings = {
+  titleEn: string;
+  titleAr: string;
+  datetimeTextEn: string;
+  datetimeTextAr: string;
+  priceTextEn: string;
+  priceTextAr: string;
+  imageSrc: string;
+  href: string;
+};
+
+export type HomeUpcomingSettings = {
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
+  bookNowLabelEn: string;
+  bookNowLabelAr: string;
+  items: HomeUpcomingItemSettings[];
+};
+
+export type HomeNumbersItemSettings = {
+  valueEn: string;
+  valueAr: string;
+  labelEn: string;
+  labelAr: string;
+};
+
+export type HomeNumbersSettings = {
+  titleEn: string;
+  titleAr: string;
+  items: HomeNumbersItemSettings[];
+};
+
+export type HomeWhyNoonItemSettings = {
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
+};
+
+export type HomeWhyNoonSettings = {
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
+  items: HomeWhyNoonItemSettings[];
+};
+
+export type HomePartnerItemSettings = {
+  nameEn: string;
+  nameAr: string;
+  logoSrc: string;
+};
+
+export type HomePartnersSettings = {
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
+  items: HomePartnerItemSettings[];
+};
+
 export type SitePageDefinition = {
   key: string;
   pathTemplate: string;
@@ -80,6 +143,10 @@ export type SitePageSettings = {
   notes: string;
   homeHero: HomeHeroSettings;
   homeCourses: HomeCoursesSettings;
+  homeUpcoming: HomeUpcomingSettings;
+  homeWhyNoon: HomeWhyNoonSettings;
+  homePartners: HomePartnersSettings;
+  homeNumbers: HomeNumbersSettings;
   homeLayout: HomeLayoutSettings;
 };
 
@@ -555,6 +622,136 @@ function toSafeHref(value: unknown, fallback: string): string {
   return isInternal || isAbsolute ? normalized : fallback;
 }
 
+function sanitizeHomeNumbersItems(
+  value: unknown,
+  fallback: HomeNumbersItemSettings[]
+): HomeNumbersItemSettings[] {
+  const list = Array.isArray(value) ? value : [];
+
+  return fallback.map((fallbackItem, index) => {
+    const candidate = list[index];
+    const source =
+      candidate && typeof candidate === "object"
+        ? (candidate as Partial<HomeNumbersItemSettings>)
+        : {};
+
+    return {
+      valueEn: toSafeString(source.valueEn, 40) || fallbackItem.valueEn,
+      valueAr: toSafeString(source.valueAr, 40) || fallbackItem.valueAr,
+      labelEn: toSafeString(source.labelEn, 180) || fallbackItem.labelEn,
+      labelAr: toSafeString(source.labelAr, 180) || fallbackItem.labelAr,
+    };
+  });
+}
+
+function sanitizeHomeWhyNoonItems(
+  value: unknown,
+  fallback: HomeWhyNoonItemSettings[]
+): HomeWhyNoonItemSettings[] {
+  const list = Array.isArray(value) ? value : [];
+
+  return fallback.map((fallbackItem, index) => {
+    const candidate = list[index];
+    const source =
+      candidate && typeof candidate === "object"
+        ? (candidate as Partial<HomeWhyNoonItemSettings>)
+        : {};
+
+    return {
+      titleEn: toSafeString(source.titleEn, 180) || fallbackItem.titleEn,
+      titleAr: toSafeString(source.titleAr, 180) || fallbackItem.titleAr,
+      descriptionEn: toSafeString(source.descriptionEn, 500) || fallbackItem.descriptionEn,
+      descriptionAr: toSafeString(source.descriptionAr, 500) || fallbackItem.descriptionAr,
+    };
+  });
+}
+
+function sanitizeHomeUpcomingItems(
+  value: unknown,
+  fallback: HomeUpcomingItemSettings[]
+): HomeUpcomingItemSettings[] {
+  const list = Array.isArray(value) ? value : [];
+  const sourceList = list.length > 0 ? list : fallback;
+
+  const normalized = sourceList.map((candidate, index) => {
+    const fallbackItem =
+      fallback[index] ??
+      fallback[fallback.length - 1] ?? {
+        titleEn: `Upcoming Class ${index + 1}`,
+        titleAr: `دورة قادمة ${index + 1}`,
+        datetimeTextEn: "Jan 12 · 6:00 PM",
+        datetimeTextAr: "12 يناير · 6:00 مساءً",
+        priceTextEn: "OMR 25",
+        priceTextAr: "25 ر.ع",
+        imageSrc: "/og-image.png",
+        href: "/classes/cooking",
+      };
+    const source =
+      candidate && typeof candidate === "object"
+        ? (candidate as Partial<HomeUpcomingItemSettings>)
+        : {};
+
+    return {
+      titleEn: toSafeString(source.titleEn, 180) || fallbackItem.titleEn,
+      titleAr: toSafeString(source.titleAr, 180) || fallbackItem.titleAr,
+      datetimeTextEn: toSafeString(source.datetimeTextEn, 120) || fallbackItem.datetimeTextEn,
+      datetimeTextAr: toSafeString(source.datetimeTextAr, 120) || fallbackItem.datetimeTextAr,
+      priceTextEn: toSafeString(source.priceTextEn, 80) || fallbackItem.priceTextEn,
+      priceTextAr: toSafeString(source.priceTextAr, 80) || fallbackItem.priceTextAr,
+      imageSrc: toSafeString(source.imageSrc, 500) || fallbackItem.imageSrc,
+      href: toSafeHref(source.href, fallbackItem.href),
+    };
+  });
+
+  const filtered = normalized.filter(
+    (item) =>
+      Boolean(item.titleEn.trim()) ||
+      Boolean(item.titleAr.trim()) ||
+      Boolean(item.datetimeTextEn.trim()) ||
+      Boolean(item.datetimeTextAr.trim()) ||
+      Boolean(item.priceTextEn.trim()) ||
+      Boolean(item.priceTextAr.trim()) ||
+      Boolean(item.imageSrc.trim())
+  );
+
+  if (filtered.length === 0) return fallback;
+  return filtered;
+}
+
+function sanitizeHomePartnersItems(
+  value: unknown,
+  fallback: HomePartnerItemSettings[]
+): HomePartnerItemSettings[] {
+  const list = Array.isArray(value) ? value : [];
+  const sourceList = list.length > 0 ? list : fallback;
+  const normalized = sourceList.map((candidate, index) => {
+    const fallbackItem =
+      fallback[index] ??
+      fallback[fallback.length - 1] ?? {
+        nameEn: `Partner ${index + 1}`,
+        nameAr: `شريك ${index + 1}`,
+        logoSrc: "",
+      };
+    const source =
+      candidate && typeof candidate === "object"
+        ? (candidate as Partial<HomePartnerItemSettings>)
+        : {};
+
+    return {
+      nameEn: toSafeString(source.nameEn, 180) || fallbackItem.nameEn,
+      nameAr: toSafeString(source.nameAr, 180) || fallbackItem.nameAr,
+      logoSrc: toSafeString(source.logoSrc, 500),
+    };
+  });
+
+  const filtered = normalized.filter(
+    (item) => Boolean(item.nameEn.trim()) || Boolean(item.nameAr.trim()) || Boolean(item.logoSrc.trim())
+  );
+
+  if (filtered.length === 0) return fallback;
+  return filtered;
+}
+
 export function makeSitePageSettingsKey(pageKey: string): string {
   return `page:${pageKey}`;
 }
@@ -630,6 +827,96 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
       artsImageSrc: "/images/art.png",
       artsDisplayMode: "icon",
       artsIcon: "palette",
+    },
+    homeUpcoming: {
+      titleEn: "Upcoming classes",
+      titleAr: "الدورات القادمة",
+      descriptionEn: "Handpicked sessions you can book right away.",
+      descriptionAr: "جلسات قادمة جاهزة للحجز.",
+      bookNowLabelEn: "Book now",
+      bookNowLabelAr: "احجز الآن",
+      items: [],
+    },
+    homeWhyNoon: {
+      titleEn: "Why Noon",
+      titleAr: "لماذا نون",
+      descriptionEn: "What truly sets the Noon experience apart.",
+      descriptionAr: "ما الذي يجعل تجربة نون مختلفة فعلاً.",
+      items: [
+        {
+          titleEn: "Expert-Led Classes",
+          titleAr: "مدرّبون خبراء",
+          descriptionEn: "Taught by experienced instructors.",
+          descriptionAr: "بإشراف مدربين ذوي خبرة.",
+        },
+        {
+          titleEn: "Hands-On Learning",
+          titleAr: "تعلّم عملي",
+          descriptionEn: "Real cooking, real tools, real results.",
+          descriptionAr: "تجربة حقيقية بأدوات حقيقية ونتائج ملموسة.",
+        },
+        {
+          titleEn: "Community-Focused",
+          titleAr: "مجتمع مُرحّب",
+          descriptionEn: "A welcoming space for all skill levels.",
+          descriptionAr: "مساحة مناسبة لكل المستويات.",
+        },
+      ],
+    },
+    homePartners: {
+      titleEn: "Our partners",
+      titleAr: "شركاؤنا",
+      descriptionEn:
+        "We proudly collaborate with trusted brands that share our passion for quality and creativity.",
+      descriptionAr:
+        "نتعاون بفخر مع علامات موثوقة تشاركنا الشغف بالجودة والإبداع.",
+      items: [
+        {
+          nameEn: "Partner One",
+          nameAr: "شريك ١",
+          logoSrc: "",
+        },
+        {
+          nameEn: "Partner Two",
+          nameAr: "شريك ٢",
+          logoSrc: "",
+        },
+        {
+          nameEn: "Partner Three",
+          nameAr: "شريك ٣",
+          logoSrc: "",
+        },
+      ],
+    },
+    homeNumbers: {
+      titleEn: "Our numbers",
+      titleAr: "أرقامنا",
+      items: [
+        {
+          valueEn: "4500+",
+          valueAr: "4500+",
+          labelEn: "Students Trained",
+          labelAr: "متدرب",
+        },
+        {
+          valueEn: "200+",
+          valueAr: "200+",
+          labelEn: "Classes Conducted",
+          labelAr: "ورشة",
+        },
+        {
+          valueEn: "100+",
+          valueAr: "100+",
+          labelEn: "Corporate & Private Events",
+          labelAr: "فعالية خاصة وشركات",
+        },
+        {
+          valueEn: "7+",
+          valueAr: "7+",
+          labelEn: "Years of Experience",
+          labelAr: "سنوات خبرة",
+        },
+      ],
     },
     homeLayout: {
       showHero: true,
@@ -718,6 +1005,42 @@ export function sanitizeSitePageSettings(
         ["palette", "craft", "brush"] as const,
         defaults.homeCourses.artsIcon
       ),
+    },
+    homeUpcoming: {
+      titleEn: toSafeString(source.homeUpcoming?.titleEn, 180) || defaults.homeUpcoming.titleEn,
+      titleAr: toSafeString(source.homeUpcoming?.titleAr, 180) || defaults.homeUpcoming.titleAr,
+      descriptionEn:
+        toSafeString(source.homeUpcoming?.descriptionEn, 500) || defaults.homeUpcoming.descriptionEn,
+      descriptionAr:
+        toSafeString(source.homeUpcoming?.descriptionAr, 500) || defaults.homeUpcoming.descriptionAr,
+      bookNowLabelEn:
+        toSafeString(source.homeUpcoming?.bookNowLabelEn, 120) || defaults.homeUpcoming.bookNowLabelEn,
+      bookNowLabelAr:
+        toSafeString(source.homeUpcoming?.bookNowLabelAr, 120) || defaults.homeUpcoming.bookNowLabelAr,
+      items: sanitizeHomeUpcomingItems(source.homeUpcoming?.items, defaults.homeUpcoming.items),
+    },
+    homeWhyNoon: {
+      titleEn: toSafeString(source.homeWhyNoon?.titleEn, 180) || defaults.homeWhyNoon.titleEn,
+      titleAr: toSafeString(source.homeWhyNoon?.titleAr, 180) || defaults.homeWhyNoon.titleAr,
+      descriptionEn:
+        toSafeString(source.homeWhyNoon?.descriptionEn, 500) || defaults.homeWhyNoon.descriptionEn,
+      descriptionAr:
+        toSafeString(source.homeWhyNoon?.descriptionAr, 500) || defaults.homeWhyNoon.descriptionAr,
+      items: sanitizeHomeWhyNoonItems(source.homeWhyNoon?.items, defaults.homeWhyNoon.items),
+    },
+    homePartners: {
+      titleEn: toSafeString(source.homePartners?.titleEn, 180) || defaults.homePartners.titleEn,
+      titleAr: toSafeString(source.homePartners?.titleAr, 180) || defaults.homePartners.titleAr,
+      descriptionEn:
+        toSafeString(source.homePartners?.descriptionEn, 500) || defaults.homePartners.descriptionEn,
+      descriptionAr:
+        toSafeString(source.homePartners?.descriptionAr, 500) || defaults.homePartners.descriptionAr,
+      items: sanitizeHomePartnersItems(source.homePartners?.items, defaults.homePartners.items),
+    },
+    homeNumbers: {
+      titleEn: toSafeString(source.homeNumbers?.titleEn, 180) || defaults.homeNumbers.titleEn,
+      titleAr: toSafeString(source.homeNumbers?.titleAr, 180) || defaults.homeNumbers.titleAr,
+      items: sanitizeHomeNumbersItems(source.homeNumbers?.items, defaults.homeNumbers.items),
     },
     homeLayout: {
       showHero: toBoolean(source.homeLayout?.showHero, defaults.homeLayout.showHero),

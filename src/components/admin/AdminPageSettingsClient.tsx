@@ -111,6 +111,8 @@ export default function AdminPageSettingsClient({
   const [keywordsArText, setKeywordsArText] = useState(() => keywordsToText(initialSettings.keywordsAr));
   const [uploadingSlideKey, setUploadingSlideKey] = useState<string | null>(null);
   const [uploadingCourseImageKey, setUploadingCourseImageKey] = useState<"cooking" | "arts" | null>(null);
+  const [uploadingPartnerLogoIndex, setUploadingPartnerLogoIndex] = useState<number | null>(null);
+  const [uploadingUpcomingImageIndex, setUploadingUpcomingImageIndex] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -223,6 +225,81 @@ export default function AdminPageSettingsClient({
     cardImageUploadDone: isArabic ? "تم رفع الصورة." : "Image uploaded successfully.",
     cardImageUploadFailed: isArabic ? "فشل رفع الصورة." : "Image upload failed.",
     cardImagePlaceholder: isArabic ? "لا توجد صورة" : "No image",
+    homeUpcomingSection: isArabic ? "إعدادات قسم الدورات القادمة" : "Upcoming Classes Section Settings",
+    homeUpcomingHint: isArabic
+      ? "حرر عنوان القسم، الوصف، نص الزر، وأضف عددًا غير محدود من البطاقات."
+      : "Configure section title, subtitle, button label, and manage unlimited upcoming cards.",
+    upcomingTitleEn: isArabic ? "عنوان القسم (EN)" : "Section Title (EN)",
+    upcomingTitleAr: isArabic ? "عنوان القسم (AR)" : "Section Title (AR)",
+    upcomingDescriptionEn: isArabic ? "الوصف (EN)" : "Description (EN)",
+    upcomingDescriptionAr: isArabic ? "الوصف (AR)" : "Description (AR)",
+    upcomingBookNowLabelEn: isArabic ? "نص الزر (EN)" : "Button Label (EN)",
+    upcomingBookNowLabelAr: isArabic ? "نص الزر (AR)" : "Button Label (AR)",
+    upcomingCard: isArabic ? "بطاقة دورة" : "Upcoming Card",
+    upcomingCardTitleEn: isArabic ? "العنوان (EN)" : "Title (EN)",
+    upcomingCardTitleAr: isArabic ? "العنوان (AR)" : "Title (AR)",
+    upcomingCardDatetimeEn: isArabic ? "الوقت/التاريخ (EN)" : "Datetime (EN)",
+    upcomingCardDatetimeAr: isArabic ? "الوقت/التاريخ (AR)" : "Datetime (AR)",
+    upcomingCardPriceEn: isArabic ? "السعر (EN)" : "Price (EN)",
+    upcomingCardPriceAr: isArabic ? "السعر (AR)" : "Price (AR)",
+    upcomingCardImagePath: isArabic ? "مسار الصورة" : "Image Path",
+    upcomingCardLink: isArabic ? "رابط الحجز" : "Booking Link",
+    upcomingAdd: isArabic ? "إضافة بطاقة" : "Add Card",
+    upcomingRemove: isArabic ? "حذف البطاقة" : "Remove Card",
+    upcomingMoveUp: isArabic ? "أعلى" : "Up",
+    upcomingMoveDown: isArabic ? "أسفل" : "Down",
+    upcomingImageUpload: isArabic ? "رفع صورة" : "Upload Image",
+    upcomingImageUploading: isArabic ? "جارٍ رفع الصورة..." : "Uploading image...",
+    upcomingImageUploadDone: isArabic ? "تم رفع صورة الدورة." : "Upcoming image uploaded successfully.",
+    upcomingImageUploadFailed: isArabic ? "فشل رفع صورة الدورة." : "Failed to upload upcoming image.",
+    upcomingListEmpty: isArabic ? "لا توجد بطاقات حالياً. أضف أول بطاقة." : "No cards yet. Add your first card.",
+    homeWhyNoonSection: isArabic ? "إعدادات قسم لماذا نون" : "Why Noon Section Settings",
+    homeWhyNoonHint: isArabic
+      ? "تحكم بعنوان القسم، الوصف، وبطاقات لماذا نون."
+      : "Configure section heading, description, and Why Noon cards.",
+    whyNoonTitleEn: isArabic ? "العنوان (EN)" : "Title (EN)",
+    whyNoonTitleAr: isArabic ? "العنوان (AR)" : "Title (AR)",
+    whyNoonDescriptionEn: isArabic ? "الوصف (EN)" : "Description (EN)",
+    whyNoonDescriptionAr: isArabic ? "الوصف (AR)" : "Description (AR)",
+    whyNoonCard: isArabic ? "بطاقة سبب" : "Reason Card",
+    whyNoonCardTitleEn: isArabic ? "عنوان البطاقة (EN)" : "Card Title (EN)",
+    whyNoonCardTitleAr: isArabic ? "عنوان البطاقة (AR)" : "Card Title (AR)",
+    whyNoonCardDescriptionEn: isArabic ? "وصف البطاقة (EN)" : "Card Description (EN)",
+    whyNoonCardDescriptionAr: isArabic ? "وصف البطاقة (AR)" : "Card Description (AR)",
+    homePartnersSection: isArabic ? "إعدادات قسم الشركاء" : "Partners Section Settings",
+    homePartnersHint: isArabic
+      ? "حرر نص القسم وأسماء الشركاء وارفع شعاراتهم."
+      : "Edit section copy, partner names, and upload partner logos.",
+    partnersTitleEn: isArabic ? "العنوان (EN)" : "Title (EN)",
+    partnersTitleAr: isArabic ? "العنوان (AR)" : "Title (AR)",
+    partnersDescriptionEn: isArabic ? "الوصف (EN)" : "Description (EN)",
+    partnersDescriptionAr: isArabic ? "الوصف (AR)" : "Description (AR)",
+    partnerCard: isArabic ? "بطاقة شريك" : "Partner Card",
+    partnerNameEn: isArabic ? "اسم الشريك (EN)" : "Partner Name (EN)",
+    partnerNameAr: isArabic ? "اسم الشريك (AR)" : "Partner Name (AR)",
+    partnerLogoPath: isArabic ? "رابط الشعار" : "Logo Path",
+    partnerLogoUpload: isArabic ? "رفع شعار" : "Upload Logo",
+    partnerLogoUploading: isArabic ? "جارٍ رفع الشعار..." : "Uploading logo...",
+    partnerLogoUploadDone: isArabic ? "تم رفع شعار الشريك." : "Partner logo uploaded successfully.",
+    partnerLogoUploadFailed: isArabic ? "فشل رفع شعار الشريك." : "Failed to upload partner logo.",
+    partnerLogoPreview: isArabic ? "معاينة الشعار" : "Logo Preview",
+    partnerLogoRemove: isArabic ? "حذف الشعار" : "Remove Logo",
+    partnerAdd: isArabic ? "إضافة شريك" : "Add Partner",
+    partnerRemove: isArabic ? "حذف الشريك" : "Remove Partner",
+    partnerMoveUp: isArabic ? "أعلى" : "Up",
+    partnerMoveDown: isArabic ? "أسفل" : "Down",
+    partnerListEmpty: isArabic ? "لا يوجد شركاء بعد. أضف أول شريك." : "No partners yet. Add your first partner.",
+    homeNumbersSection: isArabic ? "إعدادات قسم الأرقام" : "Numbers Section Settings",
+    homeNumbersHint: isArabic
+      ? "يمكنك تعديل عنوان القسم والأرقام الأربع المعروضة فوق الفوتر في الصفحة الرئيسية."
+      : "Edit the section heading and four metrics shown above the footer on the homepage.",
+    numbersTitleEn: isArabic ? "عنوان القسم (EN)" : "Section Title (EN)",
+    numbersTitleAr: isArabic ? "عنوان القسم (AR)" : "Section Title (AR)",
+    metricCard: isArabic ? "بطاقة رقم" : "Metric Card",
+    metricValueEn: isArabic ? "القيمة (EN)" : "Value (EN)",
+    metricValueAr: isArabic ? "القيمة (AR)" : "Value (AR)",
+    metricLabelEn: isArabic ? "الوصف (EN)" : "Label (EN)",
+    metricLabelAr: isArabic ? "الوصف (AR)" : "Label (AR)",
     homeLayoutSection: isArabic ? "تخطيط الصفحة الرئيسية" : "Home Layout",
     homeLayoutHint: isArabic
       ? "تحكم بإظهار أقسام الصفحة الرئيسية من مكان واحد."
@@ -267,6 +344,161 @@ export default function AdminPageSettingsClient({
         slideImages: nextSlides.slice(0, 12),
       },
     }));
+  };
+
+  const setHomeNumberItem = (
+    index: number,
+    field: keyof SitePageSettings["homeNumbers"]["items"][number],
+    value: string
+  ) => {
+    setSettings((prev) => ({
+      ...prev,
+      homeNumbers: {
+        ...prev.homeNumbers,
+        items: prev.homeNumbers.items.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, [field]: value } : item
+        ),
+      },
+    }));
+  };
+
+  const setHomeUpcomingItem = (
+    index: number,
+    field: keyof SitePageSettings["homeUpcoming"]["items"][number],
+    value: string
+  ) => {
+    setSettings((prev) => ({
+      ...prev,
+      homeUpcoming: {
+        ...prev.homeUpcoming,
+        items: prev.homeUpcoming.items.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, [field]: value } : item
+        ),
+      },
+    }));
+  };
+
+  const addHomeUpcomingItem = () => {
+    setSettings((prev) => ({
+      ...prev,
+      homeUpcoming: {
+        ...prev.homeUpcoming,
+        items: [
+          ...prev.homeUpcoming.items,
+          {
+            titleEn: "",
+            titleAr: "",
+            datetimeTextEn: "",
+            datetimeTextAr: "",
+            priceTextEn: "",
+            priceTextAr: "",
+            imageSrc: "",
+            href: "/classes/cooking",
+          },
+        ],
+      },
+    }));
+  };
+
+  const removeHomeUpcomingItem = (index: number) => {
+    setSettings((prev) => ({
+      ...prev,
+      homeUpcoming: {
+        ...prev.homeUpcoming,
+        items: prev.homeUpcoming.items.filter((_, itemIndex) => itemIndex !== index),
+      },
+    }));
+  };
+
+  const moveHomeUpcomingItem = (index: number, direction: -1 | 1) => {
+    setSettings((prev) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= prev.homeUpcoming.items.length) return prev;
+      const next = [...prev.homeUpcoming.items];
+      const [item] = next.splice(index, 1);
+      next.splice(targetIndex, 0, item);
+
+      return {
+        ...prev,
+        homeUpcoming: {
+          ...prev.homeUpcoming,
+          items: next,
+        },
+      };
+    });
+  };
+
+  const setHomeWhyNoonItem = (
+    index: number,
+    field: keyof SitePageSettings["homeWhyNoon"]["items"][number],
+    value: string
+  ) => {
+    setSettings((prev) => ({
+      ...prev,
+      homeWhyNoon: {
+        ...prev.homeWhyNoon,
+        items: prev.homeWhyNoon.items.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, [field]: value } : item
+        ),
+      },
+    }));
+  };
+
+  const setHomePartnerItem = (
+    index: number,
+    field: keyof SitePageSettings["homePartners"]["items"][number],
+    value: string
+  ) => {
+    setSettings((prev) => ({
+      ...prev,
+      homePartners: {
+        ...prev.homePartners,
+        items: prev.homePartners.items.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, [field]: value } : item
+        ),
+      },
+    }));
+  };
+
+  const addHomePartnerItem = () => {
+    setSettings((prev) => ({
+      ...prev,
+      homePartners: {
+        ...prev.homePartners,
+        items: [
+          ...prev.homePartners.items,
+          { nameEn: "", nameAr: "", logoSrc: "" },
+        ],
+      },
+    }));
+  };
+
+  const removeHomePartnerItem = (index: number) => {
+    setSettings((prev) => ({
+      ...prev,
+      homePartners: {
+        ...prev.homePartners,
+        items: prev.homePartners.items.filter((_, itemIndex) => itemIndex !== index),
+      },
+    }));
+  };
+
+  const moveHomePartnerItem = (index: number, direction: -1 | 1) => {
+    setSettings((prev) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= prev.homePartners.items.length) return prev;
+      const next = [...prev.homePartners.items];
+      const [item] = next.splice(index, 1);
+      next.splice(targetIndex, 0, item);
+
+      return {
+        ...prev,
+        homePartners: {
+          ...prev.homePartners,
+          items: next,
+        },
+      };
+    });
   };
 
   const handleSlidePathChange = (index: number, value: string) => {
@@ -367,6 +599,56 @@ export default function AdminPageSettingsClient({
       setError(uploadError instanceof Error ? uploadError.message : t.cardImageUploadFailed);
     } finally {
       setUploadingCourseImageKey(null);
+    }
+  };
+
+  const handlePartnerLogoUpload = async (index: number, file: File | null) => {
+    if (!file) return;
+    setUploadingPartnerLogoIndex(index);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const url = await uploadImage(file, "home-partners", t.partnerLogoUploadFailed);
+      setSettings((prev) => ({
+        ...prev,
+        homePartners: {
+          ...prev.homePartners,
+          items: prev.homePartners.items.map((item, itemIndex) =>
+            itemIndex === index ? { ...item, logoSrc: url } : item
+          ),
+        },
+      }));
+      setInfo(t.partnerLogoUploadDone);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : t.partnerLogoUploadFailed);
+    } finally {
+      setUploadingPartnerLogoIndex(null);
+    }
+  };
+
+  const handleUpcomingImageUpload = async (index: number, file: File | null) => {
+    if (!file) return;
+    setUploadingUpcomingImageIndex(index);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const url = await uploadImage(file, "home-upcoming", t.upcomingImageUploadFailed);
+      setSettings((prev) => ({
+        ...prev,
+        homeUpcoming: {
+          ...prev.homeUpcoming,
+          items: prev.homeUpcoming.items.map((item, itemIndex) =>
+            itemIndex === index ? { ...item, imageSrc: url } : item
+          ),
+        },
+      }));
+      setInfo(t.upcomingImageUploadDone);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : t.upcomingImageUploadFailed);
+    } finally {
+      setUploadingUpcomingImageIndex(null);
     }
   };
 
@@ -1318,6 +1600,629 @@ export default function AdminPageSettingsClient({
                 <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{artsPreviewTitle}</p>
               </div>
             </div>
+          </div>
+        </section>
+      )}
+
+      {isHomePage && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.homeUpcomingSection}</h2>
+            <button
+              type="button"
+              onClick={addHomeUpcomingItem}
+              className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              <FiPlus className="size-3.5" />
+              {t.upcomingAdd}
+            </button>
+          </div>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.homeUpcomingHint}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingTitleEn}</span>
+              <input
+                value={settings.homeUpcoming.titleEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeUpcoming: { ...prev.homeUpcoming, titleEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingTitleAr}</span>
+              <input
+                value={settings.homeUpcoming.titleAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeUpcoming: { ...prev.homeUpcoming, titleAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingDescriptionEn}</span>
+              <textarea
+                rows={2}
+                value={settings.homeUpcoming.descriptionEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeUpcoming: { ...prev.homeUpcoming, descriptionEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingDescriptionAr}</span>
+              <textarea
+                rows={2}
+                value={settings.homeUpcoming.descriptionAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeUpcoming: { ...prev.homeUpcoming, descriptionAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingBookNowLabelEn}</span>
+              <input
+                value={settings.homeUpcoming.bookNowLabelEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeUpcoming: { ...prev.homeUpcoming, bookNowLabelEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingBookNowLabelAr}</span>
+              <input
+                value={settings.homeUpcoming.bookNowLabelAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeUpcoming: { ...prev.homeUpcoming, bookNowLabelAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {settings.homeUpcoming.items.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                {t.upcomingListEmpty}
+              </div>
+            ) : null}
+
+            {settings.homeUpcoming.items.map((item, index) => (
+              <div
+                key={`upcoming-item-${index}`}
+                className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-800/40"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    {t.upcomingCard} {index + 1}
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => moveHomeUpcomingItem(index, -1)}
+                      disabled={index === 0}
+                      className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    >
+                      <FiArrowUp className="size-3.5" />
+                      {t.upcomingMoveUp}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveHomeUpcomingItem(index, 1)}
+                      disabled={index === settings.homeUpcoming.items.length - 1}
+                      className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    >
+                      <FiArrowDown className="size-3.5" />
+                      {t.upcomingMoveDown}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeHomeUpcomingItem(index)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-800/70 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                    >
+                      <FiTrash2 className="size-3.5" />
+                      {t.upcomingRemove}
+                    </button>
+                  </div>
+                </div>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingCardTitleEn}</span>
+                  <input
+                    value={item.titleEn}
+                    onChange={(event) => setHomeUpcomingItem(index, "titleEn", event.target.value)}
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingCardTitleAr}</span>
+                  <input
+                    value={item.titleAr}
+                    onChange={(event) => setHomeUpcomingItem(index, "titleAr", event.target.value)}
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingCardDatetimeEn}</span>
+                    <input
+                      value={item.datetimeTextEn}
+                      onChange={(event) => setHomeUpcomingItem(index, "datetimeTextEn", event.target.value)}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingCardDatetimeAr}</span>
+                    <input
+                      value={item.datetimeTextAr}
+                      onChange={(event) => setHomeUpcomingItem(index, "datetimeTextAr", event.target.value)}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingCardPriceEn}</span>
+                    <input
+                      value={item.priceTextEn}
+                      onChange={(event) => setHomeUpcomingItem(index, "priceTextEn", event.target.value)}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingCardPriceAr}</span>
+                    <input
+                      value={item.priceTextAr}
+                      onChange={(event) => setHomeUpcomingItem(index, "priceTextAr", event.target.value)}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                </div>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingCardImagePath}</span>
+                  <div className="flex gap-2">
+                    <input
+                      value={item.imageSrc}
+                      onChange={(event) => setHomeUpcomingItem(index, "imageSrc", event.target.value)}
+                      placeholder="/uploads/home-upcoming/item.png"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                    <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                      <FiUpload className="size-3.5" />
+                      {uploadingUpcomingImageIndex === index ? t.upcomingImageUploading : t.upcomingImageUpload}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingUpcomingImageIndex !== null}
+                        onChange={(event) => {
+                          void handleUpcomingImageUpload(index, event.target.files?.[0] ?? null);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.upcomingCardLink}</span>
+                  <input
+                    value={item.href}
+                    onChange={(event) => setHomeUpcomingItem(index, "href", event.target.value)}
+                    placeholder="/classes/cooking"
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+                <div className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                  <p className="mb-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t.cardPreview}</p>
+                  <div className="flex h-24 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50">
+                    {item.imageSrc.trim() ? (
+                      <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url("${item.imageSrc}")` }} />
+                    ) : (
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">{t.cardImagePlaceholder}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {isHomePage && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.homeWhyNoonSection}</h2>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.homeWhyNoonHint}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.whyNoonTitleEn}</span>
+              <input
+                value={settings.homeWhyNoon.titleEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeWhyNoon: { ...prev.homeWhyNoon, titleEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.whyNoonTitleAr}</span>
+              <input
+                value={settings.homeWhyNoon.titleAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeWhyNoon: { ...prev.homeWhyNoon, titleAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.whyNoonDescriptionEn}</span>
+              <textarea
+                rows={2}
+                value={settings.homeWhyNoon.descriptionEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeWhyNoon: { ...prev.homeWhyNoon, descriptionEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.whyNoonDescriptionAr}</span>
+              <textarea
+                rows={2}
+                value={settings.homeWhyNoon.descriptionAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeWhyNoon: { ...prev.homeWhyNoon, descriptionAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            {settings.homeWhyNoon.items.map((item, index) => (
+              <div
+                key={`why-noon-item-${index}`}
+                className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-800/40"
+              >
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {t.whyNoonCard} {index + 1}
+                </h3>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.whyNoonCardTitleEn}</span>
+                  <input
+                    value={item.titleEn}
+                    onChange={(event) => setHomeWhyNoonItem(index, "titleEn", event.target.value)}
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.whyNoonCardTitleAr}</span>
+                  <input
+                    value={item.titleAr}
+                    onChange={(event) => setHomeWhyNoonItem(index, "titleAr", event.target.value)}
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.whyNoonCardDescriptionEn}</span>
+                  <textarea
+                    rows={2}
+                    value={item.descriptionEn}
+                    onChange={(event) => setHomeWhyNoonItem(index, "descriptionEn", event.target.value)}
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.whyNoonCardDescriptionAr}</span>
+                  <textarea
+                    rows={2}
+                    value={item.descriptionAr}
+                    onChange={(event) => setHomeWhyNoonItem(index, "descriptionAr", event.target.value)}
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {isHomePage && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.homePartnersSection}</h2>
+            <button
+              type="button"
+              onClick={addHomePartnerItem}
+              className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              <FiPlus className="size-3.5" />
+              {t.partnerAdd}
+            </button>
+          </div>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.homePartnersHint}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.partnersTitleEn}</span>
+              <input
+                value={settings.homePartners.titleEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homePartners: { ...prev.homePartners, titleEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.partnersTitleAr}</span>
+              <input
+                value={settings.homePartners.titleAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homePartners: { ...prev.homePartners, titleAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.partnersDescriptionEn}</span>
+              <textarea
+                rows={2}
+                value={settings.homePartners.descriptionEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homePartners: { ...prev.homePartners, descriptionEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.partnersDescriptionAr}</span>
+              <textarea
+                rows={2}
+                value={settings.homePartners.descriptionAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homePartners: { ...prev.homePartners, descriptionAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            {settings.homePartners.items.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                {t.partnerListEmpty}
+              </div>
+            ) : null}
+
+            {settings.homePartners.items.map((item, index) => (
+              <div
+                key={`partner-item-${index}`}
+                className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-800/40"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    {t.partnerCard} {index + 1}
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => moveHomePartnerItem(index, -1)}
+                      disabled={index === 0}
+                      className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    >
+                      <FiArrowUp className="size-3.5" />
+                      {t.partnerMoveUp}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveHomePartnerItem(index, 1)}
+                      disabled={index === settings.homePartners.items.length - 1}
+                      className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    >
+                      <FiArrowDown className="size-3.5" />
+                      {t.partnerMoveDown}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeHomePartnerItem(index)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-800/70 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                    >
+                      <FiTrash2 className="size-3.5" />
+                      {t.partnerRemove}
+                    </button>
+                  </div>
+                </div>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.partnerNameEn}</span>
+                  <input
+                    value={item.nameEn}
+                    onChange={(event) => setHomePartnerItem(index, "nameEn", event.target.value)}
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.partnerNameAr}</span>
+                  <input
+                    value={item.nameAr}
+                    onChange={(event) => setHomePartnerItem(index, "nameAr", event.target.value)}
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.partnerLogoPath}</span>
+                  <input
+                    value={item.logoSrc}
+                    onChange={(event) => setHomePartnerItem(index, "logoSrc", event.target.value)}
+                    placeholder="/uploads/home-partners/logo.png"
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                    <FiUpload className="size-3.5" />
+                    {uploadingPartnerLogoIndex === index ? t.partnerLogoUploading : t.partnerLogoUpload}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingPartnerLogoIndex !== null}
+                      onChange={(event) => {
+                        void handlePartnerLogoUpload(index, event.target.files?.[0] ?? null);
+                        event.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
+                  {item.logoSrc.trim() ? (
+                    <button
+                      type="button"
+                      onClick={() => setHomePartnerItem(index, "logoSrc", "")}
+                      className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-800/70 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                    >
+                      <FiTrash2 className="size-3.5" />
+                      {t.partnerLogoRemove}
+                    </button>
+                  ) : null}
+                </div>
+                <div className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                  <p className="mb-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t.partnerLogoPreview}</p>
+                  <div className="flex h-20 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50">
+                    {item.logoSrc.trim() ? (
+                      <div
+                        aria-label={isArabic ? item.nameAr || item.nameEn : item.nameEn || item.nameAr}
+                        className="h-12 w-full bg-contain bg-center bg-no-repeat"
+                        style={{ backgroundImage: `url("${item.logoSrc}")` }}
+                      />
+                    ) : (
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">{t.cardImagePlaceholder}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {isHomePage && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.homeNumbersSection}</h2>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.homeNumbersHint}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.numbersTitleEn}</span>
+              <input
+                value={settings.homeNumbers.titleEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeNumbers: { ...prev.homeNumbers, titleEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.numbersTitleAr}</span>
+              <input
+                value={settings.homeNumbers.titleAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeNumbers: { ...prev.homeNumbers, titleAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {settings.homeNumbers.items.map((item, index) => (
+              <div
+                key={`metric-${index}`}
+                className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-800/40"
+              >
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {t.metricCard} {index + 1}
+                </h3>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.metricValueEn}</span>
+                    <input
+                      value={item.valueEn}
+                      onChange={(event) => setHomeNumberItem(index, "valueEn", event.target.value)}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.metricValueAr}</span>
+                    <input
+                      value={item.valueAr}
+                      onChange={(event) => setHomeNumberItem(index, "valueAr", event.target.value)}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.metricLabelEn}</span>
+                    <input
+                      value={item.labelEn}
+                      onChange={(event) => setHomeNumberItem(index, "labelEn", event.target.value)}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.metricLabelAr}</span>
+                    <input
+                      value={item.labelAr}
+                      onChange={(event) => setHomeNumberItem(index, "labelAr", event.target.value)}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}

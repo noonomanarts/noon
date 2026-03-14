@@ -1,15 +1,22 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 
 export function Dropdown({
   label,
   children,
   align = "start",
+  buttonClassName,
+  panelClassName,
+  panelStyle,
 }: {
   label: string;
   children: React.ReactNode;
   align?: "start" | "end";
+  buttonClassName?: string;
+  panelClassName?: string;
+  panelStyle?: CSSProperties;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const detailsRef = useRef<HTMLDivElement>(null);
@@ -46,7 +53,10 @@ export function Dropdown({
     <div ref={detailsRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex h-11 cursor-pointer list-none items-center select-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+        className={[
+          "inline-flex h-11 cursor-pointer list-none items-center select-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70",
+          buttonClassName ?? "",
+        ].join(" ")}
       >
         <span className="inline-flex items-center gap-2">
           {label}
@@ -66,7 +76,11 @@ export function Dropdown({
       </button>
       {isOpen && (
         <div
-          className={`absolute ${alignClass} top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden bg-[color:var(--surface)]/98 p-2 shadow-xl`}
+          className={[
+            `absolute ${alignClass} top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden bg-[color:var(--surface)]/98 p-2 shadow-xl`,
+            panelClassName ?? "",
+          ].join(" ")}
+          style={panelStyle}
           onClick={() => setIsOpen(false)}
         >
           <div className="max-h-[70vh] overflow-auto">{children}</div>

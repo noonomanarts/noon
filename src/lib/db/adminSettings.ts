@@ -42,6 +42,55 @@ export type WhatsAppFloatingButtonSettings = {
   pulseEffect: boolean;
 };
 
+export type FooterAdminLink = {
+  labelEn: string;
+  labelAr: string;
+  href: string;
+  enabled: boolean;
+};
+
+export type FooterAdminSocialPlatform = 'instagram' | 'facebook';
+
+export type FooterAdminSocialLink = {
+  platform: FooterAdminSocialPlatform;
+  labelEn: string;
+  labelAr: string;
+  href: string;
+  enabled: boolean;
+};
+
+export type FooterAdminSettings = {
+  brandName: string;
+  brandSubtitle: string;
+  taglineEn: string;
+  taglineAr: string;
+  blurbEn: string;
+  blurbAr: string;
+  locationLabelEn: string;
+  locationLabelAr: string;
+  phoneLabelEn: string;
+  phoneLabelAr: string;
+  emailLabelEn: string;
+  emailLabelAr: string;
+  locationValue: string;
+  phoneValue: string;
+  emailValue: string;
+  navigateTitleEn: string;
+  navigateTitleAr: string;
+  legalTitleEn: string;
+  legalTitleAr: string;
+  followTitleEn: string;
+  followTitleAr: string;
+  rightsEn: string;
+  rightsAr: string;
+  copyrightNameEn: string;
+  copyrightNameAr: string;
+  navLinks: FooterAdminLink[];
+  legalLinks: FooterAdminLink[];
+  bottomLinks: FooterAdminLink[];
+  socialLinks: FooterAdminSocialLink[];
+};
+
 export type TrainerParticipantShareTier = {
   minParticipants: number;
   maxParticipants: number | null;
@@ -97,6 +146,67 @@ export const defaultWhatsAppFloatingButtonSettings: WhatsAppFloatingButtonSettin
   pulseEffect: true,
 };
 
+export const defaultFooterAdminSettings: FooterAdminSettings = {
+  brandName: 'Noon',
+  brandSubtitle: 'Noon Oman Arts',
+  taglineEn: 'Cooking and art experiences designed to be simple, inspiring, and memorable.',
+  taglineAr: 'تجارب طبخ وفنون مصممة لتكون بسيطة، ممتعة، وملهمة.',
+  blurbEn: 'Culinary classes, arts workshops, and private events crafted for families, teams, and communities.',
+  blurbAr: 'ورش الطبخ والفنون والفعاليات الخاصة بتجربة متقنة للعائلات والفرق والمجتمع.',
+  locationLabelEn: 'Location',
+  locationLabelAr: 'الموقع',
+  phoneLabelEn: 'Phone',
+  phoneLabelAr: 'الهاتف',
+  emailLabelEn: 'Email',
+  emailLabelAr: 'البريد الإلكتروني',
+  locationValue: 'Muscat, Oman',
+  phoneValue: '+968 98199508',
+  emailValue: 'info@noonomanarts.com',
+  navigateTitleEn: 'Navigate',
+  navigateTitleAr: 'تصفح',
+  legalTitleEn: 'Legal',
+  legalTitleAr: 'روابط قانونية',
+  followTitleEn: 'Follow us',
+  followTitleAr: 'تابعنا',
+  rightsEn: 'All rights reserved.',
+  rightsAr: 'جميع الحقوق محفوظة.',
+  copyrightNameEn: 'Noon.',
+  copyrightNameAr: 'نون.',
+  navLinks: [
+    { labelEn: 'Home', labelAr: 'الرئيسية', href: '/', enabled: true },
+    { labelEn: 'About Us', labelAr: 'من نحن', href: '/about', enabled: true },
+    { labelEn: 'Classes', labelAr: 'الدورات', href: '/classes', enabled: true },
+    { labelEn: 'Group Events', labelAr: 'فعاليات المجموعات', href: '/group-booking-events', enabled: true },
+    { labelEn: 'Noon Recommends', labelAr: 'توصيات نون', href: '/noon-recommends', enabled: true },
+    { labelEn: 'Contact Us', labelAr: 'تواصل معنا', href: '/contact', enabled: true },
+  ],
+  legalLinks: [
+    { labelEn: 'FAQs', labelAr: 'الأسئلة الشائعة', href: '/faqs', enabled: true },
+    { labelEn: 'Terms & Conditions', labelAr: 'الشروط والأحكام', href: '/terms', enabled: true },
+  ],
+  bottomLinks: [
+    { labelEn: 'FAQs', labelAr: 'الأسئلة الشائعة', href: '/faqs', enabled: true },
+    { labelEn: 'Terms & Conditions', labelAr: 'الشروط والأحكام', href: '/terms', enabled: true },
+    { labelEn: 'Contact Us', labelAr: 'تواصل معنا', href: '/contact', enabled: true },
+  ],
+  socialLinks: [
+    {
+      platform: 'instagram',
+      labelEn: 'Instagram',
+      labelAr: 'إنستغرام',
+      href: 'https://instagram.com/noonomanarts',
+      enabled: true,
+    },
+    {
+      platform: 'facebook',
+      labelEn: 'Facebook',
+      labelAr: 'فيسبوك',
+      href: 'https://facebook.com/noonomanarts',
+      enabled: true,
+    },
+  ],
+};
+
 export const defaultClassFinanceAdminSettings: ClassFinanceAdminSettings = {
   cooking: {
     kitchenUsageRatePerHour: 2.8,
@@ -119,6 +229,97 @@ export const defaultClassFinanceAdminSettings: ClassFinanceAdminSettings = {
     },
   ],
 };
+
+function sanitizeTextValue(value: unknown, fallback: string, maxLength: number): string {
+  if (typeof value !== 'string') return fallback;
+  return value.trim().slice(0, maxLength);
+}
+
+function sanitizeHrefValue(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') return fallback;
+  const normalized = value.trim().slice(0, 500);
+  return normalized || fallback;
+}
+
+function sanitizeFooterLink(value: unknown, fallback: FooterAdminLink): FooterAdminLink {
+  const input = value && typeof value === 'object' ? (value as Partial<FooterAdminLink>) : {};
+  return {
+    labelEn: sanitizeTextValue(input.labelEn, fallback.labelEn, 80),
+    labelAr: sanitizeTextValue(input.labelAr, fallback.labelAr, 80),
+    href: sanitizeHrefValue(input.href, fallback.href),
+    enabled: typeof input.enabled === 'boolean' ? input.enabled : fallback.enabled,
+  };
+}
+
+function sanitizeFooterSocialLink(
+  value: unknown,
+  fallback: FooterAdminSocialLink
+): FooterAdminSocialLink {
+  const input = value && typeof value === 'object' ? (value as Partial<FooterAdminSocialLink>) : {};
+  return {
+    platform: input.platform === 'facebook' || input.platform === 'instagram' ? input.platform : fallback.platform,
+    labelEn: sanitizeTextValue(input.labelEn, fallback.labelEn, 60),
+    labelAr: sanitizeTextValue(input.labelAr, fallback.labelAr, 60),
+    href: sanitizeHrefValue(input.href, fallback.href),
+    enabled: typeof input.enabled === 'boolean' ? input.enabled : fallback.enabled,
+  };
+}
+
+export function sanitizeFooterAdminSettings(input: Partial<FooterAdminSettings> | null | undefined): FooterAdminSettings {
+  const source = input ?? {};
+  const sourceNavLinks = Array.isArray(source.navLinks) ? source.navLinks : [];
+  const sourceLegalLinks = Array.isArray(source.legalLinks) ? source.legalLinks : [];
+  const sourceBottomLinks = Array.isArray(source.bottomLinks) ? source.bottomLinks : [];
+  const sourceSocialLinks = Array.isArray(source.socialLinks) ? source.socialLinks : [];
+
+  return {
+    brandName: sanitizeTextValue(source.brandName, defaultFooterAdminSettings.brandName, 80),
+    brandSubtitle: sanitizeTextValue(source.brandSubtitle, defaultFooterAdminSettings.brandSubtitle, 120),
+    taglineEn: sanitizeTextValue(source.taglineEn, defaultFooterAdminSettings.taglineEn, 240),
+    taglineAr: sanitizeTextValue(source.taglineAr, defaultFooterAdminSettings.taglineAr, 240),
+    blurbEn: sanitizeTextValue(source.blurbEn, defaultFooterAdminSettings.blurbEn, 320),
+    blurbAr: sanitizeTextValue(source.blurbAr, defaultFooterAdminSettings.blurbAr, 320),
+    locationLabelEn: sanitizeTextValue(source.locationLabelEn, defaultFooterAdminSettings.locationLabelEn, 50),
+    locationLabelAr: sanitizeTextValue(source.locationLabelAr, defaultFooterAdminSettings.locationLabelAr, 50),
+    phoneLabelEn: sanitizeTextValue(source.phoneLabelEn, defaultFooterAdminSettings.phoneLabelEn, 50),
+    phoneLabelAr: sanitizeTextValue(source.phoneLabelAr, defaultFooterAdminSettings.phoneLabelAr, 50),
+    emailLabelEn: sanitizeTextValue(source.emailLabelEn, defaultFooterAdminSettings.emailLabelEn, 50),
+    emailLabelAr: sanitizeTextValue(source.emailLabelAr, defaultFooterAdminSettings.emailLabelAr, 50),
+    locationValue: sanitizeTextValue(source.locationValue, defaultFooterAdminSettings.locationValue, 160),
+    phoneValue: sanitizeTextValue(source.phoneValue, defaultFooterAdminSettings.phoneValue, 40),
+    emailValue: sanitizeTextValue(source.emailValue, defaultFooterAdminSettings.emailValue, 180),
+    navigateTitleEn: sanitizeTextValue(source.navigateTitleEn, defaultFooterAdminSettings.navigateTitleEn, 50),
+    navigateTitleAr: sanitizeTextValue(source.navigateTitleAr, defaultFooterAdminSettings.navigateTitleAr, 50),
+    legalTitleEn: sanitizeTextValue(source.legalTitleEn, defaultFooterAdminSettings.legalTitleEn, 50),
+    legalTitleAr: sanitizeTextValue(source.legalTitleAr, defaultFooterAdminSettings.legalTitleAr, 50),
+    followTitleEn: sanitizeTextValue(source.followTitleEn, defaultFooterAdminSettings.followTitleEn, 50),
+    followTitleAr: sanitizeTextValue(source.followTitleAr, defaultFooterAdminSettings.followTitleAr, 50),
+    rightsEn: sanitizeTextValue(source.rightsEn, defaultFooterAdminSettings.rightsEn, 120),
+    rightsAr: sanitizeTextValue(source.rightsAr, defaultFooterAdminSettings.rightsAr, 120),
+    copyrightNameEn: sanitizeTextValue(
+      source.copyrightNameEn,
+      defaultFooterAdminSettings.copyrightNameEn,
+      70
+    ),
+    copyrightNameAr: sanitizeTextValue(
+      source.copyrightNameAr,
+      defaultFooterAdminSettings.copyrightNameAr,
+      70
+    ),
+    navLinks: defaultFooterAdminSettings.navLinks.map((fallback, index) =>
+      sanitizeFooterLink(sourceNavLinks[index], fallback)
+    ),
+    legalLinks: defaultFooterAdminSettings.legalLinks.map((fallback, index) =>
+      sanitizeFooterLink(sourceLegalLinks[index], fallback)
+    ),
+    bottomLinks: defaultFooterAdminSettings.bottomLinks.map((fallback, index) =>
+      sanitizeFooterLink(sourceBottomLinks[index], fallback)
+    ),
+    socialLinks: defaultFooterAdminSettings.socialLinks.map((fallback, index) =>
+      sanitizeFooterSocialLink(sourceSocialLinks[index], fallback)
+    ),
+  };
+}
 
 async function ensureAdminSettingsTable(): Promise<void> {
   if (adminSettingsTableReady) return;

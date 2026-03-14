@@ -7,12 +7,13 @@ import BackupSection from '@/components/admin/BackupSection';
 import type { Locale } from '@/lib/locale';
 import type {
   ClassFinanceAdminSettings,
+  FooterAdminSettings,
   GeneralAdminSettings,
   WhatsAppAdminSettings,
   WhatsAppFloatingButtonSettings,
 } from '@/lib/db/adminSettings';
 
-type TabId = 'general' | 'class-finance' | 'whatsapp' | 'whatsapp-floating-button' | 'backup';
+type TabId = 'general' | 'class-finance' | 'footer' | 'whatsapp' | 'whatsapp-floating-button' | 'backup';
 
 const NOON_HEADER_COLORS = [
   { key: 'coral', hex: '#f77d6b', labelEn: 'Coral', labelAr: 'كورال' },
@@ -64,12 +65,14 @@ export default function AdminSettingsPageClient({
   initialWhatsApp,
   initialClassFinance,
   initialWhatsAppFloatingButton,
+  initialFooter,
 }: {
   locale: Locale;
   initialGeneral: GeneralAdminSettings;
   initialWhatsApp: WhatsAppAdminSettings;
   initialClassFinance: ClassFinanceAdminSettings;
   initialWhatsAppFloatingButton: WhatsAppFloatingButtonSettings;
+  initialFooter: FooterAdminSettings;
 }) {
   const isArabic = locale === 'ar';
   const [activeTab, setActiveTab] = useState<TabId>('general');
@@ -79,6 +82,7 @@ export default function AdminSettingsPageClient({
   const [general, setGeneral] = useState<GeneralAdminSettings>(initialGeneral);
   const [whatsapp, setWhatsapp] = useState<WhatsAppAdminSettings>(initialWhatsApp);
   const [classFinance, setClassFinance] = useState<ClassFinanceAdminSettings>(initialClassFinance);
+  const [footer, setFooter] = useState<FooterAdminSettings>(initialFooter);
   const [whatsappFloatingButton, setWhatsAppFloatingButton] = useState<WhatsAppFloatingButtonSettings>(
     initialWhatsAppFloatingButton
   );
@@ -90,6 +94,7 @@ export default function AdminSettingsPageClient({
       : 'Centralized control for general configuration, class finance rules, and backup operations.',
     tabGeneral: isArabic ? 'الإعدادات العامة' : 'General Settings',
     tabClassFinance: isArabic ? 'مالية الكلاسات' : 'Class Finance',
+    tabFooter: isArabic ? 'إعدادات الفوتر' : 'Footer Settings',
     tabWhatsapp: isArabic ? 'إعدادات واتساب' : 'WhatsApp Settings',
     tabWhatsappFloatingButton: isArabic ? 'زر واتساب العائم' : 'Floating WhatsApp Button',
     tabBackup: isArabic ? 'النسخ الاحتياطي والاستعادة' : 'Backup & Restore',
@@ -165,6 +170,50 @@ export default function AdminSettingsPageClient({
     floatingMessageHint: isArabic
       ? 'تظهر هذه الرسالة تلقائياً عند فتح واتساب من الزر.'
       : 'This message is auto-filled when WhatsApp opens from the button.',
+    footerEditorTitle: isArabic ? 'إعدادات الفوتر' : 'Footer Content Settings',
+    footerEditorHint: isArabic
+      ? 'تحكم كامل بكل محتوى الفوتر: النصوص، معلومات التواصل، الروابط، والسوشال.'
+      : 'Manage all footer content: copy, contact information, links, and social items.',
+    footerBrandSection: isArabic ? 'الهوية والنصوص' : 'Brand & Text',
+    footerContactSection: isArabic ? 'معلومات التواصل' : 'Contact Details',
+    footerLinksSection: isArabic ? 'روابط الفوتر' : 'Footer Links',
+    footerSocialSection: isArabic ? 'روابط التواصل الاجتماعي' : 'Social Links',
+    footerMetaSection: isArabic ? 'حقوق النشر' : 'Copyright Line',
+    footerBrandName: isArabic ? 'اسم العلامة' : 'Brand Name',
+    footerBrandSubtitle: isArabic ? 'وصف قصير تحت الاسم' : 'Brand Subtitle',
+    footerTaglineEn: isArabic ? 'الوصف (English)' : 'Tagline (English)',
+    footerTaglineAr: isArabic ? 'الوصف (Arabic)' : 'Tagline (Arabic)',
+    footerBlurbEn: isArabic ? 'نص إضافي (English)' : 'Blurb (English)',
+    footerBlurbAr: isArabic ? 'نص إضافي (Arabic)' : 'Blurb (Arabic)',
+    footerLocationLabelEn: isArabic ? 'عنوان الموقع (English)' : 'Location Label (English)',
+    footerLocationLabelAr: isArabic ? 'عنوان الموقع (Arabic)' : 'Location Label (Arabic)',
+    footerPhoneLabelEn: isArabic ? 'عنوان الهاتف (English)' : 'Phone Label (English)',
+    footerPhoneLabelAr: isArabic ? 'عنوان الهاتف (Arabic)' : 'Phone Label (Arabic)',
+    footerEmailLabelEn: isArabic ? 'عنوان البريد (English)' : 'Email Label (English)',
+    footerEmailLabelAr: isArabic ? 'عنوان البريد (Arabic)' : 'Email Label (Arabic)',
+    footerLocationValue: isArabic ? 'الموقع الفعلي' : 'Location Value',
+    footerPhoneValue: isArabic ? 'رقم الهاتف' : 'Phone Value',
+    footerEmailValue: isArabic ? 'البريد الإلكتروني' : 'Email Value',
+    footerNavigateTitleEn: isArabic ? 'عنوان التصفح (English)' : 'Navigate Title (English)',
+    footerNavigateTitleAr: isArabic ? 'عنوان التصفح (Arabic)' : 'Navigate Title (Arabic)',
+    footerLegalTitleEn: isArabic ? 'عنوان القانوني (English)' : 'Legal Title (English)',
+    footerLegalTitleAr: isArabic ? 'عنوان القانوني (Arabic)' : 'Legal Title (Arabic)',
+    footerFollowTitleEn: isArabic ? 'عنوان المتابعة (English)' : 'Follow Title (English)',
+    footerFollowTitleAr: isArabic ? 'عنوان المتابعة (Arabic)' : 'Follow Title (Arabic)',
+    footerRightsEn: isArabic ? 'جملة الحقوق (English)' : 'Rights Text (English)',
+    footerRightsAr: isArabic ? 'جملة الحقوق (Arabic)' : 'Rights Text (Arabic)',
+    footerCopyrightNameEn: isArabic ? 'اسم الحقوق (English)' : 'Copyright Name (English)',
+    footerCopyrightNameAr: isArabic ? 'اسم الحقوق (Arabic)' : 'Copyright Name (Arabic)',
+    footerNavLinks: isArabic ? 'روابط التصفح' : 'Navigate Links',
+    footerLegalLinks: isArabic ? 'الروابط القانونية' : 'Legal Links',
+    footerBottomLinks: isArabic ? 'روابط أسفل الفوتر' : 'Bottom Row Links',
+    footerLinkLabelEn: isArabic ? 'العنوان EN' : 'Label EN',
+    footerLinkLabelAr: isArabic ? 'العنوان AR' : 'Label AR',
+    footerLinkHref: isArabic ? 'الرابط' : 'Href',
+    footerLinkEnabled: isArabic ? 'إظهار' : 'Show',
+    footerPlatform: isArabic ? 'المنصة' : 'Platform',
+    footerPlatformInstagram: isArabic ? 'إنستغرام' : 'Instagram',
+    footerPlatformFacebook: isArabic ? 'فيسبوك' : 'Facebook',
     save: isArabic ? 'حفظ الإعدادات' : 'Save Settings',
     saving: isArabic ? 'جارٍ الحفظ...' : 'Saving...',
     saved: isArabic ? 'تم حفظ الإعدادات بنجاح.' : 'Settings saved successfully.',
@@ -297,6 +346,57 @@ export default function AdminSettingsPageClient({
     }
   };
 
+  const handleSaveFooter = async () => {
+    setSaving(true);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ footer }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        footer?: FooterAdminSettings;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.footer) {
+        throw new Error(payload.error || t.loadError);
+      }
+
+      setFooter(payload.footer);
+      setInfo(t.saved);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : t.loadError);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateFooterLink = (
+    list: 'navLinks' | 'legalLinks' | 'bottomLinks',
+    index: number,
+    patch: Partial<FooterAdminSettings['navLinks'][number]>
+  ) => {
+    setFooter((prev) => {
+      const next = prev[list].map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item));
+      return { ...prev, [list]: next } as FooterAdminSettings;
+    });
+  };
+
+  const updateFooterSocial = (
+    index: number,
+    patch: Partial<FooterAdminSettings['socialLinks'][number]>
+  ) => {
+    setFooter((prev) => ({
+      ...prev,
+      socialLinks: prev.socialLinks.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)),
+    }));
+  };
+
   const updateTier = (index: number, key: 'minParticipants' | 'maxParticipants' | 'percent', value: number | null) => {
     setClassFinance((prev) => ({
       ...prev,
@@ -327,6 +427,7 @@ export default function AdminSettingsPageClient({
             {[
               ['general', t.tabGeneral],
               ['class-finance', t.tabClassFinance],
+              ['footer', t.tabFooter],
               ['whatsapp', t.tabWhatsapp],
               ['whatsapp-floating-button', t.tabWhatsappFloatingButton],
               ['backup', t.tabBackup],
@@ -492,6 +593,160 @@ export default function AdminSettingsPageClient({
                 </div>
               </section>
               <div className="flex justify-end"><button type="button" onClick={() => void handleSaveClassFinance()} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60">{saving ? t.saving : t.save}</button></div>
+            </div>
+          ) : activeTab === 'footer' ? (
+            <div className="space-y-6">
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <FiSettings className="size-4 text-[color:var(--noon-teal)]" />
+                  <span>{t.footerEditorTitle}</span>
+                </div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.footerEditorHint}</p>
+              </section>
+
+              <section className="space-y-4">
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.footerBrandSection}</div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.footerBrandName}</span>
+                    <input value={footer.brandName} onChange={(e) => setFooter((prev) => ({ ...prev, brandName: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.footerBrandSubtitle}</span>
+                    <input value={footer.brandSubtitle} onChange={(e) => setFooter((prev) => ({ ...prev, brandSubtitle: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                  </label>
+                  <label className="space-y-1 text-sm md:col-span-2">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.footerTaglineEn}</span>
+                    <textarea rows={2} value={footer.taglineEn} onChange={(e) => setFooter((prev) => ({ ...prev, taglineEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                  </label>
+                  <label className="space-y-1 text-sm md:col-span-2">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.footerTaglineAr}</span>
+                    <textarea rows={2} value={footer.taglineAr} onChange={(e) => setFooter((prev) => ({ ...prev, taglineAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                  </label>
+                  <label className="space-y-1 text-sm md:col-span-2">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.footerBlurbEn}</span>
+                    <textarea rows={3} value={footer.blurbEn} onChange={(e) => setFooter((prev) => ({ ...prev, blurbEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                  </label>
+                  <label className="space-y-1 text-sm md:col-span-2">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.footerBlurbAr}</span>
+                    <textarea rows={3} value={footer.blurbAr} onChange={(e) => setFooter((prev) => ({ ...prev, blurbAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                  </label>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.footerContactSection}</div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerLocationLabelEn}</span><input value={footer.locationLabelEn} onChange={(e) => setFooter((prev) => ({ ...prev, locationLabelEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerLocationLabelAr}</span><input value={footer.locationLabelAr} onChange={(e) => setFooter((prev) => ({ ...prev, locationLabelAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerPhoneLabelEn}</span><input value={footer.phoneLabelEn} onChange={(e) => setFooter((prev) => ({ ...prev, phoneLabelEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerPhoneLabelAr}</span><input value={footer.phoneLabelAr} onChange={(e) => setFooter((prev) => ({ ...prev, phoneLabelAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerEmailLabelEn}</span><input value={footer.emailLabelEn} onChange={(e) => setFooter((prev) => ({ ...prev, emailLabelEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerEmailLabelAr}</span><input value={footer.emailLabelAr} onChange={(e) => setFooter((prev) => ({ ...prev, emailLabelAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerLocationValue}</span><input value={footer.locationValue} onChange={(e) => setFooter((prev) => ({ ...prev, locationValue: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerPhoneValue}</span><input value={footer.phoneValue} onChange={(e) => setFooter((prev) => ({ ...prev, phoneValue: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm md:col-span-2"><span className="text-zinc-600 dark:text-zinc-300">{t.footerEmailValue}</span><input value={footer.emailValue} onChange={(e) => setFooter((prev) => ({ ...prev, emailValue: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.footerMetaSection}</div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerNavigateTitleEn}</span><input value={footer.navigateTitleEn} onChange={(e) => setFooter((prev) => ({ ...prev, navigateTitleEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerNavigateTitleAr}</span><input value={footer.navigateTitleAr} onChange={(e) => setFooter((prev) => ({ ...prev, navigateTitleAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerLegalTitleEn}</span><input value={footer.legalTitleEn} onChange={(e) => setFooter((prev) => ({ ...prev, legalTitleEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerLegalTitleAr}</span><input value={footer.legalTitleAr} onChange={(e) => setFooter((prev) => ({ ...prev, legalTitleAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerFollowTitleEn}</span><input value={footer.followTitleEn} onChange={(e) => setFooter((prev) => ({ ...prev, followTitleEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerFollowTitleAr}</span><input value={footer.followTitleAr} onChange={(e) => setFooter((prev) => ({ ...prev, followTitleAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerRightsEn}</span><input value={footer.rightsEn} onChange={(e) => setFooter((prev) => ({ ...prev, rightsEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerRightsAr}</span><input value={footer.rightsAr} onChange={(e) => setFooter((prev) => ({ ...prev, rightsAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerCopyrightNameEn}</span><input value={footer.copyrightNameEn} onChange={(e) => setFooter((prev) => ({ ...prev, copyrightNameEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerCopyrightNameAr}</span><input value={footer.copyrightNameAr} onChange={(e) => setFooter((prev) => ({ ...prev, copyrightNameAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.footerLinksSection}</div>
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                    <h3 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.footerNavLinks}</h3>
+                    <div className="space-y-3">
+                      {footer.navLinks.map((item, index) => (
+                        <div key={`footer-nav-${index}`} className="grid gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700 md:grid-cols-[1fr_1fr_1.4fr_auto]">
+                          <input value={item.labelEn} onChange={(e) => updateFooterLink('navLinks', index, { labelEn: e.target.value })} placeholder={t.footerLinkLabelEn} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                          <input value={item.labelAr} onChange={(e) => updateFooterLink('navLinks', index, { labelAr: e.target.value })} placeholder={t.footerLinkLabelAr} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                          <input value={item.href} onChange={(e) => updateFooterLink('navLinks', index, { href: e.target.value })} placeholder={t.footerLinkHref} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm font-mono focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                          <label className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold dark:border-zinc-700">
+                            <span>{t.footerLinkEnabled}</span>
+                            <button type="button" onClick={() => updateFooterLink('navLinks', index, { enabled: !item.enabled })} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.enabled ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal)]' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'}`}>{item.enabled ? t.on : t.off}</button>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                    <h3 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.footerLegalLinks}</h3>
+                    <div className="space-y-3">
+                      {footer.legalLinks.map((item, index) => (
+                        <div key={`footer-legal-${index}`} className="grid gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700 md:grid-cols-[1fr_1fr_1.4fr_auto]">
+                          <input value={item.labelEn} onChange={(e) => updateFooterLink('legalLinks', index, { labelEn: e.target.value })} placeholder={t.footerLinkLabelEn} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                          <input value={item.labelAr} onChange={(e) => updateFooterLink('legalLinks', index, { labelAr: e.target.value })} placeholder={t.footerLinkLabelAr} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                          <input value={item.href} onChange={(e) => updateFooterLink('legalLinks', index, { href: e.target.value })} placeholder={t.footerLinkHref} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm font-mono focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                          <label className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold dark:border-zinc-700">
+                            <span>{t.footerLinkEnabled}</span>
+                            <button type="button" onClick={() => updateFooterLink('legalLinks', index, { enabled: !item.enabled })} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.enabled ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal)]' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'}`}>{item.enabled ? t.on : t.off}</button>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                    <h3 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.footerBottomLinks}</h3>
+                    <div className="space-y-3">
+                      {footer.bottomLinks.map((item, index) => (
+                        <div key={`footer-bottom-${index}`} className="grid gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700 md:grid-cols-[1fr_1fr_1.4fr_auto]">
+                          <input value={item.labelEn} onChange={(e) => updateFooterLink('bottomLinks', index, { labelEn: e.target.value })} placeholder={t.footerLinkLabelEn} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                          <input value={item.labelAr} onChange={(e) => updateFooterLink('bottomLinks', index, { labelAr: e.target.value })} placeholder={t.footerLinkLabelAr} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                          <input value={item.href} onChange={(e) => updateFooterLink('bottomLinks', index, { href: e.target.value })} placeholder={t.footerLinkHref} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm font-mono focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                          <label className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold dark:border-zinc-700">
+                            <span>{t.footerLinkEnabled}</span>
+                            <button type="button" onClick={() => updateFooterLink('bottomLinks', index, { enabled: !item.enabled })} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.enabled ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal)]' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'}`}>{item.enabled ? t.on : t.off}</button>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.footerSocialSection}</div>
+                <div className="space-y-3">
+                  {footer.socialLinks.map((item, index) => (
+                    <div key={`footer-social-${index}`} className="grid gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700 md:grid-cols-[0.75fr_1fr_1fr_1.4fr_auto]">
+                      <select value={item.platform} onChange={(e) => updateFooterSocial(index, { platform: e.target.value === 'facebook' ? 'facebook' : 'instagram' })} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
+                        <option value="instagram">{t.footerPlatformInstagram}</option>
+                        <option value="facebook">{t.footerPlatformFacebook}</option>
+                      </select>
+                      <input value={item.labelEn} onChange={(e) => updateFooterSocial(index, { labelEn: e.target.value })} placeholder={t.footerLinkLabelEn} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                      <input value={item.labelAr} onChange={(e) => updateFooterSocial(index, { labelAr: e.target.value })} placeholder={t.footerLinkLabelAr} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                      <input value={item.href} onChange={(e) => updateFooterSocial(index, { href: e.target.value })} placeholder={t.footerLinkHref} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm font-mono focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                      <label className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold dark:border-zinc-700">
+                        <span>{t.footerLinkEnabled}</span>
+                        <button type="button" onClick={() => updateFooterSocial(index, { enabled: !item.enabled })} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.enabled ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal)]' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'}`}>{item.enabled ? t.on : t.off}</button>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <div className="flex justify-end">
+                <button type="button" onClick={() => void handleSaveFooter()} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60">
+                  {saving ? t.saving : t.save}
+                </button>
+              </div>
             </div>
           ) : activeTab === 'whatsapp' ? (
             <div className="space-y-6">

@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type ThemePreference = "light" | "dark" | "system";
@@ -11,6 +12,7 @@ type Props = {
   systemLabel: string;
   buttonClassName?: string;
   menuClassName?: string;
+  menuStyle?: CSSProperties;
   showLabel?: boolean;
 };
 
@@ -48,6 +50,7 @@ export default function ThemeToggle({
   systemLabel,
   buttonClassName,
   menuClassName,
+  menuStyle,
   showLabel = false,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
@@ -167,6 +170,7 @@ export default function ThemeToggle({
             "absolute end-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-1.5 shadow-xl",
             menuClassName ?? "",
           ].join(" ")}
+          style={menuStyle}
         >
           <div className="space-y-0.5">
             <Option

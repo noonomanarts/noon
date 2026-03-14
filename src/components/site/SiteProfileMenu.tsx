@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { FiChevronDown, FiGrid, FiSettings, FiUser } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
@@ -12,9 +13,20 @@ interface SiteProfileMenuProps {
   fullName: string;
   role: 'ADMIN' | 'TRAINER' | 'CUSTOMER';
   profileImage?: string | null;
+  tone?: 'light' | 'dark';
+  menuClassName?: string;
+  menuStyle?: CSSProperties;
 }
 
-export default function SiteProfileMenu({ locale, fullName, role, profileImage }: SiteProfileMenuProps) {
+export default function SiteProfileMenu({
+  locale,
+  fullName,
+  role,
+  profileImage,
+  tone = 'dark',
+  menuClassName,
+  menuStyle,
+}: SiteProfileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const isArabic = locale === 'ar';
@@ -30,6 +42,13 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
   };
 
   const initial = fullName.trim().charAt(0).toUpperCase() || 'U';
+  const buttonTextClass = tone === 'light' ? 'text-[#23150f]/95' : 'text-white/95';
+  const buttonHoverClass = tone === 'light' ? 'hover:bg-black/10' : 'hover:bg-white/14';
+  const chevronClass = tone === 'light' ? 'text-[#23150f]/75' : 'text-white/80';
+  const logoutClass =
+    tone === 'light'
+      ? 'mt-1 flex w-full items-center gap-2 rounded-none px-2 py-2 text-left text-sm text-rose-700 transition hover:bg-rose-500/15'
+      : 'mt-1 flex w-full items-center gap-2 rounded-none px-2 py-2 text-left text-sm text-rose-200 transition hover:bg-rose-500/20';
 
   useEffect(() => {
     const handleOutsidePointer = (event: MouseEvent | TouchEvent) => {
@@ -73,7 +92,11 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((previous) => !previous)}
-        className="inline-flex h-11 items-center gap-2 rounded-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
+        className={[
+          'inline-flex h-11 items-center gap-2 rounded-none px-3 text-base font-extrabold transition',
+          buttonTextClass,
+          buttonHoverClass,
+        ].join(' ')}
       >
         <span className="relative h-7 w-7 overflow-hidden rounded-full bg-[color:var(--muted)]">
           {profileImage ? (
@@ -85,16 +108,22 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
           )}
         </span>
         <span className="hidden max-w-[110px] truncate sm:inline">{fullName}</span>
-        <FiChevronDown className="size-4 text-white/80" />
+        <FiChevronDown className={`size-4 ${chevronClass}`} />
       </button>
 
       <div
-        className={`absolute end-0 top-full z-50 w-56 pt-2 transition-opacity duration-150 ${
+        className={`absolute end-0 top-full z-50 w-56 pt-0 transition-opacity duration-150 ${
           isOpen ? 'visible opacity-100' : 'pointer-events-none invisible opacity-0'
         }`}
       >
-        <div className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-2 shadow-xl">
-          <div className="mb-2 border-b border-[color:var(--border)] px-2 pb-2">
+        <div
+          className={[
+            'rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-2 shadow-xl',
+            menuClassName ?? '',
+          ].join(' ')}
+          style={menuStyle}
+        >
+          <div className="mb-1 px-2 pb-1">
             <p className="truncate text-sm font-semibold text-[color:var(--text)]">{fullName}</p>
             <p className="text-xs text-[color:var(--text-subtle)]">{role}</p>
           </div>
@@ -128,7 +157,7 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
           <LogoutButton
             locale={locale}
             label={t.logout}
-            className="mt-1 flex w-full items-center gap-2 rounded-none px-2 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20"
+            className={logoutClass}
           />
         </div>
       </div>

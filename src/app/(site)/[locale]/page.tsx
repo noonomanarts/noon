@@ -5,6 +5,8 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { getHomeContent } from "@/lib/homeContent";
 import AnimatedCounter from "@/components/site/AnimatedCounter";
 import HeroSlideshow from "@/components/site/HeroSlideshow";
+import PartnersCarousel from "@/components/site/PartnersCarousel";
+import { resolveHeaderColor } from "@/lib/headerBranding";
 import { findClassSessions, findManyClasses } from "@/lib/db/classes";
 import { getAdminSettingsByKey } from "@/lib/db/adminSettings";
 import {
@@ -22,6 +24,7 @@ type UpcomingCard = {
   datetimeText: string;
   priceText: string;
   imageSrc: string;
+  href: string;
 };
 
 const heroSlides = [
@@ -125,6 +128,7 @@ async function resolveUpcomingItems(
           imageSrc: classItem.image || "/og-image.png",
           startTime: new Date(session.startTime),
           priceText: `${classItem.price.toFixed(3)} ${classItem.currency}`,
+          href: `/${locale}/classes/${classItem.slug}`,
         }))
       )
       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
@@ -145,6 +149,7 @@ async function resolveUpcomingItems(
           datetimeText: `${date} · ${time}`,
           priceText: item.priceText,
           imageSrc: item.imageSrc,
+          href: item.href,
         };
       });
 
@@ -202,10 +207,8 @@ export default async function HomePage({
 
   const content = getHomeContent(locale);
   const homePageSettings = await resolveHomePageSettings();
-  const upcomingItems = await resolveUpcomingItems(
-    locale,
-    content.upcoming.items as UpcomingCard[]
-  );
+  const headerColor = await resolveHeaderColor();
+  const headerButtonTextColor = getReadableTextColor(headerColor);
 
   const heroHeadingFromSettings = isArabic
     ? homePageSettings?.headingAr
@@ -237,6 +240,10 @@ export default async function HomePage({
   const heroAutoplayMs = homePageSettings?.homeHero.autoplayMs ?? 3800;
   const homeLayout = homePageSettings?.homeLayout;
   const homeCourses = homePageSettings?.homeCourses;
+  const homeUpcoming = homePageSettings?.homeUpcoming;
+  const homeWhyNoon = homePageSettings?.homeWhyNoon;
+  const homePartners = homePageSettings?.homePartners;
+  const homeNumbers = homePageSettings?.homeNumbers;
   const showHero = homeLayout?.showHero ?? true;
   const showCourses = homeLayout?.showCourses ?? true;
   const showNumbers = homeLayout?.showNumbers ?? true;
@@ -255,9 +262,6 @@ export default async function HomePage({
     artsHref: resolveHeroHref(locale, heroSecondaryHrefFromSettings ?? "", "/classes/arts-crafts"),
     cookingColor: normalizeHexColor(heroPrimaryColorFromSettings ?? "#f77d6b", "#f77d6b"),
     artsColor: normalizeHexColor(heroSecondaryColorFromSettings ?? "#17b0ad", "#17b0ad"),
-    upcomingCaption: isArabic
-      ? "جلسات قادمة جاهزة للحجز."
-      : "Handpicked sessions you can book right away.",
     whyCaption: isArabic
       ? "الفرق الحقيقي في تجربة نون."
       : "What truly sets the Noon experience apart.",
@@ -271,6 +275,91 @@ export default async function HomePage({
     cookingIcon: homeCourses?.cookingIcon ?? "cooking-pot",
     artsIcon: homeCourses?.artsIcon ?? "palette",
   };
+
+  const whyNoonTitle =
+    (isArabic ? homeWhyNoon?.titleAr : homeWhyNoon?.titleEn)?.trim() ||
+    content.whyNoon.title;
+  const whyNoonDescription =
+    (isArabic ? homeWhyNoon?.descriptionAr : homeWhyNoon?.descriptionEn)?.trim() ||
+    heroUi.whyCaption;
+  const whyNoonItems = Array.from({ length: 3 }, (_, index) => {
+    const fallbackItem = content.whyNoon.items[index] ?? {
+      title: isArabic ? "سبب مميز" : "Key reason",
+      description: isArabic ? "وصف قصير" : "Short description",
+    };
+    const settingsItem = homeWhyNoon?.items[index];
+
+    return {
+      title: (isArabic ? settingsItem?.titleAr : settingsItem?.titleEn)?.trim() || fallbackItem.title,
+      description:
+        (isArabic ? settingsItem?.descriptionAr : settingsItem?.descriptionEn)?.trim() ||
+        fallbackItem.description,
+    };
+  });
+  const partnersTitle =
+    (isArabic ? homePartners?.titleAr : homePartners?.titleEn)?.trim() ||
+    content.partners.title;
+  const partnersDescription =
+    (isArabic ? homePartners?.descriptionAr : homePartners?.descriptionEn)?.trim() ||
+    content.partners.description;
+  const partnerItems = (
+    homePartners?.items.length ? homePartners.items : content.partners.items
+  )
+    .map((item, index) => {
+      const fallbackItem = content.partners.items[index] ?? {
+        id: `partner-${index + 1}`,
+        name: isArabic ? `شريك ${index + 1}` : `Partner ${index + 1}`,
+      };
+      const nameFromSettings =
+        item && "nameEn" in item
+          ? (isArabic ? item.nameAr : item.nameEn)
+          : fallbackItem.name;
+      const logoFromSettings = item && "logoSrc" in item ? item.logoSrc : "";
+
+      return {
+        id: fallbackItem.id ?? `partner-${index + 1}`,
+        name: (nameFromSettings || fallbackItem.name || "").trim(),
+        logoSrc: (logoFromSettings || "").trim(),
+      };
+    })
+    .filter((item) => item.name || item.logoSrc);
+  const numbersItems = Array.from({ length: 4 }, (_, index) => {
+    const fallbackItem = content.numbers.items[index] ?? { value: "0+", label: isArabic ? "المؤشر" : "Metric" };
+    const settingsItem = homeNumbers?.items[index];
+
+    return {
+      value: (isArabic ? settingsItem?.valueAr : settingsItem?.valueEn)?.trim() || fallbackItem.value,
+      label: (isArabic ? settingsItem?.labelAr : settingsItem?.labelEn)?.trim() || fallbackItem.label,
+    };
+  });
+  const upcomingTitle =
+    (isArabic ? homeUpcoming?.titleAr : homeUpcoming?.titleEn)?.trim() ||
+    content.upcoming.title;
+  const upcomingDescription =
+    (isArabic ? homeUpcoming?.descriptionAr : homeUpcoming?.descriptionEn)?.trim() ||
+    (isArabic ? "جلسات قادمة جاهزة للحجز." : "Handpicked sessions you can book right away.");
+  const upcomingBookNowLabel =
+    (isArabic ? homeUpcoming?.bookNowLabelAr : homeUpcoming?.bookNowLabelEn)?.trim() ||
+    content.upcoming.bookNowLabel;
+  const fallbackUpcomingItems: UpcomingCard[] = (content.upcoming.items as UpcomingCard[]).map((item, index) => ({
+    ...item,
+    id: item.id || `fallback-upcoming-${index + 1}`,
+    href: `/${locale}/classes/cooking`,
+  }));
+  const configuredUpcomingItems = (homeUpcoming?.items ?? [])
+    .map((item, index) => ({
+      id: `configured-upcoming-${index + 1}`,
+      title: (isArabic ? item.titleAr : item.titleEn).trim(),
+      datetimeText: (isArabic ? item.datetimeTextAr : item.datetimeTextEn).trim(),
+      priceText: (isArabic ? item.priceTextAr : item.priceTextEn).trim(),
+      imageSrc: item.imageSrc.trim(),
+      href: resolveHeroHref(locale, item.href, "/classes/cooking"),
+    }))
+    .filter((item) => item.title || item.datetimeText || item.priceText || item.imageSrc);
+  const upcomingItems =
+    configuredUpcomingItems.length > 0
+      ? configuredUpcomingItems
+      : await resolveUpcomingItems(locale, fallbackUpcomingItems);
 
   return (
     <div className="home-sharp relative overflow-x-clip pb-8">
@@ -365,10 +454,15 @@ export default async function HomePage({
                   ? (homeCourses?.cookingDescriptionAr.trim() || "من أساسيات الطبخ حتى التجارب المتقدمة بطابع عملي ممتع.")
                   : (homeCourses?.cookingDescriptionEn.trim() || "From foundations to advanced techniques in a practical, immersive format.")}
               </p>
-              <span className="inline-flex items-center gap-1 pt-1 text-sm font-semibold text-[color:var(--primary)]">
-                {isArabic ? "استكشف" : "Explore"}
-                <FiArrowRight className="size-4" />
-              </span>
+              <div className="pt-2">
+                <span
+                  className="inline-flex w-full items-center justify-center gap-1 border border-black/20 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
+                  style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
+                >
+                  {isArabic ? "استكشف" : "Explore"}
+                  <FiArrowRight className="size-4" />
+                </span>
+              </div>
             </div>
           </Link>
 
@@ -402,48 +496,25 @@ export default async function HomePage({
                   ? (homeCourses?.artsDescriptionAr.trim() || "جلسات إبداعية تدمج الحرفة والفن في بيئة ملهمة.")
                   : (homeCourses?.artsDescriptionEn.trim() || "Creative sessions that blend craftsmanship and artistic expression.")}
               </p>
-              <span className="inline-flex items-center gap-1 pt-1 text-sm font-semibold text-[color:var(--primary)]">
-                {isArabic ? "استكشف" : "Explore"}
-                <FiArrowRight className="size-4" />
-              </span>
+              <div className="pt-2">
+                <span
+                  className="inline-flex w-full items-center justify-center gap-1 border border-black/20 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
+                  style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
+                >
+                  {isArabic ? "استكشف" : "Explore"}
+                  <FiArrowRight className="size-4" />
+                </span>
+              </div>
             </div>
           </Link>
         </div>
         </Section>
       )}
 
-      {showNumbers && (
-        <section className="py-8 sm:py-10">
-        <div className="mx-auto w-full max-w-6xl px-4">
-          <div className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm sm:p-7">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {content.numbers.items.map((item) => {
-                const match = String(item.value).match(/(\d+)/);
-                const numericValue = match ? Number(match[1]) : 0;
-                const suffix = match ? String(item.value).replace(match[1], "") : "";
-
-                return (
-                  <div
-                    key={`${item.value}-${item.label}`}
-                    className="rounded-none border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-5 text-center"
-                  >
-                    <div className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">
-                      <AnimatedCounter value={numericValue} suffix={suffix} />
-                    </div>
-                    <div className="mt-1 text-xs text-[color:var(--text-muted)]">{item.label}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-        </section>
-      )}
-
       {showUpcoming && (
-        <Section title={content.upcoming.title} description={heroUi.upcomingCaption}>
+        <Section title={upcomingTitle} description={upcomingDescription}>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {upcomingItems.slice(0, 3).map((c) => (
+          {upcomingItems.map((c) => (
             <article
               key={c.id}
               className="group overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
@@ -457,13 +528,14 @@ export default async function HomePage({
                   <FiClock className="size-3.5" />
                   {c.datetimeText}
                 </p>
-                <div className="flex items-center justify-between pt-1">
+                <div className="space-y-3 pt-1">
                   <div className="text-sm font-semibold text-[color:var(--text)]">{c.priceText}</div>
                   <Link
-                    href={`/${locale}/classes/cooking`}
-                    className="inline-flex items-center gap-1 rounded-none bg-[color:var(--primary)] px-3.5 py-1.5 text-xs font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+                    href={c.href}
+                    className="inline-flex w-full items-center justify-center gap-1 border border-black/20 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
+                    style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
                   >
-                    {content.upcoming.bookNowLabel}
+                    {upcomingBookNowLabel}
                     <FiArrowRight className="size-3.5" />
                   </Link>
                 </div>
@@ -475,11 +547,11 @@ export default async function HomePage({
       )}
 
       {showWhyNoon && (
-        <Section title={content.whyNoon.title} description={heroUi.whyCaption}>
+        <Section title={whyNoonTitle} description={whyNoonDescription}>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {content.whyNoon.items.map((item, index) => (
+          {whyNoonItems.map((item, index) => (
             <div
-              key={item.title}
+              key={`why-noon-${index}`}
               className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm"
             >
               <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-none bg-[color:var(--muted)] text-xs font-semibold text-[color:var(--text-muted)]">
@@ -493,19 +565,45 @@ export default async function HomePage({
         </Section>
       )}
 
-      {showPartners && (
-        <Section title={content.partners.title} description={content.partners.description}>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {content.partners.items.map((p) => (
-            <div
-              key={p.id}
-              className="flex min-h-24 items-center justify-center rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-5 text-center text-sm font-semibold text-[color:var(--text-muted)] shadow-sm transition hover:-translate-y-0.5 hover:text-[color:var(--text)]"
-            >
-              {p.logoText ?? p.name}
-            </div>
-          ))}
-        </div>
+      {showPartners && partnerItems.length > 0 && (
+        <Section title={partnersTitle} description={partnersDescription}>
+        <PartnersCarousel items={partnerItems} isArabic={isArabic} />
         </Section>
+      )}
+
+      {showNumbers && (
+        <section className="py-12 sm:py-14">
+          <div className="mx-auto w-full max-w-6xl px-4">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-12">
+              {numbersItems.map((item, index) => {
+                const match = String(item.value).match(/(\d+)/);
+                const numericValue = match ? Number(match[1]) : 0;
+                const suffix = match ? String(item.value).replace(match[1], "") : "";
+
+                return (
+                  <div
+                    key={`home-number-${index}`}
+                    className="text-center"
+                  >
+                    <div
+                      className="text-5xl font-light leading-none tracking-[0.01em] text-[color:var(--text)] sm:text-6xl"
+                      style={{
+                        fontFamily: isArabic
+                          ? "var(--font-hero-ar), var(--font-arabic), serif"
+                          : "var(--font-hero-en), var(--font-english), serif",
+                      }}
+                    >
+                      <AnimatedCounter value={numericValue} suffix={suffix} />
+                    </div>
+                    <div className="mt-3 text-sm font-medium tracking-wide text-[color:var(--text-muted)] sm:text-base">
+                      {item.label}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
       )}
     </div>
   );
