@@ -25,6 +25,27 @@ export type HomeLayoutSettings = {
   showPartners: boolean;
 };
 
+export type HomeCoursesSettings = {
+  titleEn: string;
+  titleAr: string;
+  subtitleEn: string;
+  subtitleAr: string;
+  cookingTitleEn: string;
+  cookingTitleAr: string;
+  cookingDescriptionEn: string;
+  cookingDescriptionAr: string;
+  cookingImageSrc: string;
+  cookingDisplayMode: "icon" | "image";
+  cookingIcon: "cooking-pot" | "chef-hat" | "utensils";
+  artsTitleEn: string;
+  artsTitleAr: string;
+  artsDescriptionEn: string;
+  artsDescriptionAr: string;
+  artsImageSrc: string;
+  artsDisplayMode: "icon" | "image";
+  artsIcon: "palette" | "craft" | "brush";
+};
+
 export type SitePageDefinition = {
   key: string;
   pathTemplate: string;
@@ -58,6 +79,7 @@ export type SitePageSettings = {
   customCssClass: string;
   notes: string;
   homeHero: HomeHeroSettings;
+  homeCourses: HomeCoursesSettings;
   homeLayout: HomeLayoutSettings;
 };
 
@@ -504,6 +526,12 @@ function toNumberInRange(value: unknown, fallback: number, min: number, max: num
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
+function toOneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  if (typeof value !== "string") return fallback;
+  if ((allowed as readonly string[]).includes(value)) return value as T;
+  return fallback;
+}
+
 function toHexColor(value: unknown, fallback: string): string {
   const normalized = toSafeString(value, 16).toLowerCase();
   const match = normalized.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
@@ -583,6 +611,26 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
       ],
       autoplayMs: 3800,
     },
+    homeCourses: {
+      titleEn: "Our courses",
+      titleAr: "دوراتنا",
+      subtitleEn: "Signature programs crafted for every level.",
+      subtitleAr: "برامج متجددة بلمسة إبداعية.",
+      cookingTitleEn: "Cooking classes",
+      cookingTitleAr: "دورات الطبخ",
+      cookingDescriptionEn: "From foundations to advanced techniques in a practical, immersive format.",
+      cookingDescriptionAr: "من أساسيات الطبخ حتى التجارب المتقدمة بطابع عملي ممتع.",
+      cookingImageSrc: "/images/cooking.png",
+      cookingDisplayMode: "icon",
+      cookingIcon: "cooking-pot",
+      artsTitleEn: "Arts & crafts classes",
+      artsTitleAr: "دورات الفنون والحرف",
+      artsDescriptionEn: "Creative sessions that blend craftsmanship and artistic expression.",
+      artsDescriptionAr: "جلسات إبداعية تدمج الحرفة والفن في بيئة ملهمة.",
+      artsImageSrc: "/images/art.png",
+      artsDisplayMode: "icon",
+      artsIcon: "palette",
+    },
     homeLayout: {
       showHero: true,
       showCourses: true,
@@ -634,6 +682,42 @@ export function sanitizeSitePageSettings(
       secondaryCtaColor: toHexColor(source.homeHero?.secondaryCtaColor, defaults.homeHero.secondaryCtaColor),
       slideImages: hasExplicitSlideImages ? normalizedSlideImages : defaults.homeHero.slideImages,
       autoplayMs: toNumberInRange(source.homeHero?.autoplayMs, defaults.homeHero.autoplayMs, 2000, 12000),
+    },
+    homeCourses: {
+      titleEn: toSafeString(source.homeCourses?.titleEn, 180) || defaults.homeCourses.titleEn,
+      titleAr: toSafeString(source.homeCourses?.titleAr, 180) || defaults.homeCourses.titleAr,
+      subtitleEn: toSafeString(source.homeCourses?.subtitleEn, 500) || defaults.homeCourses.subtitleEn,
+      subtitleAr: toSafeString(source.homeCourses?.subtitleAr, 500) || defaults.homeCourses.subtitleAr,
+      cookingTitleEn: toSafeString(source.homeCourses?.cookingTitleEn, 180) || defaults.homeCourses.cookingTitleEn,
+      cookingTitleAr: toSafeString(source.homeCourses?.cookingTitleAr, 180) || defaults.homeCourses.cookingTitleAr,
+      cookingDescriptionEn: toSafeString(source.homeCourses?.cookingDescriptionEn, 500) || defaults.homeCourses.cookingDescriptionEn,
+      cookingDescriptionAr: toSafeString(source.homeCourses?.cookingDescriptionAr, 500) || defaults.homeCourses.cookingDescriptionAr,
+      cookingImageSrc: toSafeString(source.homeCourses?.cookingImageSrc, 500) || defaults.homeCourses.cookingImageSrc,
+      cookingDisplayMode: toOneOf(
+        source.homeCourses?.cookingDisplayMode,
+        ["icon", "image"] as const,
+        defaults.homeCourses.cookingDisplayMode
+      ),
+      cookingIcon: toOneOf(
+        source.homeCourses?.cookingIcon,
+        ["cooking-pot", "chef-hat", "utensils"] as const,
+        defaults.homeCourses.cookingIcon
+      ),
+      artsTitleEn: toSafeString(source.homeCourses?.artsTitleEn, 180) || defaults.homeCourses.artsTitleEn,
+      artsTitleAr: toSafeString(source.homeCourses?.artsTitleAr, 180) || defaults.homeCourses.artsTitleAr,
+      artsDescriptionEn: toSafeString(source.homeCourses?.artsDescriptionEn, 500) || defaults.homeCourses.artsDescriptionEn,
+      artsDescriptionAr: toSafeString(source.homeCourses?.artsDescriptionAr, 500) || defaults.homeCourses.artsDescriptionAr,
+      artsImageSrc: toSafeString(source.homeCourses?.artsImageSrc, 500) || defaults.homeCourses.artsImageSrc,
+      artsDisplayMode: toOneOf(
+        source.homeCourses?.artsDisplayMode,
+        ["icon", "image"] as const,
+        defaults.homeCourses.artsDisplayMode
+      ),
+      artsIcon: toOneOf(
+        source.homeCourses?.artsIcon,
+        ["palette", "craft", "brush"] as const,
+        defaults.homeCourses.artsIcon
+      ),
     },
     homeLayout: {
       showHero: toBoolean(source.homeLayout?.showHero, defaults.homeLayout.showHero),

@@ -1,12 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { FiDatabase, FiDollarSign, FiMessageSquare, FiSettings, FiShield, FiTool } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa6';
+import { FiDatabase, FiDollarSign, FiMessageCircle, FiMessageSquare, FiPhoneCall, FiSettings, FiShield, FiTool } from 'react-icons/fi';
 import BackupSection from '@/components/admin/BackupSection';
 import type { Locale } from '@/lib/locale';
-import type { ClassFinanceAdminSettings, GeneralAdminSettings, WhatsAppAdminSettings } from '@/lib/db/adminSettings';
+import type {
+  ClassFinanceAdminSettings,
+  GeneralAdminSettings,
+  WhatsAppAdminSettings,
+  WhatsAppFloatingButtonSettings,
+} from '@/lib/db/adminSettings';
 
-type TabId = 'general' | 'class-finance' | 'whatsapp' | 'backup';
+type TabId = 'general' | 'class-finance' | 'whatsapp' | 'whatsapp-floating-button' | 'backup';
 
 const NOON_HEADER_COLORS = [
   { key: 'coral', hex: '#f77d6b', labelEn: 'Coral', labelAr: 'كورال' },
@@ -17,6 +23,12 @@ const NOON_HEADER_COLORS = [
   { key: 'purple-strong', hex: '#6a347b', labelEn: 'Purple Strong', labelAr: 'بنفسجي قوي' },
   { key: 'teal', hex: '#17b0ad', labelEn: 'Teal', labelAr: 'فيروزي' },
   { key: 'teal-strong', hex: '#109d9a', labelEn: 'Teal Strong', labelAr: 'فيروزي قوي' },
+] as const;
+
+const WHATSAPP_ICON_OPTIONS = [
+  { value: 'whatsapp', labelEn: 'WhatsApp', labelAr: 'واتساب' },
+  { value: 'message', labelEn: 'Message Bubble', labelAr: 'فقاعة رسالة' },
+  { value: 'phone', labelEn: 'Phone', labelAr: 'هاتف' },
 ] as const;
 
 function normalizeHexColor(value: string, fallback = '#7b3f8d'): string {
@@ -32,16 +44,32 @@ function normalizeHexColor(value: string, fallback = '#7b3f8d'): string {
   return input;
 }
 
+function FloatingButtonIcon({
+  icon,
+  className,
+  style,
+}: {
+  icon: WhatsAppFloatingButtonSettings['icon'];
+  className?: string;
+  style?: { width?: number; height?: number };
+}) {
+  if (icon === 'message') return <FiMessageCircle className={className} style={style} />;
+  if (icon === 'phone') return <FiPhoneCall className={className} style={style} />;
+  return <FaWhatsapp className={className} style={style} />;
+}
+
 export default function AdminSettingsPageClient({
   locale,
   initialGeneral,
   initialWhatsApp,
   initialClassFinance,
+  initialWhatsAppFloatingButton,
 }: {
   locale: Locale;
   initialGeneral: GeneralAdminSettings;
   initialWhatsApp: WhatsAppAdminSettings;
   initialClassFinance: ClassFinanceAdminSettings;
+  initialWhatsAppFloatingButton: WhatsAppFloatingButtonSettings;
 }) {
   const isArabic = locale === 'ar';
   const [activeTab, setActiveTab] = useState<TabId>('general');
@@ -51,6 +79,9 @@ export default function AdminSettingsPageClient({
   const [general, setGeneral] = useState<GeneralAdminSettings>(initialGeneral);
   const [whatsapp, setWhatsapp] = useState<WhatsAppAdminSettings>(initialWhatsApp);
   const [classFinance, setClassFinance] = useState<ClassFinanceAdminSettings>(initialClassFinance);
+  const [whatsappFloatingButton, setWhatsAppFloatingButton] = useState<WhatsAppFloatingButtonSettings>(
+    initialWhatsAppFloatingButton
+  );
 
   const t = {
     title: isArabic ? 'إعدادات الإدارة' : 'Admin Settings',
@@ -60,6 +91,7 @@ export default function AdminSettingsPageClient({
     tabGeneral: isArabic ? 'الإعدادات العامة' : 'General Settings',
     tabClassFinance: isArabic ? 'مالية الكلاسات' : 'Class Finance',
     tabWhatsapp: isArabic ? 'إعدادات واتساب' : 'WhatsApp Settings',
+    tabWhatsappFloatingButton: isArabic ? 'زر واتساب العائم' : 'Floating WhatsApp Button',
     tabBackup: isArabic ? 'النسخ الاحتياطي والاستعادة' : 'Backup & Restore',
     siteConfig: isArabic ? 'إعدادات المنصة' : 'Platform Configuration',
     operationsConfig: isArabic ? 'إعدادات التشغيل' : 'Operational Rules',
@@ -108,6 +140,31 @@ export default function AdminSettingsPageClient({
     sendApiUrl: isArabic ? 'رابط API للإرسال' : 'Send API URL',
     activeSession: isArabic ? 'السشن النشط' : 'Active Session',
     apiCode: isArabic ? 'API Code' : 'API Code',
+    floatingWidgetTitle: isArabic ? 'إعدادات زر واتساب العائم' : 'Floating WhatsApp Button Settings',
+    floatingWidgetHint: isArabic
+      ? 'تحكم كامل في ظهور الزر العائم على الصفحات العامة: التفعيل، الرقم، الألوان، الأيقونة، الحجم، والموقع.'
+      : 'Full control of the floating button on public pages: visibility, phone number, colors, icon, size, and position.',
+    floatingEnabled: isArabic ? 'تفعيل الزر العائم' : 'Enable Floating Button',
+    floatingPhone: isArabic ? 'رقم واتساب' : 'WhatsApp Number',
+    floatingMessage: isArabic ? 'رسالة افتراضية' : 'Default Message',
+    floatingPosition: isArabic ? 'الموقع' : 'Position',
+    floatingPositionRight: isArabic ? 'يمين' : 'Right',
+    floatingPositionLeft: isArabic ? 'يسار' : 'Left',
+    floatingButtonColor: isArabic ? 'لون الزر' : 'Button Color',
+    floatingIconColor: isArabic ? 'لون الأيقونة' : 'Icon Color',
+    floatingIcon: isArabic ? 'نوع الأيقونة' : 'Icon Type',
+    floatingButtonSize: isArabic ? 'حجم الزر (px)' : 'Button Size (px)',
+    floatingIconSize: isArabic ? 'حجم الأيقونة (px)' : 'Icon Size (px)',
+    floatingSideOffset: isArabic ? 'مسافة جانبية (px)' : 'Side Offset (px)',
+    floatingBottomOffset: isArabic ? 'مسافة من الأسفل (px)' : 'Bottom Offset (px)',
+    floatingShowMobile: isArabic ? 'إظهار على الموبايل' : 'Show on Mobile',
+    floatingShowDesktop: isArabic ? 'إظهار على الكمبيوتر' : 'Show on Desktop',
+    floatingPulse: isArabic ? 'نبضة لافتة' : 'Pulse Effect',
+    floatingPreview: isArabic ? 'معاينة مباشرة' : 'Live Preview',
+    floatingPhoneHint: isArabic ? 'مثال: +96891234567' : 'Example: +96891234567',
+    floatingMessageHint: isArabic
+      ? 'تظهر هذه الرسالة تلقائياً عند فتح واتساب من الزر.'
+      : 'This message is auto-filled when WhatsApp opens from the button.',
     save: isArabic ? 'حفظ الإعدادات' : 'Save Settings',
     saving: isArabic ? 'جارٍ الحفظ...' : 'Saving...',
     saved: isArabic ? 'تم حفظ الإعدادات بنجاح.' : 'Settings saved successfully.',
@@ -180,6 +237,36 @@ export default function AdminSettingsPageClient({
     }
   };
 
+  const handleSaveWhatsAppFloatingButton = async () => {
+    setSaving(true);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ whatsappFloatingButton }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        whatsappFloatingButton?: WhatsAppFloatingButtonSettings;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.whatsappFloatingButton) {
+        throw new Error(payload.error || t.loadError);
+      }
+
+      setWhatsAppFloatingButton(payload.whatsappFloatingButton);
+      setInfo(t.saved);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : t.loadError);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveClassFinance = async () => {
     setSaving(true);
     setError(null);
@@ -241,6 +328,7 @@ export default function AdminSettingsPageClient({
               ['general', t.tabGeneral],
               ['class-finance', t.tabClassFinance],
               ['whatsapp', t.tabWhatsapp],
+              ['whatsapp-floating-button', t.tabWhatsappFloatingButton],
               ['backup', t.tabBackup],
             ].map(([tabId, label]) => (
               <button key={tabId} type="button" onClick={() => setActiveTab(tabId as TabId)} className={`rounded-t-lg px-4 py-3 text-sm font-medium transition ${activeTab === tabId ? 'border-b-2 border-[color:var(--noon-teal)] text-[color:var(--noon-teal)]' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'}`}>
@@ -417,6 +505,280 @@ export default function AdminSettingsPageClient({
                 </div>
               </section>
               <div className="flex justify-end"><button type="button" onClick={() => void handleSaveWhatsApp()} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60">{saving ? t.saving : t.save}</button></div>
+            </div>
+          ) : activeTab === 'whatsapp-floating-button' ? (
+            <div className="space-y-6">
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <FiMessageSquare className="size-4 text-[color:var(--noon-teal)]" />
+                  <span>{t.floatingWidgetTitle}</span>
+                </div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.floatingWidgetHint}</p>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+                    <span className="text-zinc-700 dark:text-zinc-300">{t.floatingEnabled}</span>
+                    <button
+                      type="button"
+                      onClick={() => setWhatsAppFloatingButton((prev) => ({ ...prev, enabled: !prev.enabled }))}
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${whatsappFloatingButton.enabled ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal)]' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                    >
+                      {whatsappFloatingButton.enabled ? t.on : t.off}
+                    </button>
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.floatingPhone}</span>
+                    <input
+                      value={whatsappFloatingButton.phoneNumber}
+                      onChange={(e) => setWhatsAppFloatingButton((prev) => ({ ...prev, phoneNumber: e.target.value }))}
+                      placeholder="+96891234567"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.floatingPhoneHint}</p>
+                  </label>
+
+                  <label className="space-y-1 text-sm md:col-span-2">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.floatingMessage}</span>
+                    <textarea
+                      rows={3}
+                      value={whatsappFloatingButton.presetMessage}
+                      onChange={(e) => setWhatsAppFloatingButton((prev) => ({ ...prev, presetMessage: e.target.value }))}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.floatingMessageHint}</p>
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.floatingPosition}</span>
+                    <select
+                      value={whatsappFloatingButton.position}
+                      onChange={(e) =>
+                        setWhatsAppFloatingButton((prev) => ({
+                          ...prev,
+                          position: e.target.value === 'left' ? 'left' : 'right',
+                        }))
+                      }
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    >
+                      <option value="right">{t.floatingPositionRight}</option>
+                      <option value="left">{t.floatingPositionLeft}</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.floatingIcon}</span>
+                    <select
+                      value={whatsappFloatingButton.icon}
+                      onChange={(e) =>
+                        setWhatsAppFloatingButton((prev) => ({
+                          ...prev,
+                          icon: (e.target.value as WhatsAppFloatingButtonSettings['icon']),
+                        }))
+                      }
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    >
+                      {WHATSAPP_ICON_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {isArabic ? option.labelAr : option.labelEn}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.floatingButtonSize}</span>
+                    <input
+                      type="number"
+                      min={44}
+                      max={96}
+                      value={whatsappFloatingButton.buttonSizePx}
+                      onChange={(e) =>
+                        setWhatsAppFloatingButton((prev) => ({ ...prev, buttonSizePx: Number(e.target.value || 44) }))
+                      }
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.floatingIconSize}</span>
+                    <input
+                      type="number"
+                      min={16}
+                      max={42}
+                      value={whatsappFloatingButton.iconSizePx}
+                      onChange={(e) =>
+                        setWhatsAppFloatingButton((prev) => ({ ...prev, iconSizePx: Number(e.target.value || 16) }))
+                      }
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.floatingSideOffset}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={80}
+                      value={whatsappFloatingButton.sideOffsetPx}
+                      onChange={(e) =>
+                        setWhatsAppFloatingButton((prev) => ({ ...prev, sideOffsetPx: Number(e.target.value || 0) }))
+                      }
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.floatingBottomOffset}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={120}
+                      value={whatsappFloatingButton.bottomOffsetPx}
+                      onChange={(e) =>
+                        setWhatsAppFloatingButton((prev) => ({ ...prev, bottomOffsetPx: Number(e.target.value || 0) }))
+                      }
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.floatingButtonColor}</span>
+                    <div className="grid gap-2 sm:grid-cols-[auto_1fr] sm:items-end">
+                      <input
+                        type="color"
+                        value={normalizeHexColor(whatsappFloatingButton.buttonColor, '#25d366')}
+                        onChange={(e) =>
+                          setWhatsAppFloatingButton((prev) => ({
+                            ...prev,
+                            buttonColor: normalizeHexColor(e.target.value, '#25d366'),
+                          }))
+                        }
+                        className="h-10 w-16 cursor-pointer border border-zinc-300 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
+                      />
+                      <input
+                        value={whatsappFloatingButton.buttonColor}
+                        onChange={(e) => setWhatsAppFloatingButton((prev) => ({ ...prev, buttonColor: e.target.value }))}
+                        onBlur={() =>
+                          setWhatsAppFloatingButton((prev) => ({
+                            ...prev,
+                            buttonColor: normalizeHexColor(prev.buttonColor, '#25d366'),
+                          }))
+                        }
+                        className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                    </div>
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.floatingIconColor}</span>
+                    <div className="grid gap-2 sm:grid-cols-[auto_1fr] sm:items-end">
+                      <input
+                        type="color"
+                        value={normalizeHexColor(whatsappFloatingButton.iconColor, '#ffffff')}
+                        onChange={(e) =>
+                          setWhatsAppFloatingButton((prev) => ({
+                            ...prev,
+                            iconColor: normalizeHexColor(e.target.value, '#ffffff'),
+                          }))
+                        }
+                        className="h-10 w-16 cursor-pointer border border-zinc-300 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
+                      />
+                      <input
+                        value={whatsappFloatingButton.iconColor}
+                        onChange={(e) => setWhatsAppFloatingButton((prev) => ({ ...prev, iconColor: e.target.value }))}
+                        onBlur={() =>
+                          setWhatsAppFloatingButton((prev) => ({
+                            ...prev,
+                            iconColor: normalizeHexColor(prev.iconColor, '#ffffff'),
+                          }))
+                        }
+                        className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                    </div>
+                  </label>
+
+                  <label className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+                    <span className="text-zinc-700 dark:text-zinc-300">{t.floatingShowMobile}</span>
+                    <button
+                      type="button"
+                      onClick={() => setWhatsAppFloatingButton((prev) => ({ ...prev, showOnMobile: !prev.showOnMobile }))}
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${whatsappFloatingButton.showOnMobile ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal)]' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                    >
+                      {whatsappFloatingButton.showOnMobile ? t.on : t.off}
+                    </button>
+                  </label>
+
+                  <label className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+                    <span className="text-zinc-700 dark:text-zinc-300">{t.floatingShowDesktop}</span>
+                    <button
+                      type="button"
+                      onClick={() => setWhatsAppFloatingButton((prev) => ({ ...prev, showOnDesktop: !prev.showOnDesktop }))}
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${whatsappFloatingButton.showOnDesktop ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal)]' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                    >
+                      {whatsappFloatingButton.showOnDesktop ? t.on : t.off}
+                    </button>
+                  </label>
+
+                  <label className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+                    <span className="text-zinc-700 dark:text-zinc-300">{t.floatingPulse}</span>
+                    <button
+                      type="button"
+                      onClick={() => setWhatsAppFloatingButton((prev) => ({ ...prev, pulseEffect: !prev.pulseEffect }))}
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${whatsappFloatingButton.pulseEffect ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal)]' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300'}`}
+                    >
+                      {whatsappFloatingButton.pulseEffect ? t.on : t.off}
+                    </button>
+                  </label>
+                </div>
+
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/40">
+                  <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.floatingPreview}</p>
+                  <div className="relative h-40 overflow-hidden border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+                    <div className="absolute inset-0 bg-[linear-gradient(145deg,#f8fafc_0%,#eef2ff_60%,#ecfeff_100%)] opacity-80 dark:bg-[linear-gradient(145deg,#0f172a_0%,#111827_60%,#082f49_100%)]" />
+                    <div
+                      className={`absolute ${whatsappFloatingButton.position === 'left' ? 'left-0' : 'right-0'} bottom-0`}
+                      style={{
+                        left: whatsappFloatingButton.position === 'left' ? whatsappFloatingButton.sideOffsetPx : undefined,
+                        right: whatsappFloatingButton.position === 'right' ? whatsappFloatingButton.sideOffsetPx : undefined,
+                        bottom: whatsappFloatingButton.bottomOffsetPx,
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className={`relative inline-flex items-center justify-center rounded-full shadow-[0_12px_26px_-14px_rgba(0,0,0,0.7)] ${whatsappFloatingButton.pulseEffect ? 'ring-8 ring-emerald-400/20' : ''}`}
+                        style={{
+                          width: whatsappFloatingButton.buttonSizePx,
+                          height: whatsappFloatingButton.buttonSizePx,
+                          backgroundColor: normalizeHexColor(whatsappFloatingButton.buttonColor, '#25d366'),
+                          color: normalizeHexColor(whatsappFloatingButton.iconColor, '#ffffff'),
+                        }}
+                      >
+                        <FloatingButtonIcon
+                          icon={whatsappFloatingButton.icon}
+                          className="shrink-0"
+                          style={{ width: whatsappFloatingButton.iconSizePx, height: whatsappFloatingButton.iconSizePx }}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                    <code className="rounded bg-zinc-100 px-2 py-1 dark:bg-zinc-800">{whatsappFloatingButton.phoneNumber || '-'}</code>
+                    <code className="rounded bg-zinc-100 px-2 py-1 dark:bg-zinc-800">{normalizeHexColor(whatsappFloatingButton.buttonColor, '#25d366')}</code>
+                    <code className="rounded bg-zinc-100 px-2 py-1 dark:bg-zinc-800">{normalizeHexColor(whatsappFloatingButton.iconColor, '#ffffff')}</code>
+                    <code className="rounded bg-zinc-100 px-2 py-1 dark:bg-zinc-800">{whatsappFloatingButton.position}</code>
+                  </div>
+                </div>
+              </section>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void handleSaveWhatsAppFloatingButton()}
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {saving ? t.saving : t.save}
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-2">

@@ -23,6 +23,25 @@ export type WhatsAppAdminSettings = {
   apiCode: string;
 };
 
+export type WhatsAppFloatingButtonIcon = 'whatsapp' | 'message' | 'phone';
+
+export type WhatsAppFloatingButtonSettings = {
+  enabled: boolean;
+  phoneNumber: string;
+  presetMessage: string;
+  buttonColor: string;
+  iconColor: string;
+  icon: WhatsAppFloatingButtonIcon;
+  position: 'right' | 'left';
+  sideOffsetPx: number;
+  bottomOffsetPx: number;
+  buttonSizePx: number;
+  iconSizePx: number;
+  showOnMobile: boolean;
+  showOnDesktop: boolean;
+  pulseEffect: boolean;
+};
+
 export type TrainerParticipantShareTier = {
   minParticipants: number;
   maxParticipants: number | null;
@@ -59,6 +78,23 @@ export const defaultWhatsAppAdminSettings: WhatsAppAdminSettings = {
   sendApiUrl: 'https://whatsapp.noonomanarts.com/',
   activeSession: 'default',
   apiCode: '',
+};
+
+export const defaultWhatsAppFloatingButtonSettings: WhatsAppFloatingButtonSettings = {
+  enabled: true,
+  phoneNumber: '+96800000000',
+  presetMessage: 'Hello Noon team, I need help with booking.',
+  buttonColor: '#25d366',
+  iconColor: '#ffffff',
+  icon: 'whatsapp',
+  position: 'right',
+  sideOffsetPx: 20,
+  bottomOffsetPx: 20,
+  buttonSizePx: 58,
+  iconSizePx: 28,
+  showOnMobile: true,
+  showOnDesktop: true,
+  pulseEffect: true,
 };
 
 export const defaultClassFinanceAdminSettings: ClassFinanceAdminSettings = {

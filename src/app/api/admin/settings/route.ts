@@ -3,11 +3,14 @@ import { NextResponse } from 'next/server';
 import {
   defaultClassFinanceAdminSettings,
   defaultGeneralAdminSettings,
+  defaultWhatsAppFloatingButtonSettings,
   defaultWhatsAppAdminSettings,
   type ClassFinanceAdminSettings,
   type ClassFinanceCategorySettings,
   getAdminSettingsByKey,
   type GeneralAdminSettings,
+  type WhatsAppFloatingButtonIcon,
+  type WhatsAppFloatingButtonSettings,
   type WhatsAppAdminSettings,
   upsertAdminSettings,
 } from '@/lib/db/adminSettings';
@@ -40,6 +43,48 @@ function sanitizeGeneralSettings(input: Partial<GeneralAdminSettings>): GeneralA
     bookingAutoConfirm: Boolean(input.bookingAutoConfirm),
     customerReminderHours: Math.min(72, Math.max(1, Number(input.customerReminderHours ?? defaultGeneralAdminSettings.customerReminderHours))),
     trainerReminderHours: Math.min(168, Math.max(1, Number(input.trainerReminderHours ?? defaultGeneralAdminSettings.trainerReminderHours))),
+  };
+}
+
+function sanitizePhoneNumber(value: unknown, fallback: string): string {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) return fallback;
+
+  const cleaned = raw.replace(/[^\d+]/g, '');
+  if (cleaned.startsWith('+')) {
+    const digits = cleaned.slice(1).replace(/\+/g, '').slice(0, 18);
+    return digits ? `+${digits}` : fallback;
+  }
+
+  const digits = cleaned.replace(/\D/g, '').slice(0, 18);
+  return digits || fallback;
+}
+
+function sanitizeWhatsAppIcon(value: unknown, fallback: WhatsAppFloatingButtonIcon): WhatsAppFloatingButtonIcon {
+  if (value === 'whatsapp' || value === 'message' || value === 'phone') return value;
+  return fallback;
+}
+
+function sanitizeWhatsAppFloatingButtonSettings(
+  input: Partial<WhatsAppFloatingButtonSettings>
+): WhatsAppFloatingButtonSettings {
+  return {
+    enabled: Boolean(input.enabled),
+    phoneNumber: sanitizePhoneNumber(input.phoneNumber, defaultWhatsAppFloatingButtonSettings.phoneNumber),
+    presetMessage: typeof input.presetMessage === 'string'
+      ? input.presetMessage.trim().slice(0, 400)
+      : defaultWhatsAppFloatingButtonSettings.presetMessage,
+    buttonColor: sanitizeHexColor(input.buttonColor, defaultWhatsAppFloatingButtonSettings.buttonColor),
+    iconColor: sanitizeHexColor(input.iconColor, defaultWhatsAppFloatingButtonSettings.iconColor),
+    icon: sanitizeWhatsAppIcon(input.icon, defaultWhatsAppFloatingButtonSettings.icon),
+    position: input.position === 'left' ? 'left' : 'right',
+    sideOffsetPx: Math.min(80, Math.max(0, Math.trunc(Number(input.sideOffsetPx) || defaultWhatsAppFloatingButtonSettings.sideOffsetPx))),
+    bottomOffsetPx: Math.min(120, Math.max(0, Math.trunc(Number(input.bottomOffsetPx) || defaultWhatsAppFloatingButtonSettings.bottomOffsetPx))),
+    buttonSizePx: Math.min(96, Math.max(44, Math.trunc(Number(input.buttonSizePx) || defaultWhatsAppFloatingButtonSettings.buttonSizePx))),
+    iconSizePx: Math.min(42, Math.max(16, Math.trunc(Number(input.iconSizePx) || defaultWhatsAppFloatingButtonSettings.iconSizePx))),
+    showOnMobile: Boolean(input.showOnMobile),
+    showOnDesktop: Boolean(input.showOnDesktop),
+    pulseEffect: Boolean(input.pulseEffect),
   };
 }
 
@@ -118,17 +163,21 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const [savedGeneral, savedWhatsApp, savedClassFinance] = await Promise.all([
+    const [savedGeneral, savedWhatsApp, savedClassFinance, savedWhatsAppFloatingButton] = await Promise.all([
       getAdminSettingsByKey<GeneralAdminSettings>('general'),
       getAdminSettingsByKey<WhatsAppAdminSettings>('whatsapp'),
       getAdminSettingsByKey<ClassFinanceAdminSettings>('class-finance'),
+      getAdminSettingsByKey<WhatsAppFloatingButtonSettings>('whatsapp-floating-button'),
     ]);
 
     const general = sanitizeGeneralSettings(savedGeneral ?? defaultGeneralAdminSettings);
     const whatsapp = sanitizeWhatsAppSettings(savedWhatsApp ?? defaultWhatsAppAdminSettings);
     const classFinance = sanitizeClassFinanceSettings(savedClassFinance ?? defaultClassFinanceAdminSettings);
+    const whatsappFloatingButton = sanitizeWhatsAppFloatingButtonSettings(
+      savedWhatsAppFloatingButton ?? defaultWhatsAppFloatingButtonSettings
+    );
 
-    return NextResponse.json({ general, whatsapp, classFinance });
+    return NextResponse.json({ general, whatsapp, classFinance, whatsappFloatingButton });
   } catch (error) {
     console.error('Failed to load admin settings:', error);
     return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 });
@@ -146,12 +195,14 @@ export async function PUT(request: Request) {
       general?: Partial<GeneralAdminSettings>;
       whatsapp?: Partial<WhatsAppAdminSettings>;
       classFinance?: Partial<ClassFinanceAdminSettings>;
+      whatsappFloatingButton?: Partial<WhatsAppFloatingButtonSettings>;
     };
 
-    const [currentGeneral, currentWhatsApp, currentClassFinance] = await Promise.all([
+    const [currentGeneral, currentWhatsApp, currentClassFinance, currentWhatsAppFloatingButton] = await Promise.all([
       getAdminSettingsByKey<GeneralAdminSettings>('general'),
       getAdminSettingsByKey<WhatsAppAdminSettings>('whatsapp'),
       getAdminSettingsByKey<ClassFinanceAdminSettings>('class-finance'),
+      getAdminSettingsByKey<WhatsAppFloatingButtonSettings>('whatsapp-floating-button'),
     ]);
 
     const mergedGeneralInput = body.general
@@ -165,10 +216,14 @@ export async function PUT(request: Request) {
     const mergedClassFinanceInput = body.classFinance
       ? { ...(currentClassFinance ?? defaultClassFinanceAdminSettings), ...body.classFinance }
       : (currentClassFinance ?? defaultClassFinanceAdminSettings);
+    const mergedWhatsAppFloatingButtonInput = body.whatsappFloatingButton
+      ? { ...(currentWhatsAppFloatingButton ?? defaultWhatsAppFloatingButtonSettings), ...body.whatsappFloatingButton }
+      : (currentWhatsAppFloatingButton ?? defaultWhatsAppFloatingButtonSettings);
 
     const general = sanitizeGeneralSettings(mergedGeneralInput);
     const whatsapp = sanitizeWhatsAppSettings(mergedWhatsAppInput);
     const classFinance = sanitizeClassFinanceSettings(mergedClassFinanceInput);
+    const whatsappFloatingButton = sanitizeWhatsAppFloatingButtonSettings(mergedWhatsAppFloatingButtonInput);
 
     await Promise.all([
       upsertAdminSettings({
@@ -186,9 +241,14 @@ export async function PUT(request: Request) {
         value: classFinance,
         updatedByUserId: admin.id,
       }),
+      upsertAdminSettings({
+        key: 'whatsapp-floating-button',
+        value: whatsappFloatingButton,
+        updatedByUserId: admin.id,
+      }),
     ]);
 
-    return NextResponse.json({ success: true, general, whatsapp, classFinance });
+    return NextResponse.json({ success: true, general, whatsapp, classFinance, whatsappFloatingButton });
   } catch (error) {
     console.error('Failed to update admin settings:', error);
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });

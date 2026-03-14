@@ -45,8 +45,10 @@ export default async function ClassesPage({
             href={`/${locale}/classes/cooking`}
             className="group overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
           >
-            <div className="flex h-56 w-full items-center justify-center bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30">
-              <GiCookingPot className="h-20 w-20 text-teal-600 dark:text-teal-300" />
+            <div className="relative flex h-60 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-teal-50 via-cyan-50 to-teal-100 dark:from-teal-900/30 dark:via-cyan-900/20 dark:to-teal-800/30">
+              <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-teal-300/20 blur-2xl dark:bg-teal-300/10" />
+              <div className="absolute -bottom-12 -right-8 h-40 w-40 rounded-full bg-cyan-300/20 blur-2xl dark:bg-cyan-300/10" />
+              <GiCookingPot className="relative h-28 w-28 text-teal-600 transition duration-300 group-hover:scale-110 group-hover:text-teal-500 dark:text-teal-300 dark:group-hover:text-teal-200" />
             </div>
             <div className="p-6">
               <h2 className="text-2xl font-semibold text-[color:var(--text)] dark:text-white">
@@ -65,8 +67,10 @@ export default async function ClassesPage({
             href={`/${locale}/classes/arts-crafts`}
             className="group overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
           >
-            <div className="flex h-56 w-full items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30">
-              <GiPalette className="h-20 w-20 text-purple-600 dark:text-purple-300" />
+            <div className="relative flex h-60 w-full items-center justify-center overflow-hidden bg-gradient-to-br from-purple-50 via-fuchsia-50 to-purple-100 dark:from-purple-900/30 dark:via-fuchsia-900/20 dark:to-purple-800/30">
+              <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-purple-300/20 blur-2xl dark:bg-purple-300/10" />
+              <div className="absolute -bottom-12 -right-8 h-40 w-40 rounded-full bg-fuchsia-300/20 blur-2xl dark:bg-fuchsia-300/10" />
+              <GiPalette className="relative h-28 w-28 text-purple-600 transition duration-300 group-hover:scale-110 group-hover:text-purple-500 dark:text-purple-300 dark:group-hover:text-purple-200" />
             </div>
             <div className="p-6">
               <h2 className="text-2xl font-semibold text-[color:var(--text)] dark:text-white">

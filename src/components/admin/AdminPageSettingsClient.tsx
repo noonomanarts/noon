@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { FiArrowDown, FiArrowLeft, FiArrowUp, FiExternalLink, FiPlus, FiRefreshCw, FiSave, FiTrash2, FiUpload } from "react-icons/fi";
+import { FiArrowDown, FiArrowLeft, FiArrowUp, FiExternalLink, FiPenTool, FiPlus, FiRefreshCw, FiSave, FiScissors, FiTrash2, FiUpload } from "react-icons/fi";
+import { GiChefToque, GiCookingPot, GiKnifeFork, GiPalette } from "react-icons/gi";
 
 import type { Locale } from "@/lib/locale";
 import {
@@ -39,6 +40,18 @@ const NOON_HERO_BUTTON_COLORS = [
   "#109d9a",
 ] as const;
 
+const COOKING_ICON_OPTIONS = [
+  { value: "cooking-pot", labelEn: "Cooking Pot", labelAr: "قدر الطبخ" },
+  { value: "chef-hat", labelEn: "Chef Hat", labelAr: "قبعة الشيف" },
+  { value: "utensils", labelEn: "Utensils", labelAr: "أدوات المطبخ" },
+] as const;
+
+const ARTS_ICON_OPTIONS = [
+  { value: "palette", labelEn: "Palette", labelAr: "لوحة ألوان" },
+  { value: "craft", labelEn: "Craft", labelAr: "حرفي" },
+  { value: "brush", labelEn: "Brush", labelAr: "فرشاة" },
+] as const;
+
 function normalizeHexColor(value: string, fallback: string): string {
   const input = value.trim().toLowerCase();
   const match = input.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
@@ -71,6 +84,18 @@ function resolvePreviewHref(locale: Locale, value: string, fallback: string): st
   return `/${locale}${fallback}`;
 }
 
+function renderCourseIconPreview(icon: string, type: "cooking" | "arts", className: string) {
+  if (type === "cooking") {
+    if (icon === "chef-hat") return <GiChefToque className={className} />;
+    if (icon === "utensils") return <GiKnifeFork className={className} />;
+    return <GiCookingPot className={className} />;
+  }
+
+  if (icon === "craft") return <FiScissors className={className} />;
+  if (icon === "brush") return <FiPenTool className={className} />;
+  return <GiPalette className={className} />;
+}
+
 export default function AdminPageSettingsClient({
   locale,
   page,
@@ -85,6 +110,7 @@ export default function AdminPageSettingsClient({
   const [keywordsEnText, setKeywordsEnText] = useState(() => keywordsToText(initialSettings.keywordsEn));
   const [keywordsArText, setKeywordsArText] = useState(() => keywordsToText(initialSettings.keywordsAr));
   const [uploadingSlideKey, setUploadingSlideKey] = useState<string | null>(null);
+  const [uploadingCourseImageKey, setUploadingCourseImageKey] = useState<"cooking" | "arts" | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -169,6 +195,34 @@ export default function AdminPageSettingsClient({
     heroUploading: isArabic ? "جارٍ الرفع..." : "Uploading...",
     heroAutoplayMs: isArabic ? "سرعة السلايدشو (ms)" : "Slideshow Speed (ms)",
     heroAutoplayHint: isArabic ? "من 2000 إلى 12000 مللي ثانية." : "Between 2000 and 12000 ms.",
+    homeCoursesSection: isArabic ? "إعدادات قسم الدورات" : "Courses Section Settings",
+    homeCoursesHint: isArabic
+      ? "تحكم بعنوان القسم، الوصف، ونصوص الكروت. روابط الصور تبقى قابلة للتعديل من هنا."
+      : "Configure section title, subtitle, and card copy. Image paths remain editable here.",
+    coursesTitleEn: isArabic ? "عنوان القسم (EN)" : "Section Title (EN)",
+    coursesTitleAr: isArabic ? "عنوان القسم (AR)" : "Section Title (AR)",
+    coursesSubtitleEn: isArabic ? "وصف القسم (EN)" : "Section Subtitle (EN)",
+    coursesSubtitleAr: isArabic ? "وصف القسم (AR)" : "Section Subtitle (AR)",
+    cookingCardTitleEn: isArabic ? "عنوان بطاقة الطبخ (EN)" : "Cooking Card Title (EN)",
+    cookingCardTitleAr: isArabic ? "عنوان بطاقة الطبخ (AR)" : "Cooking Card Title (AR)",
+    cookingCardDescEn: isArabic ? "وصف بطاقة الطبخ (EN)" : "Cooking Card Description (EN)",
+    cookingCardDescAr: isArabic ? "وصف بطاقة الطبخ (AR)" : "Cooking Card Description (AR)",
+    artsCardTitleEn: isArabic ? "عنوان بطاقة الفنون (EN)" : "Arts Card Title (EN)",
+    artsCardTitleAr: isArabic ? "عنوان بطاقة الفنون (AR)" : "Arts Card Title (AR)",
+    artsCardDescEn: isArabic ? "وصف بطاقة الفنون (EN)" : "Arts Card Description (EN)",
+    artsCardDescAr: isArabic ? "وصف بطاقة الفنون (AR)" : "Arts Card Description (AR)",
+    cookingImagePath: isArabic ? "مسار صورة الطبخ" : "Cooking Image Path",
+    artsImagePath: isArabic ? "مسار صورة الفنون" : "Arts Image Path",
+    cardDisplayMode: isArabic ? "طريقة العرض" : "Display Mode",
+    displayIcon: isArabic ? "أيقونة" : "Icon",
+    displayImage: isArabic ? "صورة" : "Image",
+    cardIconChoice: isArabic ? "اختيار الأيقونة" : "Select Icon",
+    cardImageUpload: isArabic ? "رفع صورة" : "Upload Image",
+    cardPreview: isArabic ? "معاينة البطاقة" : "Card Preview",
+    cardImageUploading: isArabic ? "جارٍ الرفع..." : "Uploading...",
+    cardImageUploadDone: isArabic ? "تم رفع الصورة." : "Image uploaded successfully.",
+    cardImageUploadFailed: isArabic ? "فشل رفع الصورة." : "Image upload failed.",
+    cardImagePlaceholder: isArabic ? "لا توجد صورة" : "No image",
     homeLayoutSection: isArabic ? "تخطيط الصفحة الرئيسية" : "Home Layout",
     homeLayoutHint: isArabic
       ? "تحكم بإظهار أقسام الصفحة الرئيسية من مكان واحد."
@@ -194,6 +248,8 @@ export default function AdminPageSettingsClient({
   const heroSecondaryColor = normalizeHexColor(settings.homeHero.secondaryCtaColor, "#17b0ad");
   const heroPrimaryPreviewHref = resolvePreviewHref(locale, settings.homeHero.primaryCtaHref, "/classes/cooking");
   const heroSecondaryPreviewHref = resolvePreviewHref(locale, settings.homeHero.secondaryCtaHref, "/classes/arts-crafts");
+  const cookingPreviewTitle = (isArabic ? settings.homeCourses.cookingTitleAr : settings.homeCourses.cookingTitleEn).trim() || (isArabic ? "دورات الطبخ" : "Cooking classes");
+  const artsPreviewTitle = (isArabic ? settings.homeCourses.artsTitleAr : settings.homeCourses.artsTitleEn).trim() || (isArabic ? "دورات الفنون" : "Arts & crafts classes");
 
   const handleReset = () => {
     setSettings(defaults);
@@ -233,10 +289,10 @@ export default function AdminPageSettingsClient({
     setHomeSlides(next);
   };
 
-  const uploadImage = async (file: File): Promise<string> => {
+  const uploadImage = async (file: File, folder: string, fallbackError: string): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("folder", "home-hero-slides");
+    formData.append("folder", folder);
 
     const response = await fetch("/api/upload", {
       method: "POST",
@@ -245,7 +301,7 @@ export default function AdminPageSettingsClient({
 
     const payload = (await response.json().catch(() => ({}))) as { url?: string; error?: string };
     if (!response.ok || !payload.url) {
-      throw new Error(payload.error || t.heroUploadFailed);
+      throw new Error(payload.error || fallbackError);
     }
 
     return payload.url;
@@ -260,7 +316,9 @@ export default function AdminPageSettingsClient({
     try {
       const availableSlots = Math.max(0, 12 - settings.homeHero.slideImages.length);
       const selectedFiles = Array.from(files).slice(0, availableSlots);
-      const uploadedUrls = await Promise.all(selectedFiles.map((file) => uploadImage(file)));
+      const uploadedUrls = await Promise.all(
+        selectedFiles.map((file) => uploadImage(file, "home-hero-slides", t.heroUploadFailed))
+      );
       setHomeSlides([...settings.homeHero.slideImages, ...uploadedUrls]);
       setInfo(t.heroUploadDone);
     } catch (uploadError) {
@@ -277,7 +335,7 @@ export default function AdminPageSettingsClient({
     setInfo(null);
 
     try {
-      const url = await uploadImage(file);
+      const url = await uploadImage(file, "home-hero-slides", t.heroUploadFailed);
       const next = [...settings.homeHero.slideImages];
       next[index] = url;
       setHomeSlides(next);
@@ -286,6 +344,29 @@ export default function AdminPageSettingsClient({
       setError(uploadError instanceof Error ? uploadError.message : t.heroUploadFailed);
     } finally {
       setUploadingSlideKey(null);
+    }
+  };
+
+  const handleCourseImageUpload = async (target: "cooking" | "arts", file: File | null) => {
+    if (!file) return;
+    setUploadingCourseImageKey(target);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const url = await uploadImage(file, "home-courses", t.cardImageUploadFailed);
+      setSettings((prev) => ({
+        ...prev,
+        homeCourses: {
+          ...prev.homeCourses,
+          ...(target === "cooking" ? { cookingImageSrc: url } : { artsImageSrc: url }),
+        },
+      }));
+      setInfo(t.cardImageUploadDone);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : t.cardImageUploadFailed);
+    } finally {
+      setUploadingCourseImageKey(null);
     }
   };
 
@@ -877,6 +958,366 @@ export default function AdminPageSettingsClient({
               />
               <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.heroAutoplayHint}</p>
             </label>
+          </div>
+        </section>
+      )}
+
+      {isHomePage && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.homeCoursesSection}</h2>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.homeCoursesHint}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.coursesTitleEn}</span>
+              <input
+                value={settings.homeCourses.titleEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, titleEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.coursesTitleAr}</span>
+              <input
+                value={settings.homeCourses.titleAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, titleAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.coursesSubtitleEn}</span>
+              <textarea
+                rows={2}
+                value={settings.homeCourses.subtitleEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, subtitleEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.coursesSubtitleAr}</span>
+              <textarea
+                rows={2}
+                value={settings.homeCourses.subtitleAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, subtitleAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.cookingCardTitleEn}</span>
+              <input
+                value={settings.homeCourses.cookingTitleEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, cookingTitleEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.cookingCardTitleAr}</span>
+              <input
+                value={settings.homeCourses.cookingTitleAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, cookingTitleAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.cookingCardDescEn}</span>
+              <textarea
+                rows={3}
+                value={settings.homeCourses.cookingDescriptionEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, cookingDescriptionEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.cookingCardDescAr}</span>
+              <textarea
+                rows={3}
+                value={settings.homeCourses.cookingDescriptionAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, cookingDescriptionAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.artsCardTitleEn}</span>
+              <input
+                value={settings.homeCourses.artsTitleEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, artsTitleEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.artsCardTitleAr}</span>
+              <input
+                value={settings.homeCourses.artsTitleAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, artsTitleAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.artsCardDescEn}</span>
+              <textarea
+                rows={3}
+                value={settings.homeCourses.artsDescriptionEn}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, artsDescriptionEn: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.artsCardDescAr}</span>
+              <textarea
+                rows={3}
+                value={settings.homeCourses.artsDescriptionAr}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeCourses: { ...prev.homeCourses, artsDescriptionAr: event.target.value },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+            <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-800/40">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{isArabic ? "بطاقة الطبخ" : "Cooking Card"}</h3>
+              <div className="grid gap-3">
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.cardDisplayMode}</span>
+                  <select
+                    value={settings.homeCourses.cookingDisplayMode}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        homeCourses: {
+                          ...prev.homeCourses,
+                          cookingDisplayMode: event.target.value === "image" ? "image" : "icon",
+                        },
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  >
+                    <option value="icon">{t.displayIcon}</option>
+                    <option value="image">{t.displayImage}</option>
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.cardIconChoice}</span>
+                  <select
+                    value={settings.homeCourses.cookingIcon}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        homeCourses: {
+                          ...prev.homeCourses,
+                          cookingIcon: event.target.value as SitePageSettings["homeCourses"]["cookingIcon"],
+                        },
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  >
+                    {COOKING_ICON_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {isArabic ? option.labelAr : option.labelEn}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.cookingImagePath}</span>
+                  <div className="flex gap-2">
+                    <input
+                      value={settings.homeCourses.cookingImageSrc}
+                      onChange={(event) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          homeCourses: { ...prev.homeCourses, cookingImageSrc: event.target.value },
+                        }))
+                      }
+                      placeholder="/images/cooking.png"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                    <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                      <FiUpload className="size-3.5" />
+                      {uploadingCourseImageKey === "cooking" ? t.cardImageUploading : t.cardImageUpload}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingCourseImageKey !== null}
+                        onChange={(event) => {
+                          void handleCourseImageUpload("cooking", event.target.files?.[0] ?? null);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                </label>
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="mb-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t.cardPreview}</p>
+                <div className="flex h-36 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-gradient-to-br from-teal-50 to-cyan-100 dark:border-zinc-700 dark:from-teal-900/25 dark:to-cyan-900/20">
+                  {settings.homeCourses.cookingDisplayMode === "image" ? (
+                    settings.homeCourses.cookingImageSrc.trim() ? (
+                      <div
+                        className="h-full w-full bg-cover bg-center"
+                        style={{ backgroundImage: `url("${settings.homeCourses.cookingImageSrc}")` }}
+                      />
+                    ) : (
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">{t.cardImagePlaceholder}</span>
+                    )
+                  ) : (
+                    renderCourseIconPreview(settings.homeCourses.cookingIcon, "cooking", "h-14 w-14 text-teal-600 dark:text-teal-300")
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{cookingPreviewTitle}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-800/40">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{isArabic ? "بطاقة الفنون" : "Arts Card"}</h3>
+              <div className="grid gap-3">
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.cardDisplayMode}</span>
+                  <select
+                    value={settings.homeCourses.artsDisplayMode}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        homeCourses: {
+                          ...prev.homeCourses,
+                          artsDisplayMode: event.target.value === "image" ? "image" : "icon",
+                        },
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  >
+                    <option value="icon">{t.displayIcon}</option>
+                    <option value="image">{t.displayImage}</option>
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.cardIconChoice}</span>
+                  <select
+                    value={settings.homeCourses.artsIcon}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        homeCourses: {
+                          ...prev.homeCourses,
+                          artsIcon: event.target.value as SitePageSettings["homeCourses"]["artsIcon"],
+                        },
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  >
+                    {ARTS_ICON_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {isArabic ? option.labelAr : option.labelEn}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.artsImagePath}</span>
+                  <div className="flex gap-2">
+                    <input
+                      value={settings.homeCourses.artsImageSrc}
+                      onChange={(event) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          homeCourses: { ...prev.homeCourses, artsImageSrc: event.target.value },
+                        }))
+                      }
+                      placeholder="/images/art.png"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                    <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                      <FiUpload className="size-3.5" />
+                      {uploadingCourseImageKey === "arts" ? t.cardImageUploading : t.cardImageUpload}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingCourseImageKey !== null}
+                        onChange={(event) => {
+                          void handleCourseImageUpload("arts", event.target.files?.[0] ?? null);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                </label>
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900">
+                <p className="mb-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t.cardPreview}</p>
+                <div className="flex h-36 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-gradient-to-br from-purple-50 to-fuchsia-100 dark:border-zinc-700 dark:from-purple-900/25 dark:to-fuchsia-900/20">
+                  {settings.homeCourses.artsDisplayMode === "image" ? (
+                    settings.homeCourses.artsImageSrc.trim() ? (
+                      <div
+                        className="h-full w-full bg-cover bg-center"
+                        style={{ backgroundImage: `url("${settings.homeCourses.artsImageSrc}")` }}
+                      />
+                    ) : (
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">{t.cardImagePlaceholder}</span>
+                    )
+                  ) : (
+                    renderCourseIconPreview(settings.homeCourses.artsIcon, "arts", "h-14 w-14 text-purple-600 dark:text-purple-300")
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{artsPreviewTitle}</p>
+              </div>
+            </div>
           </div>
         </section>
       )}

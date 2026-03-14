@@ -13,7 +13,8 @@ import {
   sanitizeSitePageSettings,
   type SitePageSettings,
 } from "@/lib/admin/sitePages";
-import { FiArrowRight, FiClock } from "react-icons/fi";
+import { FiArrowRight, FiClock, FiPenTool, FiScissors } from "react-icons/fi";
+import { GiChefToque, GiCookingPot, GiKnifeFork, GiPalette } from "react-icons/gi";
 
 type UpcomingCard = {
   id: string;
@@ -62,6 +63,26 @@ function resolveHeroHref(locale: Locale, value: string, fallback: string): strin
   if (/^\/(en|ar)(?=\/|$)/.test(normalized)) return normalized;
   if (normalized.startsWith("/")) return `/${locale}${normalized}`;
   return `/${locale}${fallback}`;
+}
+
+function renderCourseIcon(icon: string, type: "cooking" | "arts") {
+  if (type === "cooking") {
+    if (icon === "chef-hat") {
+      return <GiChefToque className="h-28 w-28 text-teal-600 transition duration-300 group-hover:scale-110 group-hover:text-teal-500 dark:text-teal-300 dark:group-hover:text-teal-200" />;
+    }
+    if (icon === "utensils") {
+      return <GiKnifeFork className="h-28 w-28 text-teal-600 transition duration-300 group-hover:scale-110 group-hover:text-teal-500 dark:text-teal-300 dark:group-hover:text-teal-200" />;
+    }
+    return <GiCookingPot className="h-28 w-28 text-teal-600 transition duration-300 group-hover:scale-110 group-hover:text-teal-500 dark:text-teal-300 dark:group-hover:text-teal-200" />;
+  }
+
+  if (icon === "craft") {
+    return <FiScissors className="h-24 w-24 text-purple-600 transition duration-300 group-hover:scale-110 group-hover:text-purple-500 dark:text-purple-300 dark:group-hover:text-purple-200" />;
+  }
+  if (icon === "brush") {
+    return <FiPenTool className="h-24 w-24 text-purple-600 transition duration-300 group-hover:scale-110 group-hover:text-purple-500 dark:text-purple-300 dark:group-hover:text-purple-200" />;
+  }
+  return <GiPalette className="h-28 w-28 text-purple-600 transition duration-300 group-hover:scale-110 group-hover:text-purple-500 dark:text-purple-300 dark:group-hover:text-purple-200" />;
 }
 
 async function resolveHomePageSettings(): Promise<SitePageSettings | null> {
@@ -215,6 +236,7 @@ export default async function HomePage({
 
   const heroAutoplayMs = homePageSettings?.homeHero.autoplayMs ?? 3800;
   const homeLayout = homePageSettings?.homeLayout;
+  const homeCourses = homePageSettings?.homeCourses;
   const showHero = homeLayout?.showHero ?? true;
   const showCourses = homeLayout?.showCourses ?? true;
   const showNumbers = homeLayout?.showNumbers ?? true;
@@ -233,15 +255,21 @@ export default async function HomePage({
     artsHref: resolveHeroHref(locale, heroSecondaryHrefFromSettings ?? "", "/classes/arts-crafts"),
     cookingColor: normalizeHexColor(heroPrimaryColorFromSettings ?? "#f77d6b", "#f77d6b"),
     artsColor: normalizeHexColor(heroSecondaryColorFromSettings ?? "#17b0ad", "#17b0ad"),
-    classesCaption: isArabic
-      ? "برامج متجددة بلمسة إبداعية."
-      : "Signature programs crafted for every level.",
     upcomingCaption: isArabic
       ? "جلسات قادمة جاهزة للحجز."
       : "Handpicked sessions you can book right away.",
     whyCaption: isArabic
       ? "الفرق الحقيقي في تجربة نون."
       : "What truly sets the Noon experience apart.",
+  };
+
+  const coursesUi = {
+    cookingImageSrc: homeCourses?.cookingImageSrc?.trim() || "/images/cooking.png",
+    artsImageSrc: homeCourses?.artsImageSrc?.trim() || "/images/art.png",
+    cookingDisplayMode: homeCourses?.cookingDisplayMode ?? "icon",
+    artsDisplayMode: homeCourses?.artsDisplayMode ?? "icon",
+    cookingIcon: homeCourses?.cookingIcon ?? "cooking-pot",
+    artsIcon: homeCourses?.artsIcon ?? "palette",
   };
 
   return (
@@ -294,29 +322,48 @@ export default async function HomePage({
       )}
 
       {showCourses && (
-        <Section title={content.courses.title} description={heroUi.classesCaption}>
+        <Section
+          title={
+            isArabic
+              ? (homeCourses?.titleAr.trim() || content.courses.title)
+              : (homeCourses?.titleEn.trim() || content.courses.title)
+          }
+          description={
+            isArabic
+              ? (homeCourses?.subtitleAr.trim() || "برامج متجددة بلمسة إبداعية.")
+              : (homeCourses?.subtitleEn.trim() || "Signature programs crafted for every level.")
+          }
+        >
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Link
             href={`/${locale}/classes/cooking`}
             className="group overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
           >
-            <div className="relative aspect-[5/4] overflow-hidden">
-              <Image
-                src="/images/cooking.png"
-                alt={isArabic ? "دورات الطبخ" : "Cooking classes"}
-                fill
-                className="object-cover transition duration-500 group-hover:scale-[1.03]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
-            </div>
+            {coursesUi.cookingDisplayMode === "image" ? (
+              <div className="relative h-56 w-full overflow-hidden">
+                <Image
+                  src={coursesUi.cookingImageSrc}
+                  alt={isArabic ? "دورات الطبخ" : "Cooking classes"}
+                  fill
+                  className="object-cover transition duration-500 group-hover:scale-[1.04]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
+              </div>
+            ) : (
+              <div className="flex h-56 w-full items-center justify-center bg-gradient-to-br from-teal-50 to-cyan-100 dark:from-teal-900/30 dark:to-cyan-800/30">
+                {renderCourseIcon(coursesUi.cookingIcon, "cooking")}
+              </div>
+            )}
             <div className="space-y-2 p-5">
               <h3 className="text-lg font-semibold text-[color:var(--text)]">
-                {isArabic ? "دورات الطبخ" : "Cooking classes"}
+                {isArabic
+                  ? (homeCourses?.cookingTitleAr.trim() || "دورات الطبخ")
+                  : (homeCourses?.cookingTitleEn.trim() || "Cooking classes")}
               </h3>
               <p className="text-sm text-[color:var(--text-muted)]">
                 {isArabic
-                  ? "من أساسيات الطبخ حتى التجارب المتقدمة بطابع عملي ممتع."
-                  : "From foundations to advanced techniques in a practical, immersive format."}
+                  ? (homeCourses?.cookingDescriptionAr.trim() || "من أساسيات الطبخ حتى التجارب المتقدمة بطابع عملي ممتع.")
+                  : (homeCourses?.cookingDescriptionEn.trim() || "From foundations to advanced techniques in a practical, immersive format.")}
               </p>
               <span className="inline-flex items-center gap-1 pt-1 text-sm font-semibold text-[color:var(--primary)]">
                 {isArabic ? "استكشف" : "Explore"}
@@ -329,23 +376,31 @@ export default async function HomePage({
             href={`/${locale}/classes/arts-crafts`}
             className="group overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
           >
-            <div className="relative aspect-[5/4] overflow-hidden">
-              <Image
-                src="/images/art.png"
-                alt={isArabic ? "فنون وحرف" : "Arts & crafts classes"}
-                fill
-                className="object-cover transition duration-500 group-hover:scale-[1.03]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
-            </div>
+            {coursesUi.artsDisplayMode === "image" ? (
+              <div className="relative h-56 w-full overflow-hidden">
+                <Image
+                  src={coursesUi.artsImageSrc}
+                  alt={isArabic ? "فنون وحرف" : "Arts & crafts classes"}
+                  fill
+                  className="object-cover transition duration-500 group-hover:scale-[1.04]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
+              </div>
+            ) : (
+              <div className="flex h-56 w-full items-center justify-center bg-gradient-to-br from-purple-50 to-fuchsia-100 dark:from-purple-900/30 dark:to-fuchsia-900/30">
+                {renderCourseIcon(coursesUi.artsIcon, "arts")}
+              </div>
+            )}
             <div className="space-y-2 p-5">
               <h3 className="text-lg font-semibold text-[color:var(--text)]">
-                {isArabic ? "فنون وحرف" : "Arts & crafts classes"}
+                {isArabic
+                  ? (homeCourses?.artsTitleAr.trim() || "فنون وحرف")
+                  : (homeCourses?.artsTitleEn.trim() || "Arts & crafts classes")}
               </h3>
               <p className="text-sm text-[color:var(--text-muted)]">
                 {isArabic
-                  ? "جلسات إبداعية تدمج الحرفة والفن في بيئة ملهمة."
-                  : "Creative sessions that blend craftsmanship and artistic expression."}
+                  ? (homeCourses?.artsDescriptionAr.trim() || "جلسات إبداعية تدمج الحرفة والفن في بيئة ملهمة.")
+                  : (homeCourses?.artsDescriptionEn.trim() || "Creative sessions that blend craftsmanship and artistic expression.")}
               </p>
               <span className="inline-flex items-center gap-1 pt-1 text-sm font-semibold text-[color:var(--primary)]">
                 {isArabic ? "استكشف" : "Explore"}
