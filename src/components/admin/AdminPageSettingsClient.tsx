@@ -28,6 +28,49 @@ function textToKeywords(value: string): string[] {
   ).slice(0, 24);
 }
 
+const NOON_HERO_BUTTON_COLORS = [
+  "#f77d6b",
+  "#ef6b58",
+  "#f2cb56",
+  "#e8be40",
+  "#7b3f8d",
+  "#6a347b",
+  "#17b0ad",
+  "#109d9a",
+] as const;
+
+function normalizeHexColor(value: string, fallback: string): string {
+  const input = value.trim().toLowerCase();
+  const match = input.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+  if (!match) return fallback;
+
+  if (match[1].length === 3) {
+    const [r, g, b] = match[1].split("");
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+
+  return input;
+}
+
+function getReadableTextColor(hex: string): "#ffffff" | "#23150f" {
+  const normalized = normalizeHexColor(hex, "#000000");
+  const raw = normalized.slice(1);
+  const r = Number.parseInt(raw.slice(0, 2), 16);
+  const g = Number.parseInt(raw.slice(2, 4), 16);
+  const b = Number.parseInt(raw.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.62 ? "#23150f" : "#ffffff";
+}
+
+function resolvePreviewHref(locale: Locale, value: string, fallback: string): string {
+  const normalized = value.trim();
+  if (!normalized) return `/${locale}${fallback}`;
+  if (/^(https?:\/\/|mailto:|tel:|#)/i.test(normalized)) return normalized;
+  if (/^\/(en|ar)(?=\/|$)/.test(normalized)) return normalized;
+  if (normalized.startsWith("/")) return `/${locale}${normalized}`;
+  return `/${locale}${fallback}`;
+}
+
 export default function AdminPageSettingsClient({
   locale,
   page,
@@ -48,6 +91,7 @@ export default function AdminPageSettingsClient({
 
   const defaults = useMemo(() => getDefaultSitePageSettings(page), [page]);
   const isDynamic = isDynamicPathTemplate(page.pathTemplate);
+  const isHomePage = page.key === "home";
   const previewEn = buildLocalizedPagePath(page.pathTemplate, "en");
   const previewAr = buildLocalizedPagePath(page.pathTemplate, "ar");
 
@@ -88,14 +132,26 @@ export default function AdminPageSettingsClient({
     notes: isArabic ? "ملاحظات داخلية" : "Internal Notes",
     heroSection: isArabic ? "إعدادات الهيرو (الصفحة الرئيسية)" : "Hero Settings (Home Page)",
     heroHint: isArabic
-      ? "العنوان والوصف في قسم المحتوى أعلاه يتم تطبيقهما مباشرة على هيرو الصفحة الرئيسية."
-      : "The heading and subheading in the content section above are applied directly to the home hero.",
+      ? "العنوان في قسم المحتوى أعلاه يظهر مباشرة في هيرو الصفحة الرئيسية."
+      : "The heading in the content section above is used directly in the home hero.",
     heroPrimaryCtaEn: isArabic ? "زر رئيسي (EN)" : "Primary CTA (EN)",
     heroPrimaryCtaAr: isArabic ? "زر رئيسي (AR)" : "Primary CTA (AR)",
     heroSecondaryCtaEn: isArabic ? "زر ثانوي (EN)" : "Secondary CTA (EN)",
     heroSecondaryCtaAr: isArabic ? "زر ثانوي (AR)" : "Secondary CTA (AR)",
-    heroTrustLineEn: isArabic ? "سطر الثقة (EN)" : "Trust Line (EN)",
-    heroTrustLineAr: isArabic ? "سطر الثقة (AR)" : "Trust Line (AR)",
+    heroPrimaryLink: isArabic ? "رابط الزر الرئيسي" : "Primary Button Link",
+    heroSecondaryLink: isArabic ? "رابط الزر الثانوي" : "Secondary Button Link",
+    heroPrimaryColor: isArabic ? "لون الزر الرئيسي" : "Primary Button Color",
+    heroSecondaryColor: isArabic ? "لون الزر الثانوي" : "Secondary Button Color",
+    heroPrimaryButton: isArabic ? "إعدادات الزر الرئيسي" : "Primary Button Setup",
+    heroSecondaryButton: isArabic ? "إعدادات الزر الثانوي" : "Secondary Button Setup",
+    heroColorPicker: isArabic ? "منتقي اللون" : "Color Picker",
+    heroCtaHint: isArabic
+      ? "يمكنك وضع مسار داخلي مثل /classes/cooking أو رابط خارجي كامل."
+      : "Use an internal path like /classes/cooking or a full external URL.",
+    heroPreviewTitle: isArabic ? "معاينة مصغرة للهيرو" : "Hero Mini Preview",
+    heroPreviewHint: isArabic
+      ? "هذه معاينة سريعة للشكل النهائي للدكّتين على الهيرو."
+      : "A quick visual preview of how both hero buttons will appear.",
     heroSlides: isArabic ? "صور السلايدشو" : "Slideshow Images",
     heroSlidesHint: isArabic
       ? "يمكنك تعديل الرابط، حذف الصورة، تغيير ترتيبها، أو رفع صور جديدة."
@@ -113,6 +169,16 @@ export default function AdminPageSettingsClient({
     heroUploading: isArabic ? "جارٍ الرفع..." : "Uploading...",
     heroAutoplayMs: isArabic ? "سرعة السلايدشو (ms)" : "Slideshow Speed (ms)",
     heroAutoplayHint: isArabic ? "من 2000 إلى 12000 مللي ثانية." : "Between 2000 and 12000 ms.",
+    homeLayoutSection: isArabic ? "تخطيط الصفحة الرئيسية" : "Home Layout",
+    homeLayoutHint: isArabic
+      ? "تحكم بإظهار أقسام الصفحة الرئيسية من مكان واحد."
+      : "Control homepage sections visibility in one place.",
+    showHero: isArabic ? "إظهار الهيرو" : "Show Hero",
+    showCourses: isArabic ? "إظهار قسم الدورات" : "Show Courses Section",
+    showNumbers: isArabic ? "إظهار قسم الأرقام" : "Show Numbers Section",
+    showUpcoming: isArabic ? "إظهار قسم الدورات القادمة" : "Show Upcoming Section",
+    showWhyNoon: isArabic ? "إظهار قسم لماذا نون" : "Show Why Noon Section",
+    showPartners: isArabic ? "إظهار قسم الشركاء" : "Show Partners Section",
     routeTemplate: isArabic ? "قالب المسار" : "Route Template",
     group: isArabic ? "المجموعة" : "Group",
     preview: isArabic ? "معاينة الصفحة" : "Page Preview",
@@ -120,6 +186,14 @@ export default function AdminPageSettingsClient({
     previewEnglish: isArabic ? "فتح النسخة الإنجليزية" : "Open English",
     previewArabic: isArabic ? "فتح النسخة العربية" : "Open Arabic",
   };
+
+  const heroPreviewHeading = (isArabic ? settings.headingAr : settings.headingEn).trim() || (isArabic ? "شعار الموقع" : "Main Site Slogan");
+  const heroPrimaryLabel = (isArabic ? settings.homeHero.primaryCtaAr : settings.homeHero.primaryCtaEn).trim() || (isArabic ? "زر رئيسي" : "Primary");
+  const heroSecondaryLabel = (isArabic ? settings.homeHero.secondaryCtaAr : settings.homeHero.secondaryCtaEn).trim() || (isArabic ? "زر ثانوي" : "Secondary");
+  const heroPrimaryColor = normalizeHexColor(settings.homeHero.primaryCtaColor, "#f77d6b");
+  const heroSecondaryColor = normalizeHexColor(settings.homeHero.secondaryCtaColor, "#17b0ad");
+  const heroPrimaryPreviewHref = resolvePreviewHref(locale, settings.homeHero.primaryCtaHref, "/classes/cooking");
+  const heroSecondaryPreviewHref = resolvePreviewHref(locale, settings.homeHero.secondaryCtaHref, "/classes/arts-crafts");
 
   const handleReset = () => {
     setSettings(defaults);
@@ -378,28 +452,32 @@ export default function AdminPageSettingsClient({
               className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
             />
           </label>
-          <label className="space-y-1 text-sm">
-            <span className="text-zinc-600 dark:text-zinc-300">{t.subheadingEn}</span>
-            <textarea
-              rows={3}
-              value={settings.subheadingEn}
-              onChange={(event) => setSettings((prev) => ({ ...prev, subheadingEn: event.target.value }))}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-            />
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="text-zinc-600 dark:text-zinc-300">{t.subheadingAr}</span>
-            <textarea
-              rows={3}
-              value={settings.subheadingAr}
-              onChange={(event) => setSettings((prev) => ({ ...prev, subheadingAr: event.target.value }))}
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-            />
-          </label>
+          {!isHomePage && (
+            <>
+              <label className="space-y-1 text-sm">
+                <span className="text-zinc-600 dark:text-zinc-300">{t.subheadingEn}</span>
+                <textarea
+                  rows={3}
+                  value={settings.subheadingEn}
+                  onChange={(event) => setSettings((prev) => ({ ...prev, subheadingEn: event.target.value }))}
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-zinc-600 dark:text-zinc-300">{t.subheadingAr}</span>
+                <textarea
+                  rows={3}
+                  value={settings.subheadingAr}
+                  onChange={(event) => setSettings((prev) => ({ ...prev, subheadingAr: event.target.value }))}
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </label>
+            </>
+          )}
         </div>
       </section>
 
-      {page.key === "home" && (
+      {isHomePage && (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
           <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.heroSection}</h2>
           <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.heroHint}</p>
@@ -456,34 +534,211 @@ export default function AdminPageSettingsClient({
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               />
             </label>
-            <label className="space-y-1 text-sm">
-              <span className="text-zinc-600 dark:text-zinc-300">{t.heroTrustLineEn}</span>
-              <textarea
-                rows={3}
-                value={settings.homeHero.trustLineEn}
-                onChange={(event) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    homeHero: { ...prev.homeHero, trustLineEn: event.target.value },
-                  }))
-                }
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              />
-            </label>
-            <label className="space-y-1 text-sm">
-              <span className="text-zinc-600 dark:text-zinc-300">{t.heroTrustLineAr}</span>
-              <textarea
-                rows={3}
-                value={settings.homeHero.trustLineAr}
-                onChange={(event) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    homeHero: { ...prev.homeHero, trustLineAr: event.target.value },
-                  }))
-                }
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              />
-            </label>
+            <div className="grid gap-4 md:col-span-2 lg:grid-cols-2">
+              <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-800/40">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.heroPrimaryButton}</h3>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.heroPrimaryLink}</span>
+                  <input
+                    value={settings.homeHero.primaryCtaHref}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        homeHero: { ...prev.homeHero, primaryCtaHref: event.target.value },
+                      }))
+                    }
+                    placeholder="/classes/cooking"
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-end">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.heroColorPicker}</span>
+                    <input
+                      type="color"
+                      value={heroPrimaryColor}
+                      onChange={(event) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          homeHero: { ...prev.homeHero, primaryCtaColor: normalizeHexColor(event.target.value, "#f77d6b") },
+                        }))
+                      }
+                      className="h-10 w-16 cursor-pointer border border-zinc-300 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.heroPrimaryColor}</span>
+                    <input
+                      value={settings.homeHero.primaryCtaColor}
+                      onChange={(event) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          homeHero: { ...prev.homeHero, primaryCtaColor: event.target.value },
+                        }))
+                      }
+                      onBlur={() =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          homeHero: {
+                            ...prev.homeHero,
+                            primaryCtaColor: normalizeHexColor(prev.homeHero.primaryCtaColor, "#f77d6b"),
+                          },
+                        }))
+                      }
+                      placeholder="#f77d6b"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {NOON_HERO_BUTTON_COLORS.map((color) => (
+                    <button
+                      key={`primary-cta-color-${color}`}
+                      type="button"
+                      onClick={() =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          homeHero: { ...prev.homeHero, primaryCtaColor: color },
+                        }))
+                      }
+                      className={`h-8 border transition ${
+                        heroPrimaryColor === color
+                          ? "border-zinc-900 ring-2 ring-zinc-900/20 dark:border-zinc-100 dark:ring-zinc-100/30"
+                          : "border-black/10 hover:border-black/35 dark:border-white/15 dark:hover:border-white/40"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      aria-label={color}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-800/40">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.heroSecondaryButton}</h3>
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.heroSecondaryLink}</span>
+                  <input
+                    value={settings.homeHero.secondaryCtaHref}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        homeHero: { ...prev.homeHero, secondaryCtaHref: event.target.value },
+                      }))
+                    }
+                    placeholder="/classes/arts-crafts"
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+                <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-end">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.heroColorPicker}</span>
+                    <input
+                      type="color"
+                      value={heroSecondaryColor}
+                      onChange={(event) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          homeHero: { ...prev.homeHero, secondaryCtaColor: normalizeHexColor(event.target.value, "#17b0ad") },
+                        }))
+                      }
+                      className="h-10 w-16 cursor-pointer border border-zinc-300 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.heroSecondaryColor}</span>
+                    <input
+                      value={settings.homeHero.secondaryCtaColor}
+                      onChange={(event) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          homeHero: { ...prev.homeHero, secondaryCtaColor: event.target.value },
+                        }))
+                      }
+                      onBlur={() =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          homeHero: {
+                            ...prev.homeHero,
+                            secondaryCtaColor: normalizeHexColor(prev.homeHero.secondaryCtaColor, "#17b0ad"),
+                          },
+                        }))
+                      }
+                      placeholder="#17b0ad"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {NOON_HERO_BUTTON_COLORS.map((color) => (
+                    <button
+                      key={`secondary-cta-color-${color}`}
+                      type="button"
+                      onClick={() =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          homeHero: { ...prev.homeHero, secondaryCtaColor: color },
+                        }))
+                      }
+                      className={`h-8 border transition ${
+                        heroSecondaryColor === color
+                          ? "border-zinc-900 ring-2 ring-zinc-900/20 dark:border-zinc-100 dark:ring-zinc-100/30"
+                          : "border-black/10 hover:border-black/35 dark:border-white/15 dark:hover:border-white/40"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      aria-label={color}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.heroCtaHint}</p>
+            </div>
+            <div className="space-y-3 md:col-span-2">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.heroPreviewTitle}</span>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.heroPreviewHint}</p>
+              </div>
+              <div className="relative overflow-hidden border border-zinc-200 bg-zinc-900/80 p-5 dark:border-zinc-700">
+                {settings.homeHero.slideImages[0]?.trim() ? (
+                  <div
+                    className="absolute inset-0 bg-cover bg-center opacity-35"
+                    style={{ backgroundImage: `url("${settings.homeHero.slideImages[0]}")` }}
+                    aria-hidden="true"
+                  />
+                ) : null}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/35 to-black/70" aria-hidden="true" />
+                <div className="relative space-y-4">
+                  <h3 className="line-clamp-2 text-2xl font-black leading-tight text-white">
+                    {heroPreviewHeading}
+                  </h3>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div
+                      className="inline-flex min-h-11 items-center justify-center px-4 py-3 text-center text-sm font-extrabold"
+                      style={{
+                        backgroundColor: heroPrimaryColor,
+                        color: getReadableTextColor(heroPrimaryColor),
+                      }}
+                    >
+                      {heroPrimaryLabel}
+                    </div>
+                    <div
+                      className="inline-flex min-h-11 items-center justify-center px-4 py-3 text-center text-sm font-extrabold"
+                      style={{
+                        backgroundColor: heroSecondaryColor,
+                        color: getReadableTextColor(heroSecondaryColor),
+                      }}
+                    >
+                      {heroSecondaryLabel}
+                    </div>
+                  </div>
+                  <div className="grid gap-2 text-[11px] text-white/85 sm:grid-cols-2">
+                    <code className="truncate bg-black/35 px-2 py-1">{heroPrimaryPreviewHref}</code>
+                    <code className="truncate bg-black/35 px-2 py-1">{heroSecondaryPreviewHref}</code>
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="space-y-3 md:col-span-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm text-zinc-600 dark:text-zinc-300">{t.heroSlides}</span>
@@ -626,7 +881,101 @@ export default function AdminPageSettingsClient({
         </section>
       )}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      {isHomePage && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.homeLayoutSection}</h2>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.homeLayoutHint}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+              <span className="text-zinc-700 dark:text-zinc-300">{t.showHero}</span>
+              <input
+                type="checkbox"
+                checked={settings.homeLayout.showHero}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeLayout: { ...prev.homeLayout, showHero: event.target.checked },
+                  }))
+                }
+                className="size-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-700"
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+              <span className="text-zinc-700 dark:text-zinc-300">{t.showCourses}</span>
+              <input
+                type="checkbox"
+                checked={settings.homeLayout.showCourses}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeLayout: { ...prev.homeLayout, showCourses: event.target.checked },
+                  }))
+                }
+                className="size-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-700"
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+              <span className="text-zinc-700 dark:text-zinc-300">{t.showNumbers}</span>
+              <input
+                type="checkbox"
+                checked={settings.homeLayout.showNumbers}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeLayout: { ...prev.homeLayout, showNumbers: event.target.checked },
+                  }))
+                }
+                className="size-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-700"
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+              <span className="text-zinc-700 dark:text-zinc-300">{t.showUpcoming}</span>
+              <input
+                type="checkbox"
+                checked={settings.homeLayout.showUpcoming}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeLayout: { ...prev.homeLayout, showUpcoming: event.target.checked },
+                  }))
+                }
+                className="size-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-700"
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+              <span className="text-zinc-700 dark:text-zinc-300">{t.showWhyNoon}</span>
+              <input
+                type="checkbox"
+                checked={settings.homeLayout.showWhyNoon}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeLayout: { ...prev.homeLayout, showWhyNoon: event.target.checked },
+                  }))
+                }
+                className="size-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-700"
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-lg border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-700">
+              <span className="text-zinc-700 dark:text-zinc-300">{t.showPartners}</span>
+              <input
+                type="checkbox"
+                checked={settings.homeLayout.showPartners}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    homeLayout: { ...prev.homeLayout, showPartners: event.target.checked },
+                  }))
+                }
+                className="size-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-700"
+              />
+            </label>
+          </div>
+        </section>
+      )}
+
+      {!isHomePage && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.seoSection}</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-1 text-sm">
@@ -683,8 +1032,10 @@ export default function AdminPageSettingsClient({
           </label>
         </div>
       </section>
+      )}
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      {!isHomePage && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.advanced}</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-1 text-sm">
@@ -725,6 +1076,7 @@ export default function AdminPageSettingsClient({
           </label>
         </div>
       </section>
+      )}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.preview}</h2>

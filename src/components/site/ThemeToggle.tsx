@@ -9,6 +9,9 @@ type Props = {
   lightLabel: string;
   darkLabel: string;
   systemLabel: string;
+  buttonClassName?: string;
+  menuClassName?: string;
+  showLabel?: boolean;
 };
 
 const STORAGE_KEY = "noon-theme";
@@ -43,6 +46,9 @@ export default function ThemeToggle({
   lightLabel,
   darkLabel,
   systemLabel,
+  buttonClassName,
+  menuClassName,
+  showLabel = false,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -136,19 +142,32 @@ export default function ThemeToggle({
     </svg>
   );
 
+  const hasCustomButtonClass = Boolean(buttonClassName?.trim());
+  const baseButtonClass = hasCustomButtonClass
+    ? "inline-flex cursor-pointer list-none items-center justify-center transition"
+    : "inline-flex size-10 cursor-pointer list-none items-center justify-center rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] shadow-sm transition hover:bg-[color:var(--muted)]";
+
   return (
     <div ref={containerRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex size-10 cursor-pointer list-none items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--text)] shadow-sm transition hover:bg-[color:var(--muted)]"
+        className={[
+          baseButtonClass,
+          buttonClassName ?? "",
+        ].join(" ")}
         aria-label={label}
         title={label}
       >
-        {icon}
+        {showLabel ? <span>{label}</span> : icon}
       </button>
 
       {isOpen && (
-        <div className="absolute end-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-1.5 shadow-xl">
+        <div
+          className={[
+            "absolute end-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-1.5 shadow-xl",
+            menuClassName ?? "",
+          ].join(" ")}
+        >
           <div className="space-y-0.5">
             <Option
               label={lightLabel}
@@ -186,7 +205,7 @@ function Option({
       type="button"
       onClick={onSelect}
       className={
-        "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition " +
+        "flex w-full items-center justify-between rounded-none px-3 py-2.5 text-sm font-medium transition " +
         (isActive
           ? "bg-[color:var(--muted)] text-[color:var(--text)]"
           : "text-[color:var(--text-muted)] hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]")

@@ -94,7 +94,7 @@ export default function HeroSlideshow({
               alt={alt}
               fill
               priority={index === 0}
-              sizes="(max-width: 1024px) 90vw, 36vw"
+              sizes="100vw"
               draggable={false}
               className="object-cover"
             />

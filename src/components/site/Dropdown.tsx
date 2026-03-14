@@ -46,7 +46,7 @@ export function Dropdown({
     <div ref={detailsRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="cursor-pointer list-none select-none rounded-full px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-[color:var(--muted)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900/50 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:focus-visible:outline-zinc-100/50"
+        className="inline-flex h-11 cursor-pointer list-none items-center select-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
       >
         <span className="inline-flex items-center gap-2">
           {label}
@@ -66,7 +66,7 @@ export function Dropdown({
       </button>
       {isOpen && (
         <div
-          className={`absolute ${alignClass} top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-2 shadow-xl dark:border-zinc-800 dark:bg-zinc-900`}
+          className={`absolute ${alignClass} top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden bg-[color:var(--surface)]/98 p-2 shadow-xl`}
           onClick={() => setIsOpen(false)}
         >
           <div className="max-h-[70vh] overflow-auto">{children}</div>

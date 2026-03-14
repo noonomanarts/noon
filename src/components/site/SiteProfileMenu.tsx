@@ -73,7 +73,7 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((previous) => !previous)}
-        className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-2.5 py-1.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
+        className="inline-flex h-11 items-center gap-2 rounded-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
       >
         <span className="relative h-7 w-7 overflow-hidden rounded-full bg-[color:var(--muted)]">
           {profileImage ? (
@@ -85,7 +85,7 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
           )}
         </span>
         <span className="hidden max-w-[110px] truncate sm:inline">{fullName}</span>
-        <FiChevronDown className="size-4 text-[color:var(--text-subtle)]" />
+        <FiChevronDown className="size-4 text-white/80" />
       </button>
 
       <div
@@ -93,7 +93,7 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
           isOpen ? 'visible opacity-100' : 'pointer-events-none invisible opacity-0'
         }`}
       >
-        <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-2 shadow-xl">
+        <div className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-2 shadow-xl">
           <div className="mb-2 border-b border-[color:var(--border)] px-2 pb-2">
             <p className="truncate text-sm font-semibold text-[color:var(--text)]">{fullName}</p>
             <p className="text-xs text-[color:var(--text-subtle)]">{role}</p>
@@ -101,7 +101,7 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
 
           <Link
             href={accountHref}
-            className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
+            className="flex items-center gap-2 rounded-none px-2 py-2 text-sm text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
           >
             <FiUser className="size-4" />
             {t.account}
@@ -110,7 +110,7 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
           {role === 'ADMIN' ? (
             <Link
               href={dashboardHref}
-              className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
+              className="flex items-center gap-2 rounded-none px-2 py-2 text-sm text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
             >
               <FiGrid className="size-4" />
               {t.dashboard}
@@ -119,7 +119,7 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
 
           <Link
             href={`/${locale}/account/settings`}
-            className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
+            className="flex items-center gap-2 rounded-none px-2 py-2 text-sm text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
           >
             <FiSettings className="size-4" />
             {t.settings}
@@ -128,7 +128,7 @@ export default function SiteProfileMenu({ locale, fullName, role, profileImage }
           <LogoutButton
             locale={locale}
             label={t.logout}
-            className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20"
+            className="mt-1 flex w-full items-center gap-2 rounded-none px-2 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20"
           />
         </div>
       </div>

@@ -13,7 +13,7 @@ import {
   sanitizeSitePageSettings,
   type SitePageSettings,
 } from "@/lib/admin/sitePages";
-import { FiArrowRight, FiCalendar, FiClock } from "react-icons/fi";
+import { FiArrowRight, FiClock } from "react-icons/fi";
 
 type UpcomingCard = {
   id: string;
@@ -31,6 +31,38 @@ const heroSlides = [
   "/images/slides/5.jpg",
   "/images/slides/6.jpg",
 ];
+
+function normalizeHexColor(value: string, fallback: string): string {
+  const input = value.trim().toLowerCase();
+  const match = input.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+  if (!match) return fallback;
+
+  if (match[1].length === 3) {
+    const [r, g, b] = match[1].split("");
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+
+  return input;
+}
+
+function getReadableTextColor(hex: string): "#ffffff" | "#23150f" {
+  const normalized = normalizeHexColor(hex, "#000000");
+  const raw = normalized.slice(1);
+  const r = Number.parseInt(raw.slice(0, 2), 16);
+  const g = Number.parseInt(raw.slice(2, 4), 16);
+  const b = Number.parseInt(raw.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.62 ? "#23150f" : "#ffffff";
+}
+
+function resolveHeroHref(locale: Locale, value: string, fallback: string): string {
+  const normalized = value.trim();
+  if (!normalized) return `/${locale}${fallback}`;
+  if (/^(https?:\/\/|mailto:|tel:|#)/i.test(normalized)) return normalized;
+  if (/^\/(en|ar)(?=\/|$)/.test(normalized)) return normalized;
+  if (normalized.startsWith("/")) return `/${locale}${normalized}`;
+  return `/${locale}${fallback}`;
+}
 
 async function resolveHomePageSettings(): Promise<SitePageSettings | null> {
   const homePage = getSitePageByKey("home");
@@ -157,18 +189,16 @@ export default async function HomePage({
   const heroHeadingFromSettings = isArabic
     ? homePageSettings?.headingAr
     : homePageSettings?.headingEn;
-  const heroSubheadingFromSettings = isArabic
-    ? homePageSettings?.subheadingAr
-    : homePageSettings?.subheadingEn;
   const heroPrimaryCtaFromSettings = isArabic
     ? homePageSettings?.homeHero.primaryCtaAr
     : homePageSettings?.homeHero.primaryCtaEn;
   const heroSecondaryCtaFromSettings = isArabic
     ? homePageSettings?.homeHero.secondaryCtaAr
     : homePageSettings?.homeHero.secondaryCtaEn;
-  const heroTrustLineFromSettings = isArabic
-    ? homePageSettings?.homeHero.trustLineAr
-    : homePageSettings?.homeHero.trustLineEn;
+  const heroPrimaryHrefFromSettings = homePageSettings?.homeHero.primaryCtaHref;
+  const heroSecondaryHrefFromSettings = homePageSettings?.homeHero.secondaryCtaHref;
+  const heroPrimaryColorFromSettings = homePageSettings?.homeHero.primaryCtaColor;
+  const heroSecondaryColorFromSettings = homePageSettings?.homeHero.secondaryCtaColor;
 
   const heroHeadline =
     heroHeadingFromSettings?.trim() ||
@@ -176,8 +206,6 @@ export default async function HomePage({
     (isArabic
       ? "حيث يتحول الطبخ إلى تجربة"
       : "Where cooking becomes an experience.");
-  const heroSubheadline =
-    heroSubheadingFromSettings?.trim() || content.hero.subheadline?.trim() || "";
 
   const heroSlideImages =
     homePageSettings?.homeHero.slideImages &&
@@ -186,20 +214,25 @@ export default async function HomePage({
       : heroSlides;
 
   const heroAutoplayMs = homePageSettings?.homeHero.autoplayMs ?? 3800;
-  const heroKpis = content.numbers.items.slice(0, 3);
+  const homeLayout = homePageSettings?.homeLayout;
+  const showHero = homeLayout?.showHero ?? true;
+  const showCourses = homeLayout?.showCourses ?? true;
+  const showNumbers = homeLayout?.showNumbers ?? true;
+  const showUpcoming = homeLayout?.showUpcoming ?? true;
+  const showWhyNoon = homeLayout?.showWhyNoon ?? true;
+  const showPartners = homeLayout?.showPartners ?? true;
 
   const heroUi = {
-    exploreClasses:
-      heroPrimaryCtaFromSettings?.trim() || content.hero.ctaExploreClasses,
-    bookEvent:
+    cookingClasses:
+      heroPrimaryCtaFromSettings?.trim() ||
+      (isArabic ? "دورات الطبخ" : "Cooking classes"),
+    artClasses:
       heroSecondaryCtaFromSettings?.trim() ||
-      (isArabic ? "احجز فعالية" : "Book an event"),
-    trustLine:
-      heroTrustLineFromSettings?.trim() ||
-      (isArabic
-        ? "تجربة موثوقة للمجموعات والعائلات والأفراد."
-        : "Trusted classes and events for teams, families, and individuals."),
-    numbersLabel: isArabic ? "أرقامنا" : "Our Impact",
+      (isArabic ? "دورات الفنون والحرف" : "Arts & crafts classes"),
+    cookingHref: resolveHeroHref(locale, heroPrimaryHrefFromSettings ?? "", "/classes/cooking"),
+    artsHref: resolveHeroHref(locale, heroSecondaryHrefFromSettings ?? "", "/classes/arts-crafts"),
+    cookingColor: normalizeHexColor(heroPrimaryColorFromSettings ?? "#f77d6b", "#f77d6b"),
+    artsColor: normalizeHexColor(heroSecondaryColorFromSettings ?? "#17b0ad", "#17b0ad"),
     classesCaption: isArabic
       ? "برامج متجددة بلمسة إبداعية."
       : "Signature programs crafted for every level.",
@@ -212,18 +245,19 @@ export default async function HomePage({
   };
 
   return (
-    <div className="relative overflow-x-clip pb-8">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[42rem]">
-        <div className="absolute -left-20 top-10 h-80 w-80 rounded-full bg-teal/20 blur-3xl dark:bg-teal/10" />
-        <div className="absolute right-0 top-32 h-96 w-96 rounded-full bg-coral/20 blur-3xl dark:bg-coral/10" />
-      </div>
-
-      <section className="relative isolate pt-8 sm:pt-10 lg:pt-12">
-        <div className="mx-auto w-full max-w-6xl px-4">
-          <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-            <div className="space-y-7">
+    <div className="home-sharp relative overflow-x-clip pb-8">
+      {showHero && (
+        <section className="relative isolate min-h-[74vh] overflow-hidden border-b border-black/20 sm:min-h-[78vh]">
+          <HeroSlideshow
+            images={heroSlideImages}
+            intervalMs={heroAutoplayMs}
+            alt={isArabic ? "صور من فعاليات ودورات نون" : "Noon classes and events slideshow"}
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,8,7,0.25)_0%,rgba(9,8,7,0.45)_45%,rgba(9,8,7,0.68)_100%)]" />
+          <div className="relative z-10 mx-auto flex min-h-[74vh] w-full max-w-6xl items-center justify-center px-4 py-20 text-center sm:min-h-[78vh]">
+            <div className="w-full max-w-5xl">
               <h1
-                className="max-w-3xl text-4xl font-semibold leading-[1.03] tracking-tight text-[color:var(--text)] sm:text-5xl lg:text-6xl"
+                className="text-5xl font-black leading-[0.95] tracking-[0.01em] text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:text-6xl lg:text-8xl"
                 style={{
                   fontFamily: isArabic
                     ? "var(--font-hero-ar), var(--font-arabic), serif"
@@ -232,73 +266,39 @@ export default async function HomePage({
               >
                 {heroHeadline}
               </h1>
-
-              {heroSubheadline ? (
-                <p className="max-w-2xl text-base leading-8 text-[color:var(--text-muted)] sm:text-lg">
-                  {heroSubheadline}
-                </p>
-              ) : null}
-
-              <div className="flex flex-wrap gap-3">
+              <div className="mt-10 grid gap-4 sm:mx-auto sm:max-w-4xl sm:grid-cols-2">
                 <Link
-                  href={`/${locale}/classes/cooking`}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] shadow-lg shadow-black/15 transition hover:-translate-y-0.5 hover:bg-[color:var(--primary-hover)]"
+                  href={heroUi.cookingHref}
+                  className="inline-flex w-full items-center justify-center border border-white/45 px-6 py-4 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:text-lg"
+                  style={{
+                    backgroundColor: heroUi.cookingColor,
+                    color: getReadableTextColor(heroUi.cookingColor),
+                  }}
                 >
-                  {heroUi.exploreClasses}
-                  <FiArrowRight className="size-4" />
+                  {heroUi.cookingClasses}
                 </Link>
                 <Link
-                  href={`/${locale}/group-booking-events`}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-3 text-sm font-semibold text-[color:var(--text)] transition hover:-translate-y-0.5 hover:bg-[color:var(--muted)]"
+                  href={heroUi.artsHref}
+                  className="inline-flex w-full items-center justify-center border border-white/45 px-6 py-4 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:text-lg"
+                  style={{
+                    backgroundColor: heroUi.artsColor,
+                    color: getReadableTextColor(heroUi.artsColor),
+                  }}
                 >
-                  {heroUi.bookEvent}
-                  <FiCalendar className="size-4" />
+                  {heroUi.artClasses}
                 </Link>
-              </div>
-
-              <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 text-sm leading-7 text-[color:var(--text-muted)] shadow-sm">
-                {heroUi.trustLine}
-              </div>
-
-              <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-3 shadow-sm">
-                <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--text-subtle)]">
-                  {heroUi.numbersLabel}
-                </p>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {heroKpis.map((item) => (
-                    <div
-                      key={`hero-kpi-${item.value}-${item.label}`}
-                      className="rounded-2xl bg-[color:var(--muted)] px-4 py-3"
-                    >
-                      <p className="text-xl font-bold text-[color:var(--text)]">{item.value}</p>
-                      <p className="mt-1 text-xs text-[color:var(--text-muted)]">{item.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="relative">
-              <div className="pointer-events-none absolute -inset-2 rounded-[2rem] bg-gradient-to-br from-teal/35 via-transparent to-coral/35 blur-md" />
-              <div className="relative rounded-[2rem] border border-[color:var(--border)] bg-[color:var(--surface)] p-3 shadow-2xl">
-                <div className="relative aspect-[4/5] overflow-hidden rounded-[1.5rem]">
-                  <HeroSlideshow
-                    images={heroSlideImages}
-                    intervalMs={heroAutoplayMs}
-                    alt={isArabic ? "صور من فعاليات ودورات نون" : "Noon classes and events slideshow"}
-                  />
-                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      <Section title={content.courses.title} description={heroUi.classesCaption}>
+      {showCourses && (
+        <Section title={content.courses.title} description={heroUi.classesCaption}>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Link
             href={`/${locale}/classes/cooking`}
-            className="group overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+            className="group overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
           >
             <div className="relative aspect-[5/4] overflow-hidden">
               <Image
@@ -327,7 +327,7 @@ export default async function HomePage({
 
           <Link
             href={`/${locale}/classes/arts-crafts`}
-            className="group overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+            className="group overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
           >
             <div className="relative aspect-[5/4] overflow-hidden">
               <Image
@@ -354,11 +354,13 @@ export default async function HomePage({
             </div>
           </Link>
         </div>
-      </Section>
+        </Section>
+      )}
 
-      <section className="py-8 sm:py-10">
+      {showNumbers && (
+        <section className="py-8 sm:py-10">
         <div className="mx-auto w-full max-w-6xl px-4">
-          <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm sm:p-7">
+          <div className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm sm:p-7">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {content.numbers.items.map((item) => {
                 const match = String(item.value).match(/(\d+)/);
@@ -368,7 +370,7 @@ export default async function HomePage({
                 return (
                   <div
                     key={`${item.value}-${item.label}`}
-                    className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-5 text-center"
+                    className="rounded-none border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-5 text-center"
                   >
                     <div className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">
                       <AnimatedCounter value={numericValue} suffix={suffix} />
@@ -380,14 +382,16 @@ export default async function HomePage({
             </div>
           </div>
         </div>
-      </section>
+        </section>
+      )}
 
-      <Section title={content.upcoming.title} description={heroUi.upcomingCaption}>
+      {showUpcoming && (
+        <Section title={content.upcoming.title} description={heroUi.upcomingCaption}>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {upcomingItems.slice(0, 3).map((c) => (
             <article
               key={c.id}
-              className="group overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              className="group overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="relative aspect-[16/11] overflow-hidden">
                 <Image src={c.imageSrc} alt="" fill className="object-cover transition duration-500 group-hover:scale-[1.03]" />
@@ -402,7 +406,7 @@ export default async function HomePage({
                   <div className="text-sm font-semibold text-[color:var(--text)]">{c.priceText}</div>
                   <Link
                     href={`/${locale}/classes/cooking`}
-                    className="inline-flex items-center gap-1 rounded-full bg-[color:var(--primary)] px-3.5 py-1.5 text-xs font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+                    className="inline-flex items-center gap-1 rounded-none bg-[color:var(--primary)] px-3.5 py-1.5 text-xs font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
                   >
                     {content.upcoming.bookNowLabel}
                     <FiArrowRight className="size-3.5" />
@@ -412,16 +416,18 @@ export default async function HomePage({
             </article>
           ))}
         </div>
-      </Section>
+        </Section>
+      )}
 
-      <Section title={content.whyNoon.title} description={heroUi.whyCaption}>
+      {showWhyNoon && (
+        <Section title={content.whyNoon.title} description={heroUi.whyCaption}>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {content.whyNoon.items.map((item, index) => (
             <div
               key={item.title}
-              className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm"
+              className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm"
             >
-              <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--muted)] text-xs font-semibold text-[color:var(--text-muted)]">
+              <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-none bg-[color:var(--muted)] text-xs font-semibold text-[color:var(--text-muted)]">
                 {String(index + 1).padStart(2, "0")}
               </div>
               <h3 className="text-base font-semibold text-[color:var(--text)]">{item.title}</h3>
@@ -429,20 +435,23 @@ export default async function HomePage({
             </div>
           ))}
         </div>
-      </Section>
+        </Section>
+      )}
 
-      <Section title={content.partners.title} description={content.partners.description}>
+      {showPartners && (
+        <Section title={content.partners.title} description={content.partners.description}>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           {content.partners.items.map((p) => (
             <div
               key={p.id}
-              className="flex min-h-24 items-center justify-center rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-5 text-center text-sm font-semibold text-[color:var(--text-muted)] shadow-sm transition hover:-translate-y-0.5 hover:text-[color:var(--text)]"
+              className="flex min-h-24 items-center justify-center rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-5 text-center text-sm font-semibold text-[color:var(--text-muted)] shadow-sm transition hover:-translate-y-0.5 hover:text-[color:var(--text)]"
             >
               {p.logoText ?? p.name}
             </div>
           ))}
         </div>
-      </Section>
+        </Section>
+      )}
     </div>
   );
 }

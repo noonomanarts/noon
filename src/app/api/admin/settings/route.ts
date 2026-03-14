@@ -13,6 +13,19 @@ import {
 } from '@/lib/db/adminSettings';
 import { getUserById } from '@/lib/db/users';
 
+function sanitizeHexColor(value: unknown, fallback: string): string {
+  const raw = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  const match = raw.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+  if (!match) return fallback;
+
+  if (match[1].length === 3) {
+    const [r, g, b] = match[1].split('');
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+
+  return raw;
+}
+
 function sanitizeGeneralSettings(input: Partial<GeneralAdminSettings>): GeneralAdminSettings {
   return {
     siteName: (input.siteName ?? defaultGeneralAdminSettings.siteName).trim().slice(0, 120),
@@ -21,6 +34,7 @@ function sanitizeGeneralSettings(input: Partial<GeneralAdminSettings>): GeneralA
     defaultLocale: input.defaultLocale === 'ar' ? 'ar' : 'en',
     timezone: (input.timezone ?? defaultGeneralAdminSettings.timezone).trim().slice(0, 80),
     currency: (input.currency ?? defaultGeneralAdminSettings.currency).trim().slice(0, 10).toUpperCase(),
+    headerColor: sanitizeHexColor(input.headerColor, defaultGeneralAdminSettings.headerColor),
     maintenanceMode: Boolean(input.maintenanceMode),
     whatsappEnabled: Boolean(input.whatsappEnabled),
     bookingAutoConfirm: Boolean(input.bookingAutoConfirm),

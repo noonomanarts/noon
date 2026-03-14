@@ -387,6 +387,10 @@ body {
   }
 }
 
+.home-sharp :is(a, button, [role="button"], [class*="rounded"]) {
+  border-radius: 0 !important;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   body {
     transition: background-color 180ms ease, color 180ms ease;

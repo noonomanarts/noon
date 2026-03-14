@@ -6,12 +6,23 @@ export type PageVisibility = "PUBLISHED" | "DRAFT" | "HIDDEN";
 export type HomeHeroSettings = {
   primaryCtaEn: string;
   primaryCtaAr: string;
+  primaryCtaHref: string;
+  primaryCtaColor: string;
   secondaryCtaEn: string;
   secondaryCtaAr: string;
-  trustLineEn: string;
-  trustLineAr: string;
+  secondaryCtaHref: string;
+  secondaryCtaColor: string;
   slideImages: string[];
   autoplayMs: number;
+};
+
+export type HomeLayoutSettings = {
+  showHero: boolean;
+  showCourses: boolean;
+  showNumbers: boolean;
+  showUpcoming: boolean;
+  showWhyNoon: boolean;
+  showPartners: boolean;
 };
 
 export type SitePageDefinition = {
@@ -47,6 +58,7 @@ export type SitePageSettings = {
   customCssClass: string;
   notes: string;
   homeHero: HomeHeroSettings;
+  homeLayout: HomeLayoutSettings;
 };
 
 export const sitePageCatalog: SitePageDefinition[] = [
@@ -492,6 +504,29 @@ function toNumberInRange(value: unknown, fallback: number, min: number, max: num
   return Math.min(max, Math.max(min, Math.round(value)));
 }
 
+function toHexColor(value: unknown, fallback: string): string {
+  const normalized = toSafeString(value, 16).toLowerCase();
+  const match = normalized.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+  if (!match) return fallback;
+
+  if (match[1].length === 3) {
+    const [r, g, b] = match[1].split("");
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+
+  return normalized;
+}
+
+function toSafeHref(value: unknown, fallback: string): string {
+  const normalized = toSafeString(value, 320);
+  if (!normalized) return fallback;
+
+  const isInternal = normalized.startsWith("/") || normalized.startsWith("#");
+  const isAbsolute = /^(https?:\/\/|mailto:|tel:)/i.test(normalized);
+
+  return isInternal || isAbsolute ? normalized : fallback;
+}
+
 export function makeSitePageSettingsKey(pageKey: string): string {
   return `page:${pageKey}`;
 }
@@ -532,10 +567,12 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
     homeHero: {
       primaryCtaEn: "Explore classes",
       primaryCtaAr: "استكشف الدورات",
+      primaryCtaHref: "/classes/cooking",
+      primaryCtaColor: "#f77d6b",
       secondaryCtaEn: "Book an event",
       secondaryCtaAr: "احجز فعالية",
-      trustLineEn: "Trusted classes and events for teams, families, and individuals.",
-      trustLineAr: "تجربة موثوقة للمجموعات والعائلات والأفراد.",
+      secondaryCtaHref: "/classes/arts-crafts",
+      secondaryCtaColor: "#17b0ad",
       slideImages: [
         "/images/slides/1.jpg",
         "/images/slides/2.jpg",
@@ -545,6 +582,14 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
         "/images/slides/6.jpg",
       ],
       autoplayMs: 3800,
+    },
+    homeLayout: {
+      showHero: true,
+      showCourses: true,
+      showNumbers: true,
+      showUpcoming: true,
+      showWhyNoon: true,
+      showPartners: true,
     },
   };
 }
@@ -581,12 +626,22 @@ export function sanitizeSitePageSettings(
     homeHero: {
       primaryCtaEn: toSafeString(source.homeHero?.primaryCtaEn, 120) || defaults.homeHero.primaryCtaEn,
       primaryCtaAr: toSafeString(source.homeHero?.primaryCtaAr, 120) || defaults.homeHero.primaryCtaAr,
+      primaryCtaHref: toSafeHref(source.homeHero?.primaryCtaHref, defaults.homeHero.primaryCtaHref),
+      primaryCtaColor: toHexColor(source.homeHero?.primaryCtaColor, defaults.homeHero.primaryCtaColor),
       secondaryCtaEn: toSafeString(source.homeHero?.secondaryCtaEn, 120) || defaults.homeHero.secondaryCtaEn,
       secondaryCtaAr: toSafeString(source.homeHero?.secondaryCtaAr, 120) || defaults.homeHero.secondaryCtaAr,
-      trustLineEn: toSafeString(source.homeHero?.trustLineEn, 280) || defaults.homeHero.trustLineEn,
-      trustLineAr: toSafeString(source.homeHero?.trustLineAr, 280) || defaults.homeHero.trustLineAr,
+      secondaryCtaHref: toSafeHref(source.homeHero?.secondaryCtaHref, defaults.homeHero.secondaryCtaHref),
+      secondaryCtaColor: toHexColor(source.homeHero?.secondaryCtaColor, defaults.homeHero.secondaryCtaColor),
       slideImages: hasExplicitSlideImages ? normalizedSlideImages : defaults.homeHero.slideImages,
       autoplayMs: toNumberInRange(source.homeHero?.autoplayMs, defaults.homeHero.autoplayMs, 2000, 12000),
+    },
+    homeLayout: {
+      showHero: toBoolean(source.homeLayout?.showHero, defaults.homeLayout.showHero),
+      showCourses: toBoolean(source.homeLayout?.showCourses, defaults.homeLayout.showCourses),
+      showNumbers: toBoolean(source.homeLayout?.showNumbers, defaults.homeLayout.showNumbers),
+      showUpcoming: toBoolean(source.homeLayout?.showUpcoming, defaults.homeLayout.showUpcoming),
+      showWhyNoon: toBoolean(source.homeLayout?.showWhyNoon, defaults.homeLayout.showWhyNoon),
+      showPartners: toBoolean(source.homeLayout?.showPartners, defaults.homeLayout.showPartners),
     },
   };
 }

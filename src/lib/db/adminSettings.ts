@@ -9,6 +9,7 @@ export type GeneralAdminSettings = {
   defaultLocale: 'en' | 'ar';
   timezone: string;
   currency: string;
+  headerColor: string;
   maintenanceMode: boolean;
   whatsappEnabled: boolean;
   bookingAutoConfirm: boolean;
@@ -46,6 +47,7 @@ export const defaultGeneralAdminSettings: GeneralAdminSettings = {
   defaultLocale: 'en',
   timezone: 'Asia/Muscat',
   currency: 'OMR',
+  headerColor: '#7b3f8d',
   maintenanceMode: false,
   whatsappEnabled: true,
   bookingAutoConfirm: false,

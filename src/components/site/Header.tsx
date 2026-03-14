@@ -4,6 +4,11 @@ import { cookies } from "next/headers";
 
 import { type Locale } from "@/lib/locale";
 import { getUserById } from "@/lib/db/users";
+import {
+  defaultGeneralAdminSettings,
+  getAdminSettingsByKey,
+  type GeneralAdminSettings,
+} from "@/lib/db/adminSettings";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import { Dropdown } from "@/components/site/Dropdown";
 import SiteProfileMenu from "@/components/site/SiteProfileMenu";
@@ -14,18 +19,42 @@ import HeaderLocaleLink from "@/components/site/HeaderLocaleLink";
 function NavLink({
   href,
   children,
+  variant = "panel",
 }: {
   href: string;
   children: React.ReactNode;
+  variant?: "top" | "panel";
 }) {
+  const topClasses =
+    "inline-flex h-11 items-center px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 hover:text-white";
+  const panelClasses =
+    "flex h-10 items-center px-3 text-sm font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--muted)]";
+
   return (
     <Link
       href={href}
-      className="block rounded-xl px-3 py-2 text-sm font-medium text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
+      className={variant === "top" ? topClasses : panelClasses}
     >
       {children}
     </Link>
   );
+}
+
+async function resolveHeaderColor(): Promise<string> {
+  try {
+    const savedGeneral = await getAdminSettingsByKey<Partial<GeneralAdminSettings>>("general");
+    const raw = (savedGeneral?.headerColor ?? defaultGeneralAdminSettings.headerColor).trim().toLowerCase();
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/.test(raw)) {
+      if (raw.length === 4) {
+        const [r, g, b] = raw.slice(1).split("");
+        return `#${r}${r}${g}${g}${b}${b}`;
+      }
+      return raw;
+    }
+    return defaultGeneralAdminSettings.headerColor;
+  } catch {
+    return defaultGeneralAdminSettings.headerColor;
+  }
 }
 
 export default async function Header({ locale }: { locale: Locale }) {
@@ -36,6 +65,7 @@ export default async function Header({ locale }: { locale: Locale }) {
   const cartCookie = cookieStore.get(CART_COOKIE_NAME)?.value;
   const initialCart = parseCartCookie(cartCookie);
   const initialCartCount = initialCart.items.reduce((sum, item) => sum + item.quantity, 0);
+  const headerColor = await resolveHeaderColor();
 
   const t = {
     about: locale === "ar" ? "من نحن" : "About",
@@ -58,19 +88,23 @@ export default async function Header({ locale }: { locale: Locale }) {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[color:var(--border)] bg-[color:var(--surface)]/88 shadow-sm backdrop-blur-lg">
+    <header
+      className="sticky top-0 z-40 border-b border-black/25 shadow-[0_10px_28px_-18px_rgba(0,0,0,0.85)]"
+      style={{ backgroundColor: headerColor }}
+    >
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
         <Link
           href={`/${locale}`}
-          className="inline-flex items-center gap-3 rounded-xl px-2 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--primary)]/50"
+          className="inline-flex h-11 items-center gap-3 px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
           aria-label="Noon"
         >
           <Image
             src="/images/logo-noon.png"
             alt="Noon"
-            width={44}
-            height={44}
+            width={56}
+            height={56}
             priority
+            className="h-11 w-auto"
           />
         </Link>
 
@@ -80,7 +114,7 @@ export default async function Header({ locale }: { locale: Locale }) {
             <NavLink href={`/${locale}/classes/arts-crafts`}>{t.arts}</NavLink>
           </Dropdown>
 
-          <NavLink href={`/${locale}/shop`}>{t.shop}</NavLink>
+          <NavLink href={`/${locale}/shop`} variant="top">{t.shop}</NavLink>
 
           <Dropdown label={t.group}>
             <NavLink href={`/${locale}/group-booking-events/cooking-competition`}>
@@ -94,9 +128,9 @@ export default async function Header({ locale }: { locale: Locale }) {
             </NavLink>
           </Dropdown>
 
-          <NavLink href={`/${locale}/noon-recommends`}>{t.recommends}</NavLink>
-          <NavLink href={`/${locale}/about`}>{t.about}</NavLink>
-          <NavLink href={`/${locale}/contact`}>{t.contact}</NavLink>
+          <NavLink href={`/${locale}/noon-recommends`} variant="top">{t.recommends}</NavLink>
+          <NavLink href={`/${locale}/about`} variant="top">{t.about}</NavLink>
+          <NavLink href={`/${locale}/contact`} variant="top">{t.contact}</NavLink>
         </nav>
 
         <div className="ms-auto flex items-center gap-2">
@@ -105,6 +139,7 @@ export default async function Header({ locale }: { locale: Locale }) {
             lightLabel={t.themeLight}
             darkLabel={t.themeDark}
             systemLabel={t.themeSystem}
+            buttonClassName="inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
           />
 
           <HeaderLocaleLink locale={locale} />
@@ -119,9 +154,9 @@ export default async function Header({ locale }: { locale: Locale }) {
               profileImage={user.profileImage}
             />
           ) : (
-            <Link 
+            <Link
               href={`/${locale}/login`} 
-              className="inline-flex items-center justify-center rounded-lg bg-[color:var(--primary)] px-3 py-1.5 text-sm font-medium text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+              className="inline-flex h-11 items-center justify-center px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
             >
               {t.login}
             </Link>
