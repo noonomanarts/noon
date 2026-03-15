@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ComponentType } from 'react';
-import { FiAward, FiBell, FiCreditCard, FiSettings, FiShoppingBag, FiUser } from 'react-icons/fi';
+import { FiAward, FiBarChart2, FiBell, FiCreditCard, FiSettings, FiShoppingBag, FiUser } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 import LogoutButton from '@/components/site/LogoutButton';
 
@@ -16,14 +16,25 @@ type NavItem = {
 
 interface AccountSidebarProps {
   locale: Locale;
+  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER';
 }
 
-export function AccountSidebar({ locale }: AccountSidebarProps) {
+export function AccountSidebar({ locale, role }: AccountSidebarProps) {
   const pathname = usePathname();
   const isArabic = locale === 'ar';
 
   const items: NavItem[] = [
     { key: 'profile', label: isArabic ? 'الملف الشخصي' : 'Profile Info', href: `/${locale}/account/profile`, icon: FiUser },
+    ...(role === 'TRAINER'
+      ? [
+          {
+            key: 'trainer-dashboard',
+            label: isArabic ? 'لوحة المدرب' : 'Trainer Dashboard',
+            href: `/${locale}/account/trainer`,
+            icon: FiBarChart2,
+          },
+        ]
+      : []),
     { key: 'orders', label: isArabic ? 'طلباتي' : 'Orders', href: `/${locale}/account/orders`, icon: FiShoppingBag },
     { key: 'wallet', label: isArabic ? 'المحفظة' : 'Wallet', href: `/${locale}/account/wallet`, icon: FiCreditCard },
     { key: 'loyalty', label: isArabic ? 'الولاء' : 'Loyalty', href: `/${locale}/account/loyalty`, icon: FiAward },

@@ -32,12 +32,13 @@ export default function SiteProfileMenu({
   const isArabic = locale === 'ar';
 
   const accountHref = `/${locale}/account/profile`;
-  const dashboardHref = `/${locale}/admin`;
+  const dashboardHref = role === 'ADMIN' ? `/${locale}/admin` : role === 'TRAINER' ? `/${locale}/account/trainer` : null;
 
   const t = {
     account: isArabic ? 'ملفي الشخصي' : 'My Account',
     settings: isArabic ? 'الإعدادات' : 'Settings',
     dashboard: isArabic ? 'لوحة التحكم' : 'Dashboard',
+    trainerDashboard: isArabic ? 'لوحة المدرب' : 'Trainer Dashboard',
     logout: isArabic ? 'تسجيل الخروج' : 'Logout',
   };
 
@@ -136,13 +137,13 @@ export default function SiteProfileMenu({
             {t.account}
           </Link>
 
-          {role === 'ADMIN' ? (
+          {dashboardHref ? (
             <Link
               href={dashboardHref}
               className="flex items-center gap-2 rounded-none px-2 py-2 text-sm text-[color:var(--text-muted)] transition hover:bg-[color:var(--muted)] hover:text-[color:var(--text)]"
             >
               <FiGrid className="size-4" />
-              {t.dashboard}
+              {role === 'TRAINER' ? t.trainerDashboard : t.dashboard}
             </Link>
           ) : null}
 

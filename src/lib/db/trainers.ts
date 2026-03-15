@@ -1,7 +1,9 @@
 /**
  * Database queries for trainers
  */
+import { ensureClassFinanceSchema } from "./classFinance";
 import { query } from "./pool";
+import { ensureRecipeManagementSchema } from "./recipeManagement";
 import type { TrainerPublic } from "./types";
 
 export type TrainerShareTierPublic = {
@@ -10,13 +12,348 @@ export type TrainerShareTierPublic = {
   percent: number;
 };
 
+export type TrainerFeaturedMediaType = "IMAGE" | "VIDEO" | "YOUTUBE";
+
+export type TrainerManualUpcomingCoursePublic = {
+  id: string;
+  title: string;
+  titleAr: string | null;
+  dateTime: string | null;
+  price: number | null;
+  currency: string;
+  mediaType: TrainerFeaturedMediaType;
+  mediaUrl: string | null;
+  imageUrl: string | null;
+  bookingUrl: string | null;
+  description: string | null;
+};
+
+export type TrainerHighlightedIngredient = {
+  name: string;
+  source: string;
+  photo: string;
+};
+
+export type TrainerSessionSubmissionInput = {
+  recipeSubmitted?: boolean;
+  recipePdf?: string | null;
+  groceryList?: string | null;
+  workshopBrief?: string | null;
+  trainerPhotos?: string[];
+  highlightedIngredients?: TrainerHighlightedIngredient[];
+};
+
+export type TrainerWorkshopSuggestionStatus =
+  | "PENDING_REVIEW"
+  | "IN_REVIEW"
+  | "APPROVED"
+  | "REJECTED"
+  | "PUBLISHED";
+
+export type TrainerWorkshopSuggestionPublic = {
+  id: string;
+  trainerId: string;
+  title: string;
+  titleAr: string | null;
+  brief: string | null;
+  recipe: string | null;
+  recipePdf: string | null;
+  notes: string | null;
+  photos: string[];
+  adminNotes: string | null;
+  status: TrainerWorkshopSuggestionStatus;
+  liveClassId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TrainerWorkshopSuggestionAdminPublic = TrainerWorkshopSuggestionPublic & {
+  trainerName: string;
+  trainerEmail: string | null;
+  trainerPhoneNumber: string | null;
+};
+
+export type TrainerWorkshopFeedbackPublic = {
+  id: string;
+  sessionId: string;
+  customerName: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+};
+
+export type TrainerDashboardWorkshopPublic = {
+  sessionId: string;
+  classId: string;
+  classSlug: string;
+  classTitle: string;
+  classTitleAr: string | null;
+  classImage: string | null;
+  classCategory: string;
+  classPrice: number;
+  currency: string;
+  startDateTime: string;
+  endDateTime: string | null;
+  seatsTotal: number;
+  seatsBooked: number;
+  seatsAvailable: number;
+  bookingsCount?: number;
+  participantsCount?: number;
+  feedbackCount?: number;
+  averageRating?: number | null;
+  submission: {
+    recipeSubmitted: boolean;
+    recipePdf: string | null;
+    groceryList: string | null;
+    workshopBrief: string | null;
+    trainerPhotos: string[];
+    highlightedIngredients: TrainerHighlightedIngredient[];
+  };
+  finalRecipe: {
+    title: string | null;
+    pdf: string | null;
+    brief: string | null;
+    visibleToCustomers: boolean;
+    publishedAt: string | null;
+  };
+  adminNotes: {
+    text: string | null;
+    photo: string | null;
+  };
+  feedback: TrainerWorkshopFeedbackPublic[];
+};
+
+export type TrainerWorkshopEarningPublic = {
+  classId: string;
+  classSlug: string;
+  classTitle: string;
+  classTitleAr: string | null;
+  classImage: string | null;
+  settledAt: string | null;
+  currency: string;
+  participantsCount: number;
+  grossRevenue: number;
+  trainerPayoutAmount: number;
+};
+
+export type TrainerMonthlyEarningPublic = {
+  monthStart: string;
+  monthLabel: string;
+  currency: string;
+  workshopsCount: number;
+  participantsCount: number;
+  totalPayout: number;
+  totalRevenue: number;
+};
+
+export type TrainerDashboardSummaryPublic = {
+  totalUpcomingWorkshops: number;
+  totalPreviousWorkshops: number;
+  totalSuggestedWorkshops: number;
+  totalClosedWorkshops: number;
+  totalParticipants: number;
+  totalRevenue: number;
+  totalTrainerEarnings: number;
+  averageEarningPerWorkshop: number;
+  currency: string;
+};
+
+export type TrainerDashboardData = {
+  ongoingWorkshops: TrainerDashboardWorkshopPublic[];
+  previousWorkshops: TrainerDashboardWorkshopPublic[];
+  suggestedWorkshops: TrainerWorkshopSuggestionPublic[];
+  earningsByWorkshop: TrainerWorkshopEarningPublic[];
+  monthlyEarnings: TrainerMonthlyEarningPublic[];
+  summary: TrainerDashboardSummaryPublic;
+};
+
 let trainerProfilesFinanceSchemaReady: Promise<void> | null = null;
+
+function toMoney(value: unknown): number {
+  const parsed = typeof value === "number" ? value : Number(value ?? 0);
+  if (!Number.isFinite(parsed)) return 0;
+  return Number(parsed.toFixed(3));
+}
+
+function toPercent(value: unknown): number {
+  const parsed = typeof value === "number" ? value : Number(value ?? 0);
+  if (!Number.isFinite(parsed)) return 0;
+  return Number(parsed.toFixed(2));
+}
+
+function sanitizeText(value: unknown, maxLength: number): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+  return normalized.slice(0, maxLength);
+}
+
+function sanitizeStringArray(value: unknown, maxLength: number, maxItems: number): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => (typeof item === "string" ? item.trim().slice(0, maxLength) : ""))
+    .filter((item) => item.length > 0)
+    .slice(0, maxItems);
+}
+
+function sanitizeHighlightedIngredients(value: unknown): TrainerHighlightedIngredient[] {
+  if (!Array.isArray(value)) return [];
+
+  const ingredients: TrainerHighlightedIngredient[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+
+    const row = item as Record<string, unknown>;
+    const name = sanitizeText(row.name, 120) ?? "";
+    const source = sanitizeText(row.source, 240) ?? "";
+    const photo = sanitizeText(row.photo, 500) ?? "";
+
+    if (!name && !source && !photo) continue;
+
+    ingredients.push({ name, source, photo });
+    if (ingredients.length >= 100) break;
+  }
+
+  return ingredients;
+}
+
+function sanitizeFeaturedMediaType(value: unknown): TrainerFeaturedMediaType {
+  if (value === "YOUTUBE") return "YOUTUBE";
+  if (value === "VIDEO") return "VIDEO";
+  return "IMAGE";
+}
+
+function sanitizeTrainerWorkshopSuggestionStatus(value: unknown): TrainerWorkshopSuggestionStatus {
+  if (value === "IN_REVIEW") return "IN_REVIEW";
+  if (value === "APPROVED") return "APPROVED";
+  if (value === "REJECTED") return "REJECTED";
+  if (value === "PUBLISHED") return "PUBLISHED";
+  return "PENDING_REVIEW";
+}
+
+function mapTrainerWorkshopSuggestionRow(row: Record<string, unknown>): TrainerWorkshopSuggestionPublic {
+  return {
+    id: String(row.id),
+    trainerId: String(row.trainer_id),
+    title: String(row.title),
+    titleAr: sanitizeText(row.title_ar, 255),
+    brief: sanitizeText(row.brief, 4000),
+    recipe: sanitizeText(row.recipe, 12000),
+    recipePdf: sanitizeText(row.recipe_pdf, 500),
+    notes: sanitizeText(row.notes, 4000),
+    photos: sanitizeStringArray(row.photos, 500, 40),
+    adminNotes: sanitizeText(row.admin_notes, 4000),
+    status: sanitizeTrainerWorkshopSuggestionStatus(row.status),
+    liveClassId: row.live_class_id ? String(row.live_class_id) : null,
+    createdAt: new Date(String(row.created_at)).toISOString(),
+    updatedAt: new Date(String(row.updated_at)).toISOString(),
+  };
+}
+
+function mapTrainerWorkshopSuggestionAdminRow(row: Record<string, unknown>): TrainerWorkshopSuggestionAdminPublic {
+  const base = mapTrainerWorkshopSuggestionRow(row);
+
+  return {
+    ...base,
+    trainerName: String(row.trainer_name || ""),
+    trainerEmail: sanitizeText(row.trainer_email, 255),
+    trainerPhoneNumber: sanitizeText(row.trainer_phone_number, 50),
+  };
+}
+
+function createStableItemId(input: string, index: number): string {
+  const sanitized = input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+
+  return sanitized ? `${sanitized}-${index + 1}` : `item-${index + 1}`;
+}
+
+function sanitizeManualUpcomingCourses(value: unknown): TrainerManualUpcomingCoursePublic[] {
+  if (!Array.isArray(value)) return [];
+
+  const normalized = value
+    .map((item, index): TrainerManualUpcomingCoursePublic | null => {
+      if (!item || typeof item !== "object") return null;
+
+      const row = item as Record<string, unknown>;
+      const title = sanitizeText(row.title, 160);
+      if (!title) return null;
+
+      const dateTimeValue = sanitizeText(row.dateTime, 40);
+      const dateTime = dateTimeValue && !Number.isNaN(Date.parse(dateTimeValue)) ? new Date(dateTimeValue).toISOString() : null;
+      const priceNumber = Number(row.price);
+      const price = Number.isFinite(priceNumber) ? Math.max(0, Number(priceNumber.toFixed(3))) : null;
+
+      const idCandidate = sanitizeText(row.id, 120);
+
+      return {
+        id: idCandidate || createStableItemId(title, index),
+        title,
+        titleAr: sanitizeText(row.titleAr, 160),
+        dateTime,
+        price,
+        currency: sanitizeText(row.currency, 10) || "OMR",
+        mediaType: sanitizeFeaturedMediaType(row.mediaType),
+        mediaUrl: sanitizeText(row.mediaUrl, 500) ?? sanitizeText(row.imageUrl, 500),
+        imageUrl: sanitizeText(row.imageUrl, 500) ?? sanitizeText(row.mediaUrl, 500),
+        bookingUrl: sanitizeText(row.bookingUrl, 500),
+        description: sanitizeText(row.description, 600),
+      };
+    })
+    .filter((item): item is TrainerManualUpcomingCoursePublic => Boolean(item));
+
+  return normalized.sort((left, right) => {
+    if (left.dateTime && right.dateTime) {
+      return new Date(left.dateTime).getTime() - new Date(right.dateTime).getTime();
+    }
+    if (left.dateTime) return -1;
+    if (right.dateTime) return 1;
+    return left.title.localeCompare(right.title);
+  });
+}
 
 async function ensureTrainerProfilesFinanceSchema(): Promise<void> {
   if (trainerProfilesFinanceSchemaReady) return trainerProfilesFinanceSchemaReady;
 
   trainerProfilesFinanceSchemaReady = (async () => {
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS share_tiers JSONB NOT NULL DEFAULT '[]'::jsonb`);
+    await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS featured_media_type VARCHAR(20) NOT NULL DEFAULT 'IMAGE'`);
+    await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS featured_media_url VARCHAR(500)`);
+    await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS manual_upcoming_courses JSONB NOT NULL DEFAULT '[]'::jsonb`);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS trainer_workshop_suggestions (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        trainer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(255) NOT NULL,
+        title_ar VARCHAR(255),
+        brief TEXT,
+        recipe TEXT,
+        recipe_pdf VARCHAR(500),
+        notes TEXT,
+        photos TEXT[] NOT NULL DEFAULT '{}',
+        admin_notes TEXT,
+        status VARCHAR(30) NOT NULL DEFAULT 'PENDING_REVIEW',
+        live_class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await query(`
+      ALTER TABLE trainer_workshop_suggestions
+      ADD CONSTRAINT trainer_workshop_suggestions_status_check
+      CHECK (status IN ('PENDING_REVIEW', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED'))
+    `).catch(() => undefined);
+    await query(`ALTER TABLE trainer_workshop_suggestions ADD COLUMN IF NOT EXISTS recipe_pdf VARCHAR(500)`);
+
+    await query(`CREATE INDEX IF NOT EXISTS idx_trainer_workshop_suggestions_trainer_id ON trainer_workshop_suggestions(trainer_id)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_trainer_workshop_suggestions_status ON trainer_workshop_suggestions(status)`);
   })().catch((error) => {
     trainerProfilesFinanceSchemaReady = null;
     throw error;
@@ -30,11 +367,14 @@ function sanitizeShareTiers(value: unknown): TrainerShareTierPublic[] {
 
   return value
     .map((item) => {
-      if (!item || typeof item !== 'object') return null;
+      if (!item || typeof item !== "object") return null;
       const tier = item as Record<string, unknown>;
       const minParticipants = Math.max(0, Math.trunc(Number(tier.minParticipants ?? 0) || 0));
       const rawMax = tier.maxParticipants;
-      const maxParticipants = rawMax === null || rawMax === undefined || rawMax === '' ? null : Math.max(minParticipants, Math.trunc(Number(rawMax) || 0));
+      const maxParticipants =
+        rawMax === null || rawMax === undefined || rawMax === ""
+          ? null
+          : Math.max(minParticipants, Math.trunc(Number(rawMax) || 0));
       const percent = Math.min(100, Math.max(0, Number(tier.percent ?? 0) || 0));
 
       return {
@@ -47,6 +387,10 @@ function sanitizeShareTiers(value: unknown): TrainerShareTierPublic[] {
     .sort((left, right) => left.minParticipants - right.minParticipants);
 }
 
+function hasOwnField<T extends object>(target: T, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(target, key);
+}
+
 /**
  * Find trainers (users with TRAINER role)
  */
@@ -54,7 +398,7 @@ export async function findTrainers(options?: {
   activeOnly?: boolean;
 }): Promise<TrainerPublic[]> {
   const conditions = [`u.role = 'TRAINER'`];
-  
+
   if (options?.activeOnly !== false) {
     conditions.push(`u.status = 'ACTIVE'`);
   }
@@ -63,11 +407,11 @@ export async function findTrainers(options?: {
     `SELECT u.id, u.full_name, u.email, u.phone_number, u.profile_image,
             u.date_of_birth, u.gender, u.status, u.created_at
      FROM users u
-     WHERE ${conditions.join(' AND ')}
+     WHERE ${conditions.join(" AND ")}
      ORDER BY u.full_name ASC`
   );
 
-  return result.rows.map(row => ({
+  return result.rows.map((row) => ({
     id: row.id,
     fullName: row.full_name,
     email: row.email,
@@ -117,6 +461,9 @@ export interface TrainerProfilePublic {
   experience: number | null;
   socialLinks: Record<string, string> | null;
   shareTiers: TrainerShareTierPublic[];
+  featuredMediaType: TrainerFeaturedMediaType;
+  featuredMediaUrl: string | null;
+  manualUpcomingCourses: TrainerManualUpcomingCoursePublic[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -129,12 +476,9 @@ export async function findTrainerProfiles(userIds: string[]): Promise<TrainerPro
   await ensureTrainerProfilesFinanceSchema();
   if (userIds.length === 0) return [];
 
-  const result = await query(
-    `SELECT * FROM trainer_profiles WHERE user_id = ANY($1) AND is_active = true`,
-    [userIds]
-  );
+  const result = await query(`SELECT * FROM trainer_profiles WHERE user_id = ANY($1) AND is_active = true`, [userIds]);
 
-  return result.rows.map(row => ({
+  return result.rows.map((row) => ({
     id: row.id,
     userId: row.user_id,
     bio: row.bio,
@@ -142,6 +486,9 @@ export async function findTrainerProfiles(userIds: string[]): Promise<TrainerPro
     experience: row.experience,
     socialLinks: row.social_links,
     shareTiers: sanitizeShareTiers(row.share_tiers),
+    featuredMediaType: sanitizeFeaturedMediaType(row.featured_media_type),
+    featuredMediaUrl: sanitizeText(row.featured_media_url, 500),
+    manualUpcomingCourses: sanitizeManualUpcomingCourses(row.manual_upcoming_courses),
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -185,7 +532,7 @@ export async function findTrainerClasses(
   let sql = `
     SELECT c.*
     FROM classes c
-    WHERE ${conditions.join(' AND ')}
+    WHERE ${conditions.join(" AND ")}
     ORDER BY c.published_at DESC NULLS LAST
   `;
 
@@ -196,7 +543,7 @@ export async function findTrainerClasses(
 
   const result = await query(sql, values);
 
-  return result.rows.map(row => ({
+  return result.rows.map((row) => ({
     id: row.id,
     slug: row.slug,
     title: row.title,
@@ -219,10 +566,7 @@ export async function findTrainerClasses(
  * Verify user is a trainer
  */
 export async function verifyTrainer(id: string): Promise<boolean> {
-  const result = await query(
-    `SELECT id FROM users WHERE id = $1 AND role = 'TRAINER'`,
-    [id]
-  );
+  const result = await query(`SELECT id FROM users WHERE id = $1 AND role = 'TRAINER'`, [id]);
   return result.rows.length > 0;
 }
 
@@ -231,52 +575,100 @@ export async function verifyTrainer(id: string): Promise<boolean> {
  */
 export async function upsertTrainerProfile(data: {
   userId: string;
-  bio?: string;
+  bio?: string | null;
   expertise?: string[];
-  experience?: number;
-  socialLinks?: Record<string, string>;
+  experience?: number | null;
+  socialLinks?: Record<string, string> | null;
   shareTiers?: TrainerShareTierPublic[];
+  featuredMediaType?: TrainerFeaturedMediaType;
+  featuredMediaUrl?: string | null;
+  manualUpcomingCourses?: TrainerManualUpcomingCoursePublic[];
   isActive?: boolean;
 }): Promise<TrainerProfilePublic> {
   await ensureTrainerProfilesFinanceSchema();
 
-  const result = await query(
-    `INSERT INTO trainer_profiles (user_id, bio, expertise, experience, social_links, share_tiers, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
-     ON CONFLICT (user_id) 
-     DO UPDATE SET
-       bio = COALESCE($2, trainer_profiles.bio),
-       expertise = COALESCE($3, trainer_profiles.expertise),
-       experience = COALESCE($4, trainer_profiles.experience),
-       social_links = COALESCE($5, trainer_profiles.social_links),
-       share_tiers = COALESCE($6::jsonb, trainer_profiles.share_tiers),
-       is_active = COALESCE($7, trainer_profiles.is_active),
-       updated_at = NOW()
-     RETURNING *`,
-    [
-      data.userId,
-      data.bio ?? null,
-      data.expertise ?? null,
-      data.experience ?? null,
-      data.socialLinks ? JSON.stringify(data.socialLinks) : null,
-      data.shareTiers ? JSON.stringify(sanitizeShareTiers(data.shareTiers)) : null,
-      data.isActive ?? true,
-    ]
+  await query(
+    `INSERT INTO trainer_profiles (user_id, share_tiers, featured_media_type, manual_upcoming_courses)
+     VALUES ($1, '[]'::jsonb, 'IMAGE', '[]'::jsonb)
+     ON CONFLICT (user_id) DO NOTHING`,
+    [data.userId]
   );
 
-  const row = result.rows[0];
-  return {
-    id: row.id,
-    userId: row.user_id,
-    bio: row.bio,
-    expertise: row.expertise || [],
-    experience: row.experience,
-    socialLinks: row.social_links,
-    shareTiers: sanitizeShareTiers(row.share_tiers),
-    isActive: row.is_active,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
+  const updates: string[] = [];
+  const values: unknown[] = [data.userId];
+  let paramIndex = 2;
+
+  if (hasOwnField(data, "bio")) {
+    updates.push(`bio = $${paramIndex++}`);
+    values.push(sanitizeText(data.bio, 5000));
+  }
+
+  if (hasOwnField(data, "expertise")) {
+    const expertise = Array.isArray(data.expertise)
+      ? data.expertise
+          .map((item) => (typeof item === "string" ? item.trim().slice(0, 120) : ""))
+          .filter((item) => item.length > 0)
+      : [];
+    updates.push(`expertise = $${paramIndex++}`);
+    values.push(expertise);
+  }
+
+  if (hasOwnField(data, "experience")) {
+    const parsedExperience =
+      typeof data.experience === "number" && Number.isFinite(data.experience)
+        ? Math.max(0, Math.min(60, Math.floor(data.experience)))
+        : null;
+    updates.push(`experience = $${paramIndex++}`);
+    values.push(parsedExperience);
+  }
+
+  if (hasOwnField(data, "socialLinks")) {
+    updates.push(`social_links = $${paramIndex++}`);
+    values.push(data.socialLinks ? JSON.stringify(data.socialLinks) : null);
+  }
+
+  if (hasOwnField(data, "shareTiers")) {
+    updates.push(`share_tiers = $${paramIndex++}::jsonb`);
+    values.push(JSON.stringify(sanitizeShareTiers(data.shareTiers ?? [])));
+  }
+
+  if (hasOwnField(data, "featuredMediaType")) {
+    updates.push(`featured_media_type = $${paramIndex++}`);
+    values.push(sanitizeFeaturedMediaType(data.featuredMediaType));
+  }
+
+  if (hasOwnField(data, "featuredMediaUrl")) {
+    updates.push(`featured_media_url = $${paramIndex++}`);
+    values.push(sanitizeText(data.featuredMediaUrl, 500));
+  }
+
+  if (hasOwnField(data, "manualUpcomingCourses")) {
+    updates.push(`manual_upcoming_courses = $${paramIndex++}::jsonb`);
+    values.push(JSON.stringify(sanitizeManualUpcomingCourses(data.manualUpcomingCourses ?? [])));
+  }
+
+  if (hasOwnField(data, "isActive")) {
+    updates.push(`is_active = $${paramIndex++}`);
+    values.push(Boolean(data.isActive));
+  }
+
+  if (updates.length > 0) {
+    updates.push(`updated_at = NOW()`);
+
+    await query(
+      `UPDATE trainer_profiles
+       SET ${updates.join(", ")}
+       WHERE user_id = $1`,
+      values
+    );
+  }
+
+  const profile = await getTrainerProfile(data.userId);
+  if (!profile) {
+    throw new Error("Failed to upsert trainer profile");
+  }
+
+  return profile;
 }
 
 /**
@@ -284,10 +676,7 @@ export async function upsertTrainerProfile(data: {
  */
 export async function getTrainerProfile(userId: string): Promise<TrainerProfilePublic | null> {
   await ensureTrainerProfilesFinanceSchema();
-  const result = await query(
-    `SELECT * FROM trainer_profiles WHERE user_id = $1`,
-    [userId]
-  );
+  const result = await query(`SELECT * FROM trainer_profiles WHERE user_id = $1`, [userId]);
 
   if (result.rows.length === 0) return null;
 
@@ -300,8 +689,808 @@ export async function getTrainerProfile(userId: string): Promise<TrainerProfileP
     experience: row.experience,
     socialLinks: row.social_links,
     shareTiers: sanitizeShareTiers(row.share_tiers),
+    featuredMediaType: sanitizeFeaturedMediaType(row.featured_media_type),
+    featuredMediaUrl: sanitizeText(row.featured_media_url, 500),
+    manualUpcomingCourses: sanitizeManualUpcomingCourses(row.manual_upcoming_courses),
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+export async function listTrainerWorkshopSuggestions(
+  trainerId: string,
+  options?: { limit?: number }
+): Promise<TrainerWorkshopSuggestionPublic[]> {
+  await ensureTrainerProfilesFinanceSchema();
+
+  const limit = Number.isFinite(options?.limit) ? Math.max(1, Math.min(500, Number(options?.limit))) : 200;
+
+  const result = await query(
+    `SELECT
+      id,
+      trainer_id,
+      title,
+      title_ar,
+      brief,
+      recipe,
+      recipe_pdf,
+      notes,
+      photos,
+      admin_notes,
+      status,
+      live_class_id,
+      created_at,
+      updated_at
+     FROM trainer_workshop_suggestions
+     WHERE trainer_id = $1
+     ORDER BY created_at DESC
+     LIMIT $2`,
+    [trainerId, limit]
+  );
+
+  return result.rows.map((row) => mapTrainerWorkshopSuggestionRow(row));
+}
+
+export async function createTrainerWorkshopSuggestion(args: {
+  trainerId: string;
+  title: string;
+  titleAr?: string | null;
+  brief?: string | null;
+  recipe?: string | null;
+  recipePdf?: string | null;
+  notes?: string | null;
+  photos?: string[];
+}): Promise<TrainerWorkshopSuggestionPublic> {
+  await ensureTrainerProfilesFinanceSchema();
+
+  const title = sanitizeText(args.title, 255);
+  if (!title) {
+    throw new Error("Title is required");
+  }
+
+  const result = await query(
+    `INSERT INTO trainer_workshop_suggestions (
+      trainer_id,
+      title,
+      title_ar,
+      brief,
+      recipe,
+      recipe_pdf,
+      notes,
+      photos,
+      status,
+      created_at,
+      updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::text[], 'PENDING_REVIEW', NOW(), NOW())
+    RETURNING
+      id,
+      trainer_id,
+      title,
+      title_ar,
+      brief,
+      recipe,
+      recipe_pdf,
+      notes,
+      photos,
+      admin_notes,
+      status,
+      live_class_id,
+      created_at,
+      updated_at`,
+    [
+      args.trainerId,
+      title,
+      sanitizeText(args.titleAr, 255),
+      sanitizeText(args.brief, 4000),
+      sanitizeText(args.recipe, 12000),
+      sanitizeText(args.recipePdf, 500),
+      sanitizeText(args.notes, 4000),
+      sanitizeStringArray(args.photos, 500, 40),
+    ]
+  );
+
+  const row = result.rows[0];
+
+  return mapTrainerWorkshopSuggestionRow(row);
+}
+
+export async function updateTrainerWorkshopSuggestionByTrainer(args: {
+  trainerId: string;
+  suggestionId: string;
+  title?: string;
+  titleAr?: string | null;
+  brief?: string | null;
+  recipe?: string | null;
+  recipePdf?: string | null;
+  notes?: string | null;
+  photos?: string[];
+}): Promise<TrainerWorkshopSuggestionPublic | null> {
+  await ensureTrainerProfilesFinanceSchema();
+
+  const updates: string[] = [];
+  const values: unknown[] = [args.suggestionId, args.trainerId];
+  let paramIndex = 3;
+
+  if (hasOwnField(args, "title")) {
+    const title = sanitizeText(args.title, 255);
+    if (!title) {
+      throw new Error("Title is required");
+    }
+    updates.push(`title = $${paramIndex++}`);
+    values.push(title);
+  }
+
+  if (hasOwnField(args, "titleAr")) {
+    updates.push(`title_ar = $${paramIndex++}`);
+    values.push(sanitizeText(args.titleAr, 255));
+  }
+
+  if (hasOwnField(args, "brief")) {
+    updates.push(`brief = $${paramIndex++}`);
+    values.push(sanitizeText(args.brief, 4000));
+  }
+
+  if (hasOwnField(args, "recipe")) {
+    updates.push(`recipe = $${paramIndex++}`);
+    values.push(sanitizeText(args.recipe, 12000));
+  }
+
+  if (hasOwnField(args, "recipePdf")) {
+    updates.push(`recipe_pdf = $${paramIndex++}`);
+    values.push(sanitizeText(args.recipePdf, 500));
+  }
+
+  if (hasOwnField(args, "notes")) {
+    updates.push(`notes = $${paramIndex++}`);
+    values.push(sanitizeText(args.notes, 4000));
+  }
+
+  if (hasOwnField(args, "photos")) {
+    updates.push(`photos = $${paramIndex++}::text[]`);
+    values.push(sanitizeStringArray(args.photos, 500, 40));
+  }
+
+  if (updates.length === 0) {
+    const existing = await query(
+      `SELECT
+        id,
+        trainer_id,
+        title,
+        title_ar,
+        brief,
+        recipe,
+        recipe_pdf,
+        notes,
+        photos,
+        admin_notes,
+        status,
+        live_class_id,
+        created_at,
+        updated_at
+      FROM trainer_workshop_suggestions
+      WHERE id = $1
+        AND trainer_id = $2`,
+      [args.suggestionId, args.trainerId]
+    );
+
+    const row = existing.rows[0];
+    return row ? mapTrainerWorkshopSuggestionRow(row) : null;
+  }
+
+  updates.push(`updated_at = NOW()`);
+
+  const result = await query(
+    `UPDATE trainer_workshop_suggestions
+     SET ${updates.join(", ")}
+     WHERE id = $1
+       AND trainer_id = $2
+       AND status = 'PENDING_REVIEW'
+     RETURNING
+       id,
+       trainer_id,
+       title,
+       title_ar,
+       brief,
+       recipe,
+       recipe_pdf,
+       notes,
+       photos,
+       admin_notes,
+       status,
+       live_class_id,
+       created_at,
+       updated_at`,
+    values
+  );
+
+  const row = result.rows[0];
+  return row ? mapTrainerWorkshopSuggestionRow(row) : null;
+}
+
+export async function listAllTrainerWorkshopSuggestions(options?: {
+  status?: TrainerWorkshopSuggestionStatus | "ALL";
+  limit?: number;
+}): Promise<TrainerWorkshopSuggestionAdminPublic[]> {
+  await ensureTrainerProfilesFinanceSchema();
+
+  const limit = Number.isFinite(options?.limit) ? Math.max(1, Math.min(500, Number(options?.limit))) : 300;
+  const status = options?.status && options.status !== "ALL" ? sanitizeTrainerWorkshopSuggestionStatus(options.status) : null;
+
+  const values: unknown[] = [];
+  const conditions: string[] = [];
+  let paramIndex = 1;
+
+  if (status) {
+    conditions.push(`s.status = $${paramIndex++}`);
+    values.push(status);
+  }
+
+  values.push(limit);
+
+  const result = await query(
+    `SELECT
+      s.id,
+      s.trainer_id,
+      s.title,
+      s.title_ar,
+      s.brief,
+      s.recipe,
+      s.recipe_pdf,
+      s.notes,
+      s.photos,
+      s.admin_notes,
+      s.status,
+      s.live_class_id,
+      s.created_at,
+      s.updated_at,
+      u.full_name AS trainer_name,
+      u.email AS trainer_email,
+      u.phone_number AS trainer_phone_number
+     FROM trainer_workshop_suggestions s
+     INNER JOIN users u ON u.id = s.trainer_id
+     ${conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : ""}
+     ORDER BY s.created_at DESC
+     LIMIT $${paramIndex}`,
+    values
+  );
+
+  return result.rows.map((row) => mapTrainerWorkshopSuggestionAdminRow(row));
+}
+
+export async function countTrainerWorkshopSuggestionsPendingReview(): Promise<number> {
+  await ensureTrainerProfilesFinanceSchema();
+
+  const result = await query(
+    `SELECT COUNT(*)::int AS count
+     FROM trainer_workshop_suggestions
+     WHERE status = 'PENDING_REVIEW'`
+  );
+
+  return Number(result.rows[0]?.count || 0);
+}
+
+export async function updateTrainerWorkshopSuggestionByAdmin(args: {
+  suggestionId: string;
+  status?: TrainerWorkshopSuggestionStatus;
+  adminNotes?: string | null;
+  liveClassId?: string | null;
+}): Promise<TrainerWorkshopSuggestionAdminPublic | null> {
+  await ensureTrainerProfilesFinanceSchema();
+
+  const updates: string[] = [];
+  const values: unknown[] = [args.suggestionId];
+  let paramIndex = 2;
+
+  if (hasOwnField(args, "status")) {
+    updates.push(`status = $${paramIndex++}`);
+    values.push(sanitizeTrainerWorkshopSuggestionStatus(args.status));
+  }
+
+  if (hasOwnField(args, "adminNotes")) {
+    updates.push(`admin_notes = $${paramIndex++}`);
+    values.push(sanitizeText(args.adminNotes, 4000));
+  }
+
+  if (hasOwnField(args, "liveClassId")) {
+    updates.push(`live_class_id = $${paramIndex++}`);
+    values.push(sanitizeText(args.liveClassId, 120));
+  }
+
+  if (updates.length === 0) {
+    const existing = await query(
+      `SELECT
+        s.id,
+        s.trainer_id,
+        s.title,
+        s.title_ar,
+        s.brief,
+        s.recipe,
+        s.recipe_pdf,
+        s.notes,
+        s.photos,
+        s.admin_notes,
+        s.status,
+        s.live_class_id,
+        s.created_at,
+        s.updated_at,
+        u.full_name AS trainer_name,
+        u.email AS trainer_email,
+        u.phone_number AS trainer_phone_number
+       FROM trainer_workshop_suggestions s
+       INNER JOIN users u ON u.id = s.trainer_id
+       WHERE s.id = $1`,
+      [args.suggestionId]
+    );
+
+    const row = existing.rows[0];
+    return row ? mapTrainerWorkshopSuggestionAdminRow(row) : null;
+  }
+
+  updates.push(`updated_at = NOW()`);
+
+  const result = await query(
+    `WITH updated AS (
+      UPDATE trainer_workshop_suggestions
+      SET ${updates.join(", ")}
+      WHERE id = $1
+      RETURNING *
+    )
+    SELECT
+      updated.id,
+      updated.trainer_id,
+      updated.title,
+      updated.title_ar,
+      updated.brief,
+      updated.recipe,
+      updated.recipe_pdf,
+      updated.notes,
+      updated.photos,
+      updated.admin_notes,
+      updated.status,
+      updated.live_class_id,
+      updated.created_at,
+      updated.updated_at,
+      u.full_name AS trainer_name,
+      u.email AS trainer_email,
+      u.phone_number AS trainer_phone_number
+    FROM updated
+    INNER JOIN users u ON u.id = updated.trainer_id`,
+    values
+  );
+
+  const row = result.rows[0];
+  return row ? mapTrainerWorkshopSuggestionAdminRow(row) : null;
+}
+
+export async function updateTrainerWorkshopSubmission(args: {
+  trainerId: string;
+  sessionId: string;
+  submission: TrainerSessionSubmissionInput;
+}): Promise<TrainerDashboardWorkshopPublic | null> {
+  await ensureTrainerProfilesFinanceSchema();
+  await ensureRecipeManagementSchema();
+
+  const trainerPhotos = sanitizeStringArray(args.submission.trainerPhotos, 500, 30);
+  const recipePdf = sanitizeText(args.submission.recipePdf, 500);
+  const groceryList = sanitizeText(args.submission.groceryList, 12000);
+  const workshopBrief = sanitizeText(args.submission.workshopBrief, 12000);
+  const highlightedIngredients = sanitizeHighlightedIngredients(args.submission.highlightedIngredients);
+
+  const recipeSubmitted =
+    typeof args.submission.recipeSubmitted === "boolean"
+      ? args.submission.recipeSubmitted
+      : Boolean(recipePdf || groceryList || workshopBrief || trainerPhotos.length > 0 || highlightedIngredients.length > 0);
+
+  const result = await query(
+    `UPDATE class_sessions cs
+     SET recipe_submitted = $3,
+         recipe_pdf = $4,
+         grocery_list = $5,
+         workshop_brief = $6,
+         trainer_photos = $7::text[],
+         photos = $7::text[],
+         highlighted_ingredients = $8::jsonb,
+         updated_at = NOW()
+     FROM classes c
+     WHERE cs.class_id = c.id
+       AND cs.id = $1
+       AND c.trainer_id = $2
+     RETURNING
+       cs.id AS session_id,
+       cs.class_id,
+       c.slug AS class_slug,
+       c.title AS class_title,
+       c.title_ar AS class_title_ar,
+       c.image AS class_image,
+       c.category AS class_category,
+       c.price AS class_price,
+       c.currency,
+       cs.start_date_time,
+       cs.end_date_time,
+       COALESCE(cs.seats_total, c.seats_total) AS seats_total_effective,
+       COALESCE(cs.seats_booked, 0) AS seats_booked,
+       cs.recipe_submitted,
+       cs.recipe_pdf,
+       cs.grocery_list,
+       cs.workshop_brief,
+       cs.trainer_photos,
+       cs.highlighted_ingredients,
+       cs.final_recipe_title,
+       cs.final_recipe_pdf,
+       cs.final_recipe_brief,
+       cs.final_recipe_visible_to_customers,
+       cs.final_recipe_published_at,
+       cs.admin_workshop_notes,
+       cs.admin_workshop_notes_photo`,
+    [
+      args.sessionId,
+      args.trainerId,
+      recipeSubmitted,
+      recipePdf,
+      groceryList,
+      workshopBrief,
+      trainerPhotos,
+      JSON.stringify(highlightedIngredients),
+    ]
+  );
+
+  const row = result.rows[0];
+  if (!row) return null;
+
+  const seatsTotal = Math.max(0, Number(row.seats_total_effective || 0));
+  const seatsBooked = Math.max(0, Number(row.seats_booked || 0));
+
+  return {
+    sessionId: String(row.session_id),
+    classId: String(row.class_id),
+    classSlug: String(row.class_slug),
+    classTitle: String(row.class_title),
+    classTitleAr: sanitizeText(row.class_title_ar, 255),
+    classImage: sanitizeText(row.class_image, 500),
+    classCategory: String(row.class_category),
+    classPrice: toMoney(row.class_price),
+    currency: sanitizeText(row.currency, 10) || "OMR",
+    startDateTime: new Date(String(row.start_date_time)).toISOString(),
+    endDateTime: row.end_date_time ? new Date(String(row.end_date_time)).toISOString() : null,
+    seatsTotal,
+    seatsBooked,
+    seatsAvailable: Math.max(0, seatsTotal - seatsBooked),
+    bookingsCount: 0,
+    participantsCount: 0,
+    feedbackCount: 0,
+    averageRating: null,
+    submission: {
+      recipeSubmitted: Boolean(row.recipe_submitted),
+      recipePdf: sanitizeText(row.recipe_pdf, 500),
+      groceryList: sanitizeText(row.grocery_list, 12000),
+      workshopBrief: sanitizeText(row.workshop_brief, 12000),
+      trainerPhotos: sanitizeStringArray(row.trainer_photos, 500, 30),
+      highlightedIngredients: sanitizeHighlightedIngredients(row.highlighted_ingredients),
+    },
+    finalRecipe: {
+      title: sanitizeText(row.final_recipe_title, 255),
+      pdf: sanitizeText(row.final_recipe_pdf, 500),
+      brief: sanitizeText(row.final_recipe_brief, 12000),
+      visibleToCustomers: Boolean(row.final_recipe_visible_to_customers),
+      publishedAt: row.final_recipe_published_at ? new Date(String(row.final_recipe_published_at)).toISOString() : null,
+    },
+    adminNotes: {
+      text: sanitizeText(row.admin_workshop_notes, 12000),
+      photo: sanitizeText(row.admin_workshop_notes_photo, 500),
+    },
+    feedback: [],
+  };
+}
+
+function mapDashboardWorkshopRow(row: Record<string, unknown>): TrainerDashboardWorkshopPublic {
+  const seatsTotal = Math.max(0, Number(row.seats_total_effective || 0));
+  const seatsBooked = Math.max(0, Number(row.seats_booked || 0));
+
+  return {
+    sessionId: String(row.session_id),
+    classId: String(row.class_id),
+    classSlug: String(row.class_slug),
+    classTitle: String(row.class_title),
+    classTitleAr: sanitizeText(row.class_title_ar, 255),
+    classImage: sanitizeText(row.class_image, 500),
+    classCategory: String(row.class_category),
+    classPrice: toMoney(row.class_price),
+    currency: sanitizeText(row.currency, 10) || "OMR",
+    startDateTime: new Date(String(row.start_date_time)).toISOString(),
+    endDateTime: row.end_date_time ? new Date(String(row.end_date_time)).toISOString() : null,
+    seatsTotal,
+    seatsBooked,
+    seatsAvailable: Math.max(0, seatsTotal - seatsBooked),
+    bookingsCount: Number(row.bookings_count || 0),
+    participantsCount: Number(row.participants_count || 0),
+    feedbackCount: Number(row.feedback_count || 0),
+    averageRating: row.average_rating === null || row.average_rating === undefined ? null : Number(row.average_rating),
+    submission: {
+      recipeSubmitted: Boolean(row.recipe_submitted),
+      recipePdf: sanitizeText(row.recipe_pdf, 500),
+      groceryList: sanitizeText(row.grocery_list, 12000),
+      workshopBrief: sanitizeText(row.workshop_brief, 12000),
+      trainerPhotos: sanitizeStringArray(row.trainer_photos, 500, 30),
+      highlightedIngredients: sanitizeHighlightedIngredients(row.highlighted_ingredients),
+    },
+    finalRecipe: {
+      title: sanitizeText(row.final_recipe_title, 255),
+      pdf: sanitizeText(row.final_recipe_pdf, 500),
+      brief: sanitizeText(row.final_recipe_brief, 12000),
+      visibleToCustomers: Boolean(row.final_recipe_visible_to_customers),
+      publishedAt: row.final_recipe_published_at ? new Date(String(row.final_recipe_published_at)).toISOString() : null,
+    },
+    adminNotes: {
+      text: sanitizeText(row.admin_workshop_notes, 12000),
+      photo: sanitizeText(row.admin_workshop_notes_photo, 500),
+    },
+    feedback: [],
+  };
+}
+
+export async function getTrainerDashboardData(trainerId: string): Promise<TrainerDashboardData> {
+  await ensureTrainerProfilesFinanceSchema();
+  await ensureRecipeManagementSchema();
+  await ensureClassFinanceSchema();
+
+  const [ongoingResult, previousResult, suggestions, earningsResult, monthlyResult] = await Promise.all([
+    query(
+      `SELECT
+        cs.id AS session_id,
+        cs.class_id,
+        c.slug AS class_slug,
+        c.title AS class_title,
+        c.title_ar AS class_title_ar,
+        c.image AS class_image,
+        c.category AS class_category,
+        c.price AS class_price,
+        c.currency,
+        cs.start_date_time,
+        cs.end_date_time,
+        COALESCE(cs.seats_total, c.seats_total) AS seats_total_effective,
+        COALESCE(cs.seats_booked, 0) AS seats_booked,
+        cs.recipe_submitted,
+        cs.recipe_pdf,
+        cs.grocery_list,
+        cs.workshop_brief,
+        cs.trainer_photos,
+        cs.highlighted_ingredients,
+        cs.final_recipe_title,
+        cs.final_recipe_pdf,
+        cs.final_recipe_brief,
+        cs.final_recipe_visible_to_customers,
+        cs.final_recipe_published_at,
+        cs.admin_workshop_notes,
+        cs.admin_workshop_notes_photo,
+        COALESCE(booking_stats.bookings_count, 0) AS bookings_count,
+        COALESCE(booking_stats.participants_count, 0) AS participants_count,
+        COALESCE(review_stats.feedback_count, 0) AS feedback_count,
+        review_stats.average_rating
+      FROM class_sessions cs
+      INNER JOIN classes c ON c.id = cs.class_id
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*)::int AS bookings_count,
+          COALESCE(SUM(b.number_of_participants), 0)::int AS participants_count
+        FROM bookings b
+        WHERE b.session_id = cs.id
+          AND b.status <> 'CANCELLED'
+      ) AS booking_stats ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*)::int AS feedback_count,
+          ROUND(AVG(r.rating)::numeric, 2)::float8 AS average_rating
+        FROM reviews r
+        WHERE r.session_id = cs.id
+          AND r.is_visible = true
+      ) AS review_stats ON TRUE
+      WHERE c.trainer_id = $1
+        AND cs.is_cancelled = false
+        AND cs.start_date_time >= NOW()
+      ORDER BY cs.start_date_time ASC
+      LIMIT 300`,
+      [trainerId]
+    ),
+    query(
+      `SELECT
+        cs.id AS session_id,
+        cs.class_id,
+        c.slug AS class_slug,
+        c.title AS class_title,
+        c.title_ar AS class_title_ar,
+        c.image AS class_image,
+        c.category AS class_category,
+        c.price AS class_price,
+        c.currency,
+        cs.start_date_time,
+        cs.end_date_time,
+        COALESCE(cs.seats_total, c.seats_total) AS seats_total_effective,
+        COALESCE(cs.seats_booked, 0) AS seats_booked,
+        cs.recipe_submitted,
+        cs.recipe_pdf,
+        cs.grocery_list,
+        cs.workshop_brief,
+        cs.trainer_photos,
+        cs.highlighted_ingredients,
+        cs.final_recipe_title,
+        cs.final_recipe_pdf,
+        cs.final_recipe_brief,
+        cs.final_recipe_visible_to_customers,
+        cs.final_recipe_published_at,
+        cs.admin_workshop_notes,
+        cs.admin_workshop_notes_photo,
+        COALESCE(booking_stats.bookings_count, 0) AS bookings_count,
+        COALESCE(booking_stats.participants_count, 0) AS participants_count,
+        COALESCE(review_stats.feedback_count, 0) AS feedback_count,
+        review_stats.average_rating
+      FROM class_sessions cs
+      INNER JOIN classes c ON c.id = cs.class_id
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*)::int AS bookings_count,
+          COALESCE(SUM(b.number_of_participants), 0)::int AS participants_count
+        FROM bookings b
+        WHERE b.session_id = cs.id
+          AND b.status <> 'CANCELLED'
+      ) AS booking_stats ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*)::int AS feedback_count,
+          ROUND(AVG(r.rating)::numeric, 2)::float8 AS average_rating
+        FROM reviews r
+        WHERE r.session_id = cs.id
+          AND r.is_visible = true
+      ) AS review_stats ON TRUE
+      WHERE c.trainer_id = $1
+        AND cs.is_cancelled = false
+        AND cs.start_date_time < NOW()
+      ORDER BY cs.start_date_time DESC
+      LIMIT 300`,
+      [trainerId]
+    ),
+    listTrainerWorkshopSuggestions(trainerId, { limit: 300 }),
+    query(
+      `SELECT
+        cs.class_id,
+        c.slug AS class_slug,
+        c.title AS class_title,
+        c.title_ar AS class_title_ar,
+        c.image AS class_image,
+        cs.settled_at,
+        cs.currency,
+        cs.participants_count,
+        cs.gross_revenue,
+        cs.trainer_payout_amount
+      FROM class_settlements cs
+      INNER JOIN classes c ON c.id = cs.class_id
+      WHERE c.trainer_id = $1
+        AND cs.status = 'CLOSED'
+      ORDER BY cs.settled_at DESC NULLS LAST, cs.created_at DESC
+      LIMIT 500`,
+      [trainerId]
+    ),
+    query(
+      `SELECT
+        DATE_TRUNC('month', cs.settled_at) AS month_start,
+        cs.currency,
+        COUNT(*)::int AS workshops_count,
+        COALESCE(SUM(cs.participants_count), 0)::int AS participants_count,
+        COALESCE(SUM(cs.gross_revenue), 0)::numeric AS total_revenue,
+        COALESCE(SUM(cs.trainer_payout_amount), 0)::numeric AS total_payout
+      FROM class_settlements cs
+      INNER JOIN classes c ON c.id = cs.class_id
+      WHERE c.trainer_id = $1
+        AND cs.status = 'CLOSED'
+        AND cs.settled_at IS NOT NULL
+      GROUP BY DATE_TRUNC('month', cs.settled_at), cs.currency
+      ORDER BY DATE_TRUNC('month', cs.settled_at) DESC
+      LIMIT 36`,
+      [trainerId]
+    ),
+  ]);
+
+  const ongoingWorkshops = ongoingResult.rows.map((row) => mapDashboardWorkshopRow(row));
+  const previousWorkshops = previousResult.rows.map((row) => mapDashboardWorkshopRow(row));
+
+  const previousSessionIds = previousWorkshops.map((item) => item.sessionId);
+  const feedbackBySession = new Map<string, TrainerWorkshopFeedbackPublic[]>();
+
+  if (previousSessionIds.length > 0) {
+    const feedbackResult = await query(
+      `SELECT
+         r.id,
+         r.session_id,
+         r.rating,
+         r.comment,
+         r.created_at,
+         COALESCE(u.full_name, 'Customer') AS customer_name
+       FROM reviews r
+       LEFT JOIN users u ON u.id = r.user_id
+       WHERE r.session_id = ANY($1::uuid[])
+         AND r.is_visible = true
+       ORDER BY r.created_at DESC
+       LIMIT 1500`,
+      [previousSessionIds]
+    );
+
+    for (const row of feedbackResult.rows) {
+      const sessionId = String(row.session_id);
+      const item: TrainerWorkshopFeedbackPublic = {
+        id: String(row.id),
+        sessionId,
+        customerName: String(row.customer_name || "Customer"),
+        rating: toPercent(row.rating),
+        comment: sanitizeText(row.comment, 2000),
+        createdAt: new Date(String(row.created_at)).toISOString(),
+      };
+
+      const existing = feedbackBySession.get(sessionId) ?? [];
+      existing.push(item);
+      feedbackBySession.set(sessionId, existing);
+    }
+  }
+
+  for (const workshop of previousWorkshops) {
+    workshop.feedback = feedbackBySession.get(workshop.sessionId) ?? [];
+  }
+
+  const earningsByWorkshop: TrainerWorkshopEarningPublic[] = earningsResult.rows.map((row) => ({
+    classId: String(row.class_id),
+    classSlug: String(row.class_slug),
+    classTitle: String(row.class_title),
+    classTitleAr: sanitizeText(row.class_title_ar, 255),
+    classImage: sanitizeText(row.class_image, 500),
+    settledAt: row.settled_at ? new Date(String(row.settled_at)).toISOString() : null,
+    currency: sanitizeText(row.currency, 10) || "OMR",
+    participantsCount: Number(row.participants_count || 0),
+    grossRevenue: toMoney(row.gross_revenue),
+    trainerPayoutAmount: toMoney(row.trainer_payout_amount),
+  }));
+
+  const monthlyEarnings: TrainerMonthlyEarningPublic[] = monthlyResult.rows.map((row) => {
+    const month = new Date(String(row.month_start));
+    return {
+      monthStart: month.toISOString(),
+      monthLabel: month.toLocaleDateString("en", { year: "numeric", month: "long", timeZone: "UTC" }),
+      currency: sanitizeText(row.currency, 10) || "OMR",
+      workshopsCount: Number(row.workshops_count || 0),
+      participantsCount: Number(row.participants_count || 0),
+      totalPayout: toMoney(row.total_payout),
+      totalRevenue: toMoney(row.total_revenue),
+    };
+  });
+
+  const defaultCurrency =
+    earningsByWorkshop[0]?.currency ||
+    monthlyEarnings[0]?.currency ||
+    ongoingWorkshops[0]?.currency ||
+    previousWorkshops[0]?.currency ||
+    "OMR";
+
+  const totalRevenue = toMoney(earningsByWorkshop.reduce((sum, item) => sum + item.grossRevenue, 0));
+  const totalTrainerEarnings = toMoney(earningsByWorkshop.reduce((sum, item) => sum + item.trainerPayoutAmount, 0));
+  const totalParticipants = earningsByWorkshop.reduce((sum, item) => sum + item.participantsCount, 0);
+  const totalClosedWorkshops = earningsByWorkshop.length;
+  const averageEarningPerWorkshop =
+    totalClosedWorkshops > 0 ? toMoney(totalTrainerEarnings / totalClosedWorkshops) : 0;
+
+  return {
+    ongoingWorkshops,
+    previousWorkshops,
+    suggestedWorkshops: suggestions,
+    earningsByWorkshop,
+    monthlyEarnings,
+    summary: {
+      totalUpcomingWorkshops: ongoingWorkshops.length,
+      totalPreviousWorkshops: previousWorkshops.length,
+      totalSuggestedWorkshops: suggestions.length,
+      totalClosedWorkshops,
+      totalParticipants,
+      totalRevenue,
+      totalTrainerEarnings,
+      averageEarningPerWorkshop,
+      currency: defaultCurrency,
+    },
   };
 }

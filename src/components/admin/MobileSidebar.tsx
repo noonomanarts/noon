@@ -45,6 +45,7 @@ type MenuItem = {
   iconColor: string;
   label: string;
   href: string;
+  badgeCount?: number;
 };
 
 type MenuSection = {
@@ -168,7 +169,12 @@ export default function MobileSidebar({
                             <span className={`flex size-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 ${item.iconColor}`}>
                               <IconComponent className="size-4" />
                             </span>
-                            <span className="flex-1">{item.label}</span>
+                            <span className="flex-1 truncate whitespace-nowrap">{item.label}</span>
+                            {typeof item.badgeCount === "number" && item.badgeCount > 0 ? (
+                              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[color:var(--noon-coral)] px-1.5 text-[11px] font-bold leading-none text-white">
+                                {item.badgeCount > 99 ? "99+" : item.badgeCount}
+                              </span>
+                            ) : null}
                           </Link>
                         );
                       })}

@@ -127,6 +127,21 @@ export interface TrainerProfile {
     maxParticipants: number | null;
     percent: number;
   }>;
+  featured_media_type?: 'IMAGE' | 'VIDEO' | 'YOUTUBE';
+  featured_media_url?: string | null;
+  manual_upcoming_courses?: Array<{
+    id: string;
+    title: string;
+    titleAr: string | null;
+    dateTime: string | null;
+    price: number | null;
+    currency: string;
+    mediaType?: 'IMAGE' | 'VIDEO' | 'YOUTUBE';
+    mediaUrl?: string | null;
+    imageUrl: string | null;
+    bookingUrl: string | null;
+    description: string | null;
+  }>;
   is_active: boolean;
   created_at: Date;
   updated_at: Date;

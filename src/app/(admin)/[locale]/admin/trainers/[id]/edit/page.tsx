@@ -6,6 +6,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 import MarkdownEditor from '@/components/admin/MarkdownEditor';
 
+interface ManualUpcomingCourse {
+  id: string;
+  title: string;
+  titleAr: string;
+  dateTime: string;
+  price: string;
+  currency: string;
+  mediaType: 'IMAGE' | 'VIDEO' | 'YOUTUBE';
+  mediaUrl: string;
+  bookingUrl: string;
+  description: string;
+}
+
 interface TrainerProfile {
   bio: string;
   expertise: string[];
@@ -21,6 +34,21 @@ interface TrainerProfile {
     maxParticipants: number | null;
     percent: number;
   }>;
+  featuredMediaType: 'IMAGE' | 'VIDEO' | 'YOUTUBE';
+  featuredMediaUrl: string | null;
+  manualUpcomingCourses: Array<{
+    id: string;
+    title: string;
+    titleAr: string | null;
+    dateTime: string | null;
+    price: number | null;
+    currency: string;
+    mediaType?: 'IMAGE' | 'VIDEO' | 'YOUTUBE';
+    mediaUrl?: string | null;
+    imageUrl: string | null;
+    bookingUrl: string | null;
+    description: string | null;
+  }>;
   isActive: boolean;
 }
 
@@ -34,6 +62,39 @@ interface Trainer {
   profile: TrainerProfile | null;
 }
 
+function toDatetimeLocal(value: string | null | undefined): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (num: number) => String(num).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function toYoutubeEmbedUrl(url: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  try {
+    const parsed = new URL(trimmed);
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname.includes('youtu.be')) {
+      const id = parsed.pathname.replace('/', '').split('/')[0];
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (hostname.includes('youtube.com')) {
+      const v = parsed.searchParams.get('v');
+      if (v) return `https://www.youtube.com/embed/${v}`;
+      const shorts = parsed.pathname.match(/\/shorts\/([^/?]+)/);
+      if (shorts?.[1]) return `https://www.youtube.com/embed/${shorts[1]}`;
+      const embed = parsed.pathname.match(/\/embed\/([^/?]+)/);
+      if (embed?.[1]) return `https://www.youtube.com/embed/${embed[1]}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export default function EditTrainerPage() {
   const router = useRouter();
   const params = useParams<{ locale: string; id: string }>();
@@ -43,6 +104,8 @@ export default function EditTrainerPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingFeaturedMedia, setUploadingFeaturedMedia] = useState(false);
+  const [uploadingManualMediaId, setUploadingManualMediaId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   
   // Form state
@@ -62,6 +125,9 @@ export default function EditTrainerPage() {
     { minParticipants: 0, maxParticipants: 11, percent: 25 },
     { minParticipants: 12, maxParticipants: null, percent: 30 },
   ]);
+  const [featuredMediaType, setFeaturedMediaType] = useState<'IMAGE' | 'VIDEO' | 'YOUTUBE'>('IMAGE');
+  const [featuredMediaUrl, setFeaturedMediaUrl] = useState('');
+  const [manualUpcomingCourses, setManualUpcomingCourses] = useState<ManualUpcomingCourse[]>([]);
   const [isActive, setIsActive] = useState(true);
 
   const fetchTrainer = useCallback(async () => {
@@ -74,7 +140,7 @@ export default function EditTrainerPage() {
       const response = await fetch(`/api/admin/trainers/${trainerId}`);
       if (!response.ok) throw new Error('Failed to fetch trainer');
       
-      const data = await response.json();
+      const data = (await response.json()) as Trainer;
       setTrainer(data);
       setFullName(data.fullName || '');
       setPhoneNumber(data.phoneNumber || '');
@@ -98,6 +164,40 @@ export default function EditTrainerPage() {
                 { minParticipants: 12, maxParticipants: null, percent: 30 },
               ]
         );
+        setFeaturedMediaType(
+          data.profile.featuredMediaType === 'YOUTUBE'
+            ? 'YOUTUBE'
+            : data.profile.featuredMediaType === 'VIDEO'
+              ? 'VIDEO'
+              : 'IMAGE'
+        );
+        setFeaturedMediaUrl(data.profile.featuredMediaUrl || '');
+        setManualUpcomingCourses(
+          Array.isArray(data.profile.manualUpcomingCourses)
+            ? data.profile.manualUpcomingCourses.map((course, index: number) => ({
+                id: typeof course.id === 'string' ? course.id : `manual-${index + 1}`,
+                title: typeof course.title === 'string' ? course.title : '',
+                titleAr: typeof course.titleAr === 'string' ? course.titleAr : '',
+                dateTime: toDatetimeLocal(typeof course.dateTime === 'string' ? course.dateTime : null),
+                price: typeof course.price === 'number' && Number.isFinite(course.price) ? String(course.price) : '',
+                currency: typeof course.currency === 'string' ? course.currency : 'OMR',
+                mediaType:
+                  course.mediaType === 'YOUTUBE'
+                    ? 'YOUTUBE'
+                    : course.mediaType === 'VIDEO'
+                      ? 'VIDEO'
+                      : 'IMAGE',
+                mediaUrl:
+                  typeof course.mediaUrl === 'string'
+                    ? course.mediaUrl
+                    : typeof course.imageUrl === 'string'
+                      ? course.imageUrl
+                      : '',
+                bookingUrl: typeof course.bookingUrl === 'string' ? course.bookingUrl : '',
+                description: typeof course.description === 'string' ? course.description : '',
+              }))
+            : []
+        );
         setIsActive(data.profile.isActive ?? true);
       } else {
         setBio('');
@@ -111,6 +211,9 @@ export default function EditTrainerPage() {
           { minParticipants: 0, maxParticipants: 11, percent: 25 },
           { minParticipants: 12, maxParticipants: null, percent: 30 },
         ]);
+        setFeaturedMediaType('IMAGE');
+        setFeaturedMediaUrl('');
+        setManualUpcomingCourses([]);
         setIsActive(true);
       }
     } catch (error) {
@@ -138,10 +241,45 @@ export default function EditTrainerPage() {
     setExpertise(expertise.filter(e => e !== item));
   };
 
-  const uploadImage = async (file: File): Promise<string> => {
+  const addManualUpcomingCourse = () => {
+    setManualUpcomingCourses((prev) => [
+      ...prev,
+      {
+        id: `manual-${Date.now()}-${prev.length + 1}`,
+        title: '',
+        titleAr: '',
+        dateTime: '',
+        price: '',
+        currency: 'OMR',
+        mediaType: 'IMAGE',
+        mediaUrl: '',
+        bookingUrl: '',
+        description: '',
+      },
+    ]);
+  };
+
+  const removeManualUpcomingCourse = (id: string) => {
+    setManualUpcomingCourses((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const updateManualUpcomingCourse = (id: string, field: keyof ManualUpcomingCourse, value: string) => {
+    setManualUpcomingCourses((prev) =>
+      prev.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              [field]: value,
+            }
+          : item
+      )
+    );
+  };
+
+  const uploadMedia = async (file: File, folder = 'profiles'): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('folder', 'profiles');
+    formData.append('folder', folder);
 
     const res = await fetch('/api/upload', {
       method: 'POST',
@@ -150,7 +288,7 @@ export default function EditTrainerPage() {
 
     const data = await res.json();
     if (!res.ok || !data?.url) {
-      throw new Error(typeof data?.error === 'string' ? data.error : 'Failed to upload image');
+      throw new Error(typeof data?.error === 'string' ? data.error : 'Failed to upload media');
     }
 
     return data.url as string;
@@ -163,7 +301,7 @@ export default function EditTrainerPage() {
     try {
       setUploadingImage(true);
       setFeedback(null);
-      const imageUrl = await uploadImage(file);
+      const imageUrl = await uploadMedia(file, 'profiles');
       setProfileImage(imageUrl);
       setFeedback({ type: 'success', message: 'Profile image uploaded successfully.' });
     } catch (error) {
@@ -173,6 +311,48 @@ export default function EditTrainerPage() {
       });
     } finally {
       setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleFeaturedMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingFeaturedMedia(true);
+      setFeedback(null);
+      const mediaUrl = await uploadMedia(file, 'trainer-media');
+      setFeaturedMediaUrl(mediaUrl);
+      setFeedback({ type: 'success', message: 'Featured media uploaded successfully.' });
+    } catch (error) {
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to upload featured media.',
+      });
+    } finally {
+      setUploadingFeaturedMedia(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleManualCourseMediaUpload = async (courseId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingManualMediaId(courseId);
+      setFeedback(null);
+      const mediaUrl = await uploadMedia(file, 'trainer-manual-courses');
+      updateManualUpcomingCourse(courseId, 'mediaUrl', mediaUrl);
+      setFeedback({ type: 'success', message: 'Course media uploaded successfully.' });
+    } catch (error) {
+      setFeedback({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to upload course media.',
+      });
+    } finally {
+      setUploadingManualMediaId(null);
       e.target.value = '';
     }
   };
@@ -203,6 +383,21 @@ export default function EditTrainerPage() {
             linkedin: linkedin || undefined,
           },
           shareTiers,
+          featuredMediaType,
+          featuredMediaUrl: featuredMediaUrl || null,
+          manualUpcomingCourses: manualUpcomingCourses.map((course) => ({
+            id: course.id,
+            title: course.title,
+            titleAr: course.titleAr || null,
+            dateTime: course.dateTime || null,
+            price: course.price === '' ? null : Number(course.price),
+            currency: course.currency || 'OMR',
+            mediaType: course.mediaType,
+            mediaUrl: course.mediaUrl || null,
+            imageUrl: course.mediaType === 'IMAGE' ? course.mediaUrl || null : null,
+            bookingUrl: course.bookingUrl || null,
+            description: course.description || null,
+          })),
           isActive,
         }),
       });
@@ -225,6 +420,9 @@ export default function EditTrainerPage() {
       setSaving(false);
     }
   };
+
+  const youtubePreviewUrl = featuredMediaType === 'YOUTUBE' ? toYoutubeEmbedUrl(featuredMediaUrl) : null;
+  const featuredVideoPreviewUrl = featuredMediaType === 'VIDEO' ? featuredMediaUrl.trim() : null;
 
   if (loading) {
     return (
@@ -518,6 +716,304 @@ export default function EditTrainerPage() {
               />
             </div>
           </div>
+        </div>
+
+        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
+            Trainer Featured Media
+          </h2>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
+            Choose whether the public trainer page shows an uploaded image, uploaded video, or embedded YouTube video.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Media Type
+              </label>
+              <select
+                value={featuredMediaType}
+                onChange={(e) => setFeaturedMediaType(e.target.value as 'IMAGE' | 'VIDEO' | 'YOUTUBE')}
+                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              >
+                <option value="IMAGE">Image</option>
+                <option value="VIDEO">Video (Upload)</option>
+                <option value="YOUTUBE">YouTube Video</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {featuredMediaType === 'YOUTUBE'
+                  ? 'YouTube URL'
+                  : featuredMediaType === 'VIDEO'
+                    ? 'Video URL'
+                    : 'Image URL'}
+              </label>
+              <input
+                type="url"
+                value={featuredMediaUrl}
+                onChange={(e) => setFeaturedMediaUrl(e.target.value)}
+                placeholder={featuredMediaType === 'YOUTUBE' ? 'https://youtu.be/...' : '/uploads/... or https://...'}
+                className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+              />
+              {featuredMediaType !== 'YOUTUBE' ? (
+                <div className="mt-3 flex items-center gap-3">
+                  <label className="inline-flex cursor-pointer items-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                    {uploadingFeaturedMedia ? 'Uploading...' : featuredMediaType === 'VIDEO' ? 'Upload Video' : 'Upload Image'}
+                    <input
+                      type="file"
+                      accept={featuredMediaType === 'VIDEO' ? 'video/*' : 'image/*'}
+                      className="hidden"
+                      onChange={handleFeaturedMediaUpload}
+                      disabled={uploadingFeaturedMedia}
+                    />
+                  </label>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {featuredMediaType === 'VIDEO' ? 'MP4, MOV, WEBM (max 50MB)' : 'PNG, JPG, WEBP (max 5MB)'}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          </div>
+          {featuredMediaUrl ? (
+            <div className="mt-4">
+              <p className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Preview</p>
+              {featuredMediaType === 'YOUTUBE' ? (
+                youtubePreviewUrl ? (
+                  <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                    <iframe
+                      src={youtubePreviewUrl}
+                      title="Trainer featured video preview"
+                      className="aspect-video w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                ) : (
+                  <p className="text-xs text-rose-600 dark:text-rose-400">
+                    Enter a valid YouTube URL to preview.
+                  </p>
+                )
+              ) : featuredMediaType === 'VIDEO' ? (
+                <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                  <video
+                    src={featuredVideoPreviewUrl || undefined}
+                    controls
+                    className="aspect-video w-full bg-black"
+                  />
+                </div>
+              ) : (
+                <div className="relative h-44 w-full max-w-md overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                  <Image
+                    src={featuredMediaUrl}
+                    alt="Trainer featured media"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 512px"
+                    className="object-cover"
+                  />
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">
+                Manual Upcoming Courses
+              </h2>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                Add unlimited upcoming courses that will appear on the trainer public page.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={addManualUpcomingCourse}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            >
+              Add Course
+            </button>
+          </div>
+
+          {manualUpcomingCourses.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+              No manual upcoming courses added yet.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {manualUpcomingCourses.map((course, index) => (
+                <div key={course.id} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+                      Course #{index + 1}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => removeManualUpcomingCourse(course.id)}
+                      className="rounded-md border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="text-sm">
+                      <span className="text-zinc-700 dark:text-zinc-300">Title (EN)</span>
+                      <input
+                        type="text"
+                        value={course.title}
+                        onChange={(e) => updateManualUpcomingCourse(course.id, 'title', e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                      />
+                    </label>
+                    <label className="text-sm">
+                      <span className="text-zinc-700 dark:text-zinc-300">Title (AR)</span>
+                      <input
+                        type="text"
+                        value={course.titleAr}
+                        onChange={(e) => updateManualUpcomingCourse(course.id, 'titleAr', e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                      />
+                    </label>
+                    <label className="text-sm">
+                      <span className="text-zinc-700 dark:text-zinc-300">Date & Time</span>
+                      <input
+                        type="datetime-local"
+                        value={course.dateTime}
+                        onChange={(e) => updateManualUpcomingCourse(course.id, 'dateTime', e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                      />
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="text-sm">
+                        <span className="text-zinc-700 dark:text-zinc-300">Price</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.001"
+                          value={course.price}
+                          onChange={(e) => updateManualUpcomingCourse(course.id, 'price', e.target.value)}
+                          className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                        />
+                      </label>
+                      <label className="text-sm">
+                        <span className="text-zinc-700 dark:text-zinc-300">Currency</span>
+                        <input
+                          type="text"
+                          value={course.currency}
+                          onChange={(e) => updateManualUpcomingCourse(course.id, 'currency', e.target.value)}
+                          className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm uppercase focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                        />
+                      </label>
+                    </div>
+                    <label className="text-sm sm:col-span-2">
+                      <span className="text-zinc-700 dark:text-zinc-300">Media Type</span>
+                      <select
+                        value={course.mediaType}
+                        onChange={(e) =>
+                          updateManualUpcomingCourse(
+                            course.id,
+                            'mediaType',
+                            e.target.value as 'IMAGE' | 'VIDEO' | 'YOUTUBE'
+                          )
+                        }
+                        className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                      >
+                        <option value="IMAGE">Image</option>
+                        <option value="VIDEO">Video (Upload)</option>
+                        <option value="YOUTUBE">YouTube Video</option>
+                      </select>
+                    </label>
+                    <label className="text-sm sm:col-span-2">
+                      <span className="text-zinc-700 dark:text-zinc-300">
+                        {course.mediaType === 'YOUTUBE'
+                          ? 'YouTube URL'
+                          : course.mediaType === 'VIDEO'
+                            ? 'Video URL'
+                            : 'Image URL'}
+                      </span>
+                      <input
+                        type="url"
+                        value={course.mediaUrl}
+                        onChange={(e) => updateManualUpcomingCourse(course.id, 'mediaUrl', e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                      />
+                      {course.mediaType !== 'YOUTUBE' ? (
+                        <div className="mt-2 flex items-center gap-3">
+                          <label className="inline-flex cursor-pointer items-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                            {uploadingManualMediaId === course.id ? 'Uploading...' : course.mediaType === 'VIDEO' ? 'Upload Video' : 'Upload Image'}
+                            <input
+                              type="file"
+                              accept={course.mediaType === 'VIDEO' ? 'video/*' : 'image/*'}
+                              className="hidden"
+                              onChange={(e) => void handleManualCourseMediaUpload(course.id, e)}
+                              disabled={uploadingManualMediaId === course.id}
+                            />
+                          </label>
+                          <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                            {course.mediaType === 'VIDEO' ? 'max 50MB' : 'max 5MB'}
+                          </span>
+                        </div>
+                      ) : null}
+                      {course.mediaUrl ? (
+                        <div className="mt-3 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                          {course.mediaType === 'YOUTUBE' ? (
+                            toYoutubeEmbedUrl(course.mediaUrl) ? (
+                              <iframe
+                                src={toYoutubeEmbedUrl(course.mediaUrl) || undefined}
+                                title={`Course ${index + 1} media preview`}
+                                className="aspect-video w-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                            ) : (
+                              <p className="p-3 text-xs text-rose-600 dark:text-rose-400">
+                                Enter a valid YouTube URL.
+                              </p>
+                            )
+                          ) : course.mediaType === 'VIDEO' ? (
+                            <video
+                              src={course.mediaUrl}
+                              controls
+                              className="aspect-video w-full bg-black"
+                            />
+                          ) : (
+                            <div className="relative aspect-video w-full">
+                              <Image
+                                src={course.mediaUrl}
+                                alt={`Course ${index + 1} media preview`}
+                                fill
+                                sizes="(max-width: 768px) 100vw, 640px"
+                                className="object-cover"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </label>
+                    <label className="text-sm sm:col-span-2">
+                      <span className="text-zinc-700 dark:text-zinc-300">Booking URL</span>
+                      <input
+                        type="url"
+                        value={course.bookingUrl}
+                        onChange={(e) => updateManualUpcomingCourse(course.id, 'bookingUrl', e.target.value)}
+                        className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                      />
+                    </label>
+                    <label className="text-sm sm:col-span-2">
+                      <span className="text-zinc-700 dark:text-zinc-300">Description</span>
+                      <textarea
+                        value={course.description}
+                        onChange={(e) => updateManualUpcomingCourse(course.id, 'description', e.target.value)}
+                        rows={3}
+                        className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">

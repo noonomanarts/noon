@@ -10,6 +10,7 @@ import AdminNotificationCenter from "@/components/admin/AdminNotificationCenter"
 import { AdminWalletDisplay } from "@/components/admin/AdminWalletDisplay";
 import MobileSidebar from "@/components/admin/MobileSidebar";
 import OverlayScrollArea from "@/components/site/OverlayScrollArea";
+import { countTrainerWorkshopSuggestionsPendingReview } from "@/lib/db/trainers";
 import {
   FiBell,
   FiBookOpen,
@@ -27,6 +28,36 @@ import {
   FiPackage,
   FiMessageSquare,
 } from "react-icons/fi";
+
+type AdminIconName =
+  | "FiGrid"
+  | "FiTrendingUp"
+  | "FiBookOpen"
+  | "FiCalendar"
+  | "FiAward"
+  | "FiUsers"
+  | "FiUserCheck"
+  | "FiCreditCard"
+  | "FiThumbsUp"
+  | "FiShoppingBag"
+  | "FiFileText"
+  | "FiSettings"
+  | "FiBell"
+  | "FiPackage"
+  | "FiMessageSquare";
+
+type AdminMenuItem = {
+  iconName: AdminIconName;
+  iconColor: string;
+  label: string;
+  href: string;
+  badgeCount?: number;
+};
+
+type AdminMenuSection = {
+  section: string;
+  items: AdminMenuItem[];
+};
 
 export default async function AdminLayout({
   children,
@@ -51,6 +82,8 @@ export default async function AdminLayout({
     redirect(`/${locale}/account`);
   }
 
+  const pendingSuggestedWorkshops = await countTrainerWorkshopSuggestionsPendingReview();
+
   async function handleLogout() {
     "use server";
     const cookieStore = await cookies();
@@ -74,6 +107,7 @@ export default async function AdminLayout({
     users: locale === "ar" ? "المستخدمون" : "Users",
     customers: locale === "ar" ? "العملاء" : "Customers",
     trainers: locale === "ar" ? "المدربون" : "Trainers",
+    suggestedWorkshops: locale === "ar" ? "المقترحات" : "Suggestions",
     payments: locale === "ar" ? "المدفوعات" : "Payments",
     content: locale === "ar" ? "المحتوى" : "Content",
     shop: locale === "ar" ? "المتجر" : "Shop",
@@ -100,7 +134,7 @@ export default async function AdminLayout({
     languageAr: "العربية",
   };
 
-  const menuItems = [
+  const menuItems: AdminMenuSection[] = [
     {
       section: t.overview,
       items: [
@@ -127,6 +161,13 @@ export default async function AdminLayout({
       items: [
         { iconName: "FiUsers" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.users, href: `/${locale}/admin/users` },
         { iconName: "FiUserCheck" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.trainers, href: `/${locale}/admin/trainers` },
+        {
+          iconName: "FiMessageSquare" as const,
+          iconColor: "text-amber-600 dark:text-amber-400",
+          label: t.suggestedWorkshops,
+          href: `/${locale}/admin/trainers/suggestions`,
+          badgeCount: pendingSuggestedWorkshops,
+        },
         { iconName: "FiCreditCard" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.payments, href: `/${locale}/admin/payments` },
         { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: locale === "ar" ? "المحافظ" : "Wallets", href: `/${locale}/admin/wallets` },
       ],
@@ -212,7 +253,12 @@ export default async function AdminLayout({
                               <span className={`flex size-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 ${item.iconColor}`}>
                                 <IconComponent className="size-4" />
                               </span>
-                              <span className="flex-1">{item.label}</span>
+                              <span className="flex-1 truncate whitespace-nowrap">{item.label}</span>
+                              {typeof item.badgeCount === "number" && item.badgeCount > 0 ? (
+                                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[color:var(--noon-coral)] px-1.5 text-[11px] font-bold leading-none text-white">
+                                  {item.badgeCount > 99 ? "99+" : item.badgeCount}
+                                </span>
+                              ) : null}
                             </Link>
                           );
                         })}

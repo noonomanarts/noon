@@ -61,7 +61,7 @@ export default async function AccountLayout({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[250px_1fr]">
-        <AccountSidebar locale={locale} />
+        <AccountSidebar locale={locale} role={user.role} />
         <section>{children}</section>
       </div>
     </div>

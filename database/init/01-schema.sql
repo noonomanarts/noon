@@ -171,6 +171,9 @@ CREATE TABLE IF NOT EXISTS trainer_profiles (
   expertise TEXT[] DEFAULT '{}',
   experience INTEGER,
   social_links JSONB,
+  featured_media_type VARCHAR(20) NOT NULL DEFAULT 'IMAGE',
+  featured_media_url VARCHAR(500),
+  manual_upcoming_courses JSONB NOT NULL DEFAULT '[]'::jsonb,
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
@@ -200,6 +203,25 @@ CREATE TABLE IF NOT EXISTS classes (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   published_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Trainer suggested workshops
+CREATE TABLE IF NOT EXISTS trainer_workshop_suggestions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  trainer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  title_ar VARCHAR(255),
+  brief TEXT,
+  recipe TEXT,
+  recipe_pdf VARCHAR(500),
+  notes TEXT,
+  photos TEXT[] NOT NULL DEFAULT '{}',
+  admin_notes TEXT,
+  status VARCHAR(30) NOT NULL DEFAULT 'PENDING_REVIEW'
+    CHECK (status IN ('PENDING_REVIEW', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED')),
+  live_class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 -- Class sessions (specific dates for a class)
@@ -372,6 +394,8 @@ CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
 -- Trainer profiles
 CREATE INDEX IF NOT EXISTS idx_trainer_profiles_user_id ON trainer_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_trainer_profiles_is_active ON trainer_profiles(is_active);
+CREATE INDEX IF NOT EXISTS idx_trainer_workshop_suggestions_trainer_id ON trainer_workshop_suggestions(trainer_id);
+CREATE INDEX IF NOT EXISTS idx_trainer_workshop_suggestions_status ON trainer_workshop_suggestions(status);
 
 -- Classes
 CREATE INDEX IF NOT EXISTS idx_classes_slug ON classes(slug);
