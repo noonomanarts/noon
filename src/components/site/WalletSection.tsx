@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Wallet, WalletTransaction } from '@/lib/db/types';
 import { formatNotificationContent } from '@/lib/notifications/formatNotification';
+import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
 
 interface WalletSectionProps {
   wallet: Wallet;
@@ -410,7 +411,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
 
               <div className="rounded-xl noon-soft-teal p-4 border border-teal/20 dark:border-teal/30">
                 <p className="text-sm text-teal-900 dark:text-teal-200 font-medium">
-                  {isArabic ? "الرصيد الحالي:" : "Current balance:"} <span className="font-semibold">{walletData.balance.toFixed(3)} {walletData.currency}</span>
+                  {isArabic ? "الرصيد الحالي:" : "Current balance:"} <span className="font-semibold">{formatAmountWithCurrency(walletData.balance, walletData.currency)}</span>
                 </p>
                  <p className="mt-1 text-xs text-teal-800 dark:text-teal-300">
                    {isArabic
@@ -501,7 +502,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
 
               <div className="rounded-xl noon-soft-yellow p-4 border border-yellow/30 dark:border-yellow/35">
                 <p className="text-sm text-yellow-900 dark:text-yellow-200 font-medium">
-                  {isArabic ? 'المقدار القابل للسحب:' : 'Withdrawable amount:'} <span className="font-semibold">{walletData.available_balance?.toFixed(3) || '0.000'} {walletData.currency}</span>
+                  {isArabic ? 'المقدار القابل للسحب:' : 'Withdrawable amount:'} <span className="font-semibold">{formatAmountWithCurrency(walletData.available_balance ?? 0, walletData.currency)}</span>
                 </p>
                 {withdrawAmount && parseFloat(withdrawAmount) > (walletData.available_balance || 0) && (
                   <p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">
@@ -557,7 +558,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
           {isArabic ? 'رصيد المحفظة (للدفع)' : 'Wallet Balance (for payments)'}
         </div>
         <div className="text-2xl font-bold text-teal-700 dark:text-teal-300">
-          {walletData.balance.toFixed(3)} {walletData.currency}
+          {formatAmountWithCurrency(walletData.balance, walletData.currency)}
         </div>
       </div>
 
@@ -566,7 +567,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
           {isArabic ? 'المقدار القابل للسحب (نقدًا)' : 'Withdrawable Amount (cash out)'}
         </div>
         <div className="text-xl font-semibold text-yellow-800 dark:text-yellow-300">
-          {walletData.available_balance?.toFixed(3) || '0.000'} {walletData.currency}
+          {formatAmountWithCurrency(walletData.available_balance ?? 0, walletData.currency)}
         </div>
         <div className="text-xs text-[color:var(--text-subtle)] mt-1">
           {isArabic ? 'للسحب النقدي فقط ويتطلب موافقة الإدارة' : 'For cash withdrawal only, admin approval required'}
@@ -578,7 +579,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
           {isArabic ? 'المبلغ المحجوز' : 'Blocked Amount'}
         </div>
         <div className="text-xl font-semibold text-coral dark:text-coral-light">
-          {blockedBalance.toFixed(3)} {walletData.currency}
+          {formatAmountWithCurrency(blockedBalance, walletData.currency)}
         </div>
         <div className="text-xs text-[color:var(--text-subtle)] mt-1">
           {isArabic ? 'طلبات سحب قيد المراجعة' : 'Pending withdrawal requests'}
@@ -701,7 +702,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                 <div className={`font-medium ${
                   transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {transaction.amount > 0 ? '+' : ''}{transaction.amount.toFixed(3)} {walletData.currency}
+                  {transaction.amount > 0 ? '+' : ''}{formatPlainNumber(transaction.amount)} {walletData.currency}
                 </div>
               </div>
             ))

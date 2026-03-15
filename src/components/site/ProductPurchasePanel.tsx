@@ -5,6 +5,7 @@ import { FiMinus, FiPlus, FiTruck, FiShield, FiRotateCcw } from "react-icons/fi"
 
 import type { Locale } from "@/lib/locale";
 import AddToCartButton from "@/components/site/AddToCartButton";
+import { formatAmountWithCurrency } from "@/lib/formatNumber";
 
 export default function ProductPurchasePanel({
   productId,
@@ -71,7 +72,7 @@ export default function ProductPurchasePanel({
         <div className="text-end">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--text-subtle)]">{t.subtotal}</p>
           <p className="mt-1 text-lg font-extrabold text-[color:var(--text)]">
-            {subtotal.toFixed(3)} {currency}
+            {formatAmountWithCurrency(subtotal, currency)}
           </p>
         </div>
       </div>

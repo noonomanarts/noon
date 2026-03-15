@@ -8,6 +8,7 @@ import { GiChefToque } from "react-icons/gi";
 import { HiSparkles } from "react-icons/hi2";
 import { findTrainerById, findTrainerClasses, getTrainerProfile } from "@/lib/db/trainers";
 import { findClassSessions } from "@/lib/db/classes";
+import { formatAmountWithCurrency } from "@/lib/formatNumber";
 
 type UpcomingItem =
   | {
@@ -89,7 +90,7 @@ function formatSessionDateTime(value: Date | string | null, locale: Locale): str
 
 function formatMoney(value: number | null, currency: string): string {
   if (value === null || !Number.isFinite(value)) return `- ${currency}`;
-  return `${value.toFixed(3)} ${currency}`;
+  return formatAmountWithCurrency(value, currency);
 }
 
 function escapeHtml(text: string): string {

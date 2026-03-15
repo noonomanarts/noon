@@ -5,6 +5,7 @@ import { HiPaintBrush } from "react-icons/hi2";
 
 import { findClassSessions, findManyClasses } from "@/lib/db/classes";
 import { ClassCategory } from "@/lib/db/types";
+import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { isLocale, type Locale } from "@/lib/locale";
 
 export default async function ArtsCraftsClassesPage({
@@ -121,7 +122,7 @@ export default async function ArtsCraftsClassesPage({
                   )}
 
                   <div className="absolute right-4 top-4 rounded-full bg-[color:var(--surface)]/95 px-3 py-1 text-xs font-semibold text-[color:var(--text)] shadow-sm backdrop-blur">
-                    {cls.price.toFixed(3)} {cls.currency}
+                    {formatAmountWithCurrency(cls.price, cls.currency)}
                   </div>
                 </div>
 

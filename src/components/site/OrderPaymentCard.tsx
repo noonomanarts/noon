@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Locale } from '@/lib/locale';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type WalletPayload = {
   balance: number;
@@ -36,7 +37,7 @@ const PAYABLE_EVENT_STATUSES = new Set(['CLIENT_CONFIRMED', 'PENDING_PAYMENT']);
 
 function formatAmount(value: number | null, currency: string) {
   if (!Number.isFinite(value ?? NaN)) return `- ${currency}`;
-  return `${Number(value).toFixed(3)} ${currency}`;
+  return formatAmountWithCurrency(Number(value), currency);
 }
 
 function formatDateTime(locale: Locale, value: string | Date | null | undefined) {

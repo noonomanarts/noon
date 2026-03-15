@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Locale } from '@/lib/locale';
 import ClassSessionPicker from '@/components/site/ClassSessionPicker';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type SessionItem = {
   id: string;
@@ -423,7 +424,7 @@ export default function ClassBookingClient({
             {t.bookingNumber}: <span className="font-semibold">{result.booking.bookingNumber}</span>
           </p>
           <p className="mt-1 text-sm text-emerald-800 dark:text-emerald-300">
-            {t.total}: {result.booking.totalAmount.toFixed(3)} {result.booking.currency}
+            {t.total}: {formatAmountWithCurrency(result.booking.totalAmount, result.booking.currency)}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -604,13 +605,13 @@ export default function ClassBookingClient({
             <div className="flex items-center justify-between">
               <span>{t.walletBalance}</span>
               <span className="font-semibold">
-                {loadingWallet ? '...' : `${(wallet?.balance ?? 0).toFixed(3)} ${wallet?.currency ?? classData.currency}`}
+                {loadingWallet ? '...' : formatAmountWithCurrency(wallet?.balance ?? 0, wallet?.currency ?? classData.currency)}
               </span>
             </div>
             <div className="border-t border-[color:var(--border)] pt-2 text-base font-semibold text-[color:var(--text)]">
               <div className="flex items-center justify-between">
                 <span>{t.total}</span>
-                <span>{totalAmount.toFixed(3)} {classData.currency}</span>
+                <span>{formatAmountWithCurrency(totalAmount, classData.currency)}</span>
               </div>
             </div>
           </div>

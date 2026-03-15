@@ -5,6 +5,7 @@ import { getCurrentUser } from '@/lib/session';
 import { getBookingByIdForUser } from '@/lib/db/classes';
 import { getEventBookingByIdForUser } from '@/lib/db/events';
 import { getShopOrderByIdForUser } from '@/lib/db/shop';
+import { formatPlainNumber } from '@/lib/formatNumber';
 import { OrderPaymentCard } from '@/components/site/OrderPaymentCard';
 
 type ClassBookingDetails = {
@@ -94,7 +95,7 @@ function formatDate(locale: Locale, value: string | Date | null | undefined) {
 
 function formatAmount(value: unknown) {
   const amount = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(amount) ? amount.toFixed(3) : '-';
+  return Number.isFinite(amount) ? formatPlainNumber(amount) : '-';
 }
 
 function getStatusClasses(status: string) {

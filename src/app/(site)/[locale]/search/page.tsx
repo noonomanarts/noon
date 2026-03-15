@@ -3,6 +3,7 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { findManyClasses } from "@/lib/db/classes";
 import { findTrainers } from "@/lib/db/trainers";
 import { listShopProductsForPublic } from "@/lib/db/shop";
+import { formatAmountWithCurrency } from "@/lib/formatNumber";
 
 function containsQuery(query: string, ...values: Array<string | null | undefined>) {
   const normalized = query.trim().toLowerCase();
@@ -182,7 +183,7 @@ export default async function SearchPage({
                       {(isArabic ? item.descriptionAr : item.description) || "-"}
                     </p>
                     <p className="mt-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                      {item.price.toFixed(3)} {item.currency}
+                      {formatAmountWithCurrency(item.price, item.currency)}
                     </p>
                   </Link>
                 ))}
@@ -232,7 +233,7 @@ export default async function SearchPage({
                       {isArabic ? item.category_name_ar : item.category_name_en}
                     </p>
                     <p className="mt-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                      {item.price.toFixed(3)} {item.currency}
+                      {formatAmountWithCurrency(item.price, item.currency)}
                     </p>
                   </Link>
                 ))}

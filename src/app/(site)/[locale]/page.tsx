@@ -14,14 +14,17 @@ import {
   sanitizeSitePageSettings,
   type SitePageSettings,
 } from "@/lib/admin/sitePages";
-import { FiArrowRight, FiClock, FiPenTool, FiScissors } from "react-icons/fi";
+import { formatAmountWithCurrency } from "@/lib/formatNumber";
+import { FiArrowRight, FiBookOpen, FiCalendar, FiPenTool, FiScissors, FiUser } from "react-icons/fi";
 import { GiChefToque, GiCookingPot, GiKnifeFork, GiPalette } from "react-icons/gi";
+import { HiOutlineBanknotes } from "react-icons/hi2";
 
 type UpcomingCard = {
   id: string;
   title: string;
   datetimeText: string;
   priceText: string;
+  trainerName: string;
   imageSrc: string;
   href: string;
 };
@@ -113,6 +116,7 @@ async function resolveUpcomingItems(
   try {
     const classes = await findManyClasses({ status: "PUBLISHED", limit: 48 });
     const noUpcomingLabel = locale === "ar" ? "لا توجد جلسات قادمة حالياً" : "No upcoming sessions yet";
+    const noTrainerLabel = locale === "ar" ? "المدرب غير محدد" : "Trainer TBD";
     const localeCode = locale === "ar" ? "ar-OM" : "en-OM";
 
     const upcoming = await Promise.all(
@@ -137,7 +141,8 @@ async function resolveUpcomingItems(
           id: String(classItem.id),
           title: locale === "ar" && classItem.titleAr ? classItem.titleAr : classItem.title,
           datetimeText,
-          priceText: `${classItem.price.toFixed(3)} ${classItem.currency}`,
+          priceText: formatAmountWithCurrency(classItem.price, classItem.currency),
+          trainerName: classItem.trainer?.fullName?.trim() || noTrainerLabel,
           imageSrc: classItem.image || "/og-image.png",
           href: `/${locale}/classes/${classItem.slug}`,
           createdAt: new Date(classItem.createdAt),
@@ -326,6 +331,7 @@ export default async function HomePage({
   const upcomingBookNowLabel =
     (isArabic ? homeUpcoming?.bookNowLabelAr : homeUpcoming?.bookNowLabelEn)?.trim() ||
     content.upcoming.bookNowLabel;
+  const upcomingTrainerLabel = isArabic ? "المدرب" : "Trainer";
   const upcomingItems = await resolveUpcomingItems(locale, []);
 
   return (
@@ -398,22 +404,33 @@ export default async function HomePage({
           {upcomingItems.map((c) => (
             <article
               key={c.id}
-              className="group overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              className="group flex h-full flex-col overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="relative aspect-square overflow-hidden">
-                <Image src={c.imageSrc} alt="" fill className="object-cover transition duration-500 group-hover:scale-[1.03]" />
+                <Image src={c.imageSrc} alt={c.title} fill className="object-cover transition duration-500 group-hover:scale-[1.03]" />
               </div>
-              <div className="space-y-3 p-5">
-                <h3 className="line-clamp-1 text-base font-semibold text-[color:var(--text)]">{c.title}</h3>
-                <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)]">
-                  <FiClock className="size-3.5" />
+              <div className="flex flex-1 flex-col space-y-3 p-4 sm:p-5">
+                <h3 className="line-clamp-2 inline-flex items-start gap-2 text-base font-semibold text-[color:var(--text)] sm:text-lg">
+                  <FiBookOpen className="mt-0.5 size-4 shrink-0 text-purple-500" />
+                  <span>{c.title}</span>
+                </h3>
+                <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
+                  <FiCalendar className="size-4 shrink-0 text-teal-500" />
                   {c.datetimeText}
                 </p>
-                <div className="space-y-3 pt-1">
-                  <div className="text-sm font-semibold text-[color:var(--text)]">{c.priceText}</div>
+                <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
+                  <FiUser className="size-4 shrink-0 text-indigo-500" />
+                  <span className="font-semibold text-[color:var(--text)]">{upcomingTrainerLabel}:</span>
+                  <span>{c.trainerName}</span>
+                </p>
+                <div className="mt-auto pt-2">
+                  <p className="mb-3 inline-flex items-center gap-2 text-2xl font-black leading-none text-[color:var(--text)] sm:text-3xl">
+                    <HiOutlineBanknotes className="size-6 shrink-0 text-emerald-600" />
+                    {c.priceText}
+                  </p>
                   <Link
                     href={c.href}
-                    className="inline-flex w-full items-center justify-center gap-1 border border-black/20 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
+                    className="inline-flex w-full items-center justify-center gap-1 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
                     style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
                   >
                     {upcomingBookNowLabel}

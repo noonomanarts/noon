@@ -11,6 +11,7 @@ import type {
   TrainerHighlightedIngredient,
   TrainerWorkshopSuggestionPublic,
 } from '@/lib/db/trainers';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type SubmissionDraft = {
   recipePdf: string;
@@ -39,7 +40,7 @@ function formatDateTime(value: string | null, locale: Locale): string {
 }
 
 function formatMoney(value: number, currency: string): string {
-  return `${value.toFixed(3)} ${currency}`;
+  return formatAmountWithCurrency(value, currency);
 }
 
 function formatRating(value: number | null | undefined): string {

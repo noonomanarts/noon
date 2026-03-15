@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import type { Locale } from '@/lib/locale';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type CartApiItem = {
   productId: string;
@@ -193,7 +194,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                     {t.category}: {isArabic ? item.product.category_name_ar : item.product.category_name_en}
                   </p>
                   <p className="text-sm font-semibold text-[color:var(--text)]">
-                    {item.product.price.toFixed(3)} {item.product.currency}
+                    {formatAmountWithCurrency(item.product.price, item.product.currency)}
                   </p>
                 </div>
 
@@ -219,7 +220,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                       +
                     </button>
                   </div>
-                  <p className="text-xs text-[color:var(--text-subtle)]">{t.total}: {item.lineTotal.toFixed(3)} {item.product.currency}</p>
+                  <p className="text-xs text-[color:var(--text-subtle)]">{t.total}: {formatAmountWithCurrency(item.lineTotal, item.product.currency)}</p>
                   <button
                     type="button"
                     disabled={savingItemId === item.productId}
@@ -236,7 +237,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
           <aside className="h-fit rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm lg:sticky lg:top-24">
             <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
               <p className="text-sm text-[color:var(--text-muted)]">{t.subtotal}</p>
-              <p className="mt-2 text-2xl font-semibold text-[color:var(--text)]">{subtotal.toFixed(3)} {currency}</p>
+              <p className="mt-2 text-2xl font-semibold text-[color:var(--text)]">{formatAmountWithCurrency(subtotal, currency)}</p>
               <p className="mt-1 text-xs text-[color:var(--text-subtle)]">
                 {payload?.summary.totalQuantity ?? 0} {t.items}
               </p>

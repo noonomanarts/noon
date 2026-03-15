@@ -6,6 +6,7 @@ import {
   getShopProductBySlugForPublic,
   listRelatedShopProductsForPublic,
 } from "@/lib/db/shop";
+import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { isLocale, type Locale } from "@/lib/locale";
 import ProductMediaGallery from "@/components/site/ProductMediaGallery";
 import ProductPurchasePanel from "@/components/site/ProductPurchasePanel";
@@ -111,7 +112,7 @@ export default async function ShopProductDetailsPage({
                   </p>
                   <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)]">{title}</h1>
                   <p className="text-2xl font-extrabold text-[color:var(--text)]">
-                    {product.price.toFixed(3)} {product.currency}
+                    {formatAmountWithCurrency(product.price, product.currency)}
                   </p>
                 </div>
 

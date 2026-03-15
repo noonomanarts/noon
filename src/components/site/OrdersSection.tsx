@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { Booking, EventBooking, ShopOrder, ShopOrderItem } from '@/lib/db/types';
+import { formatPlainNumber } from '@/lib/formatNumber';
 
 interface OrdersSectionProps {
   bookings: Booking[];
@@ -75,7 +76,7 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
 
   const formatAmount = (value: unknown) => {
     const amount = typeof value === 'number' ? value : Number(value);
-    return Number.isFinite(amount) ? amount.toFixed(3) : null;
+    return Number.isFinite(amount) ? formatPlainNumber(amount) : null;
   };
 
   const getPaymentStatusText = (status: string) => {
@@ -163,7 +164,7 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
               {order.type === 'shop' && (
                 <div className="space-y-1 text-sm">
                   <div className="font-medium text-[color:var(--text)]">
-                    {isArabic ? 'المجموع:' : 'Total:'} {order.total_amount.toFixed(3)} {order.currency}
+                    {isArabic ? 'المجموع:' : 'Total:'} {formatPlainNumber(order.total_amount)} {order.currency}
                   </div>
                   <div className="text-[color:var(--text-muted)]">
                     {isArabic ? 'الدفع:' : 'Payment:'} {getPaymentStatusText('PAID')} • {getPaymentMethodText(order.payment_method)}

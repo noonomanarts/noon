@@ -4,6 +4,7 @@ import { FiArrowRight, FiBox, FiTag } from "react-icons/fi";
 
 import type { Locale } from "@/lib/locale";
 import AddToCartButton from "@/components/site/AddToCartButton";
+import { formatAmountWithCurrency } from "@/lib/formatNumber";
 
 type PublicShopProduct = {
   id: string;
@@ -122,7 +123,7 @@ export default function ShopProductCard({
 
         <div className="flex items-end justify-between gap-3">
           <p className="text-lg font-extrabold text-[color:var(--text)]">
-            {product.price.toFixed(3)} {product.currency}
+            {formatAmountWithCurrency(product.price, product.currency)}
           </p>
           <Link
             href={`/${locale}/shop/product/${product.slug}`}

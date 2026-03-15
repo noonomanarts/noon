@@ -8,6 +8,7 @@ import { MdCalendarMonth, MdAccessTime, MdPerson } from "react-icons/md";
 import { findClassBySlug, findClassSessions, findClassReviews } from "@/lib/db/classes";
 import { findTrainerById } from "@/lib/db/trainers";
 import { ClassCategory } from "@/lib/db/types";
+import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { isLocale, type Locale } from "@/lib/locale";
 
 export default async function ClassDetailPage({
@@ -84,40 +85,50 @@ export default async function ClassDetailPage({
       </div>
 
       <section className="mx-auto w-full max-w-6xl px-4 pt-8">
-        <div className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm">
-          <div className="relative aspect-square">
-            {classData.image ? (
-              <Image src={classData.image} alt={title} fill priority className="object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center bg-[color:var(--muted)]">
-                <Icon className="h-28 w-28 text-[color:var(--text-subtle)]" />
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        <div className="overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm">
+          <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="relative aspect-square lg:min-h-[32rem]">
+              {classData.image ? (
+                <Image src={classData.image} alt={title} fill priority className="object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-[color:var(--muted)]">
+                  <Icon className="h-28 w-28 text-[color:var(--text-subtle)]" />
+                </div>
+              )}
+            </div>
 
-            <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[color:var(--surface)]/95 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text)] shadow-sm">
+            <div className="flex flex-col justify-center space-y-5 p-6 sm:p-8 lg:p-10">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[color:var(--muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text)]">
                 <Icon className={`h-4 w-4 ${isCooking ? "text-coral" : "text-purple"}`} />
                 {t.category}: {isCooking ? t.cooking : t.artsCrafts}
               </div>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-5xl">
+
+              <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)] sm:text-4xl lg:text-5xl">
                 {title}
               </h1>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs sm:text-sm">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1 text-white backdrop-blur-sm">
-                  <HiClock className="h-4 w-4" />
+
+              <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--muted)] px-3 py-1 text-[color:var(--text)]">
+                  <HiClock className="h-4 w-4 text-[color:var(--primary)]" />
                   {t.duration}: {classData.durationMinutes ?? 0} {t.minutes}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1 text-white backdrop-blur-sm">
-                  <HiUsers className="h-4 w-4" />
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--muted)] px-3 py-1 text-[color:var(--text)]">
+                  <HiUsers className="h-4 w-4 text-[color:var(--primary)]" />
                   {classData.seatsTotal} {t.seatsAvailable}
                 </span>
                 {averageRating > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/35 bg-black/35 px-3 py-1 text-white backdrop-blur-sm">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[color:var(--muted)] px-3 py-1 text-[color:var(--text)]">
                     <HiStar className="h-4 w-4 text-yellow" />
                     {averageRating.toFixed(1)} ({reviews.length})
                   </span>
                 ) : null}
+              </div>
+
+              <div className="inline-flex w-fit items-center gap-2 rounded-2xl bg-[color:var(--muted)] px-4 py-2.5">
+                <p className={`text-2xl font-black leading-none ${isCooking ? "text-coral" : "text-purple"} sm:text-3xl`}>
+                  {formatAmountWithCurrency(classData.price, classData.currency)}
+                </p>
+                <p className="text-xs text-[color:var(--text-muted)]">{t.perPerson}</p>
               </div>
             </div>
           </div>
@@ -203,7 +214,7 @@ export default async function ClassDetailPage({
           <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm sm:p-7">
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 text-center">
               <p className={`text-3xl font-semibold ${isCooking ? "text-coral" : "text-purple"}`}>
-                {classData.price.toFixed(3)} {classData.currency}
+                {formatAmountWithCurrency(classData.price, classData.currency)}
               </p>
               <p className="mt-1 text-xs text-[color:var(--text-muted)]">{t.perPerson}</p>
             </div>

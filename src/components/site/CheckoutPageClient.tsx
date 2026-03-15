@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { MuscatLocationPicker } from '@/components/site/MuscatLocationPicker';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type CartApiItem = {
   productId: string;
@@ -370,7 +371,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
               {t.orderNumber}: <span className="font-semibold">{checkoutResult.order.orderNumber}</span>
             </p>
             <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-300">
-              {t.total}: {checkoutResult.order.totalAmount.toFixed(3)} {checkoutResult.order.currency}
+              {t.total}: {formatAmountWithCurrency(checkoutResult.order.totalAmount, checkoutResult.order.currency)}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
@@ -540,7 +541,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                       {isArabic ? item.product.name_ar : item.product.name_en} x{item.quantity}
                     </Link>
                     <span className="text-[color:var(--text-muted)]">
-                      {item.lineTotal.toFixed(3)} {item.product.currency}
+                      {formatAmountWithCurrency(item.lineTotal, item.product.currency)}
                     </span>
                   </div>
                 ))}
@@ -554,22 +555,22 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
               <div className="flex items-center justify-between">
                 <span>{t.walletBalance}</span>
                 <span className="font-semibold">
-                  {walletBalance.toFixed(3)} {currency}
+                  {formatAmountWithCurrency(walletBalance, currency)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span>{t.subtotal}</span>
-                <span>{subtotal.toFixed(3)} {currency}</span>
+                <span>{formatAmountWithCurrency(subtotal, currency)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>{t.shipping}</span>
-                <span>{SHIPPING_FEE.toFixed(3)} {currency}</span>
+                <span>{formatAmountWithCurrency(SHIPPING_FEE, currency)}</span>
               </div>
               <div className="mt-2 border-t border-[color:var(--border)] pt-2 text-base font-semibold">
                 <div className="flex items-center justify-between">
                   <span>{t.total}</span>
                   <span>
-                    {total.toFixed(3)} {currency}
+                    {formatAmountWithCurrency(total, currency)}
                   </span>
                 </div>
                 <p className="mt-1 text-xs font-normal text-[color:var(--text-subtle)]">

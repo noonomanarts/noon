@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type PaymentPayload = {
   payment: {
@@ -151,7 +152,7 @@ export default function WalletTopupSandboxClient({
         {payment && (
           <div className="mt-5 space-y-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 text-sm">
             <p className="text-[color:var(--text-muted)]">{t.reference}: <span className="font-semibold text-[color:var(--text)]">{payment.reference}</span></p>
-            <p className="text-[color:var(--text-muted)]">{t.amount}: <span className="font-semibold text-[color:var(--text)]">{payment.amount.toFixed(3)} {payment.currency}</span></p>
+            <p className="text-[color:var(--text-muted)]">{t.amount}: <span className="font-semibold text-[color:var(--text)]">{formatAmountWithCurrency(payment.amount, payment.currency)}</span></p>
             <p className="text-[color:var(--text-muted)]">{t.status}: <span className="font-semibold text-[color:var(--text)]">{payment.status}</span></p>
           </div>
         )}
