@@ -4,6 +4,15 @@ import {
   getAdminSettingsByKey,
   type ClassFinanceAdminSettings,
 } from '@/lib/db/adminSettings';
+import {
+  finalizeClassInventoryUsagePlans,
+  listClassInventoryUsageItems,
+  listInventoryCatalog,
+  replaceClassInventoryUsagePlans,
+  type ClassInventoryUsageInput,
+  type ClassInventoryUsageItem,
+  type InventoryCatalogItem,
+} from '@/lib/db/inventory';
 import { pool, query } from './pool';
 
 type QueryResultRow = Record<string, unknown>;
@@ -83,6 +92,8 @@ export type ClassSettlementSnapshot = {
   };
   participants: ClassParticipantRow[];
   expenses: ClassExpenseItem[];
+  inventoryUsageItems: ClassInventoryUsageItem[];
+  inventoryCatalog: InventoryCatalogItem[];
   settlement: {
     status: 'DRAFT' | 'CLOSED';
     notes: string | null;
@@ -145,6 +156,30 @@ function sanitizeExpenseItems(value: unknown): ClassExpenseItemInput[] {
     .filter((item): item is ClassExpenseItemInput => Boolean(item));
 
   return normalized;
+}
+
+function sanitizeInventoryUsageItems(value: unknown): ClassInventoryUsageInput[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((row): ClassInventoryUsageInput | null => {
+      if (!row || typeof row !== 'object') return null;
+      const item = row as Record<string, unknown>;
+      const inventoryItemId = typeof item.inventoryItemId === 'string' ? item.inventoryItemId.trim() : '';
+      const quantity = toMoney(item.quantity);
+      const notes = typeof item.notes === 'string' ? item.notes.trim().slice(0, 1000) : '';
+
+      if (!inventoryItemId || quantity <= 0) {
+        return null;
+      }
+
+      return {
+        inventoryItemId,
+        quantity,
+        notes: notes || null,
+      };
+    })
+    .filter((row): row is ClassInventoryUsageInput => Boolean(row));
 }
 
 export async function ensureClassFinanceSchema(): Promise<void> {
@@ -425,6 +460,8 @@ function buildSettlementSnapshot(args: {
   classFinanceSettings: ClassFinanceAdminSettings;
   participants: ClassParticipantRow[];
   expenses: ClassExpenseItem[];
+  inventoryUsageItems: ClassInventoryUsageItem[];
+  inventoryCatalog: InventoryCatalogItem[];
   settlement: {
     status: 'DRAFT' | 'CLOSED';
     notes: string | null;
@@ -434,7 +471,9 @@ function buildSettlementSnapshot(args: {
 }): ClassSettlementSnapshot {
   const grossRevenue = toMoney(args.participants.reduce((sum, row) => sum + (row.participantIndex === 1 ? row.totalAmount : 0), 0));
   const participantsCount = args.participants.length;
-  const materialsCostAmount = toMoney(args.expenses.reduce((sum, item) => sum + item.amount, 0));
+  const manualMaterialsCostAmount = toMoney(args.expenses.reduce((sum, item) => sum + item.amount, 0));
+  const inventoryMaterialsCostAmount = toMoney(args.inventoryUsageItems.reduce((sum, item) => sum + item.totalCost, 0));
+  const materialsCostAmount = toMoney(manualMaterialsCostAmount + inventoryMaterialsCostAmount);
   const categorySettings: WorkshopCostSettings =
     args.financeRow.category === 'ARTS_CRAFTS'
       ? args.classFinanceSettings.artsCrafts
@@ -466,6 +505,13 @@ function buildSettlementSnapshot(args: {
   if (args.financeRow.closedAt) {
     warnings.push('This class has already been closed and settled.');
   }
+  for (const usage of args.inventoryUsageItems) {
+    if (usage.status === 'PLANNED' && usage.quantity > usage.availableStock) {
+      warnings.push(
+        `Insufficient inventory stock for "${usage.itemName}" (${usage.quantity.toFixed(3)} ${usage.itemUnit} required, ${usage.availableStock.toFixed(3)} available).`
+      );
+    }
+  }
 
   return {
     classId: args.financeRow.id,
@@ -491,6 +537,8 @@ function buildSettlementSnapshot(args: {
     },
     participants: args.participants,
     expenses: args.expenses,
+    inventoryUsageItems: args.inventoryUsageItems,
+    inventoryCatalog: args.inventoryCatalog,
     settlement: args.settlement,
     warnings,
     canClose: warnings.length === 0,
@@ -503,11 +551,13 @@ export async function getClassSettlementSnapshot(classId: string): Promise<Class
   const financeRow = await getClassFinanceRow(classId, { query });
   if (!financeRow) return null;
 
-  const [classFinanceSettings, participants, expenses, settlement] = await Promise.all([
+  const [classFinanceSettings, participants, expenses, settlement, inventoryUsageItems, inventoryCatalog] = await Promise.all([
     getClassFinanceSettings(),
     getParticipantRows(classId, { query }),
     getExpenseItems(classId, { query }),
     getSettlementRow(classId, { query }),
+    listClassInventoryUsageItems(classId, { query }),
+    listInventoryCatalog({ query }),
   ]);
 
   return buildSettlementSnapshot({
@@ -515,6 +565,8 @@ export async function getClassSettlementSnapshot(classId: string): Promise<Class
     classFinanceSettings,
     participants,
     expenses,
+    inventoryUsageItems,
+    inventoryCatalog,
     settlement,
   });
 }
@@ -697,11 +749,13 @@ export async function saveClassSettlementDraft(args: {
   classId: string;
   adminUserId: string;
   expenseItems: unknown;
+  inventoryUsageItems?: unknown;
   notes?: unknown;
 }): Promise<ClassSettlementSnapshot> {
   await ensureClassFinanceSchema();
 
   const expenseItems = sanitizeExpenseItems(args.expenseItems);
+  const inventoryUsageItems = sanitizeInventoryUsageItems(args.inventoryUsageItems);
   const notes = typeof args.notes === 'string' ? args.notes.trim().slice(0, 4000) || null : null;
 
   const client = await pool.connect();
@@ -724,10 +778,19 @@ export async function saveClassSettlementDraft(args: {
       expenseItems,
     });
 
-    const [classFinanceSettings, participants, expenses] = await Promise.all([
+    await replaceClassInventoryUsagePlans({
+      db: client,
+      classId: args.classId,
+      adminUserId: args.adminUserId,
+      usageItems: inventoryUsageItems,
+    });
+
+    const [classFinanceSettings, participants, expenses, savedInventoryUsageItems, inventoryCatalog] = await Promise.all([
       getClassFinanceSettings(),
       getParticipantRows(args.classId, client),
       getExpenseItems(args.classId, client),
+      listClassInventoryUsageItems(args.classId, client),
+      listInventoryCatalog(client),
     ]);
 
     const snapshot = buildSettlementSnapshot({
@@ -735,6 +798,8 @@ export async function saveClassSettlementDraft(args: {
       classFinanceSettings,
       participants,
       expenses,
+      inventoryUsageItems: savedInventoryUsageItems,
+      inventoryCatalog,
       settlement: {
         status: 'DRAFT',
         notes,
@@ -766,11 +831,13 @@ export async function closeClassSettlement(args: {
   classId: string;
   adminUserId: string;
   expenseItems: unknown;
+  inventoryUsageItems?: unknown;
   notes?: unknown;
 }): Promise<ClassSettlementSnapshot> {
   await ensureClassFinanceSchema();
 
   const expenseItems = sanitizeExpenseItems(args.expenseItems);
+  const inventoryUsageItems = sanitizeInventoryUsageItems(args.inventoryUsageItems);
   const notes = typeof args.notes === 'string' ? args.notes.trim().slice(0, 4000) || null : null;
 
   const client = await pool.connect();
@@ -799,17 +866,28 @@ export async function closeClassSettlement(args: {
       expenseItems,
     });
 
-    const [classFinanceSettings, participants, expenses] = await Promise.all([
+    await replaceClassInventoryUsagePlans({
+      db: client,
+      classId: args.classId,
+      adminUserId: args.adminUserId,
+      usageItems: inventoryUsageItems,
+    });
+
+    const [classFinanceSettings, participants, expenses, draftInventoryUsageItems, inventoryCatalog] = await Promise.all([
       getClassFinanceSettings(),
       getParticipantRows(args.classId, client),
       getExpenseItems(args.classId, client),
+      listClassInventoryUsageItems(args.classId, client),
+      listInventoryCatalog(client),
     ]);
 
-    const snapshot = buildSettlementSnapshot({
+    const draftSnapshot = buildSettlementSnapshot({
       financeRow,
       classFinanceSettings,
       participants,
       expenses,
+      inventoryUsageItems: draftInventoryUsageItems,
+      inventoryCatalog,
       settlement: {
         status: 'CLOSED',
         notes,
@@ -818,9 +896,42 @@ export async function closeClassSettlement(args: {
       },
     });
 
-    if (snapshot.summary.participantsCount === 0) {
+    if (draftSnapshot.summary.participantsCount === 0) {
       throw new Error('Cannot close a class with no paid participants');
     }
+
+    if (!draftSnapshot.trainer?.id) {
+      throw new Error('Trainer is missing for this class');
+    }
+
+    if (draftSnapshot.summary.noonFeeAmount < 0) {
+      throw new Error('Noon fee is negative. Review fixed and material costs before closing this workshop.');
+    }
+
+    await finalizeClassInventoryUsagePlans({
+      db: client,
+      classId: args.classId,
+      adminUserId: args.adminUserId,
+    });
+
+    const [postedInventoryUsageItems, refreshedInventoryCatalog] = await Promise.all([
+      listClassInventoryUsageItems(args.classId, client),
+      listInventoryCatalog(client),
+    ]);
+    const snapshot = buildSettlementSnapshot({
+      financeRow,
+      classFinanceSettings,
+      participants,
+      expenses,
+      inventoryUsageItems: postedInventoryUsageItems,
+      inventoryCatalog: refreshedInventoryCatalog,
+      settlement: {
+        status: 'CLOSED',
+        notes,
+        settledAt: new Date().toISOString(),
+        settledByUserId: args.adminUserId,
+      },
+    });
 
     if (!snapshot.trainer?.id) {
       throw new Error('Trainer is missing for this class');

@@ -29,6 +29,7 @@ export async function POST(request: Request, props: Params) {
     const { classId } = await props.params;
     const body = (await request.json().catch(() => ({}))) as {
       expenseItems?: unknown;
+      inventoryUsageItems?: unknown;
       notes?: unknown;
     };
 
@@ -36,6 +37,7 @@ export async function POST(request: Request, props: Params) {
       classId,
       adminUserId: admin.id,
       expenseItems: body.expenseItems,
+      inventoryUsageItems: body.inventoryUsageItems,
       notes: body.notes,
     });
 
@@ -48,4 +50,3 @@ export async function POST(request: Request, props: Params) {
     );
   }
 }
-

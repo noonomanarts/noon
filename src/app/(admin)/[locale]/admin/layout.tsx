@@ -100,6 +100,7 @@ export default async function AdminLayout({
     dashboard: locale === "ar" ? "لوحة التحكم" : "Dashboard",
     analytics: locale === "ar" ? "التحليلات" : "Analytics",
     financeReports: locale === "ar" ? "المالية والتقارير" : "Finance & Reports",
+    inventory: locale === "ar" ? "المخزون" : "Inventory",
     classesEvents: locale === "ar" ? "الدورات والفعاليات" : "Classes & Events",
     classes: locale === "ar" ? "الدورات" : "Classes",
     timetable: locale === "ar" ? "الجدول الزمني" : "Timetable",
@@ -146,6 +147,7 @@ export default async function AdminLayout({
       section: t.finance,
       items: [
         { iconName: "FiCreditCard" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.financeReports, href: `/${locale}/admin/finance` },
+        { iconName: "FiPackage" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.inventory, href: `/${locale}/admin/finance/inventory` },
       ],
     },
     {

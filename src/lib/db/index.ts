@@ -34,3 +34,6 @@ export * from './adminSettings';
 
 // Admin finance operations
 export * from './finance';
+
+// Inventory operations
+export * from './inventory';
