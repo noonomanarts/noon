@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getUserById } from "@/lib/db/users";
 import path from "path";
 import { mkdir, writeFile } from "fs/promises";
+import { getUploadRootDir } from "@/lib/uploadStorage";
 
 const sanitizeFolder = (value: string) =>
   value.replace(/[^a-z0-9-_]/gi, "-").toLowerCase();
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     const safeFolder = sanitizeFolder(folderValue);
-    const uploadDir = path.join(process.cwd(), "public", "uploads", safeFolder);
+    const uploadDir = path.join(getUploadRootDir(), safeFolder);
     await mkdir(uploadDir, { recursive: true });
 
     const buffer = Buffer.from(await file.arrayBuffer());

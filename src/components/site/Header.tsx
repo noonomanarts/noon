@@ -6,7 +6,6 @@ import type { CSSProperties } from "react";
 import { type Locale } from "@/lib/locale";
 import { getUserById } from "@/lib/db/users";
 import { resolveHeaderColor } from "@/lib/headerBranding";
-import ThemeToggle from "@/components/site/ThemeToggle";
 import { Dropdown } from "@/components/site/Dropdown";
 import SiteProfileMenu from "@/components/site/SiteProfileMenu";
 import CartLinkWithCount from '@/components/site/CartLinkWithCount';
@@ -56,15 +55,6 @@ export default async function Header({ locale }: { locale: Locale }) {
   const headerMenuStyle = {
     backgroundColor: headerColor,
   } as CSSProperties;
-  const headerMenuVars = {
-    backgroundColor: headerColor,
-    "--text": "#000000",
-    "--text-muted": "rgba(0,0,0,0.86)",
-    "--text-subtle": "rgba(0,0,0,0.72)",
-    "--muted": "rgba(0,0,0,0.10)",
-    "--border": "transparent",
-  } as CSSProperties;
-
   const t = {
     about: locale === "ar" ? "من نحن" : "About",
     classes: locale === "ar" ? "دورات" : "Classes",
@@ -79,10 +69,6 @@ export default async function Header({ locale }: { locale: Locale }) {
     contact: locale === "ar" ? "تواصل" : "Contact",
     login: locale === "ar" ? "تسجيل الدخول" : "Login",
     cart: locale === "ar" ? "السلة" : "Cart",
-    theme: locale === "ar" ? "المظهر" : "Theme",
-    themeLight: locale === "ar" ? "فاتح" : "Light",
-    themeDark: locale === "ar" ? "داكن" : "Dark",
-    themeSystem: locale === "ar" ? "حسب النظام" : "System",
   };
 
   return (
@@ -142,16 +128,6 @@ export default async function Header({ locale }: { locale: Locale }) {
         </nav>
 
         <div className="ms-auto flex items-center gap-2">
-          <ThemeToggle
-            label={t.theme}
-            lightLabel={t.themeLight}
-            darkLabel={t.themeDark}
-            systemLabel={t.themeSystem}
-            menuClassName="mt-0 border-0 bg-transparent shadow-none"
-            menuStyle={headerMenuVars}
-            buttonClassName="inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
-          />
-
           <HeaderLocaleLink
             locale={locale}
             className="inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
@@ -172,7 +148,14 @@ export default async function Header({ locale }: { locale: Locale }) {
               profileImage={user.profileImage}
               tone={navTone}
               menuClassName="border-0 bg-transparent shadow-none"
-              menuStyle={headerMenuVars}
+              menuStyle={{
+                backgroundColor: headerColor,
+                "--text": "#000000",
+                "--text-muted": "rgba(0,0,0,0.86)",
+                "--text-subtle": "rgba(0,0,0,0.72)",
+                "--muted": "rgba(0,0,0,0.10)",
+                "--border": "transparent",
+              } as CSSProperties}
             />
           ) : (
             <Link

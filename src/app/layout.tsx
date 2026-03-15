@@ -77,7 +77,7 @@ export default async function RootLayout({
   
   // If header fails, try to extract from path
   const pathMatch = pathHeader.match(/^\/(ar|en)(?:\/|$)/);
-  const locale = localeFromHeader || (pathMatch ? pathMatch[1] : "en");
+  const locale = localeFromHeader || (pathMatch ? pathMatch[1] : "ar");
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
@@ -96,14 +96,14 @@ export default async function RootLayout({
             __html: `
               (function() {
                 var path = window.location.pathname;
-                var isArabic = path.startsWith('/ar');
+                var isEnglish = path.startsWith('/en');
                 var html = document.documentElement;
-                if (isArabic) {
-                  html.setAttribute('lang', 'ar');
-                  html.setAttribute('dir', 'rtl');
-                } else {
+                if (isEnglish) {
                   html.setAttribute('lang', 'en');
                   html.setAttribute('dir', 'ltr');
+                } else {
+                  html.setAttribute('lang', 'ar');
+                  html.setAttribute('dir', 'rtl');
                 }
               })();
             `

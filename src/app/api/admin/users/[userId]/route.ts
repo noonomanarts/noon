@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getUserById, getUserByEmail, getUserByPhone, updateUserWithPassword, deleteUser } from "@/lib/db/users";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import { getUploadRootDir } from "@/lib/uploadStorage";
 
 export async function GET(
   request: NextRequest,
@@ -111,8 +112,8 @@ export async function PUT(
       const ext = path.extname(profileImageFile.name);
       const filename = `profile_${userId}_${uniqueSuffix}${ext}`;
       
-      // Save to public/uploads/profiles
-      const uploadDir = path.join(process.cwd(), "public", "uploads", "profiles");
+      // Save profile image to shared upload storage.
+      const uploadDir = path.join(getUploadRootDir(), "profiles");
       
       // Ensure directory exists
       await mkdir(uploadDir, { recursive: true });

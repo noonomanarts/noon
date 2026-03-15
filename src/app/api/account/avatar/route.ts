@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import path from 'path';
 import { mkdir, writeFile } from 'fs/promises';
 import { getUserById } from '@/lib/db/users';
+import { getUploadRootDir } from '@/lib/uploadStorage';
 
 const sanitizeFilename = (value: string) => value.replace(/[^a-z0-9.-_]/gi, '-').toLowerCase();
 
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File size must be 5MB or less.' }, { status: 400 });
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'profiles');
+    const uploadDir = path.join(getUploadRootDir(), 'profiles');
     await mkdir(uploadDir, { recursive: true });
 
     const safeExt = path.extname(file.name) || '.jpg';

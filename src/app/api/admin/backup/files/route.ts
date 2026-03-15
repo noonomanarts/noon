@@ -5,6 +5,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import path from "path";
 import fs from "fs";
+import { getLegacyUploadRoots, getUploadRootDir } from "@/lib/uploadStorage";
 
 const execAsync = promisify(exec);
 
@@ -51,7 +52,8 @@ export async function POST(request: NextRequest) {
 async function handleBackup() {
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    const uploadsDirCandidates = [getUploadRootDir(), ...getLegacyUploadRoots()];
+    const uploadsDir = uploadsDirCandidates.find((candidate) => fs.existsSync(candidate));
     const backupDir = path.join(process.cwd(), "backups", "files");
     const backupFile = path.join(backupDir, `uploads-backup-${timestamp}.tar.gz`);
 
@@ -61,7 +63,7 @@ async function handleBackup() {
     }
 
     // Check if uploads directory exists
-    if (!fs.existsSync(uploadsDir)) {
+    if (!uploadsDir || !fs.existsSync(uploadsDir)) {
       return NextResponse.json(
         { error: "Uploads directory not found" },
         { status: 404 }
@@ -69,7 +71,8 @@ async function handleBackup() {
     }
 
     // Create tar.gz archive
-    const command = `tar -czf "${backupFile}" -C "${path.dirname(uploadsDir)}" uploads`;
+    const uploadsFolderName = path.basename(uploadsDir);
+    const command = `tar -czf "${backupFile}" -C "${path.dirname(uploadsDir)}" "${uploadsFolderName}"`;
     await execAsync(command);
 
     // Read the backup file
@@ -93,7 +96,8 @@ async function handleBackup() {
 async function handleRestore(file: File) {
   try {
     const backupDir = path.join(process.cwd(), "backups", "files", "temp");
-    const uploadsDir = path.join(process.cwd(), "public");
+    const uploadRootDir = getUploadRootDir();
+    const uploadParentDir = path.dirname(uploadRootDir);
     
     // Ensure temp directory exists
     if (!fs.existsSync(backupDir)) {
@@ -108,7 +112,11 @@ async function handleRestore(file: File) {
     fs.writeFileSync(tempFile, buffer);
 
     // Extract archive
-    const command = `tar -xzf "${tempFile}" -C "${uploadsDir}"`;
+    if (!fs.existsSync(uploadParentDir)) {
+      fs.mkdirSync(uploadParentDir, { recursive: true });
+    }
+
+    const command = `tar -xzf "${tempFile}" -C "${uploadParentDir}"`;
     await execAsync(command);
 
     // Clean up temp file

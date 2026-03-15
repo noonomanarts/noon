@@ -96,6 +96,9 @@ export type HomeWhyNoonSettings = {
   titleAr: string;
   descriptionEn: string;
   descriptionAr: string;
+  backgroundImageSrc: string;
+  sectionTitleColor: string;
+  cardTitleColor: string;
   items: HomeWhyNoonItemSettings[];
 };
 
@@ -1248,6 +1251,9 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
       titleAr: "لماذا نون",
       descriptionEn: "What truly sets the Noon experience apart.",
       descriptionAr: "ما الذي يجعل تجربة نون مختلفة فعلاً.",
+      backgroundImageSrc: "",
+      sectionTitleColor: "#ffffff",
+      cardTitleColor: "#111827",
       items: [
         {
           titleEn: "Expert-Led Classes",
@@ -1469,6 +1475,12 @@ export function sanitizeSitePageSettings(
         toSafeString(source.homeWhyNoon?.descriptionEn, 500) || defaults.homeWhyNoon.descriptionEn,
       descriptionAr:
         toSafeString(source.homeWhyNoon?.descriptionAr, 500) || defaults.homeWhyNoon.descriptionAr,
+      backgroundImageSrc:
+        toSafeString(source.homeWhyNoon?.backgroundImageSrc, 500) || defaults.homeWhyNoon.backgroundImageSrc,
+      sectionTitleColor:
+        toHexColor(source.homeWhyNoon?.sectionTitleColor, defaults.homeWhyNoon.sectionTitleColor),
+      cardTitleColor:
+        toHexColor(source.homeWhyNoon?.cardTitleColor, defaults.homeWhyNoon.cardTitleColor),
       items: sanitizeHomeWhyNoonItems(source.homeWhyNoon?.items, defaults.homeWhyNoon.items),
     },
     homePartners: {

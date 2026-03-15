@@ -355,6 +355,12 @@ export default async function HomePage({
         fallbackItem.description,
     };
   });
+  const whyNoonBackgroundImage = homeWhyNoon?.backgroundImageSrc?.trim() || "";
+  const whyNoonSectionTitleColor = normalizeHexColor(
+    homeWhyNoon?.sectionTitleColor ?? (whyNoonBackgroundImage ? "#ffffff" : "#23150f"),
+    whyNoonBackgroundImage ? "#ffffff" : "#23150f"
+  );
+  const whyNoonCardTitleColor = normalizeHexColor(homeWhyNoon?.cardTitleColor ?? "#111827", "#111827");
   const partnersTitle =
     (isArabic ? homePartners?.titleAr : homePartners?.titleEn)?.trim() ||
     content.partners.title;
@@ -561,22 +567,47 @@ export default async function HomePage({
       )}
 
       {showWhyNoon && (
-        <Section isArabic={isArabic} title={whyNoonTitle}>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {whyNoonItems.map((item, index) => (
+        <section className="relative overflow-hidden py-14 sm:py-16">
+          {whyNoonBackgroundImage ? (
             <div
-              key={`why-noon-${index}`}
-              className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm"
-            >
-              <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-none bg-[color:var(--muted)] text-xs font-semibold text-[color:var(--text-muted)]">
-                {String(index + 1).padStart(2, "0")}
+              className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center bg-no-repeat bg-fixed"
+              style={{ backgroundImage: `url(${whyNoonBackgroundImage})` }}
+            />
+          ) : null}
+          {whyNoonBackgroundImage ? (
+            <div className="pointer-events-none absolute inset-0 -z-10 bg-black/40" />
+          ) : null}
+          <div className="mx-auto w-full max-w-6xl px-4">
+            <div className="mb-8 flex justify-center">
+              <div className="w-full max-w-3xl text-center">
+                <h2
+                  className="text-2xl font-semibold tracking-tight sm:text-3xl"
+                  style={{
+                    color: whyNoonSectionTitleColor,
+                    fontFamily: isArabic
+                      ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
+                      : "var(--font-home-title-en), var(--font-hero-en), var(--font-english), sans-serif",
+                  }}
+                >
+                  {whyNoonTitle}
+                </h2>
               </div>
-              <h3 className="text-base font-semibold text-[color:var(--text)]">{item.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">{item.description}</p>
             </div>
-          ))}
-        </div>
-        </Section>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {whyNoonItems.map((item, index) => (
+                <div
+                  key={`why-noon-${index}`}
+                  className="rounded-none border border-zinc-200 bg-white p-6 shadow-sm"
+                >
+                  <h3 className="text-base font-semibold" style={{ color: whyNoonCardTitleColor }}>
+                    {item.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-zinc-600">{item.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {showPartners && partnerItems.length > 0 && (

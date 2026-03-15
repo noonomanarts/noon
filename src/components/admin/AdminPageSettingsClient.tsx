@@ -113,6 +113,7 @@ export default function AdminPageSettingsClient({
   const [uploadingCourseImageKey, setUploadingCourseImageKey] = useState<"cooking" | "arts" | null>(null);
   const [uploadingPartnerLogoIndex, setUploadingPartnerLogoIndex] = useState<number | null>(null);
   const [uploadingUpcomingImageIndex, setUploadingUpcomingImageIndex] = useState<number | null>(null);
+  const [uploadingWhyNoonBackground, setUploadingWhyNoonBackground] = useState(false);
   const [uploadingAboutMediaKey, setUploadingAboutMediaKey] = useState<"hero" | "founder" | "family" | null>(null);
   const [uploadingAboutTeamImageIndex, setUploadingAboutTeamImageIndex] = useState<number | null>(null);
   const [uploadingAboutTrainerImageIndex, setUploadingAboutTrainerImageIndex] = useState<number | null>(null);
@@ -270,6 +271,13 @@ export default function AdminPageSettingsClient({
     whyNoonTitleAr: isArabic ? "العنوان (AR)" : "Title (AR)",
     whyNoonDescriptionEn: isArabic ? "الوصف (EN)" : "Description (EN)",
     whyNoonDescriptionAr: isArabic ? "الوصف (AR)" : "Description (AR)",
+    whyNoonBackgroundImagePath: isArabic ? "صورة خلفية السكشن" : "Section Background Image",
+    whyNoonBackgroundUpload: isArabic ? "رفع صورة الخلفية" : "Upload Background",
+    whyNoonBackgroundUploading: isArabic ? "جارٍ رفع الخلفية..." : "Uploading background...",
+    whyNoonBackgroundUploadDone: isArabic ? "تم رفع خلفية قسم لماذا نون." : "Why Noon background uploaded successfully.",
+    whyNoonBackgroundUploadFailed: isArabic ? "فشل رفع خلفية قسم لماذا نون." : "Failed to upload Why Noon background.",
+    whyNoonSectionTitleColor: isArabic ? "لون عنوان السكشن" : "Section Title Color",
+    whyNoonCardTitleColor: isArabic ? "لون عناوين البطاقات" : "Card Title Color",
     whyNoonCard: isArabic ? "بطاقة سبب" : "Reason Card",
     whyNoonCardTitleEn: isArabic ? "عنوان البطاقة (EN)" : "Card Title (EN)",
     whyNoonCardTitleAr: isArabic ? "عنوان البطاقة (AR)" : "Card Title (AR)",
@@ -1023,6 +1031,29 @@ export default function AdminPageSettingsClient({
       setError(uploadError instanceof Error ? uploadError.message : t.upcomingImageUploadFailed);
     } finally {
       setUploadingUpcomingImageIndex(null);
+    }
+  };
+
+  const handleWhyNoonBackgroundUpload = async (file: File | null) => {
+    if (!file) return;
+    setUploadingWhyNoonBackground(true);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const url = await uploadAsset(file, "home-why-noon", t.whyNoonBackgroundUploadFailed);
+      setSettings((prev) => ({
+        ...prev,
+        homeWhyNoon: {
+          ...prev.homeWhyNoon,
+          backgroundImageSrc: url,
+        },
+      }));
+      setInfo(t.whyNoonBackgroundUploadDone);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : t.whyNoonBackgroundUploadFailed);
+    } finally {
+      setUploadingWhyNoonBackground(false);
     }
   };
 
@@ -3173,6 +3204,101 @@ export default function AdminPageSettingsClient({
                 }
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               />
+            </label>
+            <label className="space-y-1 text-sm md:col-span-2">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.whyNoonBackgroundImagePath}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  value={settings.homeWhyNoon.backgroundImageSrc}
+                  onChange={(event) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      homeWhyNoon: { ...prev.homeWhyNoon, backgroundImageSrc: event.target.value },
+                    }))
+                  }
+                  className="min-w-[260px] flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  placeholder="/uploads/home-why-noon/background.jpg"
+                />
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  disabled={uploadingWhyNoonBackground}
+                >
+                  <FiUpload className="size-3.5" />
+                  {uploadingWhyNoonBackground ? t.whyNoonBackgroundUploading : t.whyNoonBackgroundUpload}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingWhyNoonBackground}
+                    onChange={(event) => {
+                      void handleWhyNoonBackgroundUpload(event.target.files?.[0] ?? null);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </button>
+              </div>
+              {settings.homeWhyNoon.backgroundImageSrc ? (
+                <div className="mt-2 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                  <img
+                    src={settings.homeWhyNoon.backgroundImageSrc}
+                    alt="Why Noon background preview"
+                    className="h-28 w-full object-cover"
+                  />
+                </div>
+              ) : null}
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.whyNoonSectionTitleColor}</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={normalizeHexColor(settings.homeWhyNoon.sectionTitleColor, "#ffffff")}
+                  onChange={(event) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      homeWhyNoon: { ...prev.homeWhyNoon, sectionTitleColor: event.target.value },
+                    }))
+                  }
+                  className="h-9 w-12 rounded border border-zinc-300 bg-transparent p-1 dark:border-zinc-700"
+                />
+                <input
+                  value={settings.homeWhyNoon.sectionTitleColor}
+                  onChange={(event) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      homeWhyNoon: { ...prev.homeWhyNoon, sectionTitleColor: event.target.value },
+                    }))
+                  }
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </div>
+            </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.whyNoonCardTitleColor}</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={normalizeHexColor(settings.homeWhyNoon.cardTitleColor, "#111827")}
+                  onChange={(event) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      homeWhyNoon: { ...prev.homeWhyNoon, cardTitleColor: event.target.value },
+                    }))
+                  }
+                  className="h-9 w-12 rounded border border-zinc-300 bg-transparent p-1 dark:border-zinc-700"
+                />
+                <input
+                  value={settings.homeWhyNoon.cardTitleColor}
+                  onChange={(event) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      homeWhyNoon: { ...prev.homeWhyNoon, cardTitleColor: event.target.value },
+                    }))
+                  }
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </div>
             </label>
           </div>
 

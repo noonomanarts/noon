@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import path from 'path';
 import { mkdir, writeFile } from 'fs/promises';
 import { getUserById } from '@/lib/db/users';
+import { getUploadRootDir } from '@/lib/uploadStorage';
 
 const ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg',
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'trainer-suggestions');
+    const uploadDir = path.join(getUploadRootDir(), 'trainer-suggestions');
     await mkdir(uploadDir, { recursive: true });
 
     const fallbackExt = isPdf ? '.pdf' : '.jpg';

@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getUserById } from "@/lib/db/users";
 import { isLocale, type Locale } from "@/lib/locale";
-import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
 import AdminNotificationCenter from "@/components/admin/AdminNotificationCenter";
@@ -127,10 +126,6 @@ export default async function AdminLayout({
     accountSettings: locale === "ar" ? "إعدادات الحساب" : "Account Settings",
     viewSite: locale === "ar" ? "عرض الموقع" : "View Site",
     welcomeBack: locale === "ar" ? "مرحباً بعودتك" : "Welcome back",
-    theme: locale === "ar" ? "المظهر" : "Theme",
-    themeLight: locale === "ar" ? "فاتح" : "Light",
-    themeDark: locale === "ar" ? "داكن" : "Dark",
-    themeSystem: locale === "ar" ? "حسب النظام" : "System",
     languageEn: "English",
     languageAr: "العربية",
   };
@@ -325,13 +320,6 @@ export default async function AdminLayout({
                   currentLocale={locale}
                   labelEn={t.languageEn}
                   labelAr={t.languageAr}
-                />
-
-                <ThemeToggle
-                  label={t.theme}
-                  lightLabel={t.themeLight}
-                  darkLabel={t.themeDark}
-                  systemLabel={t.themeSystem}
                 />
 
                 <AdminNotificationCenter locale={locale} />
