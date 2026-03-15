@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import { headers } from "next/headers";
 import ThemeInitScript from "@/components/site/ThemeInitScript";
 import LocaleSync from "@/components/site/LocaleSync";
@@ -32,6 +33,35 @@ export const metadata: Metadata = {
   },
 };
 
+const tsSafaa = localFont({
+  src: [
+    {
+      path: "../../public/fonts/TSSafaa/TSSafaa-Light.otf",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/TSSafaa/TSSafaa-Regular.otf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/TSSafaa/TSSafaa-Medium.otf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/TSSafaa/TSSafaa-Bold.otf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-ts-safaa",
+  display: "block",
+  preload: true,
+  fallback: ["Tahoma", "Arial", "sans-serif"],
+});
+
 // Make layout dynamic so we can access headers
 export const dynamic = 'force-dynamic';
 
@@ -55,7 +85,7 @@ export default async function RootLayout({
       lang={locale}
       dir={dir}
       suppressHydrationWarning
-      className="scroll-smooth"
+      className={`${tsSafaa.variable} scroll-smooth`}
       data-scroll-behavior="smooth"
       data-overlayscrollbars-initialize
     >

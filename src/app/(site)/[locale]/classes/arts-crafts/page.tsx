@@ -106,7 +106,7 @@ export default async function ArtsCraftsClassesPage({
                 key={cls.id}
                 className="group overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
               >
-                <div className="relative h-56 overflow-hidden">
+                <div className="relative aspect-square overflow-hidden">
                   {cls.image ? (
                     <Image
                       src={cls.image}

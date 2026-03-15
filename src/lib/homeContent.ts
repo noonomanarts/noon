@@ -76,8 +76,7 @@ const DEFAULT_HOME_CONTENT: Record<Locale, HomeContent> = {
     },
     partners: {
       title: "Our partners",
-      description:
-        "We proudly collaborate with trusted brands that share our passion for quality and creativity.",
+      description: "",
       items: [
         { id: "p-1", name: "Partner One", logoText: "Partner One" },
         { id: "p-2", name: "Partner Two", logoText: "Partner Two" },
@@ -153,8 +152,7 @@ const DEFAULT_HOME_CONTENT: Record<Locale, HomeContent> = {
     },
     partners: {
       title: "شركاؤنا",
-      description:
-        "نتعاون بفخر مع علامات موثوقة تشاركنا الشغف بالجودة والإبداع.",
+      description: "",
       items: [
         { id: "p-1", name: "شريك ١", logoText: "شريك ١" },
         { id: "p-2", name: "شريك ٢", logoText: "شريك ٢" },

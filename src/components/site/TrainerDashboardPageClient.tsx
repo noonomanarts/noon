@@ -686,7 +686,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                 >
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
-                      <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
+                      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
                         {workshop.classImage ? (
                           <Image
                             src={workshop.classImage}
@@ -963,7 +963,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                       <img
                         src={url}
                         alt={`Suggestion upload ${index + 1}`}
-                        className="h-24 w-full object-cover"
+                        className="aspect-square w-full object-cover"
                       />
                       <button
                         type="button"
@@ -1101,7 +1101,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                         <img
                           src={photo}
                           alt={`Suggested workshop ${item.id} ${index + 1}`}
-                          className="h-16 w-full object-cover"
+                          className="aspect-square w-full object-cover"
                         />
                       </a>
                     ))}

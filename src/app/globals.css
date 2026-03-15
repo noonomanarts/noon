@@ -4,78 +4,24 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@font-face {
-  font-family: "Inter";
-  src:
-    local("Inter"),
-    url("/fonts/inter/Inter-400.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Inter";
-  src:
-    local("Inter Medium"),
-    local("Inter"),
-    url("/fonts/inter/Inter-500.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Inter";
-  src:
-    local("Inter Bold"),
-    local("Inter"),
-    url("/fonts/inter/Inter-700.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Cairo";
-  src:
-    local("Cairo"),
-    url("/fonts/cairo/Cairo-400.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Cairo";
-  src:
-    local("Cairo Medium"),
-    local("Cairo"),
-    url("/fonts/cairo/Cairo-500.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Cairo";
-  src:
-    local("Cairo Bold"),
-    local("Cairo"),
-    url("/fonts/cairo/Cairo-700.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
+  }
 }
 
 /* Noon Brand Colors */
 :root {
   /* Font fallbacks (avoid network fetch dependency for builds) */
-  --font-english: "Inter", "Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif;
-  --font-arabic: "Cairo", "Noto Naskh Arabic", "Tajawal", Tahoma, Arial, sans-serif;
-  --font-hero-en: "Inter", "Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif;
-  --font-hero-ar: "Cairo", "Noto Naskh Arabic", "Tajawal", Tahoma, Arial, sans-serif;
-  --font-home-title-en: "Inter", "Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif;
+  --font-english: var(--font-ts-safaa), "Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif;
+  --font-arabic: var(--font-ts-safaa), "Noto Naskh Arabic", "Tajawal", Tahoma, Arial, sans-serif;
+  --font-hero-en: var(--font-ts-safaa), "Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif;
+  --font-hero-ar: var(--font-ts-safaa), "Noto Naskh Arabic", "Tajawal", Tahoma, Arial, sans-serif;
+  --font-home-title-en: var(--font-ts-safaa), "Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif;
 
   --noon-coral: #f77d6b;
   --noon-coral-strong: #ef6b58;
@@ -150,12 +96,12 @@
 
 :root {
   /* Light theme - Noon Atelier */
-  --background: #f5ecdf;
+  --background: #ffffff;
   --foreground: #1f1a15;
-  --surface: #fffaf3;
-  --muted: #f0e3d1;
+  --surface: #ffffff;
+  --muted: #f5f5f5;
   --muted-foreground: #7a6d5f;
-  --border: #dfcfbc;
+  --border: #e5e7eb;
 
   /* Typography tokens */
   --text: #211b16;
@@ -166,46 +112,40 @@
   --primary: #0f766e;
   --primary-hover: #0d655f;
   --primary-foreground: #ffffff;
-  --secondary: #efe2d0;
+  --secondary: #f5f5f5;
   --secondary-foreground: #211b16;
-  --accent: #f5ddcf;
+  --accent: #f5f5f5;
   --accent-foreground: #211b16;
   --focus: rgba(15, 118, 110, 0.22);
-  --backdrop-pattern:
-    radial-gradient(42rem 22rem at 12% -8%, rgba(23, 176, 173, 0.12), transparent 70%),
-    radial-gradient(38rem 20rem at 90% 2%, rgba(247, 125, 107, 0.14), transparent 72%),
-    linear-gradient(180deg, rgba(255, 250, 243, 0.82), rgba(245, 236, 223, 0.94));
+  --backdrop-pattern: none;
 
   color-scheme: light;
 }
 
 .dark {
   /* Dark theme - Midnight Atelier */
-  --background: #0f0d0b;
-  --foreground: #f8efe5;
-  --surface: #17130f;
-  --muted: #231c15;
-  --muted-foreground: #b9ab9a;
-  --border: #2f271f;
+  --background: #ffffff;
+  --foreground: #1f1a15;
+  --surface: #ffffff;
+  --muted: #f5f5f5;
+  --muted-foreground: #7a6d5f;
+  --border: #e5e7eb;
 
-  --text: #f8efe5;
-  --text-muted: #b9ab9a;
-  --text-subtle: #8f8170;
+  --text: #211b16;
+  --text-muted: #625646;
+  --text-subtle: #817261;
 
   --primary: #2ec4b6;
   --primary-hover: #47d2c5;
   --primary-foreground: #0f0d0b;
-  --secondary: #231c15;
-  --secondary-foreground: #f8efe5;
-  --accent: #2b2119;
-  --accent-foreground: #f8efe5;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #211b16;
+  --accent: #f5f5f5;
+  --accent-foreground: #211b16;
   --focus: rgba(46, 196, 182, 0.28);
-  --backdrop-pattern:
-    radial-gradient(40rem 20rem at 16% -8%, rgba(23, 176, 173, 0.16), transparent 70%),
-    radial-gradient(36rem 20rem at 86% 0%, rgba(247, 125, 107, 0.12), transparent 72%),
-    linear-gradient(180deg, rgba(23, 19, 15, 0.86), rgba(15, 13, 11, 0.94));
+  --backdrop-pattern: none;
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -227,7 +167,7 @@
 
 body {
   background-color: var(--background);
-  background-image: var(--backdrop-pattern);
+  background-image: none;
   background-repeat: no-repeat;
   color: var(--text);
   text-rendering: optimizeLegibility;
@@ -282,7 +222,7 @@ body {
 @layer utilities {
   .noon-bg {
     background-color: var(--background);
-    background-image: var(--backdrop-pattern);
+    background-image: none;
     background-repeat: no-repeat;
     color: var(--text);
   }

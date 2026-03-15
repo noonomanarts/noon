@@ -85,7 +85,7 @@ export default async function ClassDetailPage({
 
       <section className="mx-auto w-full max-w-6xl px-4 pt-8">
         <div className="relative overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm">
-          <div className="relative h-[24rem] sm:h-[28rem]">
+          <div className="relative aspect-square">
             {classData.image ? (
               <Image src={classData.image} alt={title} fill priority className="object-cover" />
             ) : (

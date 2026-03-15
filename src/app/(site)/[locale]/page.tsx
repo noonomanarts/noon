@@ -111,55 +111,47 @@ async function resolveUpcomingItems(
   fallback: UpcomingCard[]
 ): Promise<UpcomingCard[]> {
   try {
-    const classes = await findManyClasses({ status: "PUBLISHED", limit: 16 });
-    const sessionsByClass = await Promise.all(
+    const classes = await findManyClasses({ status: "PUBLISHED", limit: 48 });
+    const noUpcomingLabel = locale === "ar" ? "لا توجد جلسات قادمة حالياً" : "No upcoming sessions yet";
+    const localeCode = locale === "ar" ? "ar-OM" : "en-OM";
+
+    const upcoming = await Promise.all(
       classes.map(async (classItem) => {
-        const sessions = await findClassSessions(classItem.id, {
+        const [nextSession] = await findClassSessions(classItem.id, {
           upcomingOnly: true,
+          includeCancelled: false,
           limit: 1,
         });
-        return { classItem, sessions };
+
+        const datetimeText = nextSession
+          ? `${new Date(nextSession.startTime).toLocaleDateString(localeCode, {
+              month: "short",
+              day: "numeric",
+            })} · ${new Date(nextSession.startTime).toLocaleTimeString(localeCode, {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}`
+          : noUpcomingLabel;
+
+        return {
+          id: String(classItem.id),
+          title: locale === "ar" && classItem.titleAr ? classItem.titleAr : classItem.title,
+          datetimeText,
+          priceText: `${classItem.price.toFixed(3)} ${classItem.currency}`,
+          imageSrc: classItem.image || "/og-image.png",
+          href: `/${locale}/classes/${classItem.slug}`,
+          createdAt: new Date(classItem.createdAt),
+        };
       })
     );
 
-    const upcoming = sessionsByClass
-      .flatMap(({ classItem, sessions }) =>
-        sessions.map((session) => ({
-          id: `${classItem.id}-${session.id}`,
-          title:
-            locale === "ar" && classItem.titleAr
-              ? classItem.titleAr
-              : classItem.title,
-          imageSrc: classItem.image || "/og-image.png",
-          startTime: new Date(session.startTime),
-          priceText: `${classItem.price.toFixed(3)} ${classItem.currency}`,
-          href: `/${locale}/classes/${classItem.slug}`,
-        }))
-      )
-      .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+    const latestThree = upcoming
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, 3)
-      .map((item) => {
-        const localeCode = locale === "ar" ? "ar-OM" : "en-OM";
-        const date = item.startTime.toLocaleDateString(localeCode, {
-          month: "short",
-          day: "numeric",
-        });
-        const time = item.startTime.toLocaleTimeString(localeCode, {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        return {
-          id: item.id,
-          title: item.title,
-          datetimeText: `${date} · ${time}`,
-          priceText: item.priceText,
-          imageSrc: item.imageSrc,
-          href: item.href,
-        };
-      });
+      .map(({ createdAt: _createdAt, ...item }) => item);
 
-    if (upcoming.length > 0) {
-      return upcoming;
+    if (latestThree.length > 0) {
+      return latestThree;
     }
   } catch {
     // Fallback to static content when database is unavailable.
@@ -170,20 +162,18 @@ async function resolveUpcomingItems(
 
 function Section({
   title,
-  description,
   isArabic,
   children,
 }: {
   title: string;
-  description?: string;
   isArabic: boolean;
   children: React.ReactNode;
 }) {
   return (
     <section className="py-14 sm:py-16">
       <div className="mx-auto w-full max-w-6xl px-4">
-        <div className="mb-8 flex items-end justify-between gap-4">
-          <div className="max-w-2xl space-y-2">
+        <div className="mb-8 flex justify-center">
+          <div className="w-full max-w-3xl text-center">
             <h2
               className="text-2xl font-semibold tracking-tight text-[color:var(--text)] sm:text-3xl"
               style={{
@@ -194,11 +184,6 @@ function Section({
             >
               {title}
             </h2>
-            {description ? (
-              <p className="text-sm leading-6 text-[color:var(--text-muted)] sm:text-base">
-                {description}
-              </p>
-            ) : null}
           </div>
         </div>
         {children}
@@ -262,13 +247,11 @@ export default async function HomePage({
     heroBackgroundIsVideo = false;
   }
   const homeLayout = homePageSettings?.homeLayout;
-  const homeCourses = homePageSettings?.homeCourses;
   const homeUpcoming = homePageSettings?.homeUpcoming;
   const homeWhyNoon = homePageSettings?.homeWhyNoon;
   const homePartners = homePageSettings?.homePartners;
   const homeNumbers = homePageSettings?.homeNumbers;
   const showHero = homeLayout?.showHero ?? true;
-  const showCourses = homeLayout?.showCourses ?? true;
   const showNumbers = homeLayout?.showNumbers ?? true;
   const showUpcoming = homeLayout?.showUpcoming ?? true;
   const showWhyNoon = homeLayout?.showWhyNoon ?? true;
@@ -285,26 +268,11 @@ export default async function HomePage({
     artsHref: resolveHeroHref(locale, heroSecondaryHrefFromSettings ?? "", "/classes/arts-crafts"),
     cookingColor: normalizeHexColor(heroPrimaryColorFromSettings ?? "#f77d6b", "#f77d6b"),
     artsColor: normalizeHexColor(heroSecondaryColorFromSettings ?? "#17b0ad", "#17b0ad"),
-    whyCaption: isArabic
-      ? "الفرق الحقيقي في تجربة نون."
-      : "What truly sets the Noon experience apart.",
-  };
-
-  const coursesUi = {
-    cookingImageSrc: homeCourses?.cookingImageSrc?.trim() || "/images/cooking.png",
-    artsImageSrc: homeCourses?.artsImageSrc?.trim() || "/images/art.png",
-    cookingDisplayMode: homeCourses?.cookingDisplayMode ?? "icon",
-    artsDisplayMode: homeCourses?.artsDisplayMode ?? "icon",
-    cookingIcon: homeCourses?.cookingIcon ?? "cooking-pot",
-    artsIcon: homeCourses?.artsIcon ?? "palette",
   };
 
   const whyNoonTitle =
     (isArabic ? homeWhyNoon?.titleAr : homeWhyNoon?.titleEn)?.trim() ||
     content.whyNoon.title;
-  const whyNoonDescription =
-    (isArabic ? homeWhyNoon?.descriptionAr : homeWhyNoon?.descriptionEn)?.trim() ||
-    heroUi.whyCaption;
   const whyNoonItems = Array.from({ length: 3 }, (_, index) => {
     const fallbackItem = content.whyNoon.items[index] ?? {
       title: isArabic ? "سبب مميز" : "Key reason",
@@ -322,9 +290,6 @@ export default async function HomePage({
   const partnersTitle =
     (isArabic ? homePartners?.titleAr : homePartners?.titleEn)?.trim() ||
     content.partners.title;
-  const partnersDescription =
-    (isArabic ? homePartners?.descriptionAr : homePartners?.descriptionEn)?.trim() ||
-    content.partners.description;
   const partnerItems = (
     homePartners?.items.length ? homePartners.items : content.partners.items
   )
@@ -358,31 +323,10 @@ export default async function HomePage({
   const upcomingTitle =
     (isArabic ? homeUpcoming?.titleAr : homeUpcoming?.titleEn)?.trim() ||
     content.upcoming.title;
-  const upcomingDescription =
-    (isArabic ? homeUpcoming?.descriptionAr : homeUpcoming?.descriptionEn)?.trim() ||
-    (isArabic ? "جلسات قادمة جاهزة للحجز." : "Handpicked sessions you can book right away.");
   const upcomingBookNowLabel =
     (isArabic ? homeUpcoming?.bookNowLabelAr : homeUpcoming?.bookNowLabelEn)?.trim() ||
     content.upcoming.bookNowLabel;
-  const fallbackUpcomingItems: UpcomingCard[] = (content.upcoming.items as UpcomingCard[]).map((item, index) => ({
-    ...item,
-    id: item.id || `fallback-upcoming-${index + 1}`,
-    href: `/${locale}/classes/cooking`,
-  }));
-  const configuredUpcomingItems = (homeUpcoming?.items ?? [])
-    .map((item, index) => ({
-      id: `configured-upcoming-${index + 1}`,
-      title: (isArabic ? item.titleAr : item.titleEn).trim(),
-      datetimeText: (isArabic ? item.datetimeTextAr : item.datetimeTextEn).trim(),
-      priceText: (isArabic ? item.priceTextAr : item.priceTextEn).trim(),
-      imageSrc: item.imageSrc.trim(),
-      href: resolveHeroHref(locale, item.href, "/classes/cooking"),
-    }))
-    .filter((item) => item.title || item.datetimeText || item.priceText || item.imageSrc);
-  const upcomingItems =
-    configuredUpcomingItems.length > 0
-      ? configuredUpcomingItems
-      : await resolveUpcomingItems(locale, fallbackUpcomingItems);
+  const upcomingItems = await resolveUpcomingItems(locale, []);
 
   return (
     <div className="home-sharp relative overflow-x-clip pb-8">
@@ -412,7 +356,7 @@ export default async function HomePage({
           <div className="relative z-10 mx-auto flex min-h-[74vh] w-full max-w-6xl items-center justify-center px-4 py-20 text-center sm:min-h-[78vh]">
             <div className="w-full max-w-5xl">
               <h1
-                className="text-5xl font-black leading-[0.95] tracking-[0.01em] text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:text-6xl lg:text-8xl"
+                className="text-4xl font-black leading-[1.2] tracking-[0.01em] text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:text-5xl lg:text-7xl"
                 style={{
                   fontFamily: isArabic
                     ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
@@ -448,117 +392,15 @@ export default async function HomePage({
         </section>
       )}
 
-      {showCourses && (
-        <Section
-          isArabic={isArabic}
-          title={
-            isArabic
-              ? (homeCourses?.titleAr.trim() || content.courses.title)
-              : (homeCourses?.titleEn.trim() || content.courses.title)
-          }
-          description={
-            isArabic
-              ? (homeCourses?.subtitleAr.trim() || "برامج متجددة بلمسة إبداعية.")
-              : (homeCourses?.subtitleEn.trim() || "Signature programs crafted for every level.")
-          }
-        >
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <Link
-            href={`/${locale}/classes/cooking`}
-            className="group overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-          >
-            {coursesUi.cookingDisplayMode === "image" ? (
-              <div className="relative h-56 w-full overflow-hidden">
-                <Image
-                  src={coursesUi.cookingImageSrc}
-                  alt={isArabic ? "دورات الطبخ" : "Cooking classes"}
-                  fill
-                  className="object-cover transition duration-500 group-hover:scale-[1.04]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
-              </div>
-            ) : (
-              <div className="flex h-56 w-full items-center justify-center bg-gradient-to-br from-teal-50 to-cyan-100 dark:from-teal-900/30 dark:to-cyan-800/30">
-                {renderCourseIcon(coursesUi.cookingIcon, "cooking")}
-              </div>
-            )}
-            <div className="space-y-2 p-5">
-              <h3 className="text-lg font-semibold text-[color:var(--text)]">
-                {isArabic
-                  ? (homeCourses?.cookingTitleAr.trim() || "دورات الطبخ")
-                  : (homeCourses?.cookingTitleEn.trim() || "Cooking classes")}
-              </h3>
-              <p className="text-sm text-[color:var(--text-muted)]">
-                {isArabic
-                  ? (homeCourses?.cookingDescriptionAr.trim() || "من أساسيات الطبخ حتى التجارب المتقدمة بطابع عملي ممتع.")
-                  : (homeCourses?.cookingDescriptionEn.trim() || "From foundations to advanced techniques in a practical, immersive format.")}
-              </p>
-              <div className="pt-2">
-                <span
-                  className="inline-flex w-full items-center justify-center gap-1 border border-black/20 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
-                  style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
-                >
-                  {isArabic ? "استكشف" : "Explore"}
-                  <FiArrowRight className="size-4" />
-                </span>
-              </div>
-            </div>
-          </Link>
-
-          <Link
-            href={`/${locale}/classes/arts-crafts`}
-            className="group overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-          >
-            {coursesUi.artsDisplayMode === "image" ? (
-              <div className="relative h-56 w-full overflow-hidden">
-                <Image
-                  src={coursesUi.artsImageSrc}
-                  alt={isArabic ? "فنون وحرف" : "Arts & crafts classes"}
-                  fill
-                  className="object-cover transition duration-500 group-hover:scale-[1.04]"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
-              </div>
-            ) : (
-              <div className="flex h-56 w-full items-center justify-center bg-gradient-to-br from-purple-50 to-fuchsia-100 dark:from-purple-900/30 dark:to-fuchsia-900/30">
-                {renderCourseIcon(coursesUi.artsIcon, "arts")}
-              </div>
-            )}
-            <div className="space-y-2 p-5">
-              <h3 className="text-lg font-semibold text-[color:var(--text)]">
-                {isArabic
-                  ? (homeCourses?.artsTitleAr.trim() || "فنون وحرف")
-                  : (homeCourses?.artsTitleEn.trim() || "Arts & crafts classes")}
-              </h3>
-              <p className="text-sm text-[color:var(--text-muted)]">
-                {isArabic
-                  ? (homeCourses?.artsDescriptionAr.trim() || "جلسات إبداعية تدمج الحرفة والفن في بيئة ملهمة.")
-                  : (homeCourses?.artsDescriptionEn.trim() || "Creative sessions that blend craftsmanship and artistic expression.")}
-              </p>
-              <div className="pt-2">
-                <span
-                  className="inline-flex w-full items-center justify-center gap-1 border border-black/20 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
-                  style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
-                >
-                  {isArabic ? "استكشف" : "Explore"}
-                  <FiArrowRight className="size-4" />
-                </span>
-              </div>
-            </div>
-          </Link>
-        </div>
-        </Section>
-      )}
-
-      {showUpcoming && (
-        <Section isArabic={isArabic} title={upcomingTitle} description={upcomingDescription}>
+      {showUpcoming && upcomingItems.length > 0 && (
+        <Section isArabic={isArabic} title={upcomingTitle}>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {upcomingItems.map((c) => (
             <article
               key={c.id}
               className="group overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="relative aspect-[16/11] overflow-hidden">
+              <div className="relative aspect-square overflow-hidden">
                 <Image src={c.imageSrc} alt="" fill className="object-cover transition duration-500 group-hover:scale-[1.03]" />
               </div>
               <div className="space-y-3 p-5">
@@ -586,7 +428,7 @@ export default async function HomePage({
       )}
 
       {showWhyNoon && (
-        <Section isArabic={isArabic} title={whyNoonTitle} description={whyNoonDescription}>
+        <Section isArabic={isArabic} title={whyNoonTitle}>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {whyNoonItems.map((item, index) => (
             <div
@@ -605,7 +447,7 @@ export default async function HomePage({
       )}
 
       {showPartners && partnerItems.length > 0 && (
-        <Section isArabic={isArabic} title={partnersTitle} description={partnersDescription}>
+        <Section isArabic={isArabic} title={partnersTitle}>
         <PartnersCarousel items={partnerItems} isArabic={isArabic} />
         </Section>
       )}

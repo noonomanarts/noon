@@ -695,7 +695,7 @@ export default function AdminClassDetailsPage({
 
             {classData.image ? (
               <div className="mt-5 overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-800">
-                <img src={classData.image} alt={classData.title} className="h-64 w-full object-cover" />
+                <img src={classData.image} alt={classData.title} className="aspect-square w-full object-cover" />
               </div>
             ) : (
               <div className="mt-5 rounded-2xl border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
@@ -707,7 +707,7 @@ export default function AdminClassDetailsPage({
               <div className="mt-4 grid grid-cols-2 gap-3">
                 {classData.images.slice(0, 4).map((image, index) => (
                   <div key={`${image}-${index}`} className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                    <img src={image} alt={`${classData.title} ${index + 1}`} className="h-28 w-full object-cover" />
+                    <img src={image} alt={`${classData.title} ${index + 1}`} className="aspect-square w-full object-cover" />
                   </div>
                 ))}
               </div>

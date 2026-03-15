@@ -43,7 +43,7 @@ function ClassCard({
     <article className="group overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
       <Link
         href={`/${locale}/classes/${cls.slug}`}
-        className="relative block h-56 overflow-hidden"
+        className="relative block aspect-square overflow-hidden"
         aria-label={locale === "ar" && cls.titleAr ? cls.titleAr : cls.title}
       >
         {cls.image ? (

@@ -841,7 +841,7 @@ export default function EditClassPage() {
                   src={formData.image}
                   alt="Main"
                   width={300}
-                  height={200}
+                  height={300}
                   className="rounded-lg border border-zinc-200 object-cover"
                 />
                 <button
@@ -919,8 +919,8 @@ export default function EditClassPage() {
                         src={img}
                         alt={`Gallery ${index + 1}`}
                         width={200}
-                        height={150}
-                        className="rounded-lg border border-zinc-200 object-cover w-full h-32"
+                        height={200}
+                        className="rounded-lg border border-zinc-200 object-cover w-full aspect-square"
                       />
                       <button
                         type="button"

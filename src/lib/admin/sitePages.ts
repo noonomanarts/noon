@@ -1272,10 +1272,8 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
     homePartners: {
       titleEn: "Our partners",
       titleAr: "شركاؤنا",
-      descriptionEn:
-        "We proudly collaborate with trusted brands that share our passion for quality and creativity.",
-      descriptionAr:
-        "نتعاون بفخر مع علامات موثوقة تشاركنا الشغف بالجودة والإبداع.",
+      descriptionEn: "",
+      descriptionAr: "",
       items: [
         {
           nameEn: "Partner One",
@@ -1326,7 +1324,7 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
     },
     homeLayout: {
       showHero: true,
-      showCourses: true,
+      showCourses: false,
       showNumbers: true,
       showUpcoming: true,
       showWhyNoon: true,
