@@ -113,6 +113,93 @@ export type HomePartnersSettings = {
   items: HomePartnerItemSettings[];
 };
 
+export type FaqItemSettings = {
+  categoryEn: string;
+  categoryAr: string;
+  questionEn: string;
+  questionAr: string;
+  answerEn: string;
+  answerAr: string;
+};
+
+export type TermsSectionSettings = {
+  titleEn: string;
+  titleAr: string;
+  bodyEn: string;
+  bodyAr: string;
+};
+
+export type ContactPageSettings = {
+  subtitleEn: string;
+  subtitleAr: string;
+  helperEn: string;
+  helperAr: string;
+  addressEn: string;
+  addressAr: string;
+  officeHoursEn: string;
+  officeHoursAr: string;
+  phonePrimary: string;
+  emailPrimary: string;
+  whatsappUrl: string;
+  instagramUrl: string;
+  mapEmbedUrl: string;
+  mapLink: string;
+  successTitleEn: string;
+  successTitleAr: string;
+  successMessageEn: string;
+  successMessageAr: string;
+};
+
+export type AboutFeatureItemSettings = {
+  textEn: string;
+  textAr: string;
+};
+
+export type AboutTeamMemberSettings = {
+  nameEn: string;
+  nameAr: string;
+  roleEn: string;
+  roleAr: string;
+  imageSrc: string;
+};
+
+export type AboutTrainerHighlightSettings = {
+  nameEn: string;
+  nameAr: string;
+  imageSrc: string;
+};
+
+export type AboutPageSettings = {
+  heroImageSrc: string;
+  aboutTitleEn: string;
+  aboutTitleAr: string;
+  aboutBodyEn: string;
+  aboutBodyAr: string;
+  founderTitleEn: string;
+  founderTitleAr: string;
+  founderBodyEn: string;
+  founderBodyAr: string;
+  founderQuoteEn: string;
+  founderQuoteAr: string;
+  founderImageSrc: string;
+  whatWeDoTitleEn: string;
+  whatWeDoTitleAr: string;
+  whatWeDoItems: AboutFeatureItemSettings[];
+  teamTitleEn: string;
+  teamTitleAr: string;
+  teamMembers: AboutTeamMemberSettings[];
+  trainersTitleEn: string;
+  trainersTitleAr: string;
+  trainersCtaEn: string;
+  trainersCtaAr: string;
+  trainerHighlights: AboutTrainerHighlightSettings[];
+  familyTitleEn: string;
+  familyTitleAr: string;
+  familyBodyEn: string;
+  familyBodyAr: string;
+  familyImageSrc: string;
+};
+
 export type SitePageDefinition = {
   key: string;
   pathTemplate: string;
@@ -152,6 +239,10 @@ export type SitePageSettings = {
   homePartners: HomePartnersSettings;
   homeNumbers: HomeNumbersSettings;
   homeLayout: HomeLayoutSettings;
+  faqItems: FaqItemSettings[];
+  termsSections: TermsSectionSettings[];
+  contactPage: ContactPageSettings;
+  aboutPage: AboutPageSettings;
 };
 
 export const sitePageCatalog: SitePageDefinition[] = [
@@ -626,6 +717,13 @@ function toSafeHref(value: unknown, fallback: string): string {
   return isInternal || isAbsolute ? normalized : fallback;
 }
 
+function toSafeHttpUrl(value: unknown, fallback: string): string {
+  const normalized = toSafeString(value, 500);
+  if (!normalized) return fallback;
+  if (/^https?:\/\//i.test(normalized)) return normalized;
+  return fallback;
+}
+
 function isVideoSource(value: string): boolean {
   const normalized = value.trim().toLowerCase();
   if (!normalized) return false;
@@ -762,6 +860,118 @@ function sanitizeHomePartnersItems(
   return filtered;
 }
 
+function sanitizeFaqItems(value: unknown, fallback: FaqItemSettings[]): FaqItemSettings[] {
+  const list = Array.isArray(value) ? value : fallback;
+  const normalized = list.slice(0, 120).map((candidate) => {
+    const source = candidate && typeof candidate === "object" ? (candidate as Partial<FaqItemSettings>) : {};
+    return {
+      categoryEn: toSafeString(source.categoryEn, 120),
+      categoryAr: toSafeString(source.categoryAr, 120),
+      questionEn: toSafeString(source.questionEn, 300),
+      questionAr: toSafeString(source.questionAr, 300),
+      answerEn: toSafeString(source.answerEn, 4000),
+      answerAr: toSafeString(source.answerAr, 4000),
+    };
+  });
+
+  return normalized.filter(
+    (item) =>
+      Boolean(item.questionEn) ||
+      Boolean(item.questionAr) ||
+      Boolean(item.answerEn) ||
+      Boolean(item.answerAr) ||
+      Boolean(item.categoryEn) ||
+      Boolean(item.categoryAr)
+  );
+}
+
+function sanitizeTermsSections(value: unknown, fallback: TermsSectionSettings[]): TermsSectionSettings[] {
+  const list = Array.isArray(value) ? value : fallback;
+  const normalized = list.slice(0, 80).map((candidate, index) => {
+    const fallbackItem =
+      fallback[index] ??
+      fallback[fallback.length - 1] ?? {
+        titleEn: `Section ${index + 1}`,
+        titleAr: `القسم ${index + 1}`,
+        bodyEn: "",
+        bodyAr: "",
+      };
+    const source =
+      candidate && typeof candidate === "object"
+        ? (candidate as Partial<TermsSectionSettings>)
+        : {};
+    return {
+      titleEn: toSafeString(source.titleEn, 220) || fallbackItem.titleEn,
+      titleAr: toSafeString(source.titleAr, 220) || fallbackItem.titleAr,
+      bodyEn: toSafeString(source.bodyEn, 8000),
+      bodyAr: toSafeString(source.bodyAr, 8000),
+    };
+  });
+
+  return normalized.filter(
+    (item) => Boolean(item.titleEn) || Boolean(item.titleAr) || Boolean(item.bodyEn) || Boolean(item.bodyAr)
+  );
+}
+
+function sanitizeAboutFeatures(
+  value: unknown,
+  fallback: AboutFeatureItemSettings[]
+): AboutFeatureItemSettings[] {
+  const list = Array.isArray(value) ? value : fallback;
+  const normalized = list.slice(0, 40).map((candidate) => {
+    const source = candidate && typeof candidate === "object" ? (candidate as Partial<AboutFeatureItemSettings>) : {};
+    return {
+      textEn: toSafeString(source.textEn, 240),
+      textAr: toSafeString(source.textAr, 240),
+    };
+  });
+  return normalized.filter((item) => Boolean(item.textEn) || Boolean(item.textAr));
+}
+
+function sanitizeAboutTeamMembers(
+  value: unknown,
+  fallback: AboutTeamMemberSettings[]
+): AboutTeamMemberSettings[] {
+  const list = Array.isArray(value) ? value : fallback;
+  const normalized = list.slice(0, 48).map((candidate) => {
+    const source = candidate && typeof candidate === "object" ? (candidate as Partial<AboutTeamMemberSettings>) : {};
+    return {
+      nameEn: toSafeString(source.nameEn, 180),
+      nameAr: toSafeString(source.nameAr, 180),
+      roleEn: toSafeString(source.roleEn, 180),
+      roleAr: toSafeString(source.roleAr, 180),
+      imageSrc: toSafeString(source.imageSrc, 500),
+    };
+  });
+  return normalized.filter(
+    (item) =>
+      Boolean(item.nameEn) ||
+      Boolean(item.nameAr) ||
+      Boolean(item.roleEn) ||
+      Boolean(item.roleAr) ||
+      Boolean(item.imageSrc)
+  );
+}
+
+function sanitizeAboutTrainerHighlights(
+  value: unknown,
+  fallback: AboutTrainerHighlightSettings[]
+): AboutTrainerHighlightSettings[] {
+  const list = Array.isArray(value) ? value : fallback;
+  const normalized = list.slice(0, 48).map((candidate) => {
+    const source =
+      candidate && typeof candidate === "object"
+        ? (candidate as Partial<AboutTrainerHighlightSettings>)
+        : {};
+    return {
+      nameEn: toSafeString(source.nameEn, 180),
+      nameAr: toSafeString(source.nameAr, 180),
+      imageSrc: toSafeString(source.imageSrc, 500),
+    };
+  });
+  return normalized.filter((item) => Boolean(item.nameEn) || Boolean(item.nameAr) || Boolean(item.imageSrc));
+}
+
 export function makeSitePageSettingsKey(pageKey: string): string {
   return `page:${pageKey}`;
 }
@@ -780,6 +990,196 @@ export function isDynamicPathTemplate(pathTemplate: string): boolean {
 }
 
 export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSettings {
+  const faqItems: FaqItemSettings[] =
+    page.key === "faqs"
+      ? [
+          {
+            categoryEn: "Booking",
+            categoryAr: "الحجوزات",
+            questionEn: "How do I book a workshop?",
+            questionAr: "كيف يمكنني حجز ورشة؟",
+            answerEn:
+              "Open the class page, choose your preferred session, then complete checkout. You will receive confirmation by email.",
+            answerAr:
+              "افتح صفحة الدورة، اختر الجلسة المناسبة، ثم أكمل الدفع. ستصلك رسالة تأكيد عبر البريد الإلكتروني.",
+          },
+          {
+            categoryEn: "Payments",
+            categoryAr: "المدفوعات",
+            questionEn: "Which payment methods are accepted?",
+            questionAr: "ما طرق الدفع المقبولة؟",
+            answerEn: "We accept cards and online payment methods listed on the checkout page.",
+            answerAr: "نقبل البطاقات ووسائل الدفع الإلكتروني المتاحة في صفحة الدفع.",
+          },
+          {
+            categoryEn: "Attendance",
+            categoryAr: "الحضور",
+            questionEn: "Can I transfer my booking to another person?",
+            questionAr: "هل يمكن تحويل الحجز لشخص آخر؟",
+            answerEn:
+              "Yes, contact support before the class starts with your booking reference and replacement attendee details.",
+            answerAr:
+              "نعم، تواصل مع الدعم قبل بداية الدورة مع رقم الحجز وبيانات الشخص البديل.",
+          },
+          {
+            categoryEn: "Policy",
+            categoryAr: "السياسات",
+            questionEn: "What is your cancellation policy?",
+            questionAr: "ما هي سياسة الإلغاء؟",
+            answerEn:
+              "Cancellation and rescheduling terms depend on workshop type and timing. Please review policy details before confirming your booking.",
+            answerAr:
+              "تعتمد سياسة الإلغاء وإعادة الجدولة على نوع الورشة وتوقيتها. يرجى مراجعة تفاصيل السياسة قبل تأكيد الحجز.",
+          },
+        ]
+      : [];
+  const termsSections: TermsSectionSettings[] =
+    page.key === "terms"
+      ? [
+          {
+            titleEn: "Acceptance of Terms",
+            titleAr: "قبول الشروط",
+            bodyEn:
+              "By using Noon services, you agree to these terms and all applicable policies published on the website.",
+            bodyAr: "باستخدام خدمات نون، فإنك توافق على هذه الشروط وجميع السياسات المعمول بها والمنشورة في الموقع.",
+          },
+          {
+            titleEn: "Bookings and Payments",
+            titleAr: "الحجوزات والمدفوعات",
+            bodyEn:
+              "Workshop seats are confirmed only after successful payment. Prices and availability may change without prior notice.",
+            bodyAr:
+              "يتم تأكيد مقعد الورشة فقط بعد إتمام الدفع بنجاح. قد تتغير الأسعار والتوافر دون إشعار مسبق.",
+          },
+          {
+            titleEn: "Changes, Cancellations, and Refunds",
+            titleAr: "التعديلات والإلغاء والاسترجاع",
+            bodyEn:
+              "Reschedule, cancellation, and refund eligibility is determined by the policy linked to the booked workshop.",
+            bodyAr:
+              "تحدد أهلية إعادة الجدولة أو الإلغاء أو الاسترجاع وفق السياسة المرتبطة بالورشة المحجوزة.",
+          },
+          {
+            titleEn: "Liability and Conduct",
+            titleAr: "المسؤولية والسلوك",
+            bodyEn:
+              "Participants must follow trainer and safety instructions. Noon may deny access for behavior that affects safety or quality of experience.",
+            bodyAr:
+              "يلتزم المشاركون باتباع تعليمات المدرب والسلامة. ويحق لنون رفض المشاركة في حال السلوك الذي يؤثر على السلامة أو جودة التجربة.",
+          },
+        ]
+      : [];
+  const aboutPage: AboutPageSettings =
+    page.key === "about"
+      ? {
+          heroImageSrc: "/images/cooking.png",
+          aboutTitleEn: "About Noon",
+          aboutTitleAr: "عن نون",
+          aboutBodyEn:
+            "Noon is a space for learning and joy through cooking, arts, and crafts. We design hands-on, expert-led experiences with a warm community that encourages sharing and exploration.",
+          aboutBodyAr:
+            "نون مساحة للتعلم والمرح عبر الطبخ والفنون والحرف. نصمم تجارب عملية يقودها خبراء، مع مجتمع دافئ يشجع على المشاركة والتجربة.",
+          founderTitleEn: "Meet the Founder",
+          founderTitleAr: "تعرف على المؤسسة",
+          founderBodyEn:
+            "Noon was founded to blend hands-on learning with creativity. We believe in rich experiences that inspire and build confidence.",
+          founderBodyAr:
+            "أسست نون لتكون وجهة تجمع بين التعلم العملي والإبداع. نؤمن بالتجارب الغنية التي تلهم وتدعم الثقة بالنفس.",
+          founderQuoteEn: "I believe cooking and art bring people together and create lasting memories.",
+          founderQuoteAr: "أؤمن أن الطهي والفن يقربان الناس ويخلقان ذكريات جميلة.",
+          founderImageSrc: "/images/logo-noon.png",
+          whatWeDoTitleEn: "What We Do",
+          whatWeDoTitleAr: "ماذا نقدم",
+          whatWeDoItems: [
+            { textEn: "Expert-led, hands-on classes", textAr: "دورات عملية بقيادة خبراء" },
+            { textEn: "Arts & crafts workshops for all levels", textAr: "ورش فنون وحرف لجميع المستويات" },
+            { textEn: "Group events and corporate experiences", textAr: "فعاليات جماعية وتجارب للشركات" },
+            {
+              textEn: "Downloadable recipes and class resources",
+              textAr: "مواد تدريبية ووصفات قابلة للتحميل",
+            },
+            { textEn: "A welcoming, community-first atmosphere", textAr: "مجتمع ودود يشجع المشاركة" },
+          ],
+          teamTitleEn: "The Noon Team",
+          teamTitleAr: "فريق نون",
+          teamMembers: [
+            {
+              nameEn: "Reem Al Abd",
+              nameAr: "ريم العبد",
+              roleEn: "Programs Lead",
+              roleAr: "مديرة البرامج",
+              imageSrc: "/images/art.png",
+            },
+            {
+              nameEn: "Sara Al Kaabi",
+              nameAr: "سارة الكعبي",
+              roleEn: "Events Coordinator",
+              roleAr: "منسقة الفعاليات",
+              imageSrc: "/images/art.png",
+            },
+            {
+              nameEn: "Omar Al Harthi",
+              nameAr: "عمر الحارثي",
+              roleEn: "Customer Experience",
+              roleAr: "تجربة العملاء",
+              imageSrc: "/images/art.png",
+            },
+            {
+              nameEn: "Hind Al Faris",
+              nameAr: "هند الفارس",
+              roleEn: "Content & Marketing",
+              roleAr: "المحتوى والتسويق",
+              imageSrc: "/images/art.png",
+            },
+          ],
+          trainersTitleEn: "Noon Trainers",
+          trainersTitleAr: "مدربو نون",
+          trainersCtaEn: "View all trainers",
+          trainersCtaAr: "عرض جميع المدربين",
+          trainerHighlights: [
+            { nameEn: "Chef Maya", nameAr: "الشيف مايا", imageSrc: "/images/cooking.png" },
+            { nameEn: "Chef Rashid", nameAr: "الشيف راشد", imageSrc: "/images/cooking.png" },
+            { nameEn: "Arts Trainer: Lina", nameAr: "مدربة فنون: لينا", imageSrc: "/images/cooking.png" },
+            { nameEn: "Pastry Trainer: Nasser", nameAr: "مدرب حلويات: ناصر", imageSrc: "/images/cooking.png" },
+          ],
+          familyTitleEn: "The Bigger Noon Family",
+          familyTitleAr: "عائلة نون الكبيرة",
+          familyBodyEn:
+            "Behind every class and campaign is a crew of trusted freelancers who make the experience shine.",
+          familyBodyAr: "خلف كل صف وحملة فريق من مستقلين موثوقين يجعل التجربة أجمل.",
+          familyImageSrc: "/images/art.png",
+        }
+      : {
+          heroImageSrc: "",
+          aboutTitleEn: "",
+          aboutTitleAr: "",
+          aboutBodyEn: "",
+          aboutBodyAr: "",
+          founderTitleEn: "",
+          founderTitleAr: "",
+          founderBodyEn: "",
+          founderBodyAr: "",
+          founderQuoteEn: "",
+          founderQuoteAr: "",
+          founderImageSrc: "",
+          whatWeDoTitleEn: "",
+          whatWeDoTitleAr: "",
+          whatWeDoItems: [],
+          teamTitleEn: "",
+          teamTitleAr: "",
+          teamMembers: [],
+          trainersTitleEn: "",
+          trainersTitleAr: "",
+          trainersCtaEn: "",
+          trainersCtaAr: "",
+          trainerHighlights: [],
+          familyTitleEn: "",
+          familyTitleAr: "",
+          familyBodyEn: "",
+          familyBodyAr: "",
+          familyImageSrc: "",
+        };
+
   return {
     visibility: page.defaultVisibility ?? "PUBLISHED",
     navPlacement: page.defaultNavPlacement,
@@ -932,6 +1332,30 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
       showWhyNoon: true,
       showPartners: true,
     },
+    faqItems,
+    termsSections,
+    contactPage: {
+      subtitleEn:
+        "The Noon team is ready to support your questions on classes, bookings, and private experiences.",
+      subtitleAr: "فريق نون جاهز للرد على استفساراتك حول الدورات والحجوزات والتجارب الخاصة.",
+      helperEn: "Send us your message and we usually get back within one business day.",
+      helperAr: "أرسل رسالتك وسنعود إليك خلال يوم عمل واحد عادةً.",
+      addressEn: "Muscat, Sultanate of Oman",
+      addressAr: "مسقط، سلطنة عمان",
+      officeHoursEn: "Sunday - Thursday • 9:00 AM - 6:00 PM",
+      officeHoursAr: "الأحد - الخميس • 9:00 صباحًا - 6:00 مساءً",
+      phonePrimary: "+968 98199508",
+      emailPrimary: "info@noonomanarts.com",
+      whatsappUrl: "https://wa.me/96898199508",
+      instagramUrl: "https://instagram.com/noonomanarts",
+      mapEmbedUrl: "",
+      mapLink: "",
+      successTitleEn: "Message Sent",
+      successTitleAr: "تم إرسال رسالتك",
+      successMessageEn: "Thank you for contacting us. Our team will reply shortly.",
+      successMessageAr: "شكرًا لتواصلك. سيقوم فريقنا بالرد عليك قريبًا.",
+    },
+    aboutPage,
   };
 }
 
@@ -1070,6 +1494,76 @@ export function sanitizeSitePageSettings(
       showUpcoming: toBoolean(source.homeLayout?.showUpcoming, defaults.homeLayout.showUpcoming),
       showWhyNoon: toBoolean(source.homeLayout?.showWhyNoon, defaults.homeLayout.showWhyNoon),
       showPartners: toBoolean(source.homeLayout?.showPartners, defaults.homeLayout.showPartners),
+    },
+    faqItems: sanitizeFaqItems(source.faqItems, defaults.faqItems),
+    termsSections: sanitizeTermsSections(source.termsSections, defaults.termsSections),
+    contactPage: {
+      subtitleEn: toSafeString(source.contactPage?.subtitleEn, 500) || defaults.contactPage.subtitleEn,
+      subtitleAr: toSafeString(source.contactPage?.subtitleAr, 500) || defaults.contactPage.subtitleAr,
+      helperEn: toSafeString(source.contactPage?.helperEn, 500) || defaults.contactPage.helperEn,
+      helperAr: toSafeString(source.contactPage?.helperAr, 500) || defaults.contactPage.helperAr,
+      addressEn: toSafeString(source.contactPage?.addressEn, 320) || defaults.contactPage.addressEn,
+      addressAr: toSafeString(source.contactPage?.addressAr, 320) || defaults.contactPage.addressAr,
+      officeHoursEn:
+        toSafeString(source.contactPage?.officeHoursEn, 320) || defaults.contactPage.officeHoursEn,
+      officeHoursAr:
+        toSafeString(source.contactPage?.officeHoursAr, 320) || defaults.contactPage.officeHoursAr,
+      phonePrimary: toSafeString(source.contactPage?.phonePrimary, 100) || defaults.contactPage.phonePrimary,
+      emailPrimary: toSafeString(source.contactPage?.emailPrimary, 180) || defaults.contactPage.emailPrimary,
+      whatsappUrl: toSafeHref(source.contactPage?.whatsappUrl, ""),
+      instagramUrl: toSafeHref(source.contactPage?.instagramUrl, ""),
+      mapEmbedUrl: toSafeHttpUrl(source.contactPage?.mapEmbedUrl, ""),
+      mapLink: toSafeHref(source.contactPage?.mapLink, ""),
+      successTitleEn:
+        toSafeString(source.contactPage?.successTitleEn, 180) || defaults.contactPage.successTitleEn,
+      successTitleAr:
+        toSafeString(source.contactPage?.successTitleAr, 180) || defaults.contactPage.successTitleAr,
+      successMessageEn:
+        toSafeString(source.contactPage?.successMessageEn, 500) || defaults.contactPage.successMessageEn,
+      successMessageAr:
+        toSafeString(source.contactPage?.successMessageAr, 500) || defaults.contactPage.successMessageAr,
+    },
+    aboutPage: {
+      heroImageSrc: toSafeString(source.aboutPage?.heroImageSrc, 500) || defaults.aboutPage.heroImageSrc,
+      aboutTitleEn: toSafeString(source.aboutPage?.aboutTitleEn, 180) || defaults.aboutPage.aboutTitleEn,
+      aboutTitleAr: toSafeString(source.aboutPage?.aboutTitleAr, 180) || defaults.aboutPage.aboutTitleAr,
+      aboutBodyEn: toSafeString(source.aboutPage?.aboutBodyEn, 4000) || defaults.aboutPage.aboutBodyEn,
+      aboutBodyAr: toSafeString(source.aboutPage?.aboutBodyAr, 4000) || defaults.aboutPage.aboutBodyAr,
+      founderTitleEn:
+        toSafeString(source.aboutPage?.founderTitleEn, 180) || defaults.aboutPage.founderTitleEn,
+      founderTitleAr:
+        toSafeString(source.aboutPage?.founderTitleAr, 180) || defaults.aboutPage.founderTitleAr,
+      founderBodyEn: toSafeString(source.aboutPage?.founderBodyEn, 4000) || defaults.aboutPage.founderBodyEn,
+      founderBodyAr: toSafeString(source.aboutPage?.founderBodyAr, 4000) || defaults.aboutPage.founderBodyAr,
+      founderQuoteEn:
+        toSafeString(source.aboutPage?.founderQuoteEn, 1200) || defaults.aboutPage.founderQuoteEn,
+      founderQuoteAr:
+        toSafeString(source.aboutPage?.founderQuoteAr, 1200) || defaults.aboutPage.founderQuoteAr,
+      founderImageSrc:
+        toSafeString(source.aboutPage?.founderImageSrc, 500) || defaults.aboutPage.founderImageSrc,
+      whatWeDoTitleEn:
+        toSafeString(source.aboutPage?.whatWeDoTitleEn, 180) || defaults.aboutPage.whatWeDoTitleEn,
+      whatWeDoTitleAr:
+        toSafeString(source.aboutPage?.whatWeDoTitleAr, 180) || defaults.aboutPage.whatWeDoTitleAr,
+      whatWeDoItems: sanitizeAboutFeatures(source.aboutPage?.whatWeDoItems, defaults.aboutPage.whatWeDoItems),
+      teamTitleEn: toSafeString(source.aboutPage?.teamTitleEn, 180) || defaults.aboutPage.teamTitleEn,
+      teamTitleAr: toSafeString(source.aboutPage?.teamTitleAr, 180) || defaults.aboutPage.teamTitleAr,
+      teamMembers: sanitizeAboutTeamMembers(source.aboutPage?.teamMembers, defaults.aboutPage.teamMembers),
+      trainersTitleEn:
+        toSafeString(source.aboutPage?.trainersTitleEn, 180) || defaults.aboutPage.trainersTitleEn,
+      trainersTitleAr:
+        toSafeString(source.aboutPage?.trainersTitleAr, 180) || defaults.aboutPage.trainersTitleAr,
+      trainersCtaEn: toSafeString(source.aboutPage?.trainersCtaEn, 120) || defaults.aboutPage.trainersCtaEn,
+      trainersCtaAr: toSafeString(source.aboutPage?.trainersCtaAr, 120) || defaults.aboutPage.trainersCtaAr,
+      trainerHighlights: sanitizeAboutTrainerHighlights(
+        source.aboutPage?.trainerHighlights,
+        defaults.aboutPage.trainerHighlights
+      ),
+      familyTitleEn: toSafeString(source.aboutPage?.familyTitleEn, 180) || defaults.aboutPage.familyTitleEn,
+      familyTitleAr: toSafeString(source.aboutPage?.familyTitleAr, 180) || defaults.aboutPage.familyTitleAr,
+      familyBodyEn: toSafeString(source.aboutPage?.familyBodyEn, 4000) || defaults.aboutPage.familyBodyEn,
+      familyBodyAr: toSafeString(source.aboutPage?.familyBodyAr, 4000) || defaults.aboutPage.familyBodyAr,
+      familyImageSrc: toSafeString(source.aboutPage?.familyImageSrc, 500) || defaults.aboutPage.familyImageSrc,
     },
   };
 }
