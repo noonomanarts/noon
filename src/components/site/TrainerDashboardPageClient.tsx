@@ -83,37 +83,42 @@ function workshopToDraft(workshop: TrainerDashboardWorkshopPublic): SubmissionDr
 }
 
 function getSuggestionStatusMeta(status: SuggestionStatus, isArabic: boolean) {
+  const selectLabels = (english: string, arabic: string) => ({
+    label: isArabic ? arabic : english,
+    secondaryLabel: isArabic ? english : arabic,
+  });
+
   if (status === 'PENDING_REVIEW') {
     return {
-      label: isArabic ? 'بانتظار المراجعة' : 'Pending Review',
+      ...selectLabels('Pending Admin Review', 'بانتظار مراجعة الإدارة'),
       className: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800/60 dark:bg-amber-900/25 dark:text-amber-300',
       dotClassName: 'bg-amber-500',
     };
   }
   if (status === 'IN_REVIEW') {
     return {
-      label: isArabic ? 'قيد المراجعة' : 'In Review',
+      ...selectLabels('Under Review', 'قيد المراجعة'),
       className: 'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800/60 dark:bg-sky-900/25 dark:text-sky-300',
       dotClassName: 'bg-sky-500',
     };
   }
   if (status === 'APPROVED') {
     return {
-      label: isArabic ? 'مقبول' : 'Approved',
+      ...selectLabels('Approved For Scheduling', 'معتمد للجدولة'),
       className: 'border-teal-200 bg-teal-50 text-teal-800 dark:border-teal-800/60 dark:bg-teal-900/25 dark:text-teal-300',
       dotClassName: 'bg-teal-500',
     };
   }
   if (status === 'REJECTED') {
     return {
-      label: isArabic ? 'مرفوض' : 'Rejected',
+      ...selectLabels('Revision Required', 'يحتاج تعديل'),
       className: 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800/60 dark:bg-rose-900/25 dark:text-rose-300',
       dotClassName: 'bg-rose-500',
     };
   }
 
   return {
-    label: isArabic ? 'منشور' : 'Published',
+    ...selectLabels('Published As Workshop', 'تم النشر كورشة'),
     className: 'border-purple-200 bg-purple-50 text-purple-800 dark:border-purple-800/60 dark:bg-purple-900/25 dark:text-purple-300',
     dotClassName: 'bg-purple-500',
   };
@@ -651,104 +656,211 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
       </section>
 
       <section className="space-y-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-        <h3 className="text-lg font-semibold text-[color:var(--text)]">
-          {isArabic ? 'الورش السابقة' : 'Previous Workshops'}
-        </h3>
+        <div>
+          <h3 className="text-lg font-semibold text-[color:var(--text)]">
+            {isArabic ? 'الورش السابقة' : 'Previous Workshops'}
+          </h3>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            {isArabic
+              ? 'عرض احترافي للورش السابقة مع بيانات التقييم والمحتوى النهائي.'
+              : 'Professional overview of past workshops with feedback and final submission details.'}
+          </p>
+        </div>
 
         {previousWorkshops.length === 0 ? (
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             {isArabic ? 'لا توجد ورش سابقة.' : 'No previous workshops yet.'}
           </p>
         ) : (
-          <div className="space-y-4">
-            {previousWorkshops.map((workshop) => (
-              <div key={workshop.sessionId} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <Link
-                      href={`/${locale}/classes/${workshop.classSlug}`}
-                      className="text-base font-semibold text-zinc-900 hover:text-[color:var(--primary)] dark:text-white"
-                    >
-                      {locale === 'ar' && workshop.classTitleAr ? workshop.classTitleAr : workshop.classTitle}
-                    </Link>
-                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                      {formatDateTime(workshop.startDateTime, locale)}
-                    </p>
-                  </div>
-                  <div className="text-right text-xs text-zinc-500 dark:text-zinc-400">
-                    <p>
-                      {isArabic ? 'المشاركون:' : 'Participants:'} {workshop.participantsCount ?? 0}
-                    </p>
-                    <p>
-                      {isArabic ? 'التقييم:' : 'Rating:'} {workshop.averageRating ?? '-'} ({workshop.feedbackCount ?? 0})
-                    </p>
-                  </div>
-                </div>
+          <div className="grid gap-4 xl:grid-cols-2">
+            {previousWorkshops.map((workshop) => {
+              const title = locale === 'ar' && workshop.classTitleAr ? workshop.classTitleAr : workshop.classTitle;
+              const avgRating = formatRating(workshop.averageRating);
+              const hasAdminNote = Boolean(workshop.adminNotes.text || workshop.adminNotes.photo);
+              const feedbackPreview = workshop.feedback.slice(0, 3);
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-md bg-zinc-50 p-3 text-sm dark:bg-zinc-900/60">
-                    <p className="mb-1 font-medium text-zinc-800 dark:text-zinc-100">
-                      {isArabic ? 'محتوى الورشة المقدم' : 'Submitted Workshop Content'}
-                    </p>
-                    <p className="text-zinc-600 dark:text-zinc-300">{workshop.submission.workshopBrief || '-'}</p>
-                    <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                      {isArabic ? 'قائمة المشتريات:' : 'Grocery List:'} {workshop.submission.groceryList || '-'}
-                    </p>
-                  </div>
-                  <div className="rounded-md bg-zinc-50 p-3 text-sm dark:bg-zinc-900/60">
-                    <p className="mb-1 font-medium text-zinc-800 dark:text-zinc-100">
-                      {isArabic ? 'الوصفة النهائية المنشورة' : 'Final Recipe'}
-                    </p>
-                    <p className="text-zinc-600 dark:text-zinc-300">{workshop.finalRecipe.title || '-'}</p>
-                    {workshop.finalRecipe.pdf ? (
-                      <a
-                        href={workshop.finalRecipe.pdf}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 inline-block text-xs font-medium text-[color:var(--primary)] hover:underline"
-                      >
-                        {isArabic ? 'فتح ملف الوصفة' : 'Open recipe file'}
-                      </a>
-                    ) : null}
-                  </div>
-                  <div className="rounded-md bg-zinc-50 p-3 text-sm dark:bg-zinc-900/60 sm:col-span-2">
-                    <p className="mb-1 font-medium text-zinc-800 dark:text-zinc-100">
-                      {isArabic ? 'ملاحظات الإدارة' : 'Admin Notes'}
-                    </p>
-                    <p className="text-zinc-600 dark:text-zinc-300">{workshop.adminNotes.text || '-'}</p>
-                    {workshop.adminNotes.photo ? (
-                      <a
-                        href={workshop.adminNotes.photo}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 inline-block text-xs font-medium text-[color:var(--primary)] hover:underline"
-                      >
-                        {isArabic ? 'عرض صورة الملاحظة' : 'View note photo'}
-                      </a>
-                    ) : null}
-                  </div>
-                </div>
-
-                {workshop.feedback.length > 0 ? (
-                  <div className="mt-3 rounded-md border border-zinc-200 p-3 dark:border-zinc-700">
-                    <p className="mb-2 text-sm font-medium text-zinc-800 dark:text-zinc-100">
-                      {isArabic ? 'آراء العملاء' : 'Customer Feedback'}
-                    </p>
-                    <div className="space-y-2">
-                      {workshop.feedback.slice(0, 5).map((feedback) => (
-                        <div key={feedback.id} className="rounded-md bg-zinc-50 px-3 py-2 text-xs dark:bg-zinc-900/60">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium text-zinc-800 dark:text-zinc-100">{feedback.customerName}</span>
-                            <span className="text-zinc-500 dark:text-zinc-400">{feedback.rating}/5</span>
+              return (
+                <article
+                  key={workshop.sessionId}
+                  className="rounded-2xl border border-zinc-200 bg-white/85 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/70"
+                >
+                  <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="relative h-20 w-28 flex-shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
+                        {workshop.classImage ? (
+                          <Image
+                            src={workshop.classImage}
+                            alt={title}
+                            fill
+                            sizes="112px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-zinc-400 dark:text-zinc-500">
+                            <FiFileText className="size-6" />
                           </div>
-                          <p className="mt-1 text-zinc-600 dark:text-zinc-300">{feedback.comment || '-'}</p>
+                        )}
+                      </div>
+
+                      <div className="min-w-0">
+                        <Link
+                          href={`/${locale}/classes/${workshop.classSlug}`}
+                          className="line-clamp-2 text-base font-semibold text-zinc-900 hover:text-[color:var(--primary)] dark:text-white"
+                        >
+                          {title}
+                        </Link>
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                          <span className="inline-flex items-center gap-1">
+                            <FiCalendar className="size-3.5" />
+                            {formatDateTime(workshop.startDateTime, locale)}
+                          </span>
+                          <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                            {formatCategoryLabel(workshop.classCategory)}
+                          </span>
                         </div>
-                      ))}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                        <FiUsers className="size-3.5 text-teal-500" />
+                        {workshop.participantsCount ?? 0}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                        <FiStar className="size-3.5 text-amber-500" />
+                        {avgRating} ({workshop.feedbackCount ?? 0})
+                      </span>
                     </div>
                   </div>
-                ) : null}
-              </div>
-            ))}
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/60">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                        {isArabic ? 'تسليم المدرب' : 'Trainer Submission'}
+                      </p>
+                      {workshop.submission.recipePdf ? (
+                        <a
+                          href={workshop.submission.recipePdf}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[color:var(--noon-teal-strong)] hover:underline dark:text-[color:var(--noon-teal)]"
+                        >
+                          <FiCheckCircle className="size-3.5" />
+                          {isArabic ? 'ملف الوصفة المرفق' : 'Recipe PDF attached'}
+                        </a>
+                      ) : (
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {isArabic ? 'لا يوجد ملف وصفة مرفق' : 'No recipe PDF attached'}
+                        </p>
+                      )}
+                      <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-300">
+                        {isArabic ? 'الصور:' : 'Photos:'} {workshop.submission.trainerPhotos.length} •{' '}
+                        {isArabic ? 'المكونات:' : 'Ingredients:'} {workshop.submission.highlightedIngredients.length}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/60">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                        {isArabic ? 'الوصفة النهائية' : 'Final Recipe'}
+                      </p>
+                      <p className="line-clamp-2 text-sm font-medium text-zinc-800 dark:text-zinc-100">
+                        {workshop.finalRecipe.title || (isArabic ? 'غير متوفر' : 'Not available')}
+                      </p>
+                      {workshop.finalRecipe.pdf ? (
+                        <a
+                          href={workshop.finalRecipe.pdf}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[color:var(--primary)] hover:underline"
+                        >
+                          <FiFileText className="size-3.5" />
+                          {isArabic ? 'فتح ملف الوصفة النهائية' : 'Open final recipe file'}
+                        </a>
+                      ) : null}
+                    </div>
+
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300">
+                      <p className="mb-1 font-semibold text-zinc-700 dark:text-zinc-200">
+                        {isArabic ? 'الوصفة مرئية للعملاء' : 'Visible To Customers'}
+                      </p>
+                      <p>
+                        {workshop.finalRecipe.visibleToCustomers
+                          ? isArabic
+                            ? 'نعم'
+                            : 'Yes'
+                          : isArabic
+                            ? 'لا'
+                            : 'No'}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-3 text-xs text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/60 dark:text-zinc-300">
+                      <p className="mb-1 font-semibold text-zinc-700 dark:text-zinc-200">
+                        {isArabic ? 'تاريخ نشر الوصفة النهائية' : 'Final Recipe Published At'}
+                      </p>
+                      <p>{formatDateTime(workshop.finalRecipe.publishedAt, locale)}</p>
+                    </div>
+                  </div>
+
+                  {hasAdminNote ? (
+                    <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50/70 p-3 dark:border-blue-900/40 dark:bg-blue-900/20">
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                        {isArabic ? 'ملاحظات الإدارة' : 'Admin Notes'}
+                      </p>
+                      <p className="text-sm text-blue-900 dark:text-blue-100">{workshop.adminNotes.text || '-'}</p>
+                      {workshop.adminNotes.photo ? (
+                        <a
+                          href={workshop.adminNotes.photo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex text-xs font-semibold text-blue-700 hover:underline dark:text-blue-300"
+                        >
+                          {isArabic ? 'عرض صورة الملاحظة' : 'View note image'}
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-3 rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
+                    <p className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+                      <FiMessageSquare className="size-4 text-coral" />
+                      {isArabic ? 'آراء العملاء' : 'Customer Feedback'}
+                    </p>
+
+                    {feedbackPreview.length === 0 ? (
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {isArabic ? 'لا توجد تقييمات مرئية حتى الآن.' : 'No visible feedback yet.'}
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {feedbackPreview.map((feedback) => (
+                          <div
+                            key={feedback.id}
+                            className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs dark:border-zinc-700 dark:bg-zinc-900/60"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="font-semibold text-zinc-800 dark:text-zinc-100">{feedback.customerName}</span>
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                                <FiStar className="size-3" />
+                                {feedback.rating}/5
+                              </span>
+                            </div>
+                            <p className="mt-1 text-zinc-600 dark:text-zinc-300">{feedback.comment || '-'}</p>
+                          </div>
+                        ))}
+                        {workshop.feedback.length > feedbackPreview.length ? (
+                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                            {isArabic
+                              ? `+${workshop.feedback.length - feedbackPreview.length} تعليقات إضافية`
+                              : `+${workshop.feedback.length - feedbackPreview.length} more feedback entries`}
+                          </p>
+                        ) : null}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
@@ -953,10 +1065,13 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                     const statusMeta = getSuggestionStatusMeta(item.status, isArabic);
                     return (
                       <span
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusMeta.className}`}
+                        className={`inline-flex flex-col items-start rounded-xl border px-2.5 py-1.5 ${statusMeta.className}`}
                       >
-                        <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dotClassName}`} />
-                        {statusMeta.label}
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold leading-tight">
+                          <span className={`h-1.5 w-1.5 rounded-full ${statusMeta.dotClassName}`} />
+                          {statusMeta.label}
+                        </span>
+                        <span className="text-[10px] font-medium opacity-80">{statusMeta.secondaryLabel}</span>
                       </span>
                     );
                   })()}
