@@ -19,6 +19,7 @@ import {
   IoWarningOutline,
 } from 'react-icons/io5';
 import ClassSettlementPanel from '@/components/admin/ClassSettlementPanel';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type ClassStatus = 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED';
 
@@ -298,12 +299,7 @@ export default function AdminClassDetailsPage({
   const pastSessions = orderedSessions.filter((session) => new Date(session.startTime).getTime() < now);
   const featuredSession = upcomingSessions[0] ?? orderedSessions[orderedSessions.length - 1] ?? null;
 
-  const formatMoney = (amount: number, currency: string) =>
-    new Intl.NumberFormat(localeCode, {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 2,
-    }).format(amount);
+  const formatMoney = (amount: number, currency: string) => formatAmountWithCurrency(amount, currency);
 
   const handleStatusChange = async (nextStatus: 'PUBLISHED' | 'DRAFT') => {
     setStatusLoading(true);

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { IoAdd, IoCubeOutline, IoFlashOutline, IoLayersOutline, IoWalletOutline } from 'react-icons/io5';
+import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
 
 type InventoryItem = {
   id: string;
@@ -200,13 +201,8 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
   const [purchaseForm, setPurchaseForm] = useState<PurchaseFormState>(() => emptyPurchaseForm());
 
   const formatMoney = useCallback(
-    (value: number, currency = 'OMR') =>
-      new Intl.NumberFormat(localeCode, {
-        style: 'currency',
-        currency,
-        maximumFractionDigits: 3,
-      }).format(value),
-    [localeCode]
+    (value: number, currency = 'OMR') => formatAmountWithCurrency(value, currency),
+    []
   );
 
   const formatDate = useCallback(
@@ -407,7 +403,7 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
             <IoLayersOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
             <span className="text-xs uppercase tracking-[0.2em]">{t.stockQty}</span>
           </div>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">{overview.summary.totalStockQuantity.toFixed(3)}</p>
+          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">{formatPlainNumber(overview.summary.totalStockQuantity)}</p>
         </div>
 
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
@@ -678,12 +674,12 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
                       <td className="py-3 pe-4 font-medium text-zinc-900 dark:text-zinc-100">
                         <div>{item.name}</div>
                         <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                          {`${t.reorderLevel}: ${item.reorderLevel.toFixed(3)} ${item.unit}`}
+                          {`${t.reorderLevel}: ${formatPlainNumber(item.reorderLevel)} ${item.unit}`}
                         </div>
                       </td>
                       <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{item.sku || '—'}</td>
                       <td className={`py-3 pe-4 ${isLowStock ? 'text-rose-600 dark:text-rose-300' : 'text-zinc-600 dark:text-zinc-300'}`}>
-                        {`${item.currentStock.toFixed(3)} ${item.unit}`}
+                        {`${formatPlainNumber(item.currentStock)} ${item.unit}`}
                       </td>
                       <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{formatMoney(item.averageUnitCost, item.currency)}</td>
                       <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{formatMoney(item.stockValue, item.currency)}</td>
@@ -751,7 +747,7 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
                     <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{formatMoney(purchase.totalCost)}</p>
                   </div>
                   <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-300">
-                    {purchase.lines.map((line) => `${line.itemName}: ${line.quantity.toFixed(3)} ${line.itemUnit} x ${line.unitCost.toFixed(3)}`).join(' | ')}
+                    {purchase.lines.map((line) => `${line.itemName}: ${formatPlainNumber(line.quantity)} ${line.itemUnit} x ${formatPlainNumber(line.unitCost)}`).join(' | ')}
                   </div>
                 </div>
               ))}

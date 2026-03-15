@@ -1,4 +1,5 @@
 import type { Locale } from '@/lib/locale';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type NotificationInput = {
   type: string;
@@ -43,6 +44,7 @@ export function formatNotificationContent(
   const userName = pickUserName(notification.data);
   const amount = pickAmount(notification.data);
   const currency = pickCurrency(notification.data);
+  const formattedAmount = amount !== null ? formatAmountWithCurrency(amount, currency) : null;
 
   if (notification.type === 'withdrawal_request_submitted') {
     if (userName) {
@@ -152,11 +154,11 @@ export function formatNotificationContent(
     return {
       title: isArabic ? 'تم الإيداع بنجاح' : 'Deposit Successful',
       message: isArabic
-        ? amount !== null
-          ? `تم إيداع ${amount.toFixed(3)} ${currency} في محفظتك.`
+        ? formattedAmount
+          ? `تم إيداع ${formattedAmount} في محفظتك.`
           : 'تم الإيداع في محفظتك بنجاح.'
-        : amount !== null
-          ? `${amount.toFixed(3)} ${currency} was deposited into your wallet.`
+        : formattedAmount
+          ? `${formattedAmount} was deposited into your wallet.`
           : 'Your wallet deposit was completed successfully.',
     };
   }
@@ -165,11 +167,11 @@ export function formatNotificationContent(
     return {
       title: isArabic ? 'تم إرسال تحويل' : 'Transfer Sent',
       message: isArabic
-        ? amount !== null
-          ? `تم تحويل ${amount.toFixed(3)} ${currency} بنجاح.`
+        ? formattedAmount
+          ? `تم تحويل ${formattedAmount} بنجاح.`
           : 'تم إرسال التحويل من محفظتك بنجاح.'
-        : amount !== null
-          ? `${amount.toFixed(3)} ${currency} was sent from your wallet.`
+        : formattedAmount
+          ? `${formattedAmount} was sent from your wallet.`
           : 'Your wallet transfer was completed successfully.',
     };
   }
@@ -178,11 +180,11 @@ export function formatNotificationContent(
     return {
       title: isArabic ? 'تم استلام تحويل' : 'Transfer Received',
       message: isArabic
-        ? amount !== null
-          ? `تم استلام ${amount.toFixed(3)} ${currency} في محفظتك.`
+        ? formattedAmount
+          ? `تم استلام ${formattedAmount} في محفظتك.`
           : 'تم استلام تحويل إلى محفظتك.'
-        : amount !== null
-          ? `You received ${amount.toFixed(3)} ${currency} in your wallet.`
+        : formattedAmount
+          ? `You received ${formattedAmount} in your wallet.`
           : 'You received a wallet transfer.',
     };
   }
@@ -191,11 +193,11 @@ export function formatNotificationContent(
     return {
       title: isArabic ? 'إضافة رصيد من الإدارة' : 'Wallet Credited',
       message: isArabic
-        ? amount !== null
-          ? `أضافت الإدارة ${amount.toFixed(3)} ${currency} إلى محفظتك.`
+        ? formattedAmount
+          ? `أضافت الإدارة ${formattedAmount} إلى محفظتك.`
           : 'أضافت الإدارة رصيداً إلى محفظتك.'
-        : amount !== null
-          ? `Admin added ${amount.toFixed(3)} ${currency} to your wallet.`
+        : formattedAmount
+          ? `Admin added ${formattedAmount} to your wallet.`
           : 'An admin added credit to your wallet.',
     };
   }
@@ -204,11 +206,11 @@ export function formatNotificationContent(
     return {
       title: isArabic ? 'خصم رصيد من الإدارة' : 'Wallet Deduction',
       message: isArabic
-        ? amount !== null
-          ? `خصمت الإدارة ${amount.toFixed(3)} ${currency} من محفظتك.`
+        ? formattedAmount
+          ? `خصمت الإدارة ${formattedAmount} من محفظتك.`
           : 'خصمت الإدارة رصيداً من محفظتك.'
-        : amount !== null
-          ? `Admin deducted ${amount.toFixed(3)} ${currency} from your wallet.`
+        : formattedAmount
+          ? `Admin deducted ${formattedAmount} from your wallet.`
           : 'An admin deducted credit from your wallet.',
     };
   }
@@ -217,15 +219,16 @@ export function formatNotificationContent(
     const withdrawable = notification.data && typeof notification.data.withdrawableAmount === 'number'
       ? notification.data.withdrawableAmount
       : null;
+    const formattedWithdrawable = withdrawable !== null ? formatAmountWithCurrency(withdrawable, currency) : null;
 
     return {
       title: isArabic ? 'تحديث المقدار القابل للسحب' : 'Withdrawable Amount Updated',
       message: isArabic
-        ? withdrawable !== null
-          ? `تم تحديث المقدار القابل للسحب إلى ${withdrawable.toFixed(3)} ${currency}.`
+        ? formattedWithdrawable
+          ? `تم تحديث المقدار القابل للسحب إلى ${formattedWithdrawable}.`
           : 'تم تحديث المقدار القابل للسحب في محفظتك.'
-        : withdrawable !== null
-          ? `Your withdrawable amount is now ${withdrawable.toFixed(3)} ${currency}.`
+        : formattedWithdrawable
+          ? `Your withdrawable amount is now ${formattedWithdrawable}.`
           : 'Your withdrawable wallet amount was updated.',
     };
   }

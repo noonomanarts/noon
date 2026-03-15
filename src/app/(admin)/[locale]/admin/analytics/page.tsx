@@ -8,6 +8,7 @@ import { getUserById, countUsersByRole } from '@/lib/db/users';
 import { countEventBookings } from '@/lib/db/events';
 import { getShopOrdersAnalyticsSummary, listShopOrdersForAdmin } from '@/lib/db/shop';
 import { getWalletTopupAnalyticsSummary } from '@/lib/db/wallet';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 export default async function AdminAnalyticsPage({
   params,
@@ -98,7 +99,7 @@ export default async function AdminAnalyticsPage({
     CANCELLED: { en: 'Cancelled', ar: 'ملغي', color: 'bg-rose-500' },
   };
 
-  const formatMoney = (value: number) => `${value.toFixed(3)} OMR`;
+  const formatMoney = (value: number) => formatAmountWithCurrency(value, 'OMR');
 
   const getProductsSummary = (names: string[]) => {
     if (names.length === 0) return '—';

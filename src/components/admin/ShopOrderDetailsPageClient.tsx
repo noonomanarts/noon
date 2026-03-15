@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import type { Locale } from '@/lib/locale';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type ShopOrderStatus = 'PAID' | 'PROCESSING' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
 
@@ -320,9 +321,9 @@ export default function ShopOrderDetailsPageClient({
           <div className="space-y-1">
             <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">{t.payment}</p>
             <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.paymentMethod}: {order.payment_method}</p>
-            <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.subtotal}: {order.subtotal.toFixed(3)} {order.currency}</p>
-            <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.shipping}: {order.shipping_fee.toFixed(3)} {order.currency}</p>
-            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.total}: {order.total_amount.toFixed(3)} {order.currency}</p>
+            <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.subtotal}: {formatAmountWithCurrency(order.subtotal, order.currency)}</p>
+            <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.shipping}: {formatAmountWithCurrency(order.shipping_fee, order.currency)}</p>
+            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.total}: {formatAmountWithCurrency(order.total_amount, order.currency)}</p>
           </div>
         </div>
 
@@ -465,8 +466,8 @@ export default function ShopOrderDetailsPageClient({
                   </div>
                 </div>
                 <p className="text-zinc-700 dark:text-zinc-300">{t.qty}: {item.quantity}</p>
-                <p className="text-zinc-700 dark:text-zinc-300">{t.unitPrice}: {item.unit_price.toFixed(3)} {order.currency}</p>
-                <p className="font-semibold text-zinc-900 dark:text-zinc-100">{t.lineTotal}: {item.line_total.toFixed(3)} {order.currency}</p>
+                <p className="text-zinc-700 dark:text-zinc-300">{t.unitPrice}: {formatAmountWithCurrency(item.unit_price, order.currency)}</p>
+                <p className="font-semibold text-zinc-900 dark:text-zinc-100">{t.lineTotal}: {formatAmountWithCurrency(item.line_total, order.currency)}</p>
               </div>
             ))}
           </div>

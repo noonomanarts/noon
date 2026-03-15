@@ -5,9 +5,9 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
-  *,
-  *::before,
-  *::after {
+  *:not(.admin-panel *),
+  *:not(.admin-panel *)::before,
+  *:not(.admin-panel *)::after {
     border-width: 0 !important;
     border-style: none !important;
     border-color: transparent !important;

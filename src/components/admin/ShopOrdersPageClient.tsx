@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type ShopOrderStatus = 'PAID' | 'PROCESSING' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
 
@@ -290,9 +291,9 @@ export default function ShopOrdersPageClient({ locale }: { locale: Locale }) {
                       {getProductsSummary(order)}
                     </span>
 
-                    <span className="truncate whitespace-nowrap text-zinc-700 dark:text-zinc-300" title={`${order.subtotal.toFixed(3)} ${order.currency} • ${t.shipping}: ${order.shipping_fee.toFixed(3)}`}>
-                      <span className="font-semibold">{order.subtotal.toFixed(3)} {order.currency}</span>
-                      <span className="text-zinc-500 dark:text-zinc-400"> • {t.shipping}: {order.shipping_fee.toFixed(3)}</span>
+                    <span className="truncate whitespace-nowrap text-zinc-700 dark:text-zinc-300" title={`${formatAmountWithCurrency(order.subtotal, order.currency)} • ${t.shipping}: ${formatAmountWithCurrency(order.shipping_fee, order.currency)}`}>
+                      <span className="font-semibold">{formatAmountWithCurrency(order.subtotal, order.currency)}</span>
+                      <span className="text-zinc-500 dark:text-zinc-400"> • {t.shipping}: {formatAmountWithCurrency(order.shipping_fee, order.currency)}</span>
                     </span>
 
                     <span className={`w-fit whitespace-nowrap rounded-full px-2.5 py-1 font-semibold ${statusClass[order.status]}`}>

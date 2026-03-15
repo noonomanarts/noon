@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { FiUsers, FiDollarSign, FiTrendingDown, FiCheck, FiArrowRight, FiX, FiLoader, FiMoreVertical, FiTrendingUp } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 import type { Wallet, WalletTransaction } from '@/lib/db/types';
+import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
 
 interface WalletsTableProps {
   wallets: (Wallet & {
@@ -508,7 +509,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
               <p className="text-white/85 text-sm font-medium">
                 {locale === "ar" ? "الرصيد الإجمالي" : "Total Balance"}
               </p>
-              <p className="text-2xl font-bold">{stats.totalBalance.toFixed(3)} OMR</p>
+              <p className="text-2xl font-bold">{formatAmountWithCurrency(stats.totalBalance, 'OMR')}</p>
             </div>
             <div className="text-white/80">
               <FiDollarSign className="w-8 h-8" />
@@ -522,7 +523,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
               <p className="text-white/85 text-sm font-medium">
                 {locale === "ar" ? "المقدار القابل للسحب" : "Withdrawable Amount"}
               </p>
-              <p className="text-2xl font-bold">{stats.totalAvailable.toFixed(3)} OMR</p>
+              <p className="text-2xl font-bold">{formatAmountWithCurrency(stats.totalAvailable, 'OMR')}</p>
             </div>
             <div className="text-white/80">
               <FiTrendingDown className="w-8 h-8" />
@@ -536,7 +537,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
               <p className="text-zinc-800/80 text-sm font-medium">
                 {locale === "ar" ? "المبلغ المحجوز" : "Blocked Amount"}
               </p>
-              <p className="text-2xl font-bold">{stats.totalBlocked.toFixed(3)} OMR</p>
+              <p className="text-2xl font-bold">{formatAmountWithCurrency(stats.totalBlocked, 'OMR')}</p>
             </div>
             <div className="text-zinc-800/70">
               <FiTrendingDown className="w-8 h-8" />
@@ -679,13 +680,13 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                     {wallet.user_phone_number}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {wallet.balance.toFixed(3)}
+                    {formatPlainNumber(wallet.balance)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 dark:text-blue-400">
-                    {wallet.available_balance?.toFixed(3) || '0.000'}
+                    {formatPlainNumber(wallet.available_balance ?? 0)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-rose-600 dark:text-rose-400">
-                    {(wallet.blocked_balance || 0).toFixed(3)}
+                    {formatPlainNumber(wallet.blocked_balance || 0)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {wallet.currency}
@@ -829,7 +830,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                           </div>
                         </div>
                         <span className={`font-bold text-sm ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {transaction.amount > 0 ? '+' : ''}{transaction.amount.toFixed(3)}
+                          {transaction.amount > 0 ? '+' : ''}{formatPlainNumber(transaction.amount)}
                         </span>
                       </div>
                     </div>
@@ -885,7 +886,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200"
-                  placeholder="0.000"
+                  placeholder="0"
                 />
               </div>
 
@@ -967,7 +968,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200"
-                  placeholder="0.000"
+                  placeholder="0"
                 />
               </div>
 
@@ -1049,7 +1050,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                   value={availableBalanceAmount}
                   onChange={(e) => setAvailableBalanceAmount(e.target.value)}
                   className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200"
-                  placeholder="0.000"
+                  placeholder="0"
                 />
               </div>
 
@@ -1118,7 +1119,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200"
-                  placeholder="0.000"
+                  placeholder="0"
                 />
               </div>
 

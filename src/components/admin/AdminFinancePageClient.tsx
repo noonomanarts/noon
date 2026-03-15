@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type EntryType = 'ALL' | 'INCOME' | 'EXPENSE';
 type PersistedEntryType = Exclude<EntryType, 'ALL'>;
@@ -334,7 +335,7 @@ export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
   const [info, setInfo] = useState<string | null>(null);
 
   const formatMoney = useCallback(
-    (value: number, currency = settings.defaultCurrency || 'OMR') => `${value.toFixed(3)} ${currency}`,
+    (value: number, currency = settings.defaultCurrency || 'OMR') => formatAmountWithCurrency(value, currency),
     [settings.defaultCurrency]
   );
 

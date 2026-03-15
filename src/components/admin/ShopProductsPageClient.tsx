@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type ShopCategory = {
   id: string;
@@ -480,7 +481,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                         /{product.slug} · {isArabic ? product.category_name_ar : product.category_name_en}
                       </p>
                       <p className="text-xs text-zinc-700 dark:text-zinc-300">
-                        {product.price.toFixed(3)} {product.currency} · {isArabic ? 'المخزون' : 'Stock'}: {product.stock_quantity}
+                        {formatAmountWithCurrency(product.price, product.currency)} · {isArabic ? 'المخزون' : 'Stock'}: {product.stock_quantity}
                       </p>
                     </div>
 

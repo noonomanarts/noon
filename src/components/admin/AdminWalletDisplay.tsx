@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Locale } from "@/lib/locale";
 import type { Wallet } from "@/lib/db/types";
+import { formatAmountWithCurrency } from "@/lib/formatNumber";
 
 interface AdminWalletDisplayProps {
   locale: Locale;
@@ -229,7 +230,7 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
           </svg>
           <span className="font-medium">
-            {wallet.balance.toFixed(3)} {wallet.currency}
+            {formatAmountWithCurrency(wallet.balance, wallet.currency)}
           </span>
           <svg
             className={`size-4 transition-transform ${showDropdown ? "rotate-180" : ""}`}
@@ -328,7 +329,7 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200"
-                  placeholder="0.000"
+                  placeholder="0"
                   min="0"
                 />
               </div>
@@ -348,7 +349,7 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
 
               <div className="rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 p-4 border border-green-100 dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-800/30">
                 <p className="text-sm text-green-800 dark:text-green-200 font-medium">
-                  {locale === "ar" ? "رصيد المحفظة (للدفع):" : "Wallet balance (for payments):"} <span className="font-semibold">{wallet.balance.toFixed(3)} {wallet.currency}</span>
+                  {locale === "ar" ? "رصيد المحفظة (للدفع):" : "Wallet balance (for payments):"} <span className="font-semibold">{formatAmountWithCurrency(wallet.balance, wallet.currency)}</span>
                 </p>
               </div>
             </div>
@@ -413,7 +414,7 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                   className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200"
-                  placeholder="0.000"
+                  placeholder="0"
                   min="0"
                   max={wallet.available_balance || 0}
                 />
@@ -434,10 +435,10 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
 
               <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border border-blue-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-800/30">
                 <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
-                  {locale === "ar" ? "المقدار القابل للسحب (نقدًا):" : "Withdrawable amount (cash out):"} <span className="font-semibold">{(wallet.available_balance || 0).toFixed(3)} {wallet.currency}</span>
+                  {locale === "ar" ? "المقدار القابل للسحب (نقدًا):" : "Withdrawable amount (cash out):"} <span className="font-semibold">{formatAmountWithCurrency(wallet.available_balance || 0, wallet.currency)}</span>
                 </p>
                 <p className="mt-2 text-sm text-rose-700 dark:text-rose-300 font-medium">
-                  {locale === "ar" ? 'المبلغ المحجوز:' : 'Blocked amount:'} <span className="font-semibold">{(wallet.blocked_balance || 0).toFixed(3)} {wallet.currency}</span>
+                  {locale === "ar" ? 'المبلغ المحجوز:' : 'Blocked amount:'} <span className="font-semibold">{formatAmountWithCurrency(wallet.blocked_balance || 0, wallet.currency)}</span>
                 </p>
                 {amount && parseFloat(amount) > (wallet.available_balance || 0) && (
                   <p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">

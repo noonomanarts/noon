@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import type { Locale } from '@/lib/locale';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type PaymentStatus = 'ALL' | 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
 
@@ -251,7 +252,7 @@ export default function AdminPaymentsPageClient({ locale }: AdminPaymentsPageCli
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300">{payment.reference}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-zinc-900 dark:text-white">{payment.amount.toFixed(3)} {payment.currency}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-zinc-900 dark:text-white">{formatAmountWithCurrency(payment.amount, payment.currency)}</td>
                     <td className="px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300">{payment.gateway}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadge(payment.status)}`}>

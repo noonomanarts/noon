@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { calculateWorkshopFinanceBreakdown } from '@/lib/classFinanceRules';
 import { IoAdd, IoCheckmarkCircle, IoCubeOutline, IoPeopleOutline, IoReceiptOutline, IoWalletOutline } from 'react-icons/io5';
+import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
 
 type ExpenseItem = {
   id?: string;
@@ -215,12 +216,7 @@ export default function ClassSettlementPanel({
       : 'Noon fee is negative. Review material costs or revenue before closing.',
   };
 
-  const formatMoney = (value: number, currency: string) =>
-    new Intl.NumberFormat(localeCode, {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 3,
-    }).format(value);
+  const formatMoney = (value: number, currency: string) => formatAmountWithCurrency(value, currency);
 
   const formatDateTime = (value: string | null | undefined) => {
     if (!value) return '—';
@@ -756,7 +752,7 @@ export default function ClassSettlementPanel({
 
                         {catalogItem ? (
                           <p className={`text-xs ${hasShortage ? 'text-rose-600 dark:text-rose-300' : 'text-zinc-500 dark:text-zinc-400'}`}>
-                            {`${t.stockAvailable}: ${catalogItem.currentStock.toFixed(3)} ${catalogItem.unit}${hasShortage ? ` - ${t.insufficientStock}` : ''}`}
+                            {`${t.stockAvailable}: ${formatPlainNumber(catalogItem.currentStock)} ${catalogItem.unit}${hasShortage ? ` - ${t.insufficientStock}` : ''}`}
                           </p>
                         ) : null}
                       </div>
@@ -795,7 +791,7 @@ export default function ClassSettlementPanel({
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  {`${snapshot.finance.fixedCosts.kitchenUsageRatePerHour.toFixed(3)} x ${(financePreview?.fixedCosts.durationHours ?? snapshot.finance.fixedCosts.durationHours).toFixed(2)} h`}
+                  {`${formatPlainNumber(snapshot.finance.fixedCosts.kitchenUsageRatePerHour)} x ${formatPlainNumber(financePreview?.fixedCosts.durationHours ?? snapshot.finance.fixedCosts.durationHours, { maxFractionDigits: 2 })} h`}
                 </p>
               </div>
               <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
@@ -806,7 +802,7 @@ export default function ClassSettlementPanel({
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  {`${snapshot.finance.fixedCosts.workshopContentRatePerParticipant.toFixed(3)} x ${snapshot.summary.participantsCount}`}
+                  {`${formatPlainNumber(snapshot.finance.fixedCosts.workshopContentRatePerParticipant)} x ${snapshot.summary.participantsCount}`}
                 </p>
               </div>
               <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
@@ -824,7 +820,7 @@ export default function ClassSettlementPanel({
                 </div>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.trainerRule}</p>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  {`${t.trainerBase}: ${formatMoney(financePreview?.trainerFee.baseAmount ?? snapshot.summary.trainerFeeBaseAmount, snapshot.currency)} x ${(financePreview?.trainerFee.percent ?? snapshot.summary.trainerFeePercent).toFixed(0)}%`}
+                  {`${t.trainerBase}: ${formatMoney(financePreview?.trainerFee.baseAmount ?? snapshot.summary.trainerFeeBaseAmount, snapshot.currency)} x ${formatPlainNumber(financePreview?.trainerFee.percent ?? snapshot.summary.trainerFeePercent, { maxFractionDigits: 0 })}%`}
                 </p>
               </div>
               <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">

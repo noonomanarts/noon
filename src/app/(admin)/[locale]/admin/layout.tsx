@@ -204,7 +204,7 @@ export default async function AdminLayout({
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950" lang={locale} dir={dir}>
+    <div className="admin-panel flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950" lang={locale} dir={dir}>
       {/* Sidebar */}
       <aside className={`hidden w-64 flex-shrink-0 border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 lg:block ${locale === "ar" ? "border-l" : "border-r"}`}>
             <div className="flex h-full flex-col">

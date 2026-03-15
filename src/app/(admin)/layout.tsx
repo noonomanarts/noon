@@ -11,7 +11,7 @@ export default function AdminRootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-dvh">
+    <div className="admin-panel min-h-dvh">
       {children}
     </div>
   );

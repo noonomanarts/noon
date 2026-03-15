@@ -6,6 +6,7 @@ import { countEventBookings } from '@/lib/db/events';
 import { getShopOrdersAnalyticsSummary, listShopOrdersForAdmin } from '@/lib/db/shop';
 import { getWalletTopupAnalyticsSummary } from '@/lib/db/wallet';
 import AdminPieChartCard, { type AdminPieSlice } from '@/components/admin/AdminPieChartCard';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 export default async function AdminDashboard({
   params,
@@ -68,7 +69,7 @@ export default async function AdminDashboard({
     noOrders: locale === 'ar' ? 'لا توجد طلبات حديثة.' : 'No recent orders yet.',
   };
 
-  const formatMoney = (value: number) => `${value.toFixed(3)} OMR`;
+  const formatMoney = (value: number) => formatAmountWithCurrency(value, 'OMR');
 
   const userSlices: AdminPieSlice[] = [
     { label: t.customers, value: customersCount, color: 'var(--noon-teal)' },

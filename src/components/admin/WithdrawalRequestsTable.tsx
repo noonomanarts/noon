@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { FiCheckCircle, FiXCircle, FiX, FiLoader } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type RequestStatus = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 
@@ -355,7 +356,7 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {Math.abs(request.amount).toFixed(3)} OMR
+                      {formatAmountWithCurrency(Math.abs(request.amount), 'OMR')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusColor(request.status)}`}>
@@ -448,7 +449,7 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
                   {locale === 'ar' ? 'المستخدم' : 'User'}: <span className="font-semibold text-gray-900 dark:text-white">{selectedRequest.user_full_name}</span>
                 </p>
                 <p className="text-sm text-gray-600 dark:text-zinc-300 mt-1">
-                  {locale === 'ar' ? 'المبلغ' : 'Amount'}: <span className="font-semibold text-gray-900 dark:text-white">{Math.abs(selectedRequest.amount).toFixed(3)} OMR</span>
+                  {locale === 'ar' ? 'المبلغ' : 'Amount'}: <span className="font-semibold text-gray-900 dark:text-white">{formatAmountWithCurrency(Math.abs(selectedRequest.amount), 'OMR')}</span>
                 </p>
               </div>
 

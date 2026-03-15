@@ -391,7 +391,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
                   className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200"
-                  placeholder="0.000"
+                  placeholder="0"
                   min="0"
                 />
               </div>
@@ -481,7 +481,7 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
                   className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200"
-                  placeholder="0.000"
+                  placeholder="0"
                   min="0"
                   max={walletData.available_balance || 0}
                 />
