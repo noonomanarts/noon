@@ -7,6 +7,9 @@ import AnimatedCounter from "@/components/site/AnimatedCounter";
 import PartnersCarousel from "@/components/site/PartnersCarousel";
 import { resolveHeaderColor } from "@/lib/headerBranding";
 import { findClassSessions, findManyClasses } from "@/lib/db/classes";
+import { countUsersByRole } from "@/lib/db/users";
+import { countEventBookings } from "@/lib/db/events";
+import { query } from "@/lib/db/pool";
 import { getAdminSettingsByKey } from "@/lib/db/adminSettings";
 import {
   getSitePageByKey,
@@ -27,6 +30,13 @@ type UpcomingCard = {
   trainerName: string;
   imageSrc: string;
   href: string;
+};
+
+type DynamicHomeStats = {
+  studentsDelta: number;
+  classesDelta: number;
+  eventsDelta: number;
+  yearsValue: number | null;
 };
 
 const heroSlides = [
@@ -163,6 +173,59 @@ async function resolveUpcomingItems(
   }
 
   return fallback;
+}
+
+function parseCounterValue(value: string): { numeric: number; suffix: string } {
+  const match = String(value).match(/(\d+)/);
+  if (!match) {
+    return { numeric: 0, suffix: "+" };
+  }
+
+  const numeric = Number(match[1]);
+  const rawSuffix = String(value).replace(match[1], "").trim();
+  return {
+    numeric: Number.isFinite(numeric) ? numeric : 0,
+    suffix: rawSuffix || "+",
+  };
+}
+
+async function resolveDynamicHomeStats(): Promise<DynamicHomeStats> {
+  try {
+    const [roles, eventBookingsCount, classSessionsResult, firstActivityResult] = await Promise.all([
+      countUsersByRole(),
+      countEventBookings(),
+      query<{ count: number }>(
+        `SELECT COUNT(*)::int AS count
+         FROM class_sessions
+         WHERE is_cancelled = FALSE`
+      ),
+      query<{ first_activity: Date | string | null }>(
+        `SELECT LEAST(
+            COALESCE((SELECT MIN(created_at) FROM classes), NOW()),
+            COALESCE((SELECT MIN(created_at) FROM event_bookings), NOW())
+          ) AS first_activity`
+      ),
+    ]);
+
+    const studentsDelta = Math.max(0, Number(roles.CUSTOMER ?? 0));
+    const classesDelta = Math.max(0, Number(classSessionsResult.rows[0]?.count ?? 0));
+    const eventsDelta = Math.max(0, Number(eventBookingsCount ?? 0));
+
+    const firstActivityRaw = firstActivityResult.rows[0]?.first_activity ?? null;
+    const firstActivityDate = firstActivityRaw ? new Date(firstActivityRaw) : null;
+    const yearsValue = firstActivityDate && !Number.isNaN(firstActivityDate.getTime())
+      ? Math.max(1, new Date().getFullYear() - firstActivityDate.getFullYear() + 1)
+      : null;
+
+    return { studentsDelta, classesDelta, eventsDelta, yearsValue };
+  } catch {
+    return {
+      studentsDelta: 0,
+      classesDelta: 0,
+      eventsDelta: 0,
+      yearsValue: null,
+    };
+  }
 }
 
 function Section({
@@ -316,13 +379,33 @@ export default async function HomePage({
       };
     })
     .filter((item) => item.name || item.logoSrc);
-  const numbersItems = Array.from({ length: 4 }, (_, index) => {
+  const baseNumbersItems = Array.from({ length: 4 }, (_, index) => {
     const fallbackItem = content.numbers.items[index] ?? { value: "0+", label: isArabic ? "المؤشر" : "Metric" };
     const settingsItem = homeNumbers?.items[index];
 
     return {
       value: (isArabic ? settingsItem?.valueAr : settingsItem?.valueEn)?.trim() || fallbackItem.value,
       label: (isArabic ? settingsItem?.labelAr : settingsItem?.labelEn)?.trim() || fallbackItem.label,
+    };
+  });
+  const dynamicHomeStats = await resolveDynamicHomeStats();
+  const numbersItems = baseNumbersItems.map((item, index) => {
+    const parsed = parseCounterValue(item.value);
+    let value = parsed.numeric;
+
+    if (index === 0) {
+      value += dynamicHomeStats.studentsDelta;
+    } else if (index === 1) {
+      value += dynamicHomeStats.classesDelta;
+    } else if (index === 2) {
+      value += dynamicHomeStats.eventsDelta;
+    } else if (index === 3 && dynamicHomeStats.yearsValue !== null) {
+      value = Math.max(value, dynamicHomeStats.yearsValue);
+    }
+
+    return {
+      value: `${value}${parsed.suffix}`,
+      label: item.label,
     };
   });
   const upcomingTitle =
@@ -377,7 +460,7 @@ export default async function HomePage({
                   className="inline-flex w-full items-center justify-center border border-white/45 px-6 py-4 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:text-lg"
                   style={{
                     backgroundColor: heroUi.cookingColor,
-                    color: getReadableTextColor(heroUi.cookingColor),
+                    color: "#ffffff",
                   }}
                 >
                   {heroUi.cookingClasses}
@@ -387,7 +470,7 @@ export default async function HomePage({
                   className="inline-flex w-full items-center justify-center border border-white/45 px-6 py-4 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:text-lg"
                   style={{
                     backgroundColor: heroUi.artsColor,
-                    color: getReadableTextColor(heroUi.artsColor),
+                    color: "#ffffff",
                   }}
                 >
                   {heroUi.artClasses}
@@ -441,37 +524,9 @@ export default async function HomePage({
             </article>
           ))}
         </div>
-        </Section>
-      )}
 
-      {showWhyNoon && (
-        <Section isArabic={isArabic} title={whyNoonTitle}>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          {whyNoonItems.map((item, index) => (
-            <div
-              key={`why-noon-${index}`}
-              className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm"
-            >
-              <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-none bg-[color:var(--muted)] text-xs font-semibold text-[color:var(--text-muted)]">
-                {String(index + 1).padStart(2, "0")}
-              </div>
-              <h3 className="text-base font-semibold text-[color:var(--text)]">{item.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">{item.description}</p>
-            </div>
-          ))}
-        </div>
-        </Section>
-      )}
-
-      {showPartners && partnerItems.length > 0 && (
-        <Section isArabic={isArabic} title={partnersTitle}>
-        <PartnersCarousel items={partnerItems} isArabic={isArabic} />
-        </Section>
-      )}
-
-      {showNumbers && (
-        <section className="py-12 sm:py-14">
-          <div className="mx-auto w-full max-w-6xl px-4">
+        {showNumbers && (
+          <div className="mt-12 border-t border-[color:var(--border)] pt-10">
             <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-12">
               {numbersItems.map((item, index) => {
                 const match = String(item.value).match(/(\d+)/);
@@ -501,8 +556,35 @@ export default async function HomePage({
               })}
             </div>
           </div>
-        </section>
+        )}
+        </Section>
       )}
+
+      {showWhyNoon && (
+        <Section isArabic={isArabic} title={whyNoonTitle}>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {whyNoonItems.map((item, index) => (
+            <div
+              key={`why-noon-${index}`}
+              className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm"
+            >
+              <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-none bg-[color:var(--muted)] text-xs font-semibold text-[color:var(--text-muted)]">
+                {String(index + 1).padStart(2, "0")}
+              </div>
+              <h3 className="text-base font-semibold text-[color:var(--text)]">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">{item.description}</p>
+            </div>
+          ))}
+        </div>
+        </Section>
+      )}
+
+      {showPartners && partnerItems.length > 0 && (
+        <Section isArabic={isArabic} title={partnersTitle}>
+        <PartnersCarousel items={partnerItems} isArabic={isArabic} />
+        </Section>
+      )}
+
     </div>
   );
 }
