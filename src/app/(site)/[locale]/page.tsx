@@ -232,13 +232,15 @@ function Section({
   title,
   isArabic,
   children,
+  sectionClassName,
 }: {
   title: string;
   isArabic: boolean;
   children: React.ReactNode;
+  sectionClassName?: string;
 }) {
   return (
-    <section className="py-14 sm:py-16">
+    <section className={`py-14 sm:py-16 ${sectionClassName ?? ""}`}>
       <div className="mx-auto w-full max-w-6xl px-4">
         <div className="mb-8 flex justify-center">
           <div className="w-full max-w-3xl text-center">
@@ -488,7 +490,11 @@ export default async function HomePage({
       )}
 
       {showUpcoming && upcomingItems.length > 0 && (
-        <Section isArabic={isArabic} title={upcomingTitle}>
+        <Section
+          isArabic={isArabic}
+          title={upcomingTitle}
+          sectionClassName="bg-gradient-to-l from-zinc-100 via-zinc-200/55 to-zinc-100 dark:from-zinc-800/70 dark:via-zinc-700/45 dark:to-zinc-800/70"
+        >
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {upcomingItems.map((c) => (
             <article
