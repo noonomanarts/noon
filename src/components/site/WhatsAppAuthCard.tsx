@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 type Locale = 'en' | 'ar';
@@ -13,6 +14,7 @@ type RegisterForm = {
   preferredLanguage: 'en' | 'ar';
   password: string;
   confirmPassword: string;
+  acceptedTerms: boolean;
 };
 
 type Purpose = 'login' | 'register';
@@ -41,6 +43,7 @@ export default function WhatsAppAuthCard({
     preferredLanguage: locale,
     password: '',
     confirmPassword: '',
+    acceptedTerms: false,
   });
 
   const t = useMemo(
@@ -88,6 +91,10 @@ export default function WhatsAppAuthCard({
       passWeak: isArabic ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.' : 'Password must be at least 8 characters.',
       missingRegisterFields: isArabic ? 'يرجى إكمال بيانات التسجيل المطلوبة.' : 'Please complete required registration fields.',
       invalidEmail: isArabic ? 'البريد الإلكتروني غير صحيح.' : 'Invalid email address.',
+      termsRequired: isArabic ? 'يجب الموافقة على الشروط والأحكام لإكمال التسجيل.' : 'You must accept the Terms & Conditions to register.',
+      acceptTermsPrefix: isArabic ? 'لقد قرأت' : 'I have read and accept the',
+      acceptTermsLink: isArabic ? 'الشروط والأحكام' : 'Terms & Conditions',
+      acceptTermsSuffix: isArabic ? 'وأوافق عليها.' : '',
     }),
     [isArabic, purpose]
   );
@@ -102,7 +109,7 @@ export default function WhatsAppAuthCard({
     }
 
     if (purpose === 'register') {
-      const { firstName, lastName, email, dateOfBirth, password, confirmPassword } = registerForm;
+      const { firstName, lastName, email, dateOfBirth, password, confirmPassword, acceptedTerms } = registerForm;
       if (!firstName.trim() || !lastName.trim() || !email.trim() || !dateOfBirth || !password) {
         setError(t.missingRegisterFields);
         return;
@@ -118,6 +125,10 @@ export default function WhatsAppAuthCard({
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email.trim())) {
         setError(t.invalidEmail);
+        return;
+      }
+      if (!acceptedTerms) {
+        setError(t.termsRequired);
         return;
       }
     }
@@ -189,6 +200,7 @@ export default function WhatsAppAuthCard({
                   dateOfBirth: registerForm.dateOfBirth,
                   preferredLanguage: registerForm.preferredLanguage,
                   password: registerForm.password,
+                  acceptedTerms: registerForm.acceptedTerms,
                 }
               : undefined,
         }),
@@ -298,6 +310,24 @@ export default function WhatsAppAuthCard({
                 className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
             </div>
+
+            <label className="flex items-start gap-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-4 py-3 text-sm text-[color:var(--text)] dark:border-zinc-800 dark:bg-zinc-950/60 dark:text-zinc-200">
+              <input
+                type="checkbox"
+                checked={registerForm.acceptedTerms}
+                onChange={(event) =>
+                  setRegisterForm((prev) => ({ ...prev, acceptedTerms: event.target.checked }))
+                }
+                className="mt-1 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:ring-white"
+              />
+              <span className="leading-6">
+                {t.acceptTermsPrefix}{' '}
+                <Link href={`/${locale}/terms`} className="font-semibold underline underline-offset-4">
+                  {t.acceptTermsLink}
+                </Link>
+                {t.acceptTermsSuffix ? ` ${t.acceptTermsSuffix}` : ''}
+              </span>
+            </label>
           </>
         ) : null}
 

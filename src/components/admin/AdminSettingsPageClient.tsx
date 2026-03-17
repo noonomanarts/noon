@@ -2,16 +2,19 @@
 
 import { useState } from 'react';
 import { FaWhatsapp } from 'react-icons/fa6';
-import { FiDatabase, FiDollarSign, FiMessageCircle, FiMessageSquare, FiPhoneCall, FiSettings, FiShield, FiTool } from 'react-icons/fi';
+import { FiDatabase, FiDollarSign, FiImage, FiMessageCircle, FiMessageSquare, FiPhoneCall, FiSettings, FiShield, FiTool } from 'react-icons/fi';
 import BackupSection from '@/components/admin/BackupSection';
 import type { Locale } from '@/lib/locale';
-import type {
+import {
   ClassFinanceAdminSettings,
+  defaultFooterAdminSettings,
+  defaultGeneralAdminSettings,
   FooterAdminSettings,
+  FooterAdminSocialIcon,
   GeneralAdminSettings,
   WhatsAppAdminSettings,
   WhatsAppFloatingButtonSettings,
-} from '@/lib/db/adminSettings';
+} from '@/lib/adminSettings';
 
 type TabId = 'general' | 'class-finance' | 'footer' | 'whatsapp' | 'whatsapp-floating-button' | 'backup';
 
@@ -31,6 +34,50 @@ const WHATSAPP_ICON_OPTIONS = [
   { value: 'message', labelEn: 'Message Bubble', labelAr: 'فقاعة رسالة' },
   { value: 'phone', labelEn: 'Phone', labelAr: 'هاتف' },
 ] as const;
+
+const FOOTER_SOCIAL_ICON_OPTIONS: Array<{
+  value: FooterAdminSocialIcon;
+  labelEn: string;
+  labelAr: string;
+}> = [
+  { value: 'instagram', labelEn: 'Instagram', labelAr: 'إنستغرام' },
+  { value: 'facebook', labelEn: 'Facebook', labelAr: 'فيسبوك' },
+  { value: 'tiktok', labelEn: 'TikTok', labelAr: 'تيك توك' },
+  { value: 'youtube', labelEn: 'YouTube', labelAr: 'يوتيوب' },
+];
+
+function getFooterSocialLabels(icon: FooterAdminSocialIcon): { labelEn: string; labelAr: string } {
+  const match = FOOTER_SOCIAL_ICON_OPTIONS.find((option) => option.value === icon);
+  return match ?? { labelEn: 'Instagram', labelAr: 'إنستغرام' };
+}
+
+const DEFAULT_SITE_LOGO = defaultGeneralAdminSettings.headerLogoUrl;
+const MAX_IMAGE_UPLOAD_SIZE = 5 * 1024 * 1024;
+
+function normalizeImagePath(value: string, fallback = DEFAULT_SITE_LOGO): string {
+  const normalized = value.trim();
+  if (!normalized) return fallback;
+  if (!normalized.startsWith('/')) return fallback;
+  if (normalized.includes('..')) return fallback;
+  return normalized;
+}
+
+function resolveCopyrightPreview(template: string, brandName: string): string {
+  const source = template.trim() || defaultFooterAdminSettings.copyrightText;
+  const safeBrandName = brandName.trim() || defaultFooterAdminSettings.brandName;
+  return source
+    .replaceAll('{year}', String(new Date().getFullYear()))
+    .replaceAll('{brand}', safeBrandName);
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read image.'));
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.readAsDataURL(file);
+  });
+}
 
 function normalizeHexColor(value: string, fallback = '#7b3f8d'): string {
   const input = value.trim().toLowerCase();
@@ -86,6 +133,9 @@ export default function AdminSettingsPageClient({
   const [whatsappFloatingButton, setWhatsAppFloatingButton] = useState<WhatsAppFloatingButtonSettings>(
     initialWhatsAppFloatingButton
   );
+  const [uploadingLogo, setUploadingLogo] = useState<'header' | 'footer' | null>(null);
+  const [headerLogoPreview, setHeaderLogoPreview] = useState<string | null>(null);
+  const [footerLogoPreview, setFooterLogoPreview] = useState<string | null>(null);
 
   const t = {
     title: isArabic ? 'إعدادات الإدارة' : 'Admin Settings',
@@ -113,6 +163,10 @@ export default function AdminSettingsPageClient({
     headerColorSelected: isArabic ? 'اللون الحالي' : 'Current Color',
     customHeaderColor: isArabic ? 'لون مخصص (Hex)' : 'Custom Header Color (Hex)',
     customHeaderColorHint: isArabic ? 'مثال: #7b3f8d' : 'Example: #7b3f8d',
+    headerLogoTitle: isArabic ? 'شعار الهيدر' : 'Header Logo',
+    headerLogoHint: isArabic
+      ? 'ارفع شعار الهيدر مع معاينة مباشرة. في حال ترك الحقل فارغاً سيُستخدم الشعار الافتراضي الحالي.'
+      : 'Upload the header logo with live preview. If empty, the current default logo is used.',
     footerBranding: isArabic ? 'هوية ألوان الفوتر' : 'Footer Branding',
     footerBrandingHint: isArabic
       ? 'هذا اللون يطبق مباشرة على خلفية الفوتر، بشكل مستقل عن لون الهيدر.'
@@ -120,7 +174,21 @@ export default function AdminSettingsPageClient({
     footerColorSelected: isArabic ? 'لون الفوتر الحالي' : 'Current Footer Color',
     customFooterColor: isArabic ? 'لون فوتر مخصص (Hex)' : 'Custom Footer Color (Hex)',
     customFooterColorHint: isArabic ? 'مثال: #7b3f8d' : 'Example: #7b3f8d',
+    footerLogoTitle: isArabic ? 'شعار الفوتر' : 'Footer Logo',
+    footerLogoHint: isArabic
+      ? 'هذا الشعار يظهر داخل الفوتر في الموقع العام مع معاينة مباشرة.'
+      : 'This logo is rendered inside the public footer with live preview.',
     customColorPicker: isArabic ? 'منتقي اللون' : 'Color Picker',
+    logoUpload: isArabic ? 'رفع شعار' : 'Upload Logo',
+    logoUploading: isArabic ? 'جارٍ الرفع...' : 'Uploading...',
+    logoPath: isArabic ? 'مسار الشعار' : 'Logo Path',
+    logoPreview: isArabic ? 'المعاينة' : 'Preview',
+    logoDefaultHint: isArabic ? 'القيمة الافتراضية الحالية' : 'Current default value',
+    logoResetDefault: isArabic ? 'إرجاع الافتراضي' : 'Use Default',
+    logoUploadSuccess: isArabic ? 'تم رفع الشعار. احفظ الإعدادات لتطبيقه.' : 'Logo uploaded. Save settings to apply.',
+    logoSaveHint: isArabic
+      ? 'بعد الرفع يتم تحديث المسار تلقائياً داخل النموذج. اضغط حفظ لتثبيت التغيير.'
+      : 'After upload, the path is updated in the form. Click Save to persist.',
     maintenanceMode: isArabic ? 'وضع الصيانة' : 'Maintenance Mode',
     whatsappEnabled: isArabic ? 'تفعيل واتساب' : 'Enable WhatsApp',
     bookingAutoConfirm: isArabic ? 'تأكيد الحجوزات تلقائيًا' : 'Auto-confirm bookings',
@@ -211,6 +279,11 @@ export default function AdminSettingsPageClient({
     footerRightsAr: isArabic ? 'جملة الحقوق (Arabic)' : 'Rights Text (Arabic)',
     footerCopyrightNameEn: isArabic ? 'اسم الحقوق (English)' : 'Copyright Name (English)',
     footerCopyrightNameAr: isArabic ? 'اسم الحقوق (Arabic)' : 'Copyright Name (Arabic)',
+    footerCopyrightTemplate: isArabic ? 'نص الكوبي رايت' : 'Copyright Text',
+    footerCopyrightTemplateHint: isArabic
+      ? 'يمكنك استخدام {year} للسنة الحالية و {brand} لاسم العلامة.'
+      : 'You can use {year} for the current year and {brand} for the brand name.',
+    footerCopyrightPreview: isArabic ? 'معاينة نص الحقوق' : 'Copyright Preview',
     footerNavLinks: isArabic ? 'روابط التصفح' : 'Navigate Links',
     footerLegalLinks: isArabic ? 'الروابط القانونية' : 'Legal Links',
     footerBottomLinks: isArabic ? 'روابط أسفل الفوتر' : 'Bottom Row Links',
@@ -218,9 +291,14 @@ export default function AdminSettingsPageClient({
     footerLinkLabelAr: isArabic ? 'العنوان AR' : 'Label AR',
     footerLinkHref: isArabic ? 'الرابط' : 'Href',
     footerLinkEnabled: isArabic ? 'إظهار' : 'Show',
-    footerPlatform: isArabic ? 'المنصة' : 'Platform',
+    footerPlatform: isArabic ? 'الأيقونة' : 'Icon',
     footerPlatformInstagram: isArabic ? 'إنستغرام' : 'Instagram',
     footerPlatformFacebook: isArabic ? 'فيسبوك' : 'Facebook',
+    footerPlatformTikTok: isArabic ? 'تيك توك' : 'TikTok',
+    footerPlatformYouTube: isArabic ? 'يوتيوب' : 'YouTube',
+    footerSocialHint: isArabic
+      ? 'اعرض حتى 4 أيقونات فقط في الفوتر. لكل عنصر يمكنك تحديد الأيقونة، الرابط، وإمكانية الظهور.'
+      : 'Show up to 4 icon-only social links in the footer. For each item you can choose the icon, URL, and visibility.',
     save: isArabic ? 'حفظ الإعدادات' : 'Save Settings',
     saving: isArabic ? 'جارٍ الحفظ...' : 'Saving...',
     saved: isArabic ? 'تم حفظ الإعدادات بنجاح.' : 'Settings saved successfully.',
@@ -400,7 +478,16 @@ export default function AdminSettingsPageClient({
   ) => {
     setFooter((prev) => ({
       ...prev,
-      socialLinks: prev.socialLinks.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)),
+      socialLinks: prev.socialLinks.map((item, itemIndex) => {
+        if (itemIndex !== index) return item;
+        const nextItem = { ...item, ...patch };
+        if (patch.icon) {
+          const labels = getFooterSocialLabels(patch.icon);
+          nextItem.labelEn = labels.labelEn;
+          nextItem.labelAr = labels.labelAr;
+        }
+        return nextItem;
+      }),
     }));
   };
 
@@ -412,6 +499,66 @@ export default function AdminSettingsPageClient({
       ),
     }));
   };
+
+  const handleLogoUpload = async (target: 'header' | 'footer', file: File | null) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError(isArabic ? 'يرجى اختيار ملف صورة صالح.' : 'Please choose a valid image file.');
+      return;
+    }
+
+    if (file.size > MAX_IMAGE_UPLOAD_SIZE) {
+      setError(isArabic ? 'حجم الصورة يجب أن يكون 5MB أو أقل.' : 'Image size must be 5MB or less.');
+      return;
+    }
+
+    setError(null);
+    setInfo(null);
+    setUploadingLogo(target);
+
+    try {
+      const previewDataUrl = await readFileAsDataUrl(file);
+      if (target === 'header') {
+        setHeaderLogoPreview(previewDataUrl);
+      } else {
+        setFooterLogoPreview(previewDataUrl);
+      }
+
+      const formData = new FormData();
+      formData.set('file', file);
+      formData.set('folder', 'branding');
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as { url?: string; error?: string };
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error || t.loadError);
+      }
+
+      if (target === 'header') {
+        setGeneral((prev) => ({ ...prev, headerLogoUrl: payload.url! }));
+        setHeaderLogoPreview(null);
+      } else {
+        setFooter((prev) => ({ ...prev, footerLogoUrl: payload.url! }));
+        setFooterLogoPreview(null);
+      }
+
+      setInfo(t.logoUploadSuccess);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : t.loadError);
+    } finally {
+      setUploadingLogo(null);
+    }
+  };
+
+  const headerLogoSrc = headerLogoPreview ?? normalizeImagePath(general.headerLogoUrl, DEFAULT_SITE_LOGO);
+  const footerLogoSrc = footerLogoPreview ?? normalizeImagePath(footer.footerLogoUrl, DEFAULT_SITE_LOGO);
+  const copyrightPreview = resolveCopyrightPreview(footer.copyrightText, footer.brandName);
 
   return (
     <div className="space-y-6">
@@ -535,6 +682,73 @@ export default function AdminSettingsPageClient({
                       />
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.customHeaderColorHint}</p>
                     </label>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <FiImage className="size-4 text-[color:var(--noon-teal)]" />
+                  <span>{t.headerLogoTitle}</span>
+                </div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.headerLogoHint}</p>
+
+                <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                  <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.logoPreview}</p>
+                      <div className="flex h-32 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/30">
+                        <img src={headerLogoSrc} alt="Header logo preview" className="max-h-full w-auto object-contain" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="inline-flex cursor-pointer items-center rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                          {uploadingLogo === 'header' ? t.logoUploading : t.logoUpload}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="sr-only"
+                            disabled={uploadingLogo !== null}
+                            onChange={(event) => {
+                              const nextFile = event.target.files?.[0] ?? null;
+                              event.currentTarget.value = '';
+                              void handleLogoUpload('header', nextFile);
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHeaderLogoPreview(null);
+                            setGeneral((prev) => ({ ...prev, headerLogoUrl: DEFAULT_SITE_LOGO }));
+                          }}
+                          className="inline-flex items-center rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                        >
+                          {t.logoResetDefault}
+                        </button>
+                      </div>
+
+                      <label className="space-y-1 text-sm">
+                        <span className="text-zinc-600 dark:text-zinc-300">{t.logoPath}</span>
+                        <input
+                          value={general.headerLogoUrl}
+                          onChange={(event) => setGeneral((prev) => ({ ...prev, headerLogoUrl: event.target.value }))}
+                          onBlur={() =>
+                            setGeneral((prev) => ({
+                              ...prev,
+                              headerLogoUrl: normalizeImagePath(prev.headerLogoUrl, DEFAULT_SITE_LOGO),
+                            }))
+                          }
+                          className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        />
+                      </label>
+                      <div className="space-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        <p>{t.logoSaveHint}</p>
+                        <p>{`${t.logoDefaultHint}: ${DEFAULT_SITE_LOGO}`}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -686,15 +900,78 @@ export default function AdminSettingsPageClient({
               </section>
 
               <section className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <FiImage className="size-4 text-[color:var(--noon-teal)]" />
+                  <span>{t.footerLogoTitle}</span>
+                </div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.footerLogoHint}</p>
+
+                <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                  <div className="grid gap-4 lg:grid-cols-[200px_1fr]">
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.logoPreview}</p>
+                      <div className="flex h-32 items-center justify-center rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/30">
+                        <img src={footerLogoSrc} alt="Footer logo preview" className="max-h-full w-auto object-contain" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="inline-flex cursor-pointer items-center rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                          {uploadingLogo === 'footer' ? t.logoUploading : t.logoUpload}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="sr-only"
+                            disabled={uploadingLogo !== null}
+                            onChange={(event) => {
+                              const nextFile = event.target.files?.[0] ?? null;
+                              event.currentTarget.value = '';
+                              void handleLogoUpload('footer', nextFile);
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFooterLogoPreview(null);
+                            setFooter((prev) => ({ ...prev, footerLogoUrl: DEFAULT_SITE_LOGO }));
+                          }}
+                          className="inline-flex items-center rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                        >
+                          {t.logoResetDefault}
+                        </button>
+                      </div>
+
+                      <label className="space-y-1 text-sm">
+                        <span className="text-zinc-600 dark:text-zinc-300">{t.logoPath}</span>
+                        <input
+                          value={footer.footerLogoUrl}
+                          onChange={(event) => setFooter((prev) => ({ ...prev, footerLogoUrl: event.target.value }))}
+                          onBlur={() =>
+                            setFooter((prev) => ({
+                              ...prev,
+                              footerLogoUrl: normalizeImagePath(prev.footerLogoUrl, DEFAULT_SITE_LOGO),
+                            }))
+                          }
+                          className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        />
+                      </label>
+                      <div className="space-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        <p>{t.logoSaveHint}</p>
+                        <p>{`${t.logoDefaultHint}: ${DEFAULT_SITE_LOGO}`}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section className="space-y-4">
                 <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.footerBrandSection}</div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <label className="space-y-1 text-sm">
                     <span className="text-zinc-600 dark:text-zinc-300">{t.footerBrandName}</span>
                     <input value={footer.brandName} onChange={(e) => setFooter((prev) => ({ ...prev, brandName: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
-                  </label>
-                  <label className="space-y-1 text-sm">
-                    <span className="text-zinc-600 dark:text-zinc-300">{t.footerBrandSubtitle}</span>
-                    <input value={footer.brandSubtitle} onChange={(e) => setFooter((prev) => ({ ...prev, brandSubtitle: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
                   </label>
                   <label className="space-y-1 text-sm md:col-span-2">
                     <span className="text-zinc-600 dark:text-zinc-300">{t.footerTaglineEn}</span>
@@ -703,14 +980,6 @@ export default function AdminSettingsPageClient({
                   <label className="space-y-1 text-sm md:col-span-2">
                     <span className="text-zinc-600 dark:text-zinc-300">{t.footerTaglineAr}</span>
                     <textarea rows={2} value={footer.taglineAr} onChange={(e) => setFooter((prev) => ({ ...prev, taglineAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
-                  </label>
-                  <label className="space-y-1 text-sm md:col-span-2">
-                    <span className="text-zinc-600 dark:text-zinc-300">{t.footerBlurbEn}</span>
-                    <textarea rows={3} value={footer.blurbEn} onChange={(e) => setFooter((prev) => ({ ...prev, blurbEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
-                  </label>
-                  <label className="space-y-1 text-sm md:col-span-2">
-                    <span className="text-zinc-600 dark:text-zinc-300">{t.footerBlurbAr}</span>
-                    <textarea rows={3} value={footer.blurbAr} onChange={(e) => setFooter((prev) => ({ ...prev, blurbAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
                   </label>
                 </div>
               </section>
@@ -739,6 +1008,15 @@ export default function AdminSettingsPageClient({
                   <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerLegalTitleAr}</span><input value={footer.legalTitleAr} onChange={(e) => setFooter((prev) => ({ ...prev, legalTitleAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
                   <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerFollowTitleEn}</span><input value={footer.followTitleEn} onChange={(e) => setFooter((prev) => ({ ...prev, followTitleEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
                   <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerFollowTitleAr}</span><input value={footer.followTitleAr} onChange={(e) => setFooter((prev) => ({ ...prev, followTitleAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
+                  <label className="space-y-1 text-sm md:col-span-2">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.footerCopyrightTemplate}</span>
+                    <textarea rows={2} value={footer.copyrightText} onChange={(e) => setFooter((prev) => ({ ...prev, copyrightText: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.footerCopyrightTemplateHint}</p>
+                  </label>
+                  <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-semibold text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/40 dark:text-zinc-200 md:col-span-2">
+                    <span className="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.footerCopyrightPreview}</span>
+                    <p className="mt-1">{copyrightPreview}</p>
+                  </div>
                   <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerRightsEn}</span><input value={footer.rightsEn} onChange={(e) => setFooter((prev) => ({ ...prev, rightsEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
                   <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerRightsAr}</span><input value={footer.rightsAr} onChange={(e) => setFooter((prev) => ({ ...prev, rightsAr: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
                   <label className="space-y-1 text-sm"><span className="text-zinc-600 dark:text-zinc-300">{t.footerCopyrightNameEn}</span><input value={footer.copyrightNameEn} onChange={(e) => setFooter((prev) => ({ ...prev, copyrightNameEn: e.target.value }))} className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" /></label>
@@ -804,15 +1082,18 @@ export default function AdminSettingsPageClient({
 
               <section className="space-y-4">
                 <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.footerSocialSection}</div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.footerSocialHint}</p>
                 <div className="space-y-3">
                   {footer.socialLinks.map((item, index) => (
-                    <div key={`footer-social-${index}`} className="grid gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700 md:grid-cols-[0.75fr_1fr_1fr_1.4fr_auto]">
-                      <select value={item.platform} onChange={(e) => updateFooterSocial(index, { platform: e.target.value === 'facebook' ? 'facebook' : 'instagram' })} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
-                        <option value="instagram">{t.footerPlatformInstagram}</option>
-                        <option value="facebook">{t.footerPlatformFacebook}</option>
+                    <div key={`footer-social-${index}`} className="grid gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700 md:grid-cols-[0.9fr_1fr_1fr_auto]">
+                      <select value={item.icon} onChange={(e) => updateFooterSocial(index, { icon: e.target.value as FooterAdminSocialIcon })} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100">
+                        {FOOTER_SOCIAL_ICON_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{isArabic ? option.labelAr : option.labelEn}</option>
+                        ))}
                       </select>
-                      <input value={item.labelEn} onChange={(e) => updateFooterSocial(index, { labelEn: e.target.value })} placeholder={t.footerLinkLabelEn} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
-                      <input value={item.labelAr} onChange={(e) => updateFooterSocial(index, { labelAr: e.target.value })} placeholder={t.footerLinkLabelAr} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
+                      <div className="flex items-center rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-200">
+                        {isArabic ? item.labelAr : item.labelEn}
+                      </div>
                       <input value={item.href} onChange={(e) => updateFooterSocial(index, { href: e.target.value })} placeholder={t.footerLinkHref} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm font-mono focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100" />
                       <label className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold dark:border-zinc-700">
                         <span>{t.footerLinkEnabled}</span>

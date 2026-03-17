@@ -17,6 +17,7 @@ type RegisterData = {
   dateOfBirth?: string;
   preferredLanguage?: 'en' | 'ar';
   password?: string;
+  acceptedTerms?: boolean;
 };
 
 type VerifyPayload = {
@@ -118,6 +119,7 @@ export async function POST(request: Request) {
       const email = typeof registerData.email === 'string' ? registerData.email.trim().toLowerCase() : '';
       const password = typeof registerData.password === 'string' ? registerData.password : '';
       const dateOfBirth = typeof registerData.dateOfBirth === 'string' ? registerData.dateOfBirth : '';
+      const acceptedTerms = registerData.acceptedTerms === true;
 
       if (!firstName || !lastName || !email || !password || !dateOfBirth) {
         return NextResponse.json(
@@ -132,6 +134,18 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error: locale === 'ar' ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.' : 'Password must be at least 8 characters.',
+          },
+          { status: 400 }
+        );
+      }
+
+      if (!acceptedTerms) {
+        return NextResponse.json(
+          {
+            error:
+              locale === 'ar'
+                ? 'يجب الموافقة على الشروط والأحكام لإكمال التسجيل.'
+                : 'You must accept the Terms & Conditions to register.',
           },
           { status: 400 }
         );

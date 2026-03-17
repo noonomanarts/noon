@@ -5,7 +5,7 @@ import { FiMessageCircle, FiPhoneCall } from 'react-icons/fi';
 import { usePathname } from 'next/navigation';
 
 import type { Locale } from '@/lib/locale';
-import type { WhatsAppFloatingButtonSettings } from '@/lib/db/adminSettings';
+import type { WhatsAppFloatingButtonSettings } from '@/lib/adminSettings';
 
 function normalizeHexColor(value: string, fallback: string): string {
   const input = value.trim().toLowerCase();

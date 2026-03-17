@@ -33,6 +33,7 @@ export default async function RegisterPage({
     const preferredLanguage = formData.get("preferredLanguage") as "en" | "ar";
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
+    const acceptedTerms = formData.get("acceptedTerms") === "on";
 
     // Validation
     if (!firstName || !lastName || !email || !phone || !dateOfBirth || !password) {
@@ -45,6 +46,10 @@ export default async function RegisterPage({
 
     if (password.length < 8) {
       redirect(`/${localeValue ?? "en"}/register?error=password_weak`);
+    }
+
+    if (!acceptedTerms) {
+      redirect(`/${localeValue ?? "en"}/register?error=terms_required`);
     }
 
     // Email validation
@@ -109,6 +114,9 @@ export default async function RegisterPage({
     password: locale === "ar" ? "كلمة المرور" : "Password",
     confirmPassword: locale === "ar" ? "تأكيد كلمة المرور" : "Confirm Password",
     passwordHint: locale === "ar" ? "يجب أن تكون 8 أحرف على الأقل" : "Must be at least 8 characters",
+    acceptTermsPrefix: locale === "ar" ? "لقد قرأت" : "I have read and accept the",
+    acceptTermsLink: locale === "ar" ? "الشروط والأحكام" : "Terms & Conditions",
+    acceptTermsSuffix: locale === "ar" ? "وأوافق عليها" : "",
     register: locale === "ar" ? "إنشاء حساب" : "Create Account",
     tabPassword: locale === "ar" ? "العضوية بكلمة المرور" : "Password Signup",
     tabWhatsApp: locale === "ar" ? "العضوية عبر واتساب" : "WhatsApp Signup",
@@ -123,6 +131,7 @@ export default async function RegisterPage({
     invalid_email: locale === "ar" ? "البريد الإلكتروني غير صحيح" : "Invalid email address",
     invalid_phone: locale === "ar" ? "رقم الهاتف غير صحيح" : "Invalid phone number",
     email_exists: locale === "ar" ? "البريد الإلكتروني مسجل بالفعل" : "Email already registered",
+    terms_required: locale === "ar" ? "يجب الموافقة على الشروط والأحكام لإكمال التسجيل" : "You must accept the Terms & Conditions to register",
     server_error: locale === "ar" ? "حدث خطأ، يرجى المحاولة مرة أخرى" : "An error occurred, please try again",
   };
 
@@ -314,6 +323,22 @@ export default async function RegisterPage({
                 />
               </label>
             </div>
+
+            <label className="flex items-start gap-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)]/35 px-4 py-3 text-sm text-[color:var(--text)] dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-200">
+              <input
+                type="checkbox"
+                name="acceptedTerms"
+                required
+                className="mt-1 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:ring-white"
+              />
+              <span className="leading-6">
+                {t.acceptTermsPrefix}{" "}
+                <Link href={`/${locale}/terms`} className="font-semibold underline underline-offset-4">
+                  {t.acceptTermsLink}
+                </Link>
+                {t.acceptTermsSuffix ? ` ${t.acceptTermsSuffix}` : ""}
+              </span>
+            </label>
 
             {/* Submit Button */}
             <button

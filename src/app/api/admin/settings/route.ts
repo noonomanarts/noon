@@ -32,6 +32,14 @@ function sanitizeHexColor(value: unknown, fallback: string): string {
   return raw;
 }
 
+function sanitizeImagePath(value: unknown, fallback: string): string {
+  const raw = typeof value === 'string' ? value.trim().slice(0, 500) : '';
+  if (!raw) return fallback;
+  if (!raw.startsWith('/')) return fallback;
+  if (raw.includes('..')) return fallback;
+  return raw;
+}
+
 function sanitizeGeneralSettings(input: Partial<GeneralAdminSettings>): GeneralAdminSettings {
   return {
     siteName: (input.siteName ?? defaultGeneralAdminSettings.siteName).trim().slice(0, 120),
@@ -41,6 +49,7 @@ function sanitizeGeneralSettings(input: Partial<GeneralAdminSettings>): GeneralA
     timezone: (input.timezone ?? defaultGeneralAdminSettings.timezone).trim().slice(0, 80),
     currency: (input.currency ?? defaultGeneralAdminSettings.currency).trim().slice(0, 10).toUpperCase(),
     headerColor: sanitizeHexColor(input.headerColor, defaultGeneralAdminSettings.headerColor),
+    headerLogoUrl: sanitizeImagePath(input.headerLogoUrl, defaultGeneralAdminSettings.headerLogoUrl),
     maintenanceMode: Boolean(input.maintenanceMode),
     whatsappEnabled: Boolean(input.whatsappEnabled),
     bookingAutoConfirm: Boolean(input.bookingAutoConfirm),

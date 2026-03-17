@@ -16,14 +16,34 @@ export function normalizeHexColor(value: string, fallback: string): string {
   return raw;
 }
 
-export async function resolveHeaderColor(): Promise<string> {
+export function normalizeImagePath(value: string, fallback: string): string {
+  const normalized = value.trim();
+  if (!normalized) return fallback;
+  if (!normalized.startsWith("/")) return fallback;
+  if (normalized.includes("..")) return fallback;
+  return normalized;
+}
+
+export async function resolveHeaderBranding(): Promise<{ headerColor: string; headerLogoUrl: string }> {
   try {
     const savedGeneral = await getAdminSettingsByKey<Partial<GeneralAdminSettings>>("general");
-    const fallback = defaultGeneralAdminSettings.headerColor;
-    return normalizeHexColor(savedGeneral?.headerColor ?? fallback, fallback);
+    const fallbackColor = defaultGeneralAdminSettings.headerColor;
+    const fallbackLogo = defaultGeneralAdminSettings.headerLogoUrl;
+    return {
+      headerColor: normalizeHexColor(savedGeneral?.headerColor ?? fallbackColor, fallbackColor),
+      headerLogoUrl: normalizeImagePath(savedGeneral?.headerLogoUrl ?? fallbackLogo, fallbackLogo),
+    };
   } catch {
-    return defaultGeneralAdminSettings.headerColor;
+    return {
+      headerColor: defaultGeneralAdminSettings.headerColor,
+      headerLogoUrl: defaultGeneralAdminSettings.headerLogoUrl,
+    };
   }
+}
+
+export async function resolveHeaderColor(): Promise<string> {
+  const branding = await resolveHeaderBranding();
+  return branding.headerColor;
 }
 
 export function getReadableTextColor(hex: string): "#ffffff" | "#23150f" {

@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 
 import { type Locale } from "@/lib/locale";
 import { getUserById } from "@/lib/db/users";
-import { resolveHeaderColor } from "@/lib/headerBranding";
+import { resolveHeaderBranding } from "@/lib/headerBranding";
 import { Dropdown } from "@/components/site/Dropdown";
 import SiteProfileMenu from "@/components/site/SiteProfileMenu";
 import CartLinkWithCount from '@/components/site/CartLinkWithCount';
@@ -48,7 +48,7 @@ export default async function Header({ locale }: { locale: Locale }) {
   const cartCookie = cookieStore.get(CART_COOKIE_NAME)?.value;
   const initialCart = parseCartCookie(cartCookie);
   const initialCartCount = initialCart.items.reduce((sum, item) => sum + item.quantity, 0);
-  const headerColor = await resolveHeaderColor();
+  const { headerColor, headerLogoUrl } = await resolveHeaderBranding();
   const navTone: "dark" | "light" = "light";
   const dropdownButtonClass = "text-black hover:bg-black/10 hover:text-black focus-visible:outline-black/60";
   const dropdownPanelClass = "mt-0 border-0 shadow-none";
@@ -83,7 +83,7 @@ export default async function Header({ locale }: { locale: Locale }) {
           aria-label="Noon"
         >
           <Image
-            src="/images/logo-noon.png"
+            src={headerLogoUrl}
             alt="Noon"
             width={56}
             height={56}
