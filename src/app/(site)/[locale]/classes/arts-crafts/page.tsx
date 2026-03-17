@@ -1,12 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiArrowLeft, FiArrowRight, FiCalendar, FiClock, FiUsers } from "react-icons/fi";
+import { FiArrowRight, FiCalendar, FiClock, FiUsers } from "react-icons/fi";
 import { HiPaintBrush } from "react-icons/hi2";
 
 import { findClassSessions, findManyClasses } from "@/lib/db/classes";
 import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { isLocale, type Locale } from "@/lib/locale";
+import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
+import ClassListingHeader from "@/components/site/ClassListingHeader";
 
 export default async function ArtsCraftsClassesPage({
   params,
@@ -16,6 +18,7 @@ export default async function ArtsCraftsClassesPage({
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const isArabic = locale === "ar";
+  const pageSettings = await getPublicSitePageSettings("classes_arts_crafts");
 
   const classes = await findManyClasses({
     category: ClassCategory.ARTS_CRAFTS,
@@ -48,6 +51,9 @@ export default async function ArtsCraftsClassesPage({
     backToClasses: isArabic ? "العودة إلى الدورات" : "Back to classes",
   };
 
+  const pageTitle = (isArabic ? pageSettings?.headingAr : pageSettings?.headingEn)?.trim() || t.title;
+  const pageSubtitle = (isArabic ? pageSettings?.subheadingAr : pageSettings?.subheadingEn)?.trim() || t.subtitle;
+
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
     return d.toLocaleDateString(isArabic ? "ar-OM" : "en-OM", {
@@ -65,36 +71,17 @@ export default async function ArtsCraftsClassesPage({
   };
 
   return (
-    <div className="route-sharp relative overflow-x-clip pb-14">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
-        <div className="absolute -left-20 top-8 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
-        <div className="absolute right-0 top-14 h-80 w-80 rounded-full bg-coral/16 blur-3xl dark:bg-coral/10" />
-      </div>
+    <div className="route-sharp pb-14">
+      <ClassListingHeader
+        locale={locale}
+        title={pageTitle}
+        backgroundColor={pageSettings?.classListingHero.backgroundColor || "#cb8578"}
+        slideImages={pageSettings?.classListingHero.slideImages || ["/images/art.png"]}
+        autoplayMs={pageSettings?.classListingHero.autoplayMs}
+        backLabel={t.backToClasses}
+      />
 
-      <section className="mx-auto w-full max-w-6xl px-4 pt-10">
-        <div className="mb-4">
-          <Link
-            href={`/${locale}/classes`}
-            className="inline-flex items-center gap-2 border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:shadow-sm"
-          >
-            <FiArrowLeft className="size-4" />
-            {t.backToClasses}
-          </Link>
-        </div>
-        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
-          <h1 className="text-4xl font-semibold tracking-tight text-[color:var(--text)] sm:text-5xl">
-            {t.title}
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
-            {t.subtitle}
-          </p>
-          <div className="mt-6 inline-flex rounded-full border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-2 text-sm font-semibold text-[color:var(--text)]">
-            {classesWithSessions.length} {isArabic ? "دورة منشورة" : "published classes"}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto mt-10 w-full max-w-6xl px-4">
+      <section className="mx-auto mt-4 w-full max-w-6xl px-4">
         {classesWithSessions.length === 0 ? (
           <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-12 text-center shadow-sm">
             <HiPaintBrush className="mx-auto mb-4 h-16 w-16 text-[color:var(--text-subtle)]" />

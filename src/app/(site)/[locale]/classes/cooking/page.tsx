@@ -1,12 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiArrowLeft, FiArrowRight, FiCalendar, FiClock, FiUsers } from "react-icons/fi";
+import { FiArrowRight, FiBookOpen, FiCalendar, FiUser } from "react-icons/fi";
 import { GiChefToque } from "react-icons/gi";
+import { HiOutlineBanknotes } from "react-icons/hi2";
 
 import { findClassSessions, findManyClasses } from "@/lib/db/classes";
 import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { isLocale, type Locale } from "@/lib/locale";
+import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
+import ClassListingHeader from "@/components/site/ClassListingHeader";
 
 type ClassWithSessions = {
   id: string;
@@ -40,83 +43,55 @@ function ClassCard({
   formatDate: (date: Date | string) => string;
   formatTime: (date: Date | string) => string;
 }) {
+  const title = locale === "ar" && cls.titleAr ? cls.titleAr : cls.title;
+  const nextSession = cls.sessions[0];
+  const datetimeText = nextSession
+    ? `${formatDate(nextSession.startTime)} · ${formatTime(nextSession.startTime)}`
+    : t.noUpcomingSessions;
+  const priceText = formatAmountWithCurrency(cls.price, cls.currency);
+
   return (
-    <article className="group overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+    <article className="group flex h-full flex-col overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
       <Link
         href={`/${locale}/classes/${cls.slug}`}
         className="relative block aspect-square overflow-hidden"
-        aria-label={locale === "ar" && cls.titleAr ? cls.titleAr : cls.title}
+        aria-label={title}
       >
         {cls.image ? (
           <Image
             src={cls.image}
-            alt={locale === "ar" && cls.titleAr ? cls.titleAr : cls.title}
+            alt={title}
             fill
-            className="object-cover transition duration-500 group-hover:scale-[1.04]"
+            className="object-cover transition duration-500 group-hover:scale-[1.03]"
           />
         ) : (
           <div className="flex h-full items-center justify-center bg-[color:var(--muted)]">
             <GiChefToque className="h-20 w-20 text-[color:var(--text-subtle)]" />
           </div>
         )}
-
-        <div className="absolute right-4 top-4 rounded-full bg-[color:var(--surface)]/95 px-3 py-1 text-xs font-semibold text-[color:var(--text)] shadow-sm backdrop-blur">
-          {formatAmountWithCurrency(cls.price, cls.currency)}
-        </div>
       </Link>
-
-      <div className="space-y-4 p-5">
-        <h3 className="line-clamp-1 text-lg font-semibold text-[color:var(--text)]">
-          {locale === "ar" && cls.titleAr ? cls.titleAr : cls.title}
+      <div className="flex flex-1 flex-col space-y-3 p-4 sm:p-5">
+        <h3 className="line-clamp-2 inline-flex items-start gap-2 text-base font-semibold text-[color:var(--text)] sm:text-lg">
+          <FiBookOpen className="mt-0.5 size-4 shrink-0 text-purple-500" />
+          <span>{title}</span>
         </h3>
-
-        {cls.description ? (
-          <p className="line-clamp-2 text-sm leading-6 text-[color:var(--text-muted)]">
-            {locale === "ar" && cls.descriptionAr ? cls.descriptionAr : cls.description}
+        <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
+          <FiCalendar className="size-4 shrink-0 text-teal-500" />
+          {datetimeText}
+        </p>
+        <div className="mt-auto pt-2">
+          <p className="mb-3 inline-flex items-center gap-2 text-2xl font-black leading-none text-[color:var(--text)] sm:text-3xl">
+            <HiOutlineBanknotes className="size-6 shrink-0 text-emerald-600" />
+            {priceText}
           </p>
-        ) : null}
-
-        <div className="flex flex-wrap items-center gap-3 text-xs text-[color:var(--text-muted)]">
-          {cls.durationMinutes ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--muted)] px-2.5 py-1">
-              <FiClock className="size-3.5" />
-              {t.duration}: {cls.durationMinutes} {t.minutes}
-            </span>
-          ) : null}
-          <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--muted)] px-2.5 py-1">
-            <FiUsers className="size-3.5" />
-            {cls.sessions.reduce((sum, s) => sum + s.seatsAvailable, 0)} {t.available}
-          </span>
+          <Link
+            href={`/${locale}/classes/${cls.slug}`}
+            className="inline-flex w-full items-center justify-center gap-1 bg-[color:var(--primary)] px-4 py-3 text-sm font-extrabold uppercase tracking-wide text-[color:var(--primary-foreground)] transition hover:brightness-95"
+          >
+            {t.bookNow}
+            <FiArrowRight className="size-3.5" />
+          </Link>
         </div>
-
-        {cls.sessions.length > 0 ? (
-          <div className="space-y-2">
-            {cls.sessions.slice(0, 2).map((session) => (
-              <div
-                key={session.id}
-                className="flex items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2"
-              >
-                <p className="inline-flex items-center gap-2 text-xs font-medium text-[color:var(--text)]">
-                  <FiCalendar className="size-3.5 text-[color:var(--primary)]" />
-                  {formatDate(session.startTime)} · {formatTime(session.startTime)}
-                </p>
-                <p className="text-xs text-[color:var(--text-muted)]">
-                  {session.seatsAvailable} {t.available}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-[color:var(--text-subtle)]">{t.noUpcomingSessions}</p>
-        )}
-
-        <Link
-          href={`/${locale}/classes/${cls.slug}`}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
-        >
-          {t.bookNow}
-          <FiArrowRight className="size-4" />
-        </Link>
       </div>
     </article>
   );
@@ -172,6 +147,7 @@ export default async function CookingClassesPage({
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const isArabic = locale === "ar";
+  const pageSettings = await getPublicSitePageSettings("classes_cooking");
 
   const classes = await findManyClasses({
     category: ClassCategory.COOKING,
@@ -239,6 +215,9 @@ export default async function CookingClassesPage({
     backToClasses: isArabic ? "العودة إلى الدورات" : "Back to classes",
   };
 
+  const pageTitle = (isArabic ? pageSettings?.headingAr : pageSettings?.headingEn)?.trim() || t.title;
+  const pageSubtitle = (isArabic ? pageSettings?.subheadingAr : pageSettings?.subheadingEn)?.trim() || t.subtitle;
+
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
     return d.toLocaleDateString(isArabic ? "ar-OM" : "en-OM", {
@@ -256,36 +235,17 @@ export default async function CookingClassesPage({
   };
 
   return (
-    <div className="route-sharp relative overflow-x-clip pb-14">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
-        <div className="absolute -left-20 top-8 h-72 w-72 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
-        <div className="absolute right-0 top-16 h-80 w-80 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
-      </div>
+    <div className="route-sharp pb-14">
+      <ClassListingHeader
+        locale={locale}
+        title={pageTitle}
+        backgroundColor={pageSettings?.classListingHero.backgroundColor || "#cb8578"}
+        slideImages={pageSettings?.classListingHero.slideImages || ["/images/cooking.png"]}
+        autoplayMs={pageSettings?.classListingHero.autoplayMs}
+        backLabel={t.backToClasses}
+      />
 
-      <section className="mx-auto w-full max-w-6xl px-4 pt-10">
-        <div className="mb-4">
-          <Link
-            href={`/${locale}/classes`}
-            className="inline-flex items-center gap-2 border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:shadow-sm"
-          >
-            <FiArrowLeft className="size-4" />
-            {t.backToClasses}
-          </Link>
-        </div>
-        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
-          <h1 className="text-4xl font-semibold tracking-tight text-[color:var(--text)] sm:text-5xl">
-            {t.title}
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
-            {t.subtitle}
-          </p>
-          <div className="mt-6 inline-flex rounded-full border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-2 text-sm font-semibold text-[color:var(--text)]">
-            {classesWithSessions.length} {isArabic ? "دورة منشورة" : "published classes"}
-          </div>
-        </div>
-      </section>
-
-      <div className="mx-auto mt-10 flex w-full max-w-6xl flex-col gap-12 px-4">
+      <div className="mx-auto mt-4 flex w-full max-w-6xl flex-col gap-12 px-4">
         <SubCategorySection
           title={t.appetizers}
           classes={subCategories.APPETIZERS}

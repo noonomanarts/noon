@@ -110,6 +110,7 @@ export default function AdminPageSettingsClient({
   const [keywordsEnText, setKeywordsEnText] = useState(() => keywordsToText(initialSettings.keywordsEn));
   const [keywordsArText, setKeywordsArText] = useState(() => keywordsToText(initialSettings.keywordsAr));
   const [uploadingHeroMedia, setUploadingHeroMedia] = useState(false);
+  const [uploadingClassHeaderSlideIndex, setUploadingClassHeaderSlideIndex] = useState<number | null>(null);
   const [uploadingCourseImageKey, setUploadingCourseImageKey] = useState<"cooking" | "arts" | null>(null);
   const [uploadingPartnerLogoIndex, setUploadingPartnerLogoIndex] = useState<number | null>(null);
   const [uploadingUpcomingImageIndex, setUploadingUpcomingImageIndex] = useState<number | null>(null);
@@ -128,6 +129,7 @@ export default function AdminPageSettingsClient({
   const isTermsPage = page.key === "terms";
   const isContactPage = page.key === "contact";
   const isAboutPage = page.key === "about";
+  const isClassListingPage = page.key === "classes_cooking" || page.key === "classes_arts_crafts";
   const previewEn = buildLocalizedPagePath(page.pathTemplate, "en");
   const previewAr = buildLocalizedPagePath(page.pathTemplate, "ar");
 
@@ -207,6 +209,23 @@ export default function AdminPageSettingsClient({
     heroUploading: isArabic ? "جارٍ رفع الوسائط..." : "Uploading media...",
     heroAutoplayMs: isArabic ? "سرعة السلايدشو (ms)" : "Slideshow Speed (ms)",
     heroAutoplayHint: isArabic ? "من 2000 إلى 12000 مللي ثانية." : "Between 2000 and 12000 ms.",
+    classHeaderSection: isArabic ? "إعدادات هيدر صفحة الدورات" : "Class Header Settings",
+    classHeaderHint: isArabic
+      ? "عنوان الهيدر يُؤخذ من حقول العنوان أعلاه. من هنا يمكنك تغيير لون الخلفية وصور السلايدشو لهذه الصفحة."
+      : "The header title uses the heading fields above. Configure the background color and slideshow images for this page here.",
+    classHeaderBackgroundColor: isArabic ? "لون خلفية الهيدر" : "Header Background Color",
+    classHeaderBackgroundHint: isArabic ? "يظهر مباشرة خلف العنوان والصور." : "Shown directly behind the title and slideshow.",
+    classHeaderSlides: isArabic ? "صور السلايدشو" : "Slideshow Images",
+    classHeaderSlidesEmpty: isArabic ? "لا توجد صور حالياً. أضف صورة أو ارفع ملفاً." : "No slides yet. Add an image path or upload a file.",
+    classHeaderSlidePath: isArabic ? "مسار الصورة" : "Image Path",
+    classHeaderAddSlide: isArabic ? "إضافة صورة" : "Add Slide",
+    classHeaderRemoveSlide: isArabic ? "حذف الصورة" : "Remove Slide",
+    classHeaderUpload: isArabic ? "رفع صورة" : "Upload Image",
+    classHeaderUploading: isArabic ? "جارٍ الرفع..." : "Uploading...",
+    classHeaderUploadDone: isArabic ? "تم تحديث صورة الهيدر." : "Header image updated successfully.",
+    classHeaderUploadFailed: isArabic ? "فشل رفع صورة الهيدر." : "Failed to upload header image.",
+    classHeaderAutoplay: isArabic ? "سرعة السلايدشو (ms)" : "Slideshow Speed (ms)",
+    classHeaderPreview: isArabic ? "معاينة الهيدر" : "Header Preview",
     homeCoursesSection: isArabic ? "إعدادات قسم الدورات" : "Courses Section Settings",
     homeCoursesHint: isArabic
       ? "تحكم بعنوان القسم، الوصف، ونصوص الكروت. روابط الصور تبقى قابلة للتعديل من هنا."
@@ -460,6 +479,13 @@ export default function AdminPageSettingsClient({
   const heroVideoSrc = settings.homeHero.backgroundVideoSrc?.trim() ?? "";
   const heroMediaIsVideo = heroMediaType === "video";
   const heroMediaSrc = heroMediaIsVideo ? heroVideoSrc : heroImageSrc;
+  const classHeaderTitle =
+    (isArabic ? settings.headingAr : settings.headingEn).trim() || (isArabic ? page.nameAr : page.nameEn);
+  const classHeaderBackgroundColor = normalizeHexColor(
+    settings.classListingHero.backgroundColor,
+    defaults.classListingHero.backgroundColor
+  );
+  const classHeaderTextColor = getReadableTextColor(classHeaderBackgroundColor);
   const cookingPreviewTitle = (isArabic ? settings.homeCourses.cookingTitleAr : settings.homeCourses.cookingTitleEn).trim() || (isArabic ? "دورات الطبخ" : "Cooking classes");
   const artsPreviewTitle = (isArabic ? settings.homeCourses.artsTitleAr : settings.homeCourses.artsTitleEn).trim() || (isArabic ? "دورات الفنون" : "Arts & crafts classes");
 
@@ -507,6 +533,55 @@ export default function AdminPageSettingsClient({
             : [],
       },
     }));
+  };
+
+  const setClassHeaderSlide = (index: number, value: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      classListingHero: {
+        ...prev.classListingHero,
+        slideImages: prev.classListingHero.slideImages.map((item, itemIndex) =>
+          itemIndex === index ? value : item
+        ),
+      },
+    }));
+  };
+
+  const addClassHeaderSlide = () => {
+    setSettings((prev) => ({
+      ...prev,
+      classListingHero: {
+        ...prev.classListingHero,
+        slideImages: [...prev.classListingHero.slideImages, ""],
+      },
+    }));
+  };
+
+  const removeClassHeaderSlide = (index: number) => {
+    setSettings((prev) => ({
+      ...prev,
+      classListingHero: {
+        ...prev.classListingHero,
+        slideImages: prev.classListingHero.slideImages.filter((_, itemIndex) => itemIndex !== index),
+      },
+    }));
+  };
+
+  const moveClassHeaderSlide = (index: number, direction: -1 | 1) => {
+    setSettings((prev) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= prev.classListingHero.slideImages.length) return prev;
+      const next = [...prev.classListingHero.slideImages];
+      const [item] = next.splice(index, 1);
+      next.splice(targetIndex, 0, item);
+      return {
+        ...prev,
+        classListingHero: {
+          ...prev.classListingHero,
+          slideImages: next,
+        },
+      };
+    });
   };
 
   const setHomeNumberItem = (
@@ -961,6 +1036,23 @@ export default function AdminPageSettingsClient({
     }
   };
 
+  const handleClassHeaderSlideUpload = async (index: number, file: File | null) => {
+    if (!file) return;
+    setUploadingClassHeaderSlideIndex(index);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const url = await uploadAsset(file, "classes-header", t.classHeaderUploadFailed);
+      setClassHeaderSlide(index, url);
+      setInfo(t.classHeaderUploadDone);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : t.classHeaderUploadFailed);
+    } finally {
+      setUploadingClassHeaderSlideIndex(null);
+    }
+  };
+
   const handleCourseImageUpload = async (target: "cooking" | "arts", file: File | null) => {
     if (!file) return;
     setUploadingCourseImageKey(target);
@@ -1325,6 +1417,181 @@ export default function AdminPageSettingsClient({
           )}
         </div>
       </section>
+
+      {isClassListingPage && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.classHeaderSection}</h2>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.classHeaderHint}</p>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.classHeaderBackgroundColor}</span>
+              <div className="flex gap-2">
+                <input
+                  value={settings.classListingHero.backgroundColor}
+                  onChange={(event) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      classListingHero: {
+                        ...prev.classListingHero,
+                        backgroundColor: normalizeHexColor(event.target.value, defaults.classListingHero.backgroundColor),
+                      },
+                    }))
+                  }
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+                <input
+                  type="color"
+                  value={classHeaderBackgroundColor}
+                  onChange={(event) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      classListingHero: {
+                        ...prev.classListingHero,
+                        backgroundColor: event.target.value,
+                      },
+                    }))
+                  }
+                  className="h-11 w-14 rounded-lg border border-zinc-300 bg-transparent p-1 dark:border-zinc-700"
+                />
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.classHeaderBackgroundHint}</p>
+            </label>
+
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.classHeaderAutoplay}</span>
+              <input
+                type="number"
+                min={2000}
+                max={12000}
+                step={100}
+                value={settings.classListingHero.autoplayMs}
+                onChange={(event) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    classListingHero: {
+                      ...prev.classListingHero,
+                      autoplayMs: Number.parseInt(event.target.value || String(defaults.classListingHero.autoplayMs), 10),
+                    },
+                  }))
+                }
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+            </label>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
+            <h3 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.classHeaderPreview}</h3>
+            <div className="overflow-hidden rounded-[1.75rem]" style={{ backgroundColor: classHeaderBackgroundColor }}>
+              <div className="grid gap-6 px-5 py-6 md:grid-cols-[minmax(0,1fr)_14rem] md:items-start">
+                <div>
+                  <div
+                    className="max-w-[9ch] text-4xl font-light leading-[0.95] tracking-[0.04em]"
+                    style={{ color: classHeaderTextColor, fontFamily: locale === "ar" ? "var(--font-hero-ar)" : "var(--font-home-title-en)" }}
+                  >
+                    {classHeaderTitle}
+                  </div>
+                </div>
+                <div className="overflow-hidden rounded-[1.5rem] bg-white/15">
+                  <div
+                    className="aspect-[5/5.6] w-full bg-white/10 bg-cover bg-center"
+                    style={{ backgroundImage: settings.classListingHero.slideImages[0]?.trim() ? `url(\"${settings.classListingHero.slideImages[0].trim()}\")` : undefined }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.classHeaderSlides}</h3>
+              <button
+                type="button"
+                onClick={addClassHeaderSlide}
+                className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              >
+                <FiPlus className="size-4" />
+                {t.classHeaderAddSlide}
+              </button>
+            </div>
+
+            {settings.classListingHero.slideImages.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-zinc-300 px-4 py-6 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                {t.classHeaderSlidesEmpty}
+              </div>
+            ) : (
+              settings.classListingHero.slideImages.map((slide, index) => (
+                <div key={`class-header-slide-${index}`} className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+                  <div className="flex flex-wrap items-start gap-3 md:flex-nowrap">
+                    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800">
+                      {slide.trim() ? (
+                        <div
+                          className="h-full w-full bg-cover bg-center"
+                          style={{ backgroundImage: `url(\"${slide.trim()}\")` }}
+                        />
+                      ) : null}
+                    </div>
+
+                    <div className="flex-1 space-y-3">
+                      <label className="block space-y-1 text-sm">
+                        <span className="text-zinc-600 dark:text-zinc-300">{t.classHeaderSlidePath}</span>
+                        <input
+                          value={slide}
+                          onChange={(event) => setClassHeaderSlide(index, event.target.value)}
+                          className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        />
+                      </label>
+
+                      <div className="flex flex-wrap gap-2">
+                        <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                          <FiUpload className="size-3.5" />
+                          {uploadingClassHeaderSlideIndex === index ? t.classHeaderUploading : t.classHeaderUpload}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingClassHeaderSlideIndex !== null}
+                            onChange={(event) => {
+                              void handleClassHeaderSlideUpload(index, event.target.files?.[0] ?? null);
+                              event.currentTarget.value = "";
+                            }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => moveClassHeaderSlide(index, -1)}
+                          disabled={index === 0}
+                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                        >
+                          <FiArrowUp className="size-3.5" />
+                          {t.moveUp}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveClassHeaderSlide(index, 1)}
+                          disabled={index === settings.classListingHero.slideImages.length - 1}
+                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                        >
+                          <FiArrowDown className="size-3.5" />
+                          {t.moveDown}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeClassHeaderSlide(index)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-300 dark:hover:bg-rose-950/30"
+                        >
+                          <FiTrash2 className="size-3.5" />
+                          {t.classHeaderRemoveSlide}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      )}
 
       {isAboutPage && (
         <>

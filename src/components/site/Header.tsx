@@ -160,7 +160,7 @@ export default async function Header({ locale }: { locale: Locale }) {
           ) : (
             <Link
               href={`/${locale}/login`} 
-              className="inline-flex h-11 items-center justify-center px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
+              className="hidden h-11 items-center justify-center px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black md:inline-flex"
             >
               {t.login}
             </Link>
@@ -189,6 +189,16 @@ export default async function Header({ locale }: { locale: Locale }) {
               <NavLink href={`/${locale}/noon-recommends`} tone={navTone}>{t.recommends}</NavLink>
               <NavLink href={`/${locale}/about`} tone={navTone}>{t.about}</NavLink>
               <NavLink href={`/${locale}/contact`} tone={navTone}>{t.contact}</NavLink>
+              {!user && (
+                <div className="mt-2 border-t border-black/10 pt-2">
+                  <Link
+                    href={`/${locale}/login`}
+                    className="flex h-11 items-center justify-center rounded-lg bg-[#6d2e46] px-4 text-sm font-extrabold text-white transition hover:brightness-110"
+                  >
+                    {t.login}
+                  </Link>
+                </div>
+              )}
             </Dropdown>
           </div>
         </div>

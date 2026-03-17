@@ -203,6 +203,12 @@ export type AboutPageSettings = {
   familyImageSrc: string;
 };
 
+export type ClassListingHeroSettings = {
+  backgroundColor: string;
+  slideImages: string[];
+  autoplayMs: number;
+};
+
 export type SitePageDefinition = {
   key: string;
   pathTemplate: string;
@@ -246,6 +252,7 @@ export type SitePageSettings = {
   termsSections: TermsSectionSettings[];
   contactPage: ContactPageSettings;
   aboutPage: AboutPageSettings;
+  classListingHero: ClassListingHeroSettings;
 };
 
 export const sitePageCatalog: SitePageDefinition[] = [
@@ -1183,6 +1190,25 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
           familyImageSrc: "",
         };
 
+  const classListingHero: ClassListingHeroSettings =
+    page.key === "classes_cooking"
+      ? {
+          backgroundColor: "#cb8578",
+          slideImages: ["/images/cooking.png"],
+          autoplayMs: 4200,
+        }
+      : page.key === "classes_arts_crafts"
+        ? {
+            backgroundColor: "#cb8578",
+            slideImages: ["/images/art.png"],
+            autoplayMs: 4200,
+          }
+        : {
+            backgroundColor: "#cb8578",
+            slideImages: [],
+            autoplayMs: 4200,
+          };
+
   return {
     visibility: page.defaultVisibility ?? "PUBLISHED",
     navPlacement: page.defaultNavPlacement,
@@ -1360,6 +1386,7 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
       successMessageAr: "شكرًا لتواصلك. سيقوم فريقنا بالرد عليك قريبًا.",
     },
     aboutPage,
+    classListingHero,
   };
 }
 
@@ -1384,6 +1411,7 @@ export function sanitizeSitePageSettings(
     toSafeString(source.homeHero?.backgroundVideoSrc, 500) ||
     (legacyMediaSrc && legacyMediaType === "video" ? legacyMediaSrc : defaults.homeHero.backgroundVideoSrc);
   const selectedBackgroundSrc = backgroundMediaType === "video" ? backgroundVideoSrc : backgroundImageSrc;
+  const classListingSlides = toStringArray(source.classListingHero?.slideImages, 10, 500);
 
   return {
     visibility: toVisibility(source.visibility, defaults.visibility),
@@ -1574,6 +1602,20 @@ export function sanitizeSitePageSettings(
       familyBodyEn: toSafeString(source.aboutPage?.familyBodyEn, 4000) || defaults.aboutPage.familyBodyEn,
       familyBodyAr: toSafeString(source.aboutPage?.familyBodyAr, 4000) || defaults.aboutPage.familyBodyAr,
       familyImageSrc: toSafeString(source.aboutPage?.familyImageSrc, 500) || defaults.aboutPage.familyImageSrc,
+    },
+    classListingHero: {
+      backgroundColor: toHexColor(
+        source.classListingHero?.backgroundColor,
+        defaults.classListingHero.backgroundColor
+      ),
+      slideImages:
+        classListingSlides.length > 0 ? classListingSlides : defaults.classListingHero.slideImages,
+      autoplayMs: toNumberInRange(
+        source.classListingHero?.autoplayMs,
+        defaults.classListingHero.autoplayMs,
+        2000,
+        12000
+      ),
     },
   };
 }
