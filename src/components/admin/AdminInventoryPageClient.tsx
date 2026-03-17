@@ -366,7 +366,6 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
-            <p className="mt-2 max-w-3xl text-sm text-zinc-500 dark:text-zinc-400">{t.subtitle}</p>
           </div>
           <button
             type="button"

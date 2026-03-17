@@ -1191,13 +1191,9 @@ export default function AdminPageSettingsClient({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400">{t.pageSettings}</p>
-          <h1 className="mt-1 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
             {page.nameEn} / {page.nameAr}
           </h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            {isArabic ? page.descriptionAr : page.descriptionEn}
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link

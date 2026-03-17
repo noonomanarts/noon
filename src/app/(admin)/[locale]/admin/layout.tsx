@@ -307,9 +307,6 @@ export default async function AdminLayout({
                 />
                 <div className={locale === "ar" ? "text-right" : "text-left"}>
                   <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">{t.dashboard}</h1>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    {t.welcomeBack}, {user.fullName}
-                  </p>
                 </div>
               </div>
 

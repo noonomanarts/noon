@@ -239,7 +239,6 @@ export default function AdminClassSessionsPage({
             {t.back}
           </Link>
           <h1 className="mt-3 text-3xl font-bold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t.subtitle}</p>
         </div>
 
         <div className="flex flex-wrap gap-3">

@@ -520,7 +520,6 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t.subtitle}</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

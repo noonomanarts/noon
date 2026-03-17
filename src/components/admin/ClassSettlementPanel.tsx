@@ -450,7 +450,6 @@ export default function ClassSettlementPanel({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t.title}</h2>
-          <p className="mt-2 max-w-3xl text-sm text-zinc-500 dark:text-zinc-400">{t.subtitle}</p>
         </div>
         <span
           className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${

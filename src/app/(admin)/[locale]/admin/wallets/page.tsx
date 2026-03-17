@@ -53,9 +53,6 @@ export default async function WalletsPage({
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           {locale === "ar" ? "محافظ المستخدمين" : "User Wallets"}
         </h1>
-        <p className="text-gray-600 dark:text-zinc-400 mt-1">
-          {locale === "ar" ? "إدارة محافظ المستخدمين ومعاملاتهم" : "Manage user wallets and transactions"}
-        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">

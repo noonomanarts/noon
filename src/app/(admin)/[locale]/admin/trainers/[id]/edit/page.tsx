@@ -459,9 +459,6 @@ export default function EditTrainerPage() {
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
             Edit Trainer Profile
           </h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            {trainer.fullName}
-          </p>
         </div>
         <Link
           href={`/${locale}/admin/trainers`}

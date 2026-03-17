@@ -404,9 +404,6 @@ export default function NewClassPage() {
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
           {isRTL ? 'إضافة صف جديد' : 'Create New Class'}
         </h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          {isRTL ? 'أدخل تفاصيل الصف الجديد' : 'Fill in the details to create a new class'}
-        </p>
       </div>
 
       {/* Form */}

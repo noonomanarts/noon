@@ -216,7 +216,6 @@ export default function AdminTrainerSuggestionsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t.subtitle}</p>
         </div>
         <button
           type="button"

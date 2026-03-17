@@ -156,9 +156,6 @@ export default function AdminTrainersPage() {
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
             Trainers Management
           </h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Manage trainers and their profiles
-          </p>
         </div>
       </div>
 

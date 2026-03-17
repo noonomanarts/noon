@@ -76,11 +76,6 @@ export default async function AdminUsersPage({
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
             {t.title}
           </h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {locale === "ar" 
-              ? "إدارة المستخدمين والصلاحيات"
-              : "Manage users and permissions"}
-          </p>
         </div>
         <Link
           href={`/${locale}/admin/users/new`}

@@ -449,9 +449,6 @@ export default function EditClassPage() {
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
           {isRTL ? 'تعديل الصف' : 'Edit Class'}
         </h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          {isRTL ? 'قم بتعديل تفاصيل الصف' : 'Update the class details'}
-        </p>
       </div>
 
       {/* Form */}

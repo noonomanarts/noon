@@ -97,19 +97,6 @@ type SessionItem = {
   } | null;
 };
 
-function statusClasses(status: ClassStatus) {
-  switch (status) {
-    case 'PUBLISHED':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300';
-    case 'COMPLETED':
-      return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/40 dark:bg-sky-900/20 dark:text-sky-300';
-    case 'CANCELLED':
-      return 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300';
-    default:
-      return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300';
-  }
-}
-
 function formatSubCategory(value: string, isArabic: boolean) {
   const labels: Record<string, { en: string; ar: string }> = {
     APPETIZERS_SNACKS: { en: 'Appetizers & Snacks', ar: 'المقبلات والوجبات الخفيفة' },
@@ -352,7 +339,6 @@ export default function AdminClassDetailsPage({
   }
 
   const displayTitle = isArabic && classData.titleAr ? classData.titleAr : classData.title;
-  const displayDescription = isArabic && classData.descriptionAr ? classData.descriptionAr : classData.description;
   const reviewCount = classData.reviews?.length ?? 0;
   const bookingsCount = classData._count?.bookings ?? 0;
   const sessionsCount = classData._count?.sessions ?? orderedSessions.length;
@@ -371,23 +357,9 @@ export default function AdminClassDetailsPage({
                 {t.back}
               </Link>
 
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusClasses(classData.status)}`}>
-                  {formatStatus(classData.status, isArabic)}
-                </span>
-                <span className="inline-flex rounded-full border border-zinc-200 bg-white/80 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950/60 dark:text-zinc-300">
-                  {formatCategory(classData.category, isArabic)}
-                </span>
-                <span className="inline-flex rounded-full border border-zinc-200 bg-white/80 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-950/60 dark:text-zinc-300">
-                  {formatSubCategory(classData.subCategory, isArabic)}
-                </span>
-              </div>
-
               <h1 className="mt-4 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-4xl">
                 {displayTitle}
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-zinc-600 dark:text-zinc-300">{displayDescription}</p>
-              <p className="mt-4 text-xs uppercase tracking-[0.24em] text-zinc-500 dark:text-zinc-400">{t.subtitle}</p>
             </div>
 
             <div className="flex w-full flex-col gap-3 xl:w-auto xl:min-w-[240px]">

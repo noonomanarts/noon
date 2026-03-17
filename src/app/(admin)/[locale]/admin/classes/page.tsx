@@ -191,9 +191,6 @@ export default function AdminClassesPage() {
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
             Classes Management
           </h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            Manage cooking and arts & crafts classes
-          </p>
         </div>
         <Link
           href={`/${locale}/admin/classes/new`}

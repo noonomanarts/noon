@@ -152,16 +152,6 @@ export default function AdminPaymentsPageClient({ locale }: AdminPaymentsPageCli
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
           {locale === 'ar' ? 'مدفوعات شحن المحافظ' : 'Wallet Top-up Payments'}
         </h1>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          {locale === 'ar'
-            ? 'جميع عمليات شحن المحافظ من بوابات الدفع (حاليًا جاهز للتكامل)'
-            : 'All wallet top-up payment records from payment gateways (integration-ready).'}
-        </p>
-        <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-          {locale === 'ar'
-            ? 'Sandbox: يمكنك محاكاة نجاح/فشل الدفع من الجدول حتى قبل ربط البوابة الحقيقية.'
-            : 'Sandbox: You can simulate payment success/failure from the table before real gateway integration.'}
-        </p>
       </div>
 
       {info && (

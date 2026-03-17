@@ -415,7 +415,6 @@ export default function ShopCategoriesPageClient({ locale }: { locale: Locale })
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{text.title}</h1>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">{text.subtitle}</p>
       </div>
 
       {info && (

@@ -112,7 +112,6 @@ export default function AdminNotificationsPageClient({ locale }: AdminNotificati
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t.subtitle}</p>
         </div>
 
         <div className="flex items-center gap-3">

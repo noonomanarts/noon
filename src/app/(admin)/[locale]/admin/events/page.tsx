@@ -164,7 +164,6 @@ export default function AdminEventsPage() {
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
             {t.title}
           </h1>
-          <p className="text-zinc-600 dark:text-zinc-400">{t.subtitle}</p>
         </div>
         <div className="flex gap-3">
           <button
