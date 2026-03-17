@@ -142,6 +142,7 @@ export async function findCalendarOccupancy(input: {
     FROM calendar_events ce
     WHERE ce.end_date_time > $1
       AND ce.start_date_time < $2
+      AND ce.type NOT IN ('APPOINTMENT', 'SCHEDULER')
   `;
 
   if (input.excludeEventBookingId) {

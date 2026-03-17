@@ -38,7 +38,9 @@ export type CalendarEventType =
   | 'COMPETITION'
   | 'BIRTHDAY_PARTY'
   | 'BLOCKED'
-  | 'CLEANING';
+  | 'CLEANING'
+  | 'APPOINTMENT'
+  | 'SCHEDULER';
 
 // Enum constants (values for runtime use)
 export const ClassCategory = {
@@ -353,6 +355,13 @@ export interface CalendarEvent {
   internal_notes: string | null;
   visible_to_trainers: boolean;
   visible_trainer_ids: string[];
+  appointment_contact_name: string | null;
+  appointment_contact_phone: string | null;
+  notifications_enabled: boolean;
+  reminder_minutes_before: number | null;
+  notify_at_start: boolean;
+  reminder_sent_at: Date | null;
+  start_notification_sent_at: Date | null;
   color: string | null;
   created_at: Date;
   updated_at: Date;

@@ -7,6 +7,7 @@ import {
   addMinutes,
   buildEventCalendarTitle,
   eventBookingToCalendarType,
+  findCalendarOccupancy,
   isEventSlotAvailable,
   shouldCreateCleaningBlock,
 } from '@/lib/calendar';
@@ -275,6 +276,32 @@ export async function POST(request: NextRequest) {
         { error: 'Selected slot is no longer available. Please choose another time.' },
         { status: 409 }
       );
+    }
+
+    if (
+      shouldCreateCleaningBlock(
+        eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY',
+        classTypeRaw === 'cooking' || classTypeRaw === 'arts-crafts'
+          ? (classTypeRaw as 'cooking' | 'arts-crafts')
+          : undefined
+      )
+    ) {
+      const cleaningStart = new Date(availability.endDateTime);
+      const cleaningEnd = addMinutes(cleaningStart, 180);
+      const cleaningConflicts = await findCalendarOccupancy({
+        startDateTime: cleaningStart,
+        endDateTime: cleaningEnd,
+      });
+
+      if (cleaningConflicts.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'Selected slot requires a 3-hour cleaning window that conflicts with another reservation',
+            conflicts: cleaningConflicts,
+          },
+          { status: 409 }
+        );
+      }
     }
 
     // Create event booking

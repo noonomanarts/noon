@@ -12,6 +12,7 @@ import {
   addMinutes,
   buildEventCalendarTitle,
   eventBookingToCalendarType,
+  findCalendarOccupancy,
   isEventSlotAvailable,
   shouldCreateCleaningBlock,
 } from '@/lib/calendar';
@@ -167,6 +168,21 @@ export async function PUT(request: NextRequest, props: Params) {
       if (shouldCreateCleaningBlock(eventType, classType)) {
         const cleaningStart = new Date(availability.endDateTime);
         const cleaningEnd = addMinutes(cleaningStart, 180);
+        const cleaningConflicts = await findCalendarOccupancy({
+          startDateTime: cleaningStart,
+          endDateTime: cleaningEnd,
+          excludeEventBookingId: params.eventId,
+        });
+
+        if (cleaningConflicts.length > 0) {
+          return NextResponse.json(
+            {
+              error: 'This event requires a 3-hour cleaning block, but the cleaning window conflicts with existing schedule items',
+              conflicts: cleaningConflicts,
+            },
+            { status: 409 }
+          );
+        }
 
         if (cleaningCalendarEvent) {
           await updateCalendarEvent(cleaningCalendarEvent.id as string, {

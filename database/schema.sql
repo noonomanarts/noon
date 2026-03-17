@@ -45,7 +45,9 @@ CREATE TYPE calendar_event_type AS ENUM (
   'COMPETITION',
   'BIRTHDAY_PARTY',
   'BLOCKED',
-  'CLEANING'
+  'CLEANING',
+  'APPOINTMENT',
+  'SCHEDULER'
 );
 
 -- =====================================================
@@ -221,6 +223,13 @@ CREATE TABLE calendar_events (
   internal_notes TEXT,
   visible_to_trainers BOOLEAN NOT NULL DEFAULT false,
   visible_trainer_ids UUID[] DEFAULT '{}',
+  appointment_contact_name TEXT,
+  appointment_contact_phone VARCHAR(50),
+  notifications_enabled BOOLEAN NOT NULL DEFAULT false,
+  reminder_minutes_before INTEGER,
+  notify_at_start BOOLEAN NOT NULL DEFAULT false,
+  reminder_sent_at TIMESTAMP WITH TIME ZONE,
+  start_notification_sent_at TIMESTAMP WITH TIME ZONE,
   color VARCHAR(20),
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()

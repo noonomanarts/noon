@@ -93,6 +93,25 @@ export async function POST(request: NextRequest, props: Params) {
       );
     }
 
+    if (classData.category === 'COOKING') {
+      const cleaningStart = new Date(end);
+      const cleaningEnd = new Date(cleaningStart.getTime() + 3 * 60 * 60000);
+      const cleaningConflicts = await findCalendarOccupancy({
+        startDateTime: cleaningStart,
+        endDateTime: cleaningEnd,
+      });
+
+      if (cleaningConflicts.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'This session requires a 3-hour cleaning block, but that cleaning window conflicts with existing schedule items',
+            conflicts: cleaningConflicts,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     // Create session
     const session = await createClassSession({
       classId: params.classId,
