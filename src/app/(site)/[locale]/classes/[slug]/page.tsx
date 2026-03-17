@@ -142,8 +142,8 @@ export default async function ClassDetailPage({
 
       <section className="mx-auto mt-5 w-full max-w-6xl px-4">
         <div className="overflow-hidden rounded-[2rem] border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm">
-          <div className="grid lg:grid-cols-[1.03fr_0.97fr]">
-            <div className="relative order-1 aspect-[4/3] min-h-[18rem] sm:min-h-[26rem] lg:order-2 lg:min-h-[35rem]">
+          <div className="grid lg:grid-cols-2">
+            <div className="relative order-1 aspect-[4/3] min-h-[16rem] sm:min-h-[22rem] lg:order-2 lg:aspect-auto lg:min-h-[28rem]">
               {classData.image ? (
                 <Image src={classData.image} alt={title} fill priority className="object-cover" />
               ) : (
@@ -168,7 +168,7 @@ export default async function ClassDetailPage({
               ) : null}
             </div>
 
-            <div className="order-2 p-6 sm:p-8 lg:order-1 lg:p-10">
+            <div className="order-2 flex min-h-[18rem] flex-col justify-center p-6 sm:min-h-[22rem] sm:p-8 lg:order-1 lg:min-h-[28rem] lg:p-10">
               <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[color:var(--muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text)]">
                 <Icon className={`h-4 w-4 ${isCooking ? "text-coral" : "text-purple"}`} />
                 {t.category}: {isCooking ? t.cooking : t.artsCrafts}
