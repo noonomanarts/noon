@@ -5,6 +5,15 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { getUploadRootDir } from "@/lib/uploadStorage";
 
+function mapFormRole(value: string): "ADMIN" | "TRAINER" | "CUSTOMER" | "EMPLOYEE" | "SOCIAL_MEDIA_ADMIN" {
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "ADMIN") return "ADMIN";
+  if (normalized === "TRAINER") return "TRAINER";
+  if (normalized === "EMPLOYEE") return "EMPLOYEE";
+  if (normalized === "SOCIAL_MEDIA_ADMIN") return "SOCIAL_MEDIA_ADMIN";
+  return "CUSTOMER";
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
@@ -97,8 +106,7 @@ export async function PUT(
     }
 
     // Map form role to database role
-    const role: "ADMIN" | "TRAINER" | "CUSTOMER" = 
-      formRole === "user" ? "CUSTOMER" : (formRole.toUpperCase() as "ADMIN" | "TRAINER" | "CUSTOMER");
+    const role = mapFormRole(formRole === "user" ? "CUSTOMER" : formRole);
 
     let profileImagePath: string | undefined;
 

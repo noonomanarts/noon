@@ -9,6 +9,8 @@ const mapRole = (value: string | null): UserRole | undefined => {
   if (normalized === "ADMIN") return "ADMIN";
   if (normalized === "TRAINER") return "TRAINER";
   if (normalized === "CUSTOMER") return "CUSTOMER";
+  if (normalized === "EMPLOYEE") return "EMPLOYEE";
+  if (normalized === "SOCIAL_MEDIA_ADMIN") return "SOCIAL_MEDIA_ADMIN";
   if (normalized === "USER") return "CUSTOMER";
   return undefined;
 };
@@ -82,11 +84,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user
+    const role = mapRole(typeof data.role === "string" ? data.role : null) ?? "CUSTOMER";
+
     const newUser = await createUser({
       email: data.email,
       password: data.password,
       fullName: data.fullName,
-      role: data.role === "user" ? "CUSTOMER" : (data.role?.toUpperCase() || "CUSTOMER"),
+      role,
       phoneNumber: data.phoneNumber,
       dateOfBirth: data.dob,
       preferredLanguage: data.preferredLanguage === "ar" ? "ARABIC" : "ENGLISH",

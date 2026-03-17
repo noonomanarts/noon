@@ -16,7 +16,7 @@ type NavItem = {
 
 interface AccountSidebarProps {
   locale: Locale;
-  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER';
+  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
 }
 
 export function AccountSidebar({ locale, role }: AccountSidebarProps) {

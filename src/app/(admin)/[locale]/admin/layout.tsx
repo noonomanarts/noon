@@ -77,11 +77,12 @@ export default async function AdminLayout({
   }
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "ADMIN") {
+  if (!user || (user.role !== "ADMIN" && user.role !== "SOCIAL_MEDIA_ADMIN")) {
     redirect(`/${locale}/account`);
   }
 
-  const pendingSuggestedWorkshops = await countTrainerWorkshopSuggestionsPendingReview();
+  const isSocialMediaAdmin = user.role === "SOCIAL_MEDIA_ADMIN";
+  const pendingSuggestedWorkshops = isSocialMediaAdmin ? 0 : await countTrainerWorkshopSuggestionsPendingReview();
 
   async function handleLogout() {
     "use server";
@@ -130,71 +131,80 @@ export default async function AdminLayout({
     languageAr: "العربية",
   };
 
-  const menuItems: AdminMenuSection[] = [
-    {
-      section: t.overview,
-      items: [
-        { iconName: "FiGrid" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.dashboard, href: `/${locale}/admin` },
-        { iconName: "FiTrendingUp" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.analytics, href: `/${locale}/admin/analytics` },
-      ],
-    },
-    {
-      section: t.finance,
-      items: [
-        { iconName: "FiCreditCard" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.financeReports, href: `/${locale}/admin/finance` },
-        { iconName: "FiPackage" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.inventory, href: `/${locale}/admin/finance/inventory` },
-      ],
-    },
-    {
-      section: t.classesEvents,
-      items: [
-        { iconName: "FiBookOpen" as const, iconColor: "text-orange-600 dark:text-orange-400", label: t.classes, href: `/${locale}/admin/classes` },
-        { iconName: "FiCalendar" as const, iconColor: "text-sky-600 dark:text-sky-400", label: t.timetable, href: `/${locale}/admin/calendar` },
-        { iconName: "FiAward" as const, iconColor: "text-rose-600 dark:text-rose-400", label: t.events, href: `/${locale}/admin/events` },
-      ],
-    },
-    {
-      section: t.users,
-      items: [
-        { iconName: "FiUsers" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.users, href: `/${locale}/admin/users` },
-        { iconName: "FiUserCheck" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.trainers, href: `/${locale}/admin/trainers` },
+  const menuItems: AdminMenuSection[] = isSocialMediaAdmin
+    ? [
         {
-          iconName: "FiMessageSquare" as const,
-          iconColor: "text-amber-600 dark:text-amber-400",
-          label: t.suggestedWorkshops,
-          href: `/${locale}/admin/trainers/suggestions`,
-          badgeCount: pendingSuggestedWorkshops,
+          section: t.classesEvents,
+          items: [
+            { iconName: "FiCalendar" as const, iconColor: "text-sky-600 dark:text-sky-400", label: t.timetable, href: `/${locale}/admin/calendar` },
+          ],
         },
-        { iconName: "FiCreditCard" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.payments, href: `/${locale}/admin/payments` },
-        { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: locale === "ar" ? "المحافظ" : "Wallets", href: `/${locale}/admin/wallets` },
-      ],
-    },
-    {
-      section: t.shop,
-      items: [
-        { iconName: "FiPackage" as const, iconColor: "text-blue-600 dark:text-blue-400", label: t.shopCategories, href: `/${locale}/admin/shop/categories` },
-        { iconName: "FiShoppingBag" as const, iconColor: "text-purple-600 dark:text-purple-400", label: t.shopProducts, href: `/${locale}/admin/shop/products` },
-        { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: t.shopOrders, href: `/${locale}/admin/shop/orders` },
-      ],
-    },
-    {
-      section: t.content,
-      items: [
-        { iconName: "FiThumbsUp" as const, iconColor: "text-lime-600 dark:text-lime-400", label: t.recommendations, href: `/${locale}/admin/recommendations` },
-        { iconName: "FiFileText" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.recipes, href: `/${locale}/admin/recipes` },
-        { iconName: "FiFileText" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.pages, href: `/${locale}/admin/pages` },
-        { iconName: "FiFileText" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.contactMessages, href: `/${locale}/admin/contact-messages` },
-      ],
-    },
-    {
-      section: t.settings,
-      items: [
-        { iconName: "FiSettings" as const, iconColor: "text-slate-600 dark:text-slate-300", label: t.settings, href: `/${locale}/admin/settings` },
-        { iconName: "FiMessageSquare" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.whatsapp, href: `/${locale}/admin/whatsapp` },
-        { iconName: "FiBell" as const, iconColor: "text-pink-600 dark:text-pink-400", label: t.notifications, href: `/${locale}/admin/notifications` },
-      ],
-    },
-  ];
+      ]
+    : [
+        {
+          section: t.overview,
+          items: [
+            { iconName: "FiGrid" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.dashboard, href: `/${locale}/admin` },
+            { iconName: "FiTrendingUp" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.analytics, href: `/${locale}/admin/analytics` },
+          ],
+        },
+        {
+          section: t.finance,
+          items: [
+            { iconName: "FiCreditCard" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.financeReports, href: `/${locale}/admin/finance` },
+            { iconName: "FiPackage" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.inventory, href: `/${locale}/admin/finance/inventory` },
+          ],
+        },
+        {
+          section: t.classesEvents,
+          items: [
+            { iconName: "FiBookOpen" as const, iconColor: "text-orange-600 dark:text-orange-400", label: t.classes, href: `/${locale}/admin/classes` },
+            { iconName: "FiCalendar" as const, iconColor: "text-sky-600 dark:text-sky-400", label: t.timetable, href: `/${locale}/admin/calendar` },
+            { iconName: "FiAward" as const, iconColor: "text-rose-600 dark:text-rose-400", label: t.events, href: `/${locale}/admin/events` },
+          ],
+        },
+        {
+          section: t.users,
+          items: [
+            { iconName: "FiUsers" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.users, href: `/${locale}/admin/users` },
+            { iconName: "FiUserCheck" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.trainers, href: `/${locale}/admin/trainers` },
+            {
+              iconName: "FiMessageSquare" as const,
+              iconColor: "text-amber-600 dark:text-amber-400",
+              label: t.suggestedWorkshops,
+              href: `/${locale}/admin/trainers/suggestions`,
+              badgeCount: pendingSuggestedWorkshops,
+            },
+            { iconName: "FiCreditCard" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.payments, href: `/${locale}/admin/payments` },
+            { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: locale === "ar" ? "المحافظ" : "Wallets", href: `/${locale}/admin/wallets` },
+          ],
+        },
+        {
+          section: t.shop,
+          items: [
+            { iconName: "FiPackage" as const, iconColor: "text-blue-600 dark:text-blue-400", label: t.shopCategories, href: `/${locale}/admin/shop/categories` },
+            { iconName: "FiShoppingBag" as const, iconColor: "text-purple-600 dark:text-purple-400", label: t.shopProducts, href: `/${locale}/admin/shop/products` },
+            { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: t.shopOrders, href: `/${locale}/admin/shop/orders` },
+          ],
+        },
+        {
+          section: t.content,
+          items: [
+            { iconName: "FiThumbsUp" as const, iconColor: "text-lime-600 dark:text-lime-400", label: t.recommendations, href: `/${locale}/admin/recommendations` },
+            { iconName: "FiFileText" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.recipes, href: `/${locale}/admin/recipes` },
+            { iconName: "FiFileText" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.pages, href: `/${locale}/admin/pages` },
+            { iconName: "FiFileText" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.contactMessages, href: `/${locale}/admin/contact-messages` },
+          ],
+        },
+        {
+          section: t.settings,
+          items: [
+            { iconName: "FiSettings" as const, iconColor: "text-slate-600 dark:text-slate-300", label: t.settings, href: `/${locale}/admin/settings` },
+            { iconName: "FiMessageSquare" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.whatsapp, href: `/${locale}/admin/whatsapp` },
+            { iconName: "FiBell" as const, iconColor: "text-pink-600 dark:text-pink-400", label: t.notifications, href: `/${locale}/admin/notifications` },
+          ],
+        },
+      ];
 
   const dir = locale === "ar" ? "rtl" : "ltr";
 

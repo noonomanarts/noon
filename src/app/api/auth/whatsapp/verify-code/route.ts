@@ -7,6 +7,7 @@ import {
   markUserWhatsAppVerified,
   normalizePhoneDigits,
 } from '@/lib/db/users';
+import type { UserRole } from '@/lib/db/types';
 import { validateWhatsAppVerificationCode, type WhatsAppVerificationPurpose } from '@/lib/db/whatsappAuth';
 
 type RegisterData = {
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
     }
 
     let userId = '';
-    let userRole: 'ADMIN' | 'TRAINER' | 'CUSTOMER' = 'CUSTOMER';
+    let userRole: UserRole = 'CUSTOMER';
 
     if (purpose === 'LOGIN') {
       const user = await getUserByPhoneNormalized(phoneNumber);
@@ -217,7 +218,11 @@ export async function POST(request: Request) {
       path: '/',
     });
 
-    const redirectTo = userRole === 'ADMIN' ? '/admin' : '/account';
+    const redirectTo = userRole === 'ADMIN'
+      ? '/admin'
+      : userRole === 'SOCIAL_MEDIA_ADMIN'
+        ? '/admin/calendar'
+        : '/account';
 
     return NextResponse.json({ success: true, redirectTo });
   } catch (error) {

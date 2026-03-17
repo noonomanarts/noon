@@ -12,14 +12,18 @@ interface User {
   phoneNumber?: string;
   dateOfBirth?: string | null;
   preferredLanguage: "ENGLISH" | "ARABIC";
-  role: "ADMIN" | "TRAINER" | "CUSTOMER";
+  role: "ADMIN" | "TRAINER" | "CUSTOMER" | "EMPLOYEE" | "SOCIAL_MEDIA_ADMIN";
   profileImage?: string;
 }
 
-type FormRole = "admin" | "trainer" | "user";
+type FormRole = "admin" | "trainer" | "user" | "employee" | "social_media_admin";
 
 function mapRoleToForm(role: User["role"]): FormRole {
-  return role === "CUSTOMER" ? "user" : role === "TRAINER" ? "trainer" : "admin";
+  if (role === "CUSTOMER") return "user";
+  if (role === "TRAINER") return "trainer";
+  if (role === "EMPLOYEE") return "employee";
+  if (role === "SOCIAL_MEDIA_ADMIN") return "social_media_admin";
+  return "admin";
 }
 
 function mapLanguageToForm(lang: User["preferredLanguage"]): "en" | "ar" {
@@ -39,7 +43,7 @@ export default function EditUserPage({
     fullName: "",
     email: "",
     phone: "",
-    role: "user" as "admin" | "trainer" | "user",
+    role: "user" as FormRole,
     dob: "",
     preferredLanguage: "en" as "en" | "ar",
     newPassword: "",
@@ -66,6 +70,8 @@ export default function EditUserPage({
     role: locale === "ar" ? "الدور" : "Role",
     language: locale === "ar" ? "اللغة المفضلة" : "Preferred Language",
     admin: locale === "ar" ? "مدير" : "Admin",
+    socialMediaAdmin: locale === "ar" ? "مدير السوشيال ميديا" : "Social Media Admin",
+    employee: locale === "ar" ? "موظف" : "Employee",
     trainer: locale === "ar" ? "مدرب" : "Trainer",
     user: locale === "ar" ? "مستخدم" : "User",
     english: locale === "ar" ? "الإنجليزية" : "English",
@@ -342,11 +348,13 @@ export default function EditUserPage({
               </label>
               <select
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as "admin" | "trainer" | "user" })}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as FormRole })}
                 className="w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200"
               >
                 <option value="user">{t.user}</option>
                 <option value="trainer">{t.trainer}</option>
+                <option value="employee">{t.employee}</option>
+                <option value="social_media_admin">{t.socialMediaAdmin}</option>
                 <option value="admin">{t.admin}</option>
               </select>
             </div>

@@ -4,6 +4,7 @@
 import { cookies } from "next/headers";
 import { getUserById } from "@/lib/db/users";
 import type { UserPublic } from "@/lib/db/users";
+import type { UserRole } from "@/lib/db/types";
 
 /**
  * Get the current logged-in user from session
@@ -46,6 +47,21 @@ export async function requireAdmin(locale: string = "en"): Promise<UserPublic> {
   }
 
   // TypeScript doesn't know that redirect() never returns
+  return user as UserPublic;
+}
+
+export async function requireRole(
+  allowedRoles: UserRole[],
+  locale: string = "en",
+  redirectTo: string = `/${locale}/account`
+): Promise<UserPublic> {
+  const user = await requireAuth(locale);
+
+  if (!allowedRoles.includes(user.role)) {
+    const { redirect } = await import("next/navigation");
+    redirect(redirectTo);
+  }
+
   return user as UserPublic;
 }
 

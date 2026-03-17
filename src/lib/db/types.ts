@@ -3,7 +3,7 @@
  */
 
 // Enums (types)
-export type UserRole = 'ADMIN' | 'TRAINER' | 'CUSTOMER';
+export type UserRole = 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type PreferredLanguage = 'ENGLISH' | 'ARABIC';
@@ -52,6 +52,8 @@ export const UserRole = {
   ADMIN: 'ADMIN' as const,
   TRAINER: 'TRAINER' as const,
   CUSTOMER: 'CUSTOMER' as const,
+  EMPLOYEE: 'EMPLOYEE' as const,
+  SOCIAL_MEDIA_ADMIN: 'SOCIAL_MEDIA_ADMIN' as const,
 };
 
 export const ClassStatus = {

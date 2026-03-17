@@ -9,7 +9,7 @@ type AdminUser = {
   fullName: string;
   email: string;
   phoneNumber: string;
-  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER';
+  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
 };
 
 type SendResult = {
@@ -27,7 +27,7 @@ export default function AdminWhatsAppPageClient({
   users: AdminUser[];
 }) {
   const isArabic = locale === 'ar';
-  const [roleFilter, setRoleFilter] = useState<'ALL' | 'CUSTOMER' | 'TRAINER' | 'ADMIN'>('CUSTOMER');
+  const [roleFilter, setRoleFilter] = useState<'ALL' | 'CUSTOMER' | 'TRAINER' | 'ADMIN' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN'>('CUSTOMER');
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -46,6 +46,8 @@ export default function AdminWhatsAppPageClient({
     customers: isArabic ? 'العملاء' : 'Customers',
     trainers: isArabic ? 'المدربون' : 'Trainers',
     admins: isArabic ? 'الإداريون' : 'Admins',
+    employees: isArabic ? 'الموظفون' : 'Employees',
+    socialMediaAdmins: isArabic ? 'مدراء السوشيال ميديا' : 'Social Media Admins',
     selectAll: isArabic ? 'تحديد الكل' : 'Select All',
     clearAll: isArabic ? 'إلغاء الكل' : 'Clear',
     textLabel: isArabic ? 'نص الرسالة' : 'Message Text',
@@ -146,6 +148,8 @@ export default function AdminWhatsAppPageClient({
                 <option value="ALL">{t.all}</option>
                 <option value="CUSTOMER">{t.customers}</option>
                 <option value="TRAINER">{t.trainers}</option>
+                <option value="EMPLOYEE">{t.employees}</option>
+                <option value="SOCIAL_MEDIA_ADMIN">{t.socialMediaAdmins}</option>
                 <option value="ADMIN">{t.admins}</option>
               </select>
 

@@ -5,10 +5,14 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { getUserById, getAllUsers } from "@/lib/db/users";
 import type { UserRole } from "@/lib/db/types";
 
-type DisplayRole = "admin" | "trainer" | "user";
+type DisplayRole = "admin" | "trainer" | "user" | "employee" | "social_media_admin";
 
 function mapRoleToDisplay(role: UserRole): DisplayRole {
-  return role === "CUSTOMER" ? "user" : role === "ADMIN" ? "admin" : "trainer";
+  if (role === "CUSTOMER") return "user";
+  if (role === "ADMIN") return "admin";
+  if (role === "TRAINER") return "trainer";
+  if (role === "EMPLOYEE") return "employee";
+  return "social_media_admin";
 }
 
 export default async function AdminUsersPage({
@@ -46,6 +50,8 @@ export default async function AdminUsersPage({
     edit: locale === "ar" ? "تعديل" : "Edit",
     delete: locale === "ar" ? "حذف" : "Delete",
     admin: locale === "ar" ? "مدير" : "Admin",
+    socialMediaAdmin: locale === "ar" ? "مدير السوشيال ميديا" : "Social Media Admin",
+    employee: locale === "ar" ? "موظف" : "Employee",
     trainer: locale === "ar" ? "مدرب" : "Trainer",
     user: locale === "ar" ? "مستخدم" : "User",
     active: locale === "ar" ? "نشط" : "Active",
@@ -53,12 +59,16 @@ export default async function AdminUsersPage({
     admins: locale === "ar" ? "المدراء" : "Admins",
     trainers: locale === "ar" ? "المدربون" : "Trainers",
     customers: locale === "ar" ? "العملاء" : "Customers",
+    employees: locale === "ar" ? "الموظفون" : "Employees",
+    socialMediaAdmins: locale === "ar" ? "مدراء السوشيال ميديا" : "Social Media Admins",
   };
 
   const roleLabels = {
     admin: t.admin,
     trainer: t.trainer,
     user: t.user,
+    employee: t.employee,
+    social_media_admin: t.socialMediaAdmin,
   };
 
   const stats = {
@@ -66,6 +76,8 @@ export default async function AdminUsersPage({
     admins: users.filter((u) => u.role === "ADMIN").length,
     trainers: users.filter((u) => u.role === "TRAINER").length,
     users: users.filter((u) => u.role === "CUSTOMER").length,
+    employees: users.filter((u) => u.role === "EMPLOYEE").length,
+    socialMediaAdmins: users.filter((u) => u.role === "SOCIAL_MEDIA_ADMIN").length,
   };
 
   return (
@@ -89,7 +101,7 @@ export default async function AdminUsersPage({
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
             {t.totalUsers}
@@ -120,6 +132,22 @@ export default async function AdminUsersPage({
           </div>
           <div className="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400">
             {stats.users}
+          </div>
+        </div>
+        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+            {t.employees}
+          </div>
+          <div className="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-400">
+            {stats.employees}
+          </div>
+        </div>
+        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+            {t.socialMediaAdmins}
+          </div>
+          <div className="mt-2 text-3xl font-bold text-sky-600 dark:text-sky-400">
+            {stats.socialMediaAdmins}
           </div>
         </div>
       </div>
@@ -183,6 +211,10 @@ export default async function AdminUsersPage({
                           ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
                           : user.role === "TRAINER"
                             ? "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
+                            : user.role === "EMPLOYEE"
+                              ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                              : user.role === "SOCIAL_MEDIA_ADMIN"
+                                ? "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
                             : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
                       }`}
                     >

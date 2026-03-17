@@ -27,7 +27,9 @@ const TYPE_COLORS: Record<CalendarEventType, string> = {
   SCHEDULER: '#0ea5a4',
 };
 
-async function requireAdminUser(): Promise<{ ok: true } | { ok: false; response: NextResponse }> {
+type CalendarAccess = { ok: true; canManage: boolean } | { ok: false; response: NextResponse };
+
+async function requireCalendarAccess(): Promise<CalendarAccess> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get('noon_session')?.value;
 
@@ -39,14 +41,14 @@ async function requireAdminUser(): Promise<{ ok: true } | { ok: false; response:
   }
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== 'ADMIN') {
+  if (!user || (user.role !== 'ADMIN' && user.role !== 'SOCIAL_MEDIA_ADMIN')) {
     return {
       ok: false,
       response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }),
     };
   }
 
-  return { ok: true };
+  return { ok: true, canManage: user.role === 'ADMIN' };
 }
 
 function parseCalendarType(value: unknown): CalendarEventType | null {
@@ -83,7 +85,7 @@ function parseReminderMinutes(value: unknown): number | null {
 // GET: List calendar events for admin
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAdminUser();
+    const auth = await requireCalendarAccess();
     if (!auth.ok) return auth.response;
 
     const searchParams = request.nextUrl.searchParams;
@@ -97,7 +99,7 @@ export async function GET(request: NextRequest) {
       type: type || undefined,
     });
 
-    return NextResponse.json(Array.isArray(events) ? events : []);
+    return NextResponse.json({ events: Array.isArray(events) ? events : [], permissions: { canManage: auth.canManage } });
   } catch (error) {
     console.error('Error fetching calendar events:', error);
     return NextResponse.json({ error: 'Failed to fetch calendar events' }, { status: 500 });
@@ -107,8 +109,11 @@ export async function GET(request: NextRequest) {
 // POST: Create calendar event
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireAdminUser();
+    const auth = await requireCalendarAccess();
     if (!auth.ok) return auth.response;
+    if (!auth.canManage) {
+      return NextResponse.json({ error: 'Read-only access' }, { status: 403 });
+    }
 
     const body = await request.json();
     const startDateTime = new Date(String(body.startDateTime || ''));

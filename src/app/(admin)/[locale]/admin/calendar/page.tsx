@@ -244,6 +244,7 @@ function startOfWeek(date: Date): Date {
 export default function AdminCalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [trainers, setTrainers] = useState<TrainerOption[]>([]);
+  const [canManage, setCanManage] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
@@ -262,7 +263,7 @@ export default function AdminCalendarPage() {
 
   useEffect(() => {
     void fetchTrainers();
-  }, []);
+  }, [canManage]);
 
   useEffect(() => {
     setItemForm((prev) => ({
@@ -295,15 +296,21 @@ export default function AdminCalendarPage() {
         `/api/admin/calendar?startDate=${encodeURIComponent(startDate.toISOString())}&endDate=${encodeURIComponent(endDate.toISOString())}`,
         { cache: 'no-store' }
       );
-      const payload = (await response.json().catch(() => [])) as CalendarEvent[] | { error?: string };
+      const payload = (await response.json().catch(() => ({}))) as {
+        events?: CalendarEvent[];
+        permissions?: { canManage?: boolean };
+        error?: string;
+      };
 
-      if (!response.ok || !Array.isArray(payload)) {
-        throw new Error(!Array.isArray(payload) && typeof payload.error === 'string' ? payload.error : 'Failed to load calendar');
+      if (!response.ok || !Array.isArray(payload.events)) {
+        throw new Error(typeof payload.error === 'string' ? payload.error : 'Failed to load calendar');
       }
 
-      setEvents(payload);
+      setEvents(payload.events);
+      setCanManage(payload.permissions?.canManage !== false);
     } catch (requestError) {
       setEvents([]);
+      setCanManage(false);
       setError(requestError instanceof Error ? requestError.message : 'Failed to load calendar');
     } finally {
       setLoading(false);
@@ -311,6 +318,11 @@ export default function AdminCalendarPage() {
   };
 
   const fetchTrainers = async () => {
+    if (!canManage) {
+      setTrainers([]);
+      return;
+    }
+
     try {
       const response = await fetch('/api/admin/trainers?activeOnly=true', { cache: 'no-store' });
       const payload = (await response.json().catch(() => ({}))) as {
@@ -438,6 +450,13 @@ export default function AdminCalendarPage() {
   }, [viewMode, currentMonth, weekDays, selectedDayDate]);
 
   const openDayPlanner = (dateKey: string, presetType?: CreatableCalendarType, options?: { fullDay?: boolean }) => {
+    if (!canManage) {
+      setSelectedDate(dateKey);
+      setIsComposerOpen(false);
+      setIsDayModalOpen(true);
+      return;
+    }
+
     setSelectedDate(dateKey);
     const nextType = presetType ?? 'BLOCKED';
     const nextForm = createEmptyItemForm(dateKey, nextType);
@@ -585,6 +604,7 @@ export default function AdminCalendarPage() {
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 sm:text-3xl">Calendar</h1>
         </div>
 
+        {canManage ? (
         <div className="flex flex-wrap gap-2 sm:gap-3">
           <button
             type="button"
@@ -615,6 +635,11 @@ export default function AdminCalendarPage() {
             Add appointment
           </button>
         </div>
+        ) : (
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+            Read-only timetable access
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -778,13 +803,15 @@ export default function AdminCalendarPage() {
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-800 dark:bg-zinc-950/30">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">Weekly planner</p>
-                  <button
-                    type="button"
-                    onClick={() => openDayPlanner(selectedDate)}
-                    className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                  >
-                    Open selected day
-                  </button>
+                  {canManage ? (
+                    <button
+                      type="button"
+                      onClick={() => openDayPlanner(selectedDate)}
+                      className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    >
+                      Open selected day
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
@@ -815,13 +842,15 @@ export default function AdminCalendarPage() {
                             {day.dayNumber}
                           </span>
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => openDayPlanner(day.dateKey)}
-                          className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                        >
-                          Plan
-                        </button>
+                        {canManage ? (
+                          <button
+                            type="button"
+                            onClick={() => openDayPlanner(day.dateKey)}
+                            className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                          >
+                            Plan
+                          </button>
+                        ) : null}
                       </div>
 
                       <div className="mt-3 space-y-2">
@@ -887,15 +916,17 @@ export default function AdminCalendarPage() {
                             {dayEvents.length > 4 ? <p className="text-xs text-zinc-500 dark:text-zinc-400">+{dayEvents.length - 4} more</p> : null}
                           </div>
 
-                          <div className="mt-4">
-                            <button
-                              type="button"
-                              onClick={() => openDayPlanner(day.dateKey)}
-                              className="w-full rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                            >
-                              Plan day
-                            </button>
-                          </div>
+                          {canManage ? (
+                            <div className="mt-4">
+                              <button
+                                type="button"
+                                onClick={() => openDayPlanner(day.dateKey)}
+                                className="w-full rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                              >
+                                Plan day
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}
@@ -910,13 +941,15 @@ export default function AdminCalendarPage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Day view</p>
                   <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{formatDateLabel(selectedDate)}</h3>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => openDayPlanner(selectedDate)}
-                  className="rounded-xl border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                >
-                  Open planner
-                </button>
+                {canManage ? (
+                  <button
+                    type="button"
+                    onClick={() => openDayPlanner(selectedDate)}
+                    className="rounded-xl border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  >
+                    Open planner
+                  </button>
+                ) : null}
               </div>
               <div className="space-y-3">
                 {selectedDayEvents.length === 0 ? (
@@ -966,13 +999,15 @@ export default function AdminCalendarPage() {
                   {selectedDayEvents.length > 0 ? `${selectedDayEvents.length} scheduled items` : 'No scheduled items yet.'}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => openDayPlanner(selectedDate, 'BLOCKED')}
-                className="rounded-xl border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              >
-                Plan day
-              </button>
+              {canManage ? (
+                <button
+                  type="button"
+                  onClick={() => openDayPlanner(selectedDate, 'BLOCKED')}
+                  className="rounded-xl border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                >
+                  Plan day
+                </button>
+              ) : null}
             </div>
 
             <div className="mt-4 space-y-2.5">
@@ -1075,7 +1110,7 @@ export default function AdminCalendarPage() {
                                 {formatTimeRange(event.startDateTime, event.endDateTime)}
                               </p>
                             </div>
-                            {deletable ? (
+                            {canManage && deletable ? (
                               <button
                                 type="button"
                                 onClick={() => void handleDeleteItem(event.id)}
@@ -1139,17 +1174,21 @@ export default function AdminCalendarPage() {
 
               <div className="p-5 sm:p-6">
                 <div className="mb-4 flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Add calendar item</h3>
-                  <button
-                    type="button"
-                    onClick={() => setIsComposerOpen((prev) => !prev)}
-                    className="rounded-lg border border-zinc-300 px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                  >
-                    {isComposerOpen ? 'Hide' : 'Show'}
-                  </button>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    {canManage ? 'Add calendar item' : 'Read-only access'}
+                  </h3>
+                  {canManage ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsComposerOpen((prev) => !prev)}
+                      className="rounded-lg border border-zinc-300 px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    >
+                      {isComposerOpen ? 'Hide' : 'Show'}
+                    </button>
+                  ) : null}
                 </div>
 
-                {isComposerOpen ? (
+                {canManage && isComposerOpen ? (
                   <div className="space-y-5">
                     <label className="space-y-1.5 text-sm">
                       <span className="font-medium text-zinc-700 dark:text-zinc-200">Type</span>
@@ -1450,7 +1489,11 @@ export default function AdminCalendarPage() {
                   </div>
                 ) : (
                   <div className="rounded-lg border border-dashed border-zinc-300 px-4 py-5 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                    Composer hidden. Click <span className="font-semibold">Show</span> to add a new item for this day.
+                    {canManage ? (
+                      <>Composer hidden. Click <span className="font-semibold">Show</span> to add a new item for this day.</>
+                    ) : (
+                      'This role can only view the timetable and existing items.'
+                    )}
                   </div>
                 )}
               </div>
@@ -1465,7 +1508,7 @@ export default function AdminCalendarPage() {
                 >
                   Close
                 </button>
-                {isComposerOpen ? (
+                {canManage && isComposerOpen ? (
                   <>
                     <button
                       type="button"
