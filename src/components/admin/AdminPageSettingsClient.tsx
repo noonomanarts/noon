@@ -3215,10 +3215,12 @@ export default function AdminPageSettingsClient({
                   className="min-w-[260px] flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                   placeholder="/uploads/home-why-noon/background.jpg"
                 />
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                  disabled={uploadingWhyNoonBackground}
+                <label
+                  className={`inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition dark:border-zinc-700 dark:text-zinc-200 ${
+                    uploadingWhyNoonBackground
+                      ? "cursor-not-allowed opacity-60"
+                      : "cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  }`}
                 >
                   <FiUpload className="size-3.5" />
                   {uploadingWhyNoonBackground ? t.whyNoonBackgroundUploading : t.whyNoonBackgroundUpload}
@@ -3232,7 +3234,7 @@ export default function AdminPageSettingsClient({
                       event.currentTarget.value = "";
                     }}
                   />
-                </button>
+                </label>
               </div>
               {settings.homeWhyNoon.backgroundImageSrc ? (
                 <div className="mt-2 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
