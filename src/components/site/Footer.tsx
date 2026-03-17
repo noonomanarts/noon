@@ -70,9 +70,9 @@ export default async function Footer({ locale }: { locale: Locale }) {
   const headerColor = await resolveHeaderColor();
   const savedFooter = await getAdminSettingsByKey<Partial<FooterAdminSettings>>("footer").catch(() => null);
   const footer = sanitizeFooterAdminSettings(savedFooter ?? defaultFooterAdminSettings);
-  const isLightTone = getReadableTextColor(headerColor) === "#23150f";
+  const isLightTone = getReadableTextColor(footer.footerColor) === "#23150f";
   const footerStyle = {
-    backgroundColor: headerColor,
+    backgroundColor: footer.footerColor,
     "--footer-text": isLightTone ? "#23150f" : "#ffffff",
     "--footer-muted": isLightTone ? "rgba(35,21,15,0.90)" : "rgba(255,255,255,0.94)",
     "--footer-soft": isLightTone ? "rgba(35,21,15,0.80)" : "rgba(255,255,255,0.86)",
@@ -82,7 +82,6 @@ export default async function Footer({ locale }: { locale: Locale }) {
   } as CSSProperties;
 
   const t = {
-    tagline: isArabic ? footer.taglineAr : footer.taglineEn,
     navigate: isArabic ? footer.navigateTitleAr : footer.navigateTitleEn,
     legal:
       isArabic
@@ -92,8 +91,6 @@ export default async function Footer({ locale }: { locale: Locale }) {
     location: isArabic ? footer.locationLabelAr : footer.locationLabelEn,
     phone: isArabic ? footer.phoneLabelAr : footer.phoneLabelEn,
     email: isArabic ? footer.emailLabelAr : footer.emailLabelEn,
-    rights: isArabic ? footer.rightsAr : footer.rightsEn,
-    copyright: `© ${currentYear} ${isArabic ? footer.copyrightNameAr : footer.copyrightNameEn}`,
     blurb: isArabic ? footer.blurbAr : footer.blurbEn,
   };
 
@@ -104,12 +101,6 @@ export default async function Footer({ locale }: { locale: Locale }) {
       label: isArabic ? item.labelAr : item.labelEn,
     }));
   const legalLinks = footer.legalLinks
-    .filter((item) => item.enabled)
-    .map((item) => ({
-      href: resolveFooterHref(locale, item.href),
-      label: isArabic ? item.labelAr : item.labelEn,
-    }));
-  const bottomLinks = footer.bottomLinks
     .filter((item) => item.enabled)
     .map((item) => ({
       href: resolveFooterHref(locale, item.href),
@@ -133,15 +124,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
   const phoneHref = resolveTelHref(phoneValue);
   const emailHref = resolveMailHref(emailValue);
   const homeHref = resolveFooterHref(locale, "/");
-  const contactRowClass = isArabic
-    ? "grid w-full grid-cols-[minmax(0,1fr)_max-content] items-center gap-3"
-    : "grid w-fit min-w-[19rem] grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-3 text-left";
-  const contactLabelClass = `inline-flex items-center gap-2 whitespace-nowrap text-[color:var(--footer-soft)] ${
-    isArabic ? "col-start-2 justify-self-end" : ""
-  }`;
-  const contactValueClass = `font-semibold text-[color:var(--footer-text)] ${
-    isArabic ? "col-start-1 justify-self-start text-left" : "text-left"
-  }`;
+  const copyrightLabel = `© ${currentYear} ${footer.brandName}`;
 
   return (
     <footer
@@ -149,33 +132,24 @@ export default async function Footer({ locale }: { locale: Locale }) {
       style={footerStyle}
     >
       <div className="mx-auto w-full max-w-6xl px-4 py-14">
-        <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr_1fr]">
           <div className="space-y-6">
-            <Link href={homeHref} className="inline-flex items-center gap-3">
-              <Image src="/images/logo-noon.png" alt={footer.brandName} width={52} height={52} className="h-12 w-auto" />
-              <div>
-                <p className="text-lg font-black tracking-wide">{footer.brandName}</p>
-                <p className="text-xs text-[color:var(--footer-soft)]">{footer.brandSubtitle}</p>
-              </div>
+            <Link href={homeHref} className="inline-flex items-center">
+              <Image src="/images/logo-noon.png" alt={footer.brandName} width={92} height={92} className="h-20 w-auto" />
             </Link>
 
-            <p className="max-w-[32rem] text-sm font-medium leading-6 text-[color:var(--footer-muted)]">
-              {t.tagline}
-            </p>
-
             <div
-              className={`border border-[color:var(--footer-border)] bg-[color:var(--footer-panel)] p-4 text-sm ${
-                isArabic ? "space-y-3" : "flex flex-col items-end gap-3"
-              }`}
+              dir={isArabic ? "rtl" : "ltr"}
+              className="space-y-3 rounded-2xl border border-[color:var(--footer-border)] bg-[linear-gradient(135deg,var(--footer-panel),transparent)] p-4"
             >
-              <div className={contactRowClass}>
-                <p className={contactLabelClass}>
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[color:var(--footer-border)]/80 bg-[color:var(--footer-panel)]/80 px-3 py-3">
+                <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.09em] text-[color:var(--footer-soft)]">
                   <FiMapPin className="size-4" />
-                  {t.location}:
+                  {t.location}
                 </p>
                 {locationHref ? (
                   <a
-                    className={`${contactValueClass} transition hover:opacity-80`}
+                    className="rounded-lg bg-[color:var(--footer-panel-hover)] px-3 py-1.5 text-sm font-semibold text-[color:var(--footer-text)] transition hover:opacity-80"
                     href={locationHref}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -184,85 +158,85 @@ export default async function Footer({ locale }: { locale: Locale }) {
                     {locationLinkLabel}
                   </a>
                 ) : (
-                  <p className={contactValueClass}>
-                    {locationValue || "-"}
-                  </p>
+                  <p className="text-sm font-semibold text-[color:var(--footer-text)]">{locationValue || "-"}</p>
                 )}
               </div>
-              <div className={contactRowClass}>
-                <p className={contactLabelClass}>
+
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[color:var(--footer-border)]/80 bg-[color:var(--footer-panel)]/80 px-3 py-3">
+                <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.09em] text-[color:var(--footer-soft)]">
                   <FiPhone className="size-4" />
-                  {t.phone}:
+                  {t.phone}
                 </p>
                 {phoneHref ? (
                   <a
-                    className={`${contactValueClass} min-w-[10rem] transition hover:opacity-80`}
+                    className="rounded-lg bg-[color:var(--footer-panel-hover)] px-3 py-1.5 text-sm font-semibold text-[color:var(--footer-text)] transition hover:opacity-80"
                     href={phoneHref}
                     dir="ltr"
                   >
                     {phoneValue}
                   </a>
                 ) : (
-                  <span className={`${contactValueClass} min-w-[10rem]`} dir="ltr">
-                    -
-                  </span>
+                  <span className="text-sm font-semibold text-[color:var(--footer-text)]" dir="ltr">-</span>
                 )}
               </div>
-              <div className={contactRowClass}>
-                <p className={contactLabelClass}>
+
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-[color:var(--footer-border)]/80 bg-[color:var(--footer-panel)]/80 px-3 py-3">
+                <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.09em] text-[color:var(--footer-soft)]">
                   <FiMail className="size-4" />
-                  {t.email}:
+                  {t.email}
                 </p>
                 {emailHref ? (
                   <a
-                    className={`${contactValueClass} break-all transition hover:opacity-80`}
+                    className="rounded-lg bg-[color:var(--footer-panel-hover)] px-3 py-1.5 text-sm font-semibold text-[color:var(--footer-text)] transition hover:opacity-80"
                     href={emailHref}
                   >
                     {emailValue}
                   </a>
                 ) : (
-                  <span className={contactValueClass}>-</span>
+                  <span className="text-sm font-semibold text-[color:var(--footer-text)]">-</span>
                 )}
               </div>
             </div>
           </div>
 
-          <div>
-            <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-[color:var(--footer-text)]">{t.navigate}</h3>
-            <ul className="space-y-2.5 text-sm font-medium text-[color:var(--footer-muted)]">
-              {navLinks.map((item) => (
-                <li key={`${item.href}-${item.label}`}>
-                  {/^(https?:\/\/|mailto:|tel:|#)/i.test(item.href) ? (
-                    <a href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
-                      {item.label}
-                    </a>
-                  ) : (
-                    <Link href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
-                      {item.label}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <div className="space-y-8">
+            <div>
+              <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-[color:var(--footer-text)]">{t.navigate}</h3>
+              <ul className="space-y-2.5 text-sm font-medium text-[color:var(--footer-muted)]">
+                {navLinks.map((item) => (
+                  <li key={`${item.href}-${item.label}`}>
+                    {/^(https?:\/\/|mailto:|tel:|#)/i.test(item.href) ? (
+                      <a href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
+                        {item.label}
+                      </a>
+                    ) : (
+                      <Link href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
+                        {item.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          <div>
-            <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-[color:var(--footer-text)]">{t.legal}</h3>
-            <ul className="space-y-2.5 text-sm font-medium text-[color:var(--footer-muted)]">
-              {legalLinks.map((item) => (
-                <li key={`${item.href}-${item.label}`}>
-                  {/^(https?:\/\/|mailto:|tel:|#)/i.test(item.href) ? (
-                    <a href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
-                      {item.label}
-                    </a>
-                  ) : (
-                    <Link href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
-                      {item.label}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <div>
+              <h3 className="mb-4 text-sm font-black uppercase tracking-wider text-[color:var(--footer-text)]">{t.legal}</h3>
+              <ul className="space-y-2.5 text-sm font-medium text-[color:var(--footer-muted)]">
+                {legalLinks.map((item) => (
+                  <li key={`${item.href}-${item.label}`}>
+                    {/^(https?:\/\/|mailto:|tel:|#)/i.test(item.href) ? (
+                      <a href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
+                        {item.label}
+                      </a>
+                    ) : (
+                      <Link href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
+                        {item.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           <div className="space-y-5">
@@ -290,26 +264,22 @@ export default async function Footer({ locale }: { locale: Locale }) {
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="mt-10 border-t border-[color:var(--footer-border)] pt-5 text-sm font-medium text-[color:var(--footer-soft)]">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p>
-              {t.copyright} {t.rights}
-            </p>
-            <div className="flex flex-wrap items-center gap-4">
-              {bottomLinks.map((item) =>
-                /^(https?:\/\/|mailto:|tel:|#)/i.test(item.href) ? (
-                  <a key={`${item.href}-${item.label}`} href={item.href} className="transition hover:text-[color:var(--footer-text)]">
-                    {item.label}
-                  </a>
-                ) : (
-                  <Link key={`${item.href}-${item.label}`} href={item.href} className="transition hover:text-[color:var(--footer-text)]">
-                    {item.label}
-                  </Link>
-                )
-              )}
-            </div>
-          </div>
+      <div
+        className="border-t border-black/20"
+        style={{ backgroundColor: headerColor, color: getReadableTextColor(headerColor) }}
+      >
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-4 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between">
+          <p>{copyrightLabel}</p>
+          <a
+            href="https://sbc.om"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition hover:opacity-80"
+          >
+            Developed by SBC.OM
+          </a>
         </div>
       </div>
     </footer>

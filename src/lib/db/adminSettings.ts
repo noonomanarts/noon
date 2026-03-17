@@ -60,6 +60,7 @@ export type FooterAdminSocialLink = {
 };
 
 export type FooterAdminSettings = {
+  footerColor: string;
   brandName: string;
   brandSubtitle: string;
   taglineEn: string;
@@ -147,6 +148,7 @@ export const defaultWhatsAppFloatingButtonSettings: WhatsAppFloatingButtonSettin
 };
 
 export const defaultFooterAdminSettings: FooterAdminSettings = {
+  footerColor: '#7b3f8d',
   brandName: 'Noon',
   brandSubtitle: 'Noon Oman Arts',
   taglineEn: 'Cooking and art experiences designed to be simple, inspiring, and memorable.',
@@ -235,6 +237,19 @@ function sanitizeTextValue(value: unknown, fallback: string, maxLength: number):
   return value.trim().slice(0, maxLength);
 }
 
+function sanitizeHexColor(value: unknown, fallback: string): string {
+  const raw = typeof value === 'string' ? value.trim().toLowerCase() : '';
+  const match = raw.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/);
+  if (!match) return fallback;
+
+  if (match[1].length === 3) {
+    const [r, g, b] = match[1].split('');
+    return `#${r}${r}${g}${g}${b}${b}`;
+  }
+
+  return raw;
+}
+
 function sanitizeHrefValue(value: unknown, fallback: string): string {
   if (typeof value !== 'string') return fallback;
   const normalized = value.trim().slice(0, 500);
@@ -273,6 +288,7 @@ export function sanitizeFooterAdminSettings(input: Partial<FooterAdminSettings> 
   const sourceSocialLinks = Array.isArray(source.socialLinks) ? source.socialLinks : [];
 
   return {
+    footerColor: sanitizeHexColor(source.footerColor, defaultFooterAdminSettings.footerColor),
     brandName: sanitizeTextValue(source.brandName, defaultFooterAdminSettings.brandName, 80),
     brandSubtitle: sanitizeTextValue(source.brandSubtitle, defaultFooterAdminSettings.brandSubtitle, 120),
     taglineEn: sanitizeTextValue(source.taglineEn, defaultFooterAdminSettings.taglineEn, 240),

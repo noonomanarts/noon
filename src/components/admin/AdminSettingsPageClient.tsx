@@ -113,6 +113,13 @@ export default function AdminSettingsPageClient({
     headerColorSelected: isArabic ? 'اللون الحالي' : 'Current Color',
     customHeaderColor: isArabic ? 'لون مخصص (Hex)' : 'Custom Header Color (Hex)',
     customHeaderColorHint: isArabic ? 'مثال: #7b3f8d' : 'Example: #7b3f8d',
+    footerBranding: isArabic ? 'هوية ألوان الفوتر' : 'Footer Branding',
+    footerBrandingHint: isArabic
+      ? 'هذا اللون يطبق مباشرة على خلفية الفوتر، بشكل مستقل عن لون الهيدر.'
+      : 'This color is applied directly to the footer background, independently from the header color.',
+    footerColorSelected: isArabic ? 'لون الفوتر الحالي' : 'Current Footer Color',
+    customFooterColor: isArabic ? 'لون فوتر مخصص (Hex)' : 'Custom Footer Color (Hex)',
+    customFooterColorHint: isArabic ? 'مثال: #7b3f8d' : 'Example: #7b3f8d',
     customColorPicker: isArabic ? 'منتقي اللون' : 'Color Picker',
     maintenanceMode: isArabic ? 'وضع الصيانة' : 'Maintenance Mode',
     whatsappEnabled: isArabic ? 'تفعيل واتساب' : 'Enable WhatsApp',
@@ -601,6 +608,81 @@ export default function AdminSettingsPageClient({
                   <span>{t.footerEditorTitle}</span>
                 </div>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.footerEditorHint}</p>
+              </section>
+
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <FiSettings className="size-4 text-[color:var(--noon-purple)]" />
+                  <span>{t.footerBranding}</span>
+                </div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">{t.footerBrandingHint}</p>
+
+                <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t.footerColorSelected}</span>
+                    <span
+                      className="inline-flex h-8 w-8 border border-black/10"
+                      style={{ backgroundColor: normalizeHexColor(footer.footerColor) }}
+                      aria-hidden="true"
+                    />
+                    <code className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-semibold text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200">
+                      {normalizeHexColor(footer.footerColor)}
+                    </code>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {NOON_HEADER_COLORS.map((color) => {
+                      const selected = normalizeHexColor(footer.footerColor) === color.hex;
+                      return (
+                        <button
+                          key={`footer-color-${color.key}`}
+                          type="button"
+                          onClick={() => setFooter((prev) => ({ ...prev, footerColor: color.hex }))}
+                          className={`group rounded-lg border p-3 text-start transition ${
+                            selected
+                              ? 'border-[color:var(--noon-teal)] ring-2 ring-[color:var(--noon-teal)]/35'
+                              : 'border-zinc-200 hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-500'
+                          }`}
+                        >
+                          <span
+                            className="mb-2 block h-9 w-full border border-black/10"
+                            style={{ backgroundColor: color.hex }}
+                            aria-hidden="true"
+                          />
+                          <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                            {isArabic ? color.labelAr : color.labelEn}
+                          </div>
+                          <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{color.hex}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-4 grid gap-3 md:grid-cols-[auto_1fr] md:items-end">
+                    <label className="space-y-1 text-sm">
+                      <span className="text-zinc-600 dark:text-zinc-300">{t.customColorPicker}</span>
+                      <input
+                        type="color"
+                        value={normalizeHexColor(footer.footerColor)}
+                        onChange={(e) => setFooter((prev) => ({ ...prev, footerColor: normalizeHexColor(e.target.value) }))}
+                        className="h-10 w-16 cursor-pointer border border-zinc-300 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
+                      />
+                    </label>
+                    <label className="space-y-1 text-sm">
+                      <span className="text-zinc-600 dark:text-zinc-300">{t.customFooterColor}</span>
+                      <input
+                        value={footer.footerColor}
+                        onChange={(e) => setFooter((prev) => ({ ...prev, footerColor: e.target.value }))}
+                        onBlur={() =>
+                          setFooter((prev) => ({ ...prev, footerColor: normalizeHexColor(prev.footerColor) }))
+                        }
+                        placeholder="#7b3f8d"
+                        className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.customFooterColorHint}</p>
+                    </label>
+                  </div>
+                </div>
               </section>
 
               <section className="space-y-4">
