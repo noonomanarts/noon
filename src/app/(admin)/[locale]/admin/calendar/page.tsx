@@ -349,14 +349,7 @@ export default function AdminCalendarPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="text-sm font-medium uppercase tracking-[0.28em] text-[color:var(--noon-teal)]">Operations Calendar</p>
-          <h1 className="mt-2 text-2xl font-bold text-zinc-900 dark:text-zinc-100 sm:text-3xl">
-            Classes, events, and blocked studio time
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm text-zinc-600 dark:text-zinc-400">
-            Mobile-friendly calendar for daily planning. Tap any day to open the planner modal, pick time, and add blocks,
-            cleaning windows, or manual event items.
-          </p>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 sm:text-3xl">Calendar</h1>
         </div>
 
         <div className="flex flex-wrap gap-2 sm:gap-3">
