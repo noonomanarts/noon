@@ -21,9 +21,12 @@ export function formatPlainNumber(
 export function formatAmountWithCurrency(
   value: number | string | null | undefined,
   currency: string,
-  options?: { empty?: string; maxFractionDigits?: number }
+  options?: { empty?: string; maxFractionDigits?: number; locale?: string }
 ): string {
   const formatted = formatPlainNumber(value, options);
-  if (formatted === (options?.empty ?? "-")) return `${formatted} ${currency}`;
-  return `${formatted} ${currency}`;
+  const localizedCurrency =
+    options?.locale === "ar" && currency.toUpperCase() === "OMR" ? "ريال" : currency;
+
+  if (formatted === (options?.empty ?? "-")) return `${formatted} ${localizedCurrency}`;
+  return `${formatted} ${localizedCurrency}`;
 }
