@@ -284,7 +284,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
         className="border-t border-black/20"
         style={{ backgroundColor: headerColor, color: getReadableTextColor(headerColor) }}
       >
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-3 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between">
           <p>{copyrightLabel}</p>
           <a
             href="https://sbc.om"
