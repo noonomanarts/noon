@@ -8,12 +8,14 @@ type ClassHeaderSlideshowProps = {
   images: string[];
   alt: string;
   intervalMs?: number;
+  indicatorColor?: string;
 };
 
 export default function ClassHeaderSlideshow({
   images,
   alt,
   intervalMs = 4200,
+  indicatorColor = "#cb8578",
 }: ClassHeaderSlideshowProps) {
   const preparedImages = images.map((item) => item.trim()).filter((item) => item.length > 0);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -104,9 +106,11 @@ export default function ClassHeaderSlideshow({
             aria-label={`Slide ${index + 1}`}
             aria-pressed={selectedIndex === index}
             onClick={() => emblaApi?.scrollTo(index)}
-            className={`h-3.5 w-3.5 rounded-full transition ${
-              selectedIndex === index ? "bg-[#cb8578] scale-110" : "bg-zinc-900/85"
-            }`}
+            className={`h-3.5 w-3.5 rounded-full transition ${selectedIndex === index ? "scale-110" : ""}`}
+            style={{
+              backgroundColor: indicatorColor,
+              opacity: selectedIndex === index ? 1 : 0.38,
+            }}
           />
         ))}
       </div>

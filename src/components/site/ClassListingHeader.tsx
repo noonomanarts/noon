@@ -75,7 +75,12 @@ export default function ClassListingHeader({
           </div>
 
           <div className="w-full max-w-[14rem] justify-self-center sm:max-w-[16rem] md:max-w-none md:-translate-y-2 md:justify-self-end lg:-translate-y-4">
-            <ClassHeaderSlideshow images={slideImages} alt={title} intervalMs={autoplayMs} />
+            <ClassHeaderSlideshow
+              images={slideImages}
+              alt={title}
+              intervalMs={autoplayMs}
+              indicatorColor={backgroundColor}
+            />
           </div>
         </div>
 
