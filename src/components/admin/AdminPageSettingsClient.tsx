@@ -100,10 +100,12 @@ export default function AdminPageSettingsClient({
   locale,
   page,
   initialSettings,
+  initialShopHeaderImage,
 }: {
   locale: Locale;
   page: SitePageDefinition;
   initialSettings: SitePageSettings;
+  initialShopHeaderImage?: string;
 }) {
   const isArabic = locale === "ar";
   const [settings, setSettings] = useState<SitePageSettings>(initialSettings);
@@ -118,9 +120,11 @@ export default function AdminPageSettingsClient({
   const [uploadingAboutMediaKey, setUploadingAboutMediaKey] = useState<"hero" | "founder" | "family" | null>(null);
   const [uploadingAboutTeamImageIndex, setUploadingAboutTeamImageIndex] = useState<number | null>(null);
   const [uploadingAboutTrainerImageIndex, setUploadingAboutTrainerImageIndex] = useState<number | null>(null);
+  const [uploadingShopHeaderImage, setUploadingShopHeaderImage] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [shopHeaderImage, setShopHeaderImage] = useState(initialShopHeaderImage ?? "");
 
   const defaults = useMemo(() => getDefaultSitePageSettings(page), [page]);
   const isDynamic = isDynamicPathTemplate(page.pathTemplate);
@@ -129,6 +133,7 @@ export default function AdminPageSettingsClient({
   const isTermsPage = page.key === "terms";
   const isContactPage = page.key === "contact";
   const isAboutPage = page.key === "about";
+  const isShopIndexPage = page.key === "shop_index";
   const isClassListingPage = page.key === "classes_cooking" || page.key === "classes_arts_crafts";
   const previewEn = buildLocalizedPagePath(page.pathTemplate, "en");
   const previewAr = buildLocalizedPagePath(page.pathTemplate, "ar");
@@ -226,6 +231,15 @@ export default function AdminPageSettingsClient({
     classHeaderUploadFailed: isArabic ? "فشل رفع صورة الهيدر." : "Failed to upload header image.",
     classHeaderAutoplay: isArabic ? "سرعة السلايدشو (ms)" : "Slideshow Speed (ms)",
     classHeaderPreview: isArabic ? "معاينة الهيدر" : "Header Preview",
+    shopHeaderSection: isArabic ? "إعدادات هيدر صفحة الشوب" : "Shop Header Settings",
+    shopHeaderHint: isArabic
+      ? "اختر صورة الهيدر التي تظهر أعلى صفحة الشوب العامة."
+      : "Set the hero image shown at the top of the public shop page.",
+    shopHeaderImage: isArabic ? "صورة هيدر الشوب" : "Shop Header Image",
+    shopHeaderUpload: isArabic ? "رفع صورة" : "Upload Image",
+    shopHeaderUploading: isArabic ? "جارٍ الرفع..." : "Uploading...",
+    shopHeaderUploadDone: isArabic ? "تم رفع صورة هيدر الشوب." : "Shop header image uploaded.",
+    shopHeaderUploadFailed: isArabic ? "فشل رفع صورة هيدر الشوب." : "Failed to upload shop header image.",
     homeCoursesSection: isArabic ? "إعدادات قسم الدورات" : "Courses Section Settings",
     homeCoursesHint: isArabic
       ? "تحكم بعنوان القسم، الوصف، ونصوص الكروت. روابط الصور تبقى قابلة للتعديل من هنا."
@@ -493,6 +507,7 @@ export default function AdminPageSettingsClient({
     setSettings(defaults);
     setKeywordsEnText(keywordsToText(defaults.keywordsEn));
     setKeywordsArText(keywordsToText(defaults.keywordsAr));
+    setShopHeaderImage(initialShopHeaderImage ?? "");
     setError(null);
     setInfo(null);
   };
@@ -1230,6 +1245,23 @@ export default function AdminPageSettingsClient({
     }
   };
 
+  const handleShopHeaderImageUpload = async (file: File | null) => {
+    if (!file) return;
+    setUploadingShopHeaderImage(true);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const url = await uploadAsset(file, "shop-header-image", t.shopHeaderUploadFailed);
+      setShopHeaderImage(url);
+      setInfo(t.shopHeaderUploadDone);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : t.shopHeaderUploadFailed);
+    } finally {
+      setUploadingShopHeaderImage(false);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
@@ -1266,6 +1298,20 @@ export default function AdminPageSettingsClient({
 
       if (!response.ok || !data.settings) {
         throw new Error(data.error || t.saveError);
+      }
+
+      if (isShopIndexPage) {
+        const shopHeaderResponse = await fetch("/api/admin/shop/page-content", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ headerImage: shopHeaderImage }),
+        });
+        const shopHeaderPayload = (await shopHeaderResponse.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        if (!shopHeaderResponse.ok) {
+          throw new Error(shopHeaderPayload.error || t.shopHeaderUploadFailed);
+        }
       }
 
       setSettings(data.settings);
@@ -1417,6 +1463,53 @@ export default function AdminPageSettingsClient({
           )}
         </div>
       </section>
+
+      {isShopIndexPage && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.shopHeaderSection}</h2>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.shopHeaderHint}</p>
+
+          <label className="block space-y-1 text-sm">
+            <span className="text-zinc-600 dark:text-zinc-300">{t.shopHeaderImage}</span>
+            <div className="flex gap-2">
+              <input
+                value={shopHeaderImage}
+                onChange={(event) => setShopHeaderImage(event.target.value)}
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              />
+              <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                <FiUpload className="size-3.5" />
+                {uploadingShopHeaderImage ? t.shopHeaderUploading : t.shopHeaderUpload}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploadingShopHeaderImage}
+                  onChange={(event) => {
+                    void handleShopHeaderImageUpload(event.target.files?.[0] ?? null);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            </div>
+          </label>
+
+          <div className="mt-4 overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
+            <div className="relative h-36 bg-zinc-100 dark:bg-zinc-800">
+              {shopHeaderImage.trim() ? (
+                <div
+                  className="h-full w-full bg-cover bg-center"
+                  style={{ backgroundImage: `url(\"${shopHeaderImage.trim()}\")` }}
+                />
+              ) : null}
+              <div className="absolute inset-0 bg-black/35" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">{isArabic ? "المتجر" : "Shop"}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {isClassListingPage && (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">

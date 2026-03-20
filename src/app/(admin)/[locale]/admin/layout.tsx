@@ -114,6 +114,7 @@ export default async function AdminLayout({
     shop: locale === "ar" ? "المتجر" : "Shop",
     shopCategories: locale === "ar" ? "تصنيفات المتجر" : "Shop Categories",
     shopProducts: locale === "ar" ? "منتجات المتجر" : "Shop Products",
+    shopDiscoverMore: locale === "ar" ? "روابط Discover more" : "Discover More Links",
     shopOrders: locale === "ar" ? "طلبات المتجر" : "Shop Orders",
     recommendations: locale === "ar" ? "التوصيات" : "Recommendations",
     recipes: locale === "ar" ? "الوصفات" : "Recipes",
@@ -184,6 +185,7 @@ export default async function AdminLayout({
           items: [
             { iconName: "FiPackage" as const, iconColor: "text-blue-600 dark:text-blue-400", label: t.shopCategories, href: `/${locale}/admin/shop/categories` },
             { iconName: "FiShoppingBag" as const, iconColor: "text-purple-600 dark:text-purple-400", label: t.shopProducts, href: `/${locale}/admin/shop/products` },
+            { iconName: "FiFileText" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.shopDiscoverMore, href: `/${locale}/admin/shop/discover-more` },
             { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: t.shopOrders, href: `/${locale}/admin/shop/orders` },
           ],
         },

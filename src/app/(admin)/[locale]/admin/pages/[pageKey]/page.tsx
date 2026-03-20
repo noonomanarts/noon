@@ -8,6 +8,7 @@ import {
   sanitizeSitePageSettings,
   type SitePageSettings,
 } from "@/lib/admin/sitePages";
+import { getShopPageContentSettings } from "@/lib/shopPageContent";
 import AdminPageSettingsClient from "@/components/admin/AdminPageSettingsClient";
 
 export default async function AdminPageSettingsEntry({
@@ -26,12 +27,15 @@ export default async function AdminPageSettingsEntry({
   const settingsKey = makeSitePageSettingsKey(page.key);
   const saved = await getAdminSettingsByKey<Partial<SitePageSettings>>(settingsKey);
   const initialSettings = sanitizeSitePageSettings(page, saved);
+  const initialShopHeaderImage =
+    page.key === "shop_index" ? (await getShopPageContentSettings()).headerImage : undefined;
 
   return (
     <AdminPageSettingsClient
       locale={locale}
       page={page}
       initialSettings={initialSettings}
+      initialShopHeaderImage={initialShopHeaderImage}
     />
   );
 }
