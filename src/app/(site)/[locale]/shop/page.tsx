@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { FiArrowRight } from "react-icons/fi";
+import Link from "next/link";
+import { FiArrowLeft, FiArrowRight, FiBox } from "react-icons/fi";
 
 import { isLocale, type Locale } from "@/lib/locale";
 import { listShopCategoriesForPublic, listShopProductsForPublic } from "@/lib/db/shop";
@@ -16,12 +17,15 @@ export default async function ShopPage({
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const isArabic = locale === "ar";
+  const MoreArrowIcon = isArabic ? FiArrowLeft : FiArrowRight;
 
   const t = {
     defaultTitle: isArabic ? "المتجر" : "Shop",
     noCategories: isArabic ? "لا توجد تصنيفات نشطة حالياً." : "No active categories available right now.",
     noProductsInCategory: isArabic ? "لا توجد منتجات منشورة في هذا التصنيف حالياً." : "No published products in this category right now.",
     noProducts: isArabic ? "لا توجد منتجات منشورة حالياً." : "No published products yet.",
+    moreProducts: isArabic ? "المزيد من المنتجات" : "More products",
+    viewAllProducts: isArabic ? "عرض كل المنتجات في هذا التصنيف" : "View all products in this category",
     discoverMore: isArabic ? "Discover more" : "Discover more",
     visitWebsite: isArabic ? "زيارة الموقع" : "Visit website",
   };
@@ -54,10 +58,17 @@ export default async function ShopPage({
     return aOrder - bOrder;
   });
 
-  const categoriesWithProducts = orderedCategories.map((category) => ({
-    category,
-    products: allProducts.filter((product) => product.category_id === category.id),
-  }));
+  const categoriesWithProducts = orderedCategories.map((category) => {
+    const products = allProducts
+      .filter((product) => product.category_id === category.id)
+      .sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
+
+    return {
+      category,
+      products,
+      previewProducts: products.slice(0, 3),
+    };
+  });
 
   const discoverLinks = shopPageContent.discoverLinks
     .filter((item) => item.isActive && item.url)
@@ -86,7 +97,7 @@ export default async function ShopPage({
             <p className="text-sm text-[color:var(--text-muted)]">{t.noCategories}</p>
           </div>
         ) : (
-          categoriesWithProducts.map(({ category, products }) => {
+          categoriesWithProducts.map(({ category, products, previewProducts }) => {
             const override = categoryTitleOverrides[category.slug];
             const categoryTitle = override
               ? isArabic
@@ -98,17 +109,31 @@ export default async function ShopPage({
 
             return (
               <section key={category.id} className="space-y-4">
-                <h2 className="text-2xl font-semibold text-[color:var(--text)]">{categoryTitle}</h2>
+                <h2 className="inline-flex items-center justify-center gap-2 text-3xl font-extrabold tracking-tight text-[color:var(--text)] sm:text-4xl">
+                  <FiBox className="size-7 text-coral" />
+                  {categoryTitle}
+                </h2>
 
                 {products.length === 0 ? (
                   <div className="border border-[color:var(--border)] bg-[color:var(--surface)] p-6 text-sm text-[color:var(--text-muted)]">
                     {t.noProductsInCategory}
                   </div>
                 ) : (
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {products.map((product) => (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {previewProducts.map((product) => (
                       <ShopProductCard key={product.id} product={product} locale={locale} />
                     ))}
+                    <Link
+                      href={`/${locale}/shop/${category.slug}`}
+                      className="group flex h-full flex-col items-center justify-center gap-3 border border-white/35 p-6 text-center shadow-sm transition hover:-translate-y-0.5 hover:brightness-95 hover:shadow-lg"
+                      style={{ backgroundColor: siteButtonColor, color: siteButtonTextColor }}
+                    >
+                      <span className="inline-flex size-14 items-center justify-center border border-white/35 bg-black/10">
+                        <MoreArrowIcon className="size-6" />
+                      </span>
+                      <p className="text-2xl font-extrabold tracking-tight">{t.moreProducts}</p>
+                      <p className="w-full max-w-[24ch] text-center text-sm opacity-90">{t.viewAllProducts}</p>
+                    </Link>
                   </div>
                 )}
               </section>

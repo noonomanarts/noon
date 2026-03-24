@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiArrowRight, FiBox, FiTag } from "react-icons/fi";
+import { FiBox, FiCheckCircle, FiPackage, FiTag } from "react-icons/fi";
 
 import type { Locale } from "@/lib/locale";
 import AddToCartButton from "@/components/site/AddToCartButton";
@@ -36,14 +36,14 @@ export default function ShopProductCard({
   const isArabic = locale === "ar";
   const t = {
     noImage: isArabic ? "بدون صورة" : "No image",
-    details: isArabic ? "تفاصيل المنتج" : "View details",
+    openProduct: isArabic ? "فتح المنتج" : "Open product",
     inStock: isArabic ? "متوفر" : "In stock",
     outOfStock: isArabic ? "غير متوفر" : "Out of stock",
     featured: isArabic ? "مميز" : "Featured",
-    sku: "SKU",
     stock: isArabic ? "المخزون" : "Stock",
     addToCart: isArabic ? "أضف للسلة" : "Add to cart",
     adding: isArabic ? "جارٍ الإضافة..." : "Adding...",
+    noDescription: isArabic ? "وصف المنتج سيتوفر قريباً." : "Product description will be available soon.",
   };
 
   const name = isArabic ? product.name_ar : product.name_en;
@@ -54,15 +54,16 @@ export default function ShopProductCard({
   return (
     <article
       className={[
-        "group overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg",
+        "group flex h-full flex-col overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg",
         className ?? "",
       ].join(" ")}
     >
       <Link
         href={`/${locale}/shop/product/${product.slug}`}
-        aria-label={t.details}
-        className="relative block h-52 overflow-hidden bg-[color:var(--muted)]"
+        aria-label={`${t.openProduct}: ${name}`}
+        className="relative block h-56 overflow-hidden bg-[color:var(--muted)]"
       >
+        <div className="absolute inset-x-0 top-0 z-10 h-1 bg-gradient-to-r from-coral via-yellow to-teal" />
         {product.image ? (
           <Image
             src={product.image}
@@ -78,71 +79,75 @@ export default function ShopProductCard({
         )}
 
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
-          <span className="inline-flex items-center gap-1 bg-black/60 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
-            <FiTag className="size-3" />
+          <span className="inline-flex items-center gap-1.5 bg-black/65 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+            <FiTag className="size-3 text-yellow-300" />
             {categoryName}
           </span>
           <div className="flex flex-col items-end gap-1.5">
             {product.is_featured ? (
-              <span className="inline-flex items-center gap-1 bg-[color:var(--primary)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--primary-foreground)]">
+              <span className="inline-flex items-center gap-1 bg-yellow px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#2f2a1f]">
                 <FiBox className="size-3" />
                 {t.featured}
               </span>
             ) : null}
             <span
-              className={`inline-flex px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+              className={`inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
                 inStock
                   ? "bg-emerald-500/20 text-emerald-900 dark:text-emerald-200"
                   : "bg-rose-500/20 text-rose-900 dark:text-rose-200"
               }`}
             >
+              <FiCheckCircle className="size-3" />
               {inStock ? t.inStock : t.outOfStock}
             </span>
           </div>
         </div>
       </Link>
 
-      <div className="space-y-3 p-4">
-        <div>
-          <h3 className="line-clamp-1 text-base font-semibold text-[color:var(--text)]">{name}</h3>
-          <p className="mt-1 line-clamp-2 text-sm leading-6 text-[color:var(--text-muted)]">
-            {description || " "}
+      <div className="flex flex-1 flex-col gap-3 p-5 text-center">
+        <div className="space-y-1">
+          <h3 className="line-clamp-2 text-xl font-bold leading-6 text-[color:var(--text)]">
+            {name}
+          </h3>
+          <p className="line-clamp-2 text-sm leading-5 text-[color:var(--text-muted)]">
+            {description || t.noDescription}
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 border border-[color:var(--border)] bg-[color:var(--muted)] p-2 text-xs">
-          <div>
-            <p className="text-[color:var(--text-subtle)]">{t.sku}</p>
-            <p className="mt-0.5 line-clamp-1 font-semibold text-[color:var(--text)]">{product.sku || "-"}</p>
-          </div>
-          <div>
-            <p className="text-[color:var(--text-subtle)]">{t.stock}</p>
-            <p className="mt-0.5 font-semibold text-[color:var(--text)]">{product.stock_quantity}</p>
-          </div>
+        <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+          <span className="inline-flex items-center gap-1.5 border border-teal/35 bg-teal/10 px-3 py-1.5 font-semibold text-teal">
+            <FiPackage className="size-3.5" />
+            {t.stock}: {product.stock_quantity}
+          </span>
+          <span
+            className={`inline-flex items-center gap-1.5 border px-3 py-1.5 font-semibold ${
+              inStock
+                ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-800"
+                : "border-rose-500/35 bg-rose-500/10 text-rose-800"
+            }`}
+          >
+            <FiCheckCircle className="size-3.5" />
+            {inStock ? t.inStock : t.outOfStock}
+          </span>
         </div>
 
-        <div className="flex items-end justify-between gap-3">
-          <p className="text-lg font-extrabold text-[color:var(--text)]">
+        <div className="space-y-1">
+          <p className="text-2xl font-black text-[color:var(--text)]">
             {formatAmountWithCurrency(product.price, product.currency)}
           </p>
-          <Link
-            href={`/${locale}/shop/product/${product.slug}`}
-            className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-[color:var(--primary)]"
-          >
-            {t.details}
-            <FiArrowRight className="size-3.5" />
-          </Link>
         </div>
 
-        <AddToCartButton
-          productId={product.id}
-          locale={locale}
-          disabled={!inStock}
-          showFeedback={false}
-          idleLabel={t.addToCart}
-          loadingLabel={t.adding}
-          buttonClassName="inline-flex w-full items-center justify-center bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-        />
+        <div className="mt-auto">
+          <AddToCartButton
+            productId={product.id}
+            locale={locale}
+            disabled={!inStock}
+            showFeedback={false}
+            idleLabel={t.addToCart}
+            loadingLabel={t.adding}
+            buttonClassName="inline-flex w-full items-center justify-center bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+          />
+        </div>
       </div>
     </article>
   );
