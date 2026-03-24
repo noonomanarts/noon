@@ -135,6 +135,7 @@ export default function AdminPageSettingsClient({
   const isAboutPage = page.key === "about";
   const isShopIndexPage = page.key === "shop_index";
   const isClassListingPage = page.key === "classes_cooking" || page.key === "classes_arts_crafts";
+  const isCompetitionPage = page.key === "events_competition";
   const previewEn = buildLocalizedPagePath(page.pathTemplate, "en");
   const previewAr = buildLocalizedPagePath(page.pathTemplate, "ar");
 
@@ -231,6 +232,21 @@ export default function AdminPageSettingsClient({
     classHeaderUploadFailed: isArabic ? "فشل رفع صورة الهيدر." : "Failed to upload header image.",
     classHeaderAutoplay: isArabic ? "سرعة السلايدشو (ms)" : "Slideshow Speed (ms)",
     classHeaderPreview: isArabic ? "معاينة الهيدر" : "Header Preview",
+    competitionHeaderSection: isArabic ? "إعدادات هيدر صفحة مسابقة الطبخ" : "Competition Header Settings",
+    competitionHeaderHint: isArabic
+      ? "يمكنك رفع صورة أو فيديو واحد ليظهر كخلفية هيدر الصفحة مع عنوان في المنتصف."
+      : "Upload a single image or video to be used as the page header background with centered title.",
+    competitionHeaderMedia: isArabic ? "وسائط الخلفية" : "Background Media",
+    competitionHeaderMediaHint: isArabic
+      ? "لا يوجد سلايدشو هنا. سيتم عرض وسيط واحد فقط حسب النوع المحدد."
+      : "No slideshow here. Only one media asset will be shown based on selected type.",
+    competitionHeaderPreview: isArabic ? "معاينة الهيدر" : "Header Preview",
+    competitionHeaderUploadDone: isArabic
+      ? "تم تحديث وسائط هيدر صفحة المسابقة."
+      : "Competition header media updated successfully.",
+    competitionHeaderUploadFailed: isArabic
+      ? "فشل رفع وسائط هيدر صفحة المسابقة."
+      : "Failed to upload competition header media.",
     shopHeaderSection: isArabic ? "إعدادات هيدر صفحة الشوب" : "Shop Header Settings",
     shopHeaderHint: isArabic
       ? "اختر صورة الهيدر التي تظهر أعلى صفحة الشوب العامة."
@@ -495,6 +511,7 @@ export default function AdminPageSettingsClient({
   const heroMediaSrc = heroMediaIsVideo ? heroVideoSrc : heroImageSrc;
   const classHeaderTitle =
     (isArabic ? settings.headingAr : settings.headingEn).trim() || (isArabic ? page.nameAr : page.nameEn);
+  const competitionHeaderSubtitle = (isArabic ? settings.subheadingAr : settings.subheadingEn).trim();
   const classHeaderBackgroundColor = normalizeHexColor(
     settings.classListingHero.backgroundColor,
     defaults.classListingHero.backgroundColor
@@ -1035,17 +1052,20 @@ export default function AdminPageSettingsClient({
     setInfo(null);
 
     try {
+      const uploadFailedMessage = isCompetitionPage ? t.competitionHeaderUploadFailed : t.heroUploadFailed;
+      const uploadDoneMessage = isCompetitionPage ? t.competitionHeaderUploadDone : t.heroUploadDone;
       const activeType = settings.homeHero.backgroundMediaType ?? "image";
       const folder = activeType === "video" ? "home-hero-video" : "home-hero-image";
-      const url = await uploadAsset(file, folder, t.heroUploadFailed);
+      const url = await uploadAsset(file, folder, uploadFailedMessage);
       if (activeType === "video") {
         setHeroVideoSrc(url);
       } else {
         setHeroImageSrc(url);
       }
-      setInfo(t.heroUploadDone);
+      setInfo(uploadDoneMessage);
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : t.heroUploadFailed);
+      const uploadFailedMessage = isCompetitionPage ? t.competitionHeaderUploadFailed : t.heroUploadFailed;
+      setError(uploadError instanceof Error ? uploadError.message : uploadFailedMessage);
     } finally {
       setUploadingHeroMedia(false);
     }
@@ -1463,6 +1483,134 @@ export default function AdminPageSettingsClient({
           )}
         </div>
       </section>
+
+      {isCompetitionPage && (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            {t.competitionHeaderSection}
+          </h2>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.competitionHeaderHint}</p>
+
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm text-zinc-600 dark:text-zinc-300">{t.competitionHeaderMedia}</span>
+              <div className="flex flex-wrap gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100">
+                  <FiUpload className="size-3.5" />
+                  {uploadingHeroMedia ? t.heroUploading : heroMediaSrc ? t.heroReplaceImage : t.heroUploadSlides}
+                  <input
+                    type="file"
+                    accept={heroMediaType === "video" ? "video/*" : "image/*"}
+                    className="hidden"
+                    disabled={uploadingHeroMedia}
+                    onChange={(event) => {
+                      void handleHeroMediaUpload(event.target.files?.[0] ?? null);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                {heroMediaSrc ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (heroMediaType === "video") {
+                        setHeroVideoSrc("");
+                      } else {
+                        setHeroImageSrc("");
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-2.5 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-800/70 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                  >
+                    <FiTrash2 className="size-3.5" />
+                    {t.heroRemoveImage}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-sm text-zinc-600 dark:text-zinc-300">{t.heroMediaType}</span>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setHeroMediaType("image")}
+                  className={`inline-flex items-center justify-center px-3 py-2 text-sm font-semibold transition ${
+                    heroMediaType === "image"
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                      : "border border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {t.heroMediaTypeImage}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHeroMediaType("video")}
+                  className={`inline-flex items-center justify-center px-3 py-2 text-sm font-semibold transition ${
+                    heroMediaType === "video"
+                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                      : "border border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {t.heroMediaTypeVideo}
+                </button>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.competitionHeaderMediaHint}</p>
+
+            {heroMediaType === "image" ? (
+              <label className="block space-y-1 text-sm">
+                <span className="text-zinc-600 dark:text-zinc-300">{t.heroImagePath}</span>
+                <input
+                  value={heroImageSrc}
+                  onChange={(event) => setHeroImageSrc(event.target.value)}
+                  placeholder="/uploads/events/header.jpg"
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </label>
+            ) : (
+              <label className="block space-y-1 text-sm">
+                <span className="text-zinc-600 dark:text-zinc-300">{t.heroVideoPath}</span>
+                <input
+                  value={heroVideoSrc}
+                  onChange={(event) => setHeroVideoSrc(event.target.value)}
+                  placeholder="/uploads/events/header.mp4"
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+              </label>
+            )}
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.competitionHeaderPreview}</span>
+              <div className="relative h-44 overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
+                {heroMediaSrc ? (
+                  heroMediaIsVideo ? (
+                    <video className="h-full w-full object-cover" src={heroMediaSrc} autoPlay muted loop playsInline />
+                  ) : (
+                    <div
+                      className="h-full w-full bg-cover bg-center"
+                      style={{ backgroundImage: `url("${heroMediaSrc}")` }}
+                    />
+                  )
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-zinc-500 dark:text-zinc-400">
+                    {t.heroSlidesEmpty}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/45" />
+                <div className="absolute inset-0 flex items-center justify-center px-4 text-center">
+                  <div className="max-w-2xl space-y-2">
+                    <h3 className="text-2xl font-bold text-white">{classHeaderTitle}</h3>
+                    {competitionHeaderSubtitle ? (
+                      <p className="line-clamp-2 text-sm text-white/90">{competitionHeaderSubtitle}</p>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {isShopIndexPage && (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">

@@ -4,6 +4,13 @@ import { GiCookingPot, GiChefToque } from "react-icons/gi";
 import { IoTrophyOutline } from "react-icons/io5";
 
 import { isLocale, type Locale } from "@/lib/locale";
+import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
+
+function isVideoSource(source: string): boolean {
+  const normalized = source.trim().toLowerCase();
+  if (!normalized) return false;
+  return /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/.test(normalized);
+}
 
 export default async function CookingCompetitionPage({
   params,
@@ -13,6 +20,7 @@ export default async function CookingCompetitionPage({
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const isArabic = locale === "ar";
+  const pageSettings = await getPublicSitePageSettings("events_competition");
 
   const t = {
     eyebrow: isArabic ? "فعاليات المجموعات" : "Group Events",
@@ -28,6 +36,24 @@ export default async function CookingCompetitionPage({
       ? "احجز موعدك وسيتواصل فريق نون لتأكيد التفاصيل."
       : "Book your date and the Noon team will confirm all details with you.",
   };
+  const pageTitle = (isArabic ? pageSettings?.headingAr : pageSettings?.headingEn)?.trim() || t.title;
+  const pageSubtitle = (isArabic ? pageSettings?.subheadingAr : pageSettings?.subheadingEn)?.trim() || t.subtitle;
+  const mediaTypeFromSettings = pageSettings?.homeHero.backgroundMediaType;
+  const mediaImageFromSettings = pageSettings?.homeHero.backgroundImageSrc?.trim() || "";
+  const mediaVideoFromSettings = pageSettings?.homeHero.backgroundVideoSrc?.trim() || "";
+  const legacyHeaderMedia = pageSettings?.homeHero.slideImages?.find((item) => item.trim())?.trim() || "";
+  const legacyHeaderIsVideo = isVideoSource(legacyHeaderMedia);
+  const headerMediaType = mediaTypeFromSettings ?? (legacyHeaderIsVideo ? "video" : "image");
+  let headerMedia =
+    headerMediaType === "video"
+      ? mediaVideoFromSettings || (legacyHeaderIsVideo ? legacyHeaderMedia : "")
+      : mediaImageFromSettings || (!legacyHeaderIsVideo ? legacyHeaderMedia : "");
+  let headerMediaIsVideo = headerMediaType === "video";
+
+  if (!headerMedia) {
+    headerMedia = "/images/cooking.png";
+    headerMediaIsVideo = false;
+  }
 
   const steps = [
     {
@@ -69,84 +95,90 @@ export default async function CookingCompetitionPage({
   ];
 
   return (
-    <div className="relative overflow-x-clip pb-14">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem]">
-        <div className="absolute -left-20 top-8 h-72 w-72 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
-        <div className="absolute right-0 top-16 h-80 w-80 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
-      </div>
-
-      <section className="mx-auto w-full max-w-6xl px-4 pt-10">
-        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[color:var(--muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
-            <IoTrophyOutline className="h-4 w-4 text-coral" />
-            {t.eyebrow}
+    <div className="route-sharp pb-14">
+      <section className="relative mb-10 h-[17rem] w-full overflow-hidden sm:h-[20rem] md:h-[22rem]">
+        {headerMediaIsVideo ? (
+          <video
+            className="absolute inset-0 h-full w-full object-cover"
+            src={headerMedia}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : (
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url("${headerMedia}")` }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/40 to-black/55" />
+        <div className="absolute inset-0 mx-auto flex w-full max-w-6xl items-center justify-center px-4 text-center">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-black/30 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white">
+              <IoTrophyOutline className="h-4 w-4 text-coral" />
+              {t.eyebrow}
+            </div>
+            <h1 className="mt-4 text-4xl font-bold text-white sm:text-5xl">{pageTitle}</h1>
+            <p className="mt-3 text-sm leading-7 text-white/90 sm:text-base">{pageSubtitle}</p>
+            <Link
+              href={`/${locale}/group-booking-events/cooking-competition/book`}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-100"
+            >
+              <FiCalendar className="size-4" />
+              {t.cta}
+            </Link>
           </div>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[color:var(--text)] sm:text-5xl">
-            {t.title}
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
-            {t.subtitle}
-          </p>
-          <Link
-            href={`/${locale}/group-booking-events/cooking-competition/book`}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-5 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
-          >
-            <FiCalendar className="size-4" />
-            {t.cta}
-          </Link>
         </div>
       </section>
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
-        <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.processTitle}</h2>
+        <h2 className="text-center text-2xl font-semibold text-[color:var(--text)]">{t.processTitle}</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {steps.map((item, index) => (
+          {steps.map((item) => (
             <article
               key={item.title}
               className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm"
             >
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-3">
                 <item.icon className="h-6 w-6 text-[color:var(--primary)]" />
-                <span className="text-xs font-semibold text-[color:var(--text-subtle)]">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
               </div>
-              <h3 className="text-base font-semibold text-[color:var(--text)]">{item.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">{item.desc}</p>
+              <h3 className="text-center text-base font-semibold text-[color:var(--text)]">{item.title}</h3>
+              <p className="mt-2 text-center text-sm leading-6 text-[color:var(--text-muted)]">{item.desc}</p>
             </article>
           ))}
         </div>
       </section>
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
-        <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.packageTitle}</h2>
+        <h2 className="text-center text-2xl font-semibold text-[color:var(--text)]">{t.packageTitle}</h2>
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <article className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-[color:var(--text)]">
+            <h3 className="text-center text-lg font-semibold text-[color:var(--text)]">
               {isArabic ? "الباقة القياسية" : "Standard Competition"}
             </h3>
-            <div className="mt-4 space-y-2.5">
+            <ul className="mt-4 space-y-2.5">
               {standardItems.map((item) => (
-                <p key={item} className="inline-flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
+                <li key={item} className="flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
                   <FiCheckCircle className="mt-0.5 size-4 shrink-0 text-teal" />
                   {item}
-                </p>
+                </li>
               ))}
-            </div>
+            </ul>
           </article>
 
           <article className="rounded-2xl border border-coral/40 bg-[color:var(--surface)] p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-[color:var(--text)]">
+            <h3 className="text-center text-lg font-semibold text-[color:var(--text)]">
               {isArabic ? "الباقة المميزة" : "Premium Competition"}
             </h3>
-            <div className="mt-4 space-y-2.5">
+            <ul className="mt-4 space-y-2.5">
               {premiumItems.map((item) => (
-                <p key={item} className="inline-flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
+                <li key={item} className="flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
                   <FiCheckCircle className="mt-0.5 size-4 shrink-0 text-coral" />
                   {item}
-                </p>
+                </li>
               ))}
-            </div>
+            </ul>
           </article>
         </div>
       </section>
@@ -155,7 +187,7 @@ export default async function CookingCompetitionPage({
         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center shadow-sm">
           <h3 className="text-2xl font-semibold text-[color:var(--text)]">{t.readyTitle}</h3>
           <p className="mx-auto mt-3 max-w-2xl text-sm text-[color:var(--text-muted)]">{t.readySubtitle}</p>
-          <div className="mt-5 inline-flex items-center gap-4 text-xs text-[color:var(--text-subtle)]">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-[color:var(--text-subtle)]">
             <span className="inline-flex items-center gap-1">
               <FiUsers className="size-3.5" />
               {isArabic ? "8-40 مشارك" : "8-40 participants"}
@@ -165,13 +197,15 @@ export default async function CookingCompetitionPage({
               {isArabic ? "3 ساعات" : "3 hours"}
             </span>
           </div>
-          <Link
-            href={`/${locale}/group-booking-events/cooking-competition/book`}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
-          >
-            {isArabic ? "ابدأ الحجز" : "Start Booking"}
-            <FiArrowRight className="size-4" />
-          </Link>
+          <div className="mt-6">
+            <Link
+              href={`/${locale}/group-booking-events/cooking-competition/book`}
+              className="inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+            >
+              {isArabic ? "ابدأ الحجز" : "Start Booking"}
+              <FiArrowRight className="size-4" />
+            </Link>
+          </div>
         </div>
       </section>
     </div>
