@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FiArrowRight, FiCalendar, FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
+import { FiArrowRight, FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
 import { GiCookingPot, GiChefToque } from "react-icons/gi";
 import { IoTrophyOutline } from "react-icons/io5";
 
@@ -23,12 +23,7 @@ export default async function CookingCompetitionPage({
   const pageSettings = await getPublicSitePageSettings("events_competition");
 
   const t = {
-    eyebrow: isArabic ? "فعاليات المجموعات" : "Group Events",
     title: isArabic ? "مسابقة الطبخ" : "Cooking Competition",
-    subtitle: isArabic
-      ? "تجربة جماعية تجمع الطهي والتنافس والتعاون ضمن أجواء احترافية ممتعة."
-      : "A team-based culinary challenge that combines cooking, competition, and collaboration.",
-    cta: isArabic ? "احجز المسابقة" : "Book Competition",
     processTitle: isArabic ? "كيف تسير التجربة" : "How the Experience Works",
     packageTitle: isArabic ? "الباقات المتاحة" : "Available Packages",
     readyTitle: isArabic ? "جاهزون للتحدي؟" : "Ready for the Challenge?",
@@ -37,7 +32,6 @@ export default async function CookingCompetitionPage({
       : "Book your date and the Noon team will confirm all details with you.",
   };
   const pageTitle = (isArabic ? pageSettings?.headingAr : pageSettings?.headingEn)?.trim() || t.title;
-  const pageSubtitle = (isArabic ? pageSettings?.subheadingAr : pageSettings?.subheadingEn)?.trim() || t.subtitle;
   const mediaTypeFromSettings = pageSettings?.homeHero.backgroundMediaType;
   const mediaImageFromSettings = pageSettings?.homeHero.backgroundImageSrc?.trim() || "";
   const mediaVideoFromSettings = pageSettings?.homeHero.backgroundVideoSrc?.trim() || "";
@@ -115,19 +109,7 @@ export default async function CookingCompetitionPage({
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/40 to-black/55" />
         <div className="absolute inset-0 mx-auto flex w-full max-w-6xl items-center justify-center px-4 text-center">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-black/30 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white">
-              <IoTrophyOutline className="h-4 w-4 text-coral" />
-              {t.eyebrow}
-            </div>
-            <h1 className="mt-4 text-4xl font-bold text-white sm:text-5xl">{pageTitle}</h1>
-            <p className="mt-3 text-sm leading-7 text-white/90 sm:text-base">{pageSubtitle}</p>
-            <Link
-              href={`/${locale}/group-booking-events/cooking-competition/book`}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-zinc-900 transition hover:bg-zinc-100"
-            >
-              <FiCalendar className="size-4" />
-              {t.cta}
-            </Link>
+            <h1 className="text-4xl font-bold text-white sm:text-5xl">{pageTitle}</h1>
           </div>
         </div>
       </section>
@@ -138,13 +120,13 @@ export default async function CookingCompetitionPage({
           {steps.map((item) => (
             <article
               key={item.title}
-              className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm"
+              className="rounded-2xl border border-purple-300/35 bg-purple-700 p-5 shadow-sm"
             >
-              <div className="mb-3">
-                <item.icon className="h-6 w-6 text-[color:var(--primary)]" />
+              <div className="mb-3 flex justify-center">
+                <item.icon className="h-10 w-10 text-white" />
               </div>
-              <h3 className="text-center text-base font-semibold text-[color:var(--text)]">{item.title}</h3>
-              <p className="mt-2 text-center text-sm leading-6 text-[color:var(--text-muted)]">{item.desc}</p>
+              <h3 className="text-center text-base font-semibold text-white">{item.title}</h3>
+              <p className="mt-2 text-center text-sm leading-6 text-white/90">{item.desc}</p>
             </article>
           ))}
         </div>
