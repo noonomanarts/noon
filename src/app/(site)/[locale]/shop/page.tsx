@@ -75,12 +75,12 @@ export default async function ShopPage({
           className="object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/40 to-black/50" />
-        <div className="absolute inset-0 mx-auto flex w-full max-w-6xl items-center px-4">
-          <h1 className="text-4xl font-bold text-white sm:text-5xl">{pageTitle}</h1>
+        <div className="absolute inset-0 mx-auto flex w-full max-w-6xl items-center justify-center px-4 text-center">
+          <h1 className="w-full text-4xl font-bold text-white sm:text-5xl">{pageTitle}</h1>
         </div>
       </section>
 
-      <div className="mx-auto w-full max-w-6xl space-y-12 px-4">
+      <div className="mx-auto w-full max-w-6xl space-y-12 px-4 text-center">
         {categoriesWithProducts.length === 0 ? (
           <div className="border border-[color:var(--border)] bg-[color:var(--surface)] p-10 text-center shadow-sm">
             <p className="text-sm text-[color:var(--text-muted)]">{t.noCategories}</p>
@@ -139,7 +139,7 @@ export default async function ShopPage({
                       />
                     ) : null}
                   </div>
-                  <div className="space-y-2 p-4">
+                  <div className="space-y-2 p-4 text-center">
                     <h3 className="line-clamp-1 text-base font-semibold text-[color:var(--text)]">
                       {(isArabic ? link.titleAr : link.titleEn) || link.titleEn || link.titleAr}
                     </h3>
@@ -163,7 +163,7 @@ export default async function ShopPage({
         ) : null}
 
         {allProducts.length === 0 ? (
-          <div className="border border-[color:var(--border)] bg-[color:var(--surface)] p-6 text-sm text-[color:var(--text-muted)]">
+          <div className="border border-[color:var(--border)] bg-[color:var(--surface)] p-6 text-center text-sm text-[color:var(--text-muted)]">
             {t.noProducts}
           </div>
         ) : null}

@@ -52,8 +52,8 @@ export default async function ShopCategoryPage({
         <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
       </div>
 
-      <div className="mx-auto w-full max-w-6xl px-4 pt-10">
-        <div className="mb-4">
+      <div className="mx-auto w-full max-w-6xl px-4 pt-10 text-center">
+        <div className="mb-4 flex justify-center">
           <Link
             href={`/${locale}/shop`}
             className="inline-flex items-center gap-2 border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:shadow-sm"
@@ -70,11 +70,11 @@ export default async function ShopCategoryPage({
             {categoryDescription}
           </p>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="border border-[color:var(--border)] bg-[color:var(--muted)] p-3">
+            <div className="border border-[color:var(--border)] bg-[color:var(--muted)] p-3 text-center">
               <p className="text-xs uppercase tracking-[0.12em] text-[color:var(--text-subtle)]">{t.productsCount}</p>
               <p className="mt-1 text-2xl font-extrabold text-[color:var(--text)]">{products.length}</p>
             </div>
-            <div className="border border-[color:var(--border)] bg-[color:var(--muted)] p-3">
+            <div className="border border-[color:var(--border)] bg-[color:var(--muted)] p-3 text-center">
               <p className="text-xs uppercase tracking-[0.12em] text-[color:var(--text-subtle)]">{t.availableCount}</p>
               <p className="mt-1 text-2xl font-extrabold text-[color:var(--text)]">{inStockCount}</p>
             </div>
@@ -82,7 +82,7 @@ export default async function ShopCategoryPage({
         </div>
       </div>
 
-      <div className="mx-auto mt-8 w-full max-w-6xl space-y-6 px-4">
+      <div className="mx-auto mt-8 w-full max-w-6xl space-y-6 px-4 text-center">
         <main>
           {products.length === 0 ? (
             <div className="overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm">

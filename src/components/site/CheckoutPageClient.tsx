@@ -129,6 +129,8 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     locationRequired: isArabic ? 'يرجى تحديد لوكيشن التوصيل على الخريطة.' : 'Please pick the delivery location on the map.',
     items: isArabic ? 'منتجات' : 'items',
   };
+  const checkoutTextBoxClassName =
+    'w-full rounded-xl border border-solid border-[#b5ada4] bg-[color:var(--muted)] px-3 py-2 text-[color:var(--text)] focus:border-[color:var(--primary)] focus:outline-2 focus:outline-[color:var(--focus)]';
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -320,13 +322,13 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   if (loading) {
     return (
-      <div className="relative overflow-x-clip pb-16">
+      <div className="checkout-page relative overflow-x-clip pb-16">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
           <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
           <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
         </div>
         <div className="mx-auto w-full max-w-6xl px-4 py-12">
-          <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-5 text-sm text-[color:var(--text-muted)] shadow-sm">
+          <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-5 text-center text-sm text-[color:var(--text-muted)] shadow-sm">
             {t.loading}
           </div>
         </div>
@@ -336,13 +338,13 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   if (unauthorized) {
     return (
-      <div className="relative overflow-x-clip pb-16">
+      <div className="checkout-page relative overflow-x-clip pb-16">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
           <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
           <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
         </div>
         <div className="mx-auto w-full max-w-3xl px-4 py-12">
-          <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
+          <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 text-center shadow-sm">
             <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">{t.title}</h1>
             <p className="mt-3 text-sm text-[color:var(--text-muted)]">{t.loginRequired}</p>
             <Link
@@ -359,13 +361,13 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   if (checkoutResult) {
     return (
-      <div className="relative overflow-x-clip pb-16">
+      <div className="checkout-page relative overflow-x-clip pb-16">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
           <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
           <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
         </div>
         <div className="mx-auto w-full max-w-3xl px-4 py-12">
-          <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-7 shadow-sm">
+          <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-7 text-center shadow-sm">
             <h1 className="text-2xl font-semibold text-emerald-900 dark:text-emerald-200">{t.successTitle}</h1>
             <p className="mt-3 text-sm text-emerald-800 dark:text-emerald-300">
               {t.orderNumber}: <span className="font-semibold">{checkoutResult.order.orderNumber}</span>
@@ -373,7 +375,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-300">
               {t.total}: {formatAmountWithCurrency(checkoutResult.order.totalAmount, checkoutResult.order.currency)}
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link
                 href={`/${locale}/shop`}
                 className="inline-flex rounded-xl bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
@@ -395,16 +397,16 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   if (!hasItems) {
     return (
-      <div className="relative overflow-x-clip pb-16">
+      <div className="checkout-page relative overflow-x-clip pb-16">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
           <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
           <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
         </div>
         <div className="mx-auto w-full max-w-3xl px-4 py-12">
-          <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
+          <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 text-center shadow-sm">
             <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">{t.title}</h1>
             <p className="mt-3 text-sm text-[color:var(--text-muted)]">{t.empty}</p>
-            <div className="mt-5 flex flex-wrap gap-3">
+            <div className="mt-5 flex flex-wrap justify-center gap-3">
               <Link
                 href={`/${locale}/cart`}
                 className="inline-flex rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
@@ -425,34 +427,34 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   }
 
   return (
-    <div className="relative overflow-x-clip pb-16">
+    <div className="checkout-page relative overflow-x-clip pb-16">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
         <div className="absolute -left-16 top-8 h-64 w-64 rounded-full bg-coral/18 blur-3xl dark:bg-coral/10" />
         <div className="absolute right-0 top-20 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
       </div>
 
       <div className="mx-auto w-full max-w-6xl px-4 py-12">
-        <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
+        <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 text-center shadow-sm sm:p-9">
           <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)] sm:text-4xl">{t.title}</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
             {t.subtitle}
           </p>
         </section>
 
         {error ? (
-          <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
+          <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
             {error}
           </div>
         ) : null}
         {message ? (
-          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">
+          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">
             {message}
           </div>
         ) : null}
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
           <section className="space-y-6">
-            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm">
               <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.shippingInfo}</h2>
               <p className="mt-1 text-xs text-[color:var(--text-subtle)]">{t.onlyMuscat}</p>
 
@@ -468,7 +470,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                   <input
                     value={form.area}
                     onChange={(event) => setForm((prev) => ({ ...prev, area: event.target.value }))}
-                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                    className={checkoutTextBoxClassName}
                   />
                 </label>
                 <label className="space-y-1 text-sm sm:col-span-2">
@@ -478,7 +480,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     onChange={(event) =>
                       setForm((prev) => ({ ...prev, streetAddress: event.target.value }))
                     }
-                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                    className={checkoutTextBoxClassName}
                   />
                 </label>
                 <MuscatLocationPicker
@@ -491,7 +493,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                   <input
                     value={form.postalCode}
                     onChange={(event) => setForm((prev) => ({ ...prev, postalCode: event.target.value }))}
-                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                    className={checkoutTextBoxClassName}
                   />
                 </label>
                 <label className="space-y-1 text-sm">
@@ -501,7 +503,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     onChange={(event) =>
                       setForm((prev) => ({ ...prev, recipientFullName: event.target.value }))
                     }
-                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                    className={checkoutTextBoxClassName}
                   />
                 </label>
                 <label className="space-y-1 text-sm sm:col-span-2">
@@ -511,7 +513,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     onChange={(event) =>
                       setForm((prev) => ({ ...prev, recipientPhone: event.target.value }))
                     }
-                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                    className={checkoutTextBoxClassName}
                   />
                 </label>
                 <label className="space-y-1 text-sm sm:col-span-2">
@@ -520,13 +522,13 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     value={form.notes}
                     onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
                     rows={3}
-                    className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                    className={checkoutTextBoxClassName}
                   />
                 </label>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm">
               <h3 className="text-base font-semibold text-[color:var(--text)]">{t.orderSummary}</h3>
               <div className="mt-3 space-y-2">
                 {(cart?.items ?? []).map((item) => (
@@ -549,7 +551,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             </div>
           </section>
 
-          <aside className="h-fit rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm lg:sticky lg:top-24">
+          <aside className="h-fit rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm lg:sticky lg:top-24">
             <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.orderSummary}</h2>
             <div className="mt-4 space-y-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 text-sm text-[color:var(--text)]">
               <div className="flex items-center justify-between">
@@ -593,7 +595,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             </button>
 
             {!hasEnoughBalance ? (
-              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/40 dark:bg-emerald-900/20">
+              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center dark:border-emerald-900/40 dark:bg-emerald-900/20">
                 <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">{t.topupTitle}</h3>
                 <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">{t.topupHint}</p>
                 <div className="mt-3 flex items-center gap-2">
@@ -604,7 +606,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     value={topupAmount}
                     onChange={(event) => setTopupAmount(event.target.value)}
                     placeholder={t.topupAmount}
-                    className="min-w-0 flex-1 rounded-xl border border-emerald-400/60 bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                    className="min-w-0 flex-1 rounded-xl border border-solid border-[#b5ada4] bg-[color:var(--muted)] px-3 py-2 text-sm text-[color:var(--text)] focus:border-[color:var(--primary)] focus:outline-2 focus:outline-[color:var(--focus)]"
                   />
                   <button
                     type="button"

@@ -102,6 +102,7 @@
   --muted: #f5f5f5;
   --muted-foreground: #7a6d5f;
   --border: #e5e7eb;
+  --input-border: #b0a89f;
 
   /* Typography tokens */
   --text: #211b16;
@@ -130,6 +131,7 @@
   --muted: #f5f5f5;
   --muted-foreground: #7a6d5f;
   --border: #e5e7eb;
+  --input-border: #b0a89f;
 
   --text: #211b16;
   --text-muted: #625646;
@@ -359,6 +361,42 @@ body {
   .admin-panel textarea {
     padding: 0.55rem 0.85rem;
     font-size: 0.875rem;
+  }
+
+  /* ──── Site-wide professional form inputs ──── */
+  .route-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .route-sharp select,
+  .route-sharp textarea {
+    border-width: 1px !important;
+    border-style: solid !important;
+    border-color: var(--input-border) !important;
+    background-color: var(--muted) !important;
+    border-radius: 0.75rem;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.875rem;
+    color: var(--text);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .route-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+  .route-sharp select:hover,
+  .route-sharp textarea:hover {
+    border-color: #8a8279 !important;
+  }
+
+  .route-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+  .route-sharp select:focus,
+  .route-sharp textarea:focus {
+    border-color: var(--primary) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px var(--focus) !important;
+  }
+
+  .route-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):read-only {
+    background-color: var(--muted) !important;
+    border-color: var(--border) !important;
+    cursor: not-allowed;
+    opacity: 0.7;
   }
 
   /* Admin tables */
