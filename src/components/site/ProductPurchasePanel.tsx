@@ -91,15 +91,15 @@ export default function ProductPurchasePanel({
       />
 
       <div className="space-y-2 border border-[color:var(--border)] bg-[color:var(--muted)] p-3 text-xs text-[color:var(--text-muted)]">
-        <p className="inline-flex items-center gap-2">
+        <p className="flex items-center gap-2">
           <FiTruck className="size-3.5" />
           {t.delivery}
         </p>
-        <p className="inline-flex items-center gap-2">
+        <p className="flex items-center gap-2">
           <FiShield className="size-3.5" />
           {t.guarantee}
         </p>
-        <p className="inline-flex items-center gap-2">
+        <p className="flex items-center gap-2">
           <FiRotateCcw className="size-3.5" />
           {t.returns}
         </p>
