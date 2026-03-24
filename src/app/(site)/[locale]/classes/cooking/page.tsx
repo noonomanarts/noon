@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiArrowRight, FiBookOpen, FiCalendar, FiUser } from "react-icons/fi";
+import { FiArrowRight, FiBookOpen, FiCalendar } from "react-icons/fi";
 import { GiChefToque } from "react-icons/gi";
 import { HiOutlineBanknotes } from "react-icons/hi2";
 
@@ -34,12 +34,14 @@ function ClassCard({
   cls,
   locale,
   t,
+  subCategoryLabel,
   formatDate,
   formatTime,
 }: {
   cls: ClassWithSessions;
   locale: Locale;
   t: Record<string, string>;
+  subCategoryLabel: string;
   formatDate: (date: Date | string) => string;
   formatTime: (date: Date | string) => string;
 }) {
@@ -69,6 +71,14 @@ function ClassCard({
             <GiChefToque className="h-20 w-20 text-[color:var(--text-subtle)]" />
           </div>
         )}
+        <span
+          className={`absolute top-3 inline-flex max-w-[70%] items-center gap-1.5 bg-black/65 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm ${
+            locale === "ar" ? "left-3" : "right-3"
+          }`}
+        >
+          <GiChefToque className="size-3.5 shrink-0 text-yellow-300" />
+          <span className="truncate">{subCategoryLabel}</span>
+        </span>
       </Link>
       <div className="flex flex-1 flex-col space-y-3 p-4 sm:p-5">
         <h3 className="line-clamp-2 inline-flex items-start gap-2 text-base font-semibold text-[color:var(--text)] sm:text-lg">
@@ -97,46 +107,12 @@ function ClassCard({
   );
 }
 
-function SubCategorySection({
-  title,
-  classes,
-  locale,
-  t,
-  formatDate,
-  formatTime,
-}: {
-  title: string;
-  classes: ClassWithSessions[];
-  locale: Locale;
-  t: Record<string, string>;
-  formatDate: (date: Date | string) => string;
-  formatTime: (date: Date | string) => string;
-}) {
-  if (classes.length === 0) return null;
-
-  return (
-    <section className="space-y-6">
-      <div className="flex items-center gap-3">
-        <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[color:var(--muted)]">
-          <GiChefToque className="h-6 w-6 text-coral" />
-        </span>
-        <h2 className="text-2xl font-semibold text-[color:var(--text)]">{title}</h2>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {classes.map((cls) => (
-          <ClassCard
-            key={cls.id}
-            cls={cls}
-            locale={locale}
-            t={t}
-            formatDate={formatDate}
-            formatTime={formatTime}
-          />
-        ))}
-      </div>
-    </section>
-  );
+function getSubCategoryLabel(subCategory: string | null, t: Record<string, string>): string {
+  if (subCategory === "APPETIZERS_SNACKS" || subCategory === "APPETIZERS") return t.appetizers;
+  if (subCategory === "MAIN_DISHES") return t.mainDishes;
+  if (subCategory === "DESSERTS_BAKING" || subCategory === "DESSERTS") return t.desserts;
+  if (subCategory === "MOM_AND_KID") return t.momAndKid;
+  return t.other;
 }
 
 export default async function CookingClassesPage({
@@ -176,23 +152,6 @@ export default async function CookingClassesPage({
       };
     })
   );
-
-  const subCategories = {
-    APPETIZERS: classesWithSessions.filter(
-      (c) => c.subCategory === "APPETIZERS_SNACKS" || c.subCategory === "APPETIZERS"
-    ),
-    MAIN_DISHES: classesWithSessions.filter((c) => c.subCategory === "MAIN_DISHES"),
-    DESSERTS: classesWithSessions.filter(
-      (c) => c.subCategory === "DESSERTS_BAKING" || c.subCategory === "DESSERTS"
-    ),
-    MOM_AND_KID: classesWithSessions.filter((c) => c.subCategory === "MOM_AND_KID"),
-    OTHER: classesWithSessions.filter(
-      (c) =>
-        !["APPETIZERS_SNACKS", "APPETIZERS", "MAIN_DISHES", "DESSERTS_BAKING", "DESSERTS", "MOM_AND_KID"].includes(
-          c.subCategory as string
-        )
-    ),
-  };
 
   const t: Record<string, string> = {
     title: isArabic ? "دروس الطبخ" : "Cooking Classes",
@@ -246,53 +205,28 @@ export default async function CookingClassesPage({
       />
 
       <div className="mx-auto mt-4 flex w-full max-w-6xl flex-col gap-12 px-4">
-        <SubCategorySection
-          title={t.appetizers}
-          classes={subCategories.APPETIZERS}
-          locale={locale}
-          t={t}
-          formatDate={formatDate}
-          formatTime={formatTime}
-        />
-        <SubCategorySection
-          title={t.mainDishes}
-          classes={subCategories.MAIN_DISHES}
-          locale={locale}
-          t={t}
-          formatDate={formatDate}
-          formatTime={formatTime}
-        />
-        <SubCategorySection
-          title={t.desserts}
-          classes={subCategories.DESSERTS}
-          locale={locale}
-          t={t}
-          formatDate={formatDate}
-          formatTime={formatTime}
-        />
-        <SubCategorySection
-          title={t.momAndKid}
-          classes={subCategories.MOM_AND_KID}
-          locale={locale}
-          t={t}
-          formatDate={formatDate}
-          formatTime={formatTime}
-        />
-        <SubCategorySection
-          title={t.other}
-          classes={subCategories.OTHER}
-          locale={locale}
-          t={t}
-          formatDate={formatDate}
-          formatTime={formatTime}
-        />
-
         {classesWithSessions.length === 0 ? (
           <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-12 text-center shadow-sm">
             <GiChefToque className="mx-auto mb-4 h-16 w-16 text-[color:var(--text-subtle)]" />
             <p className="text-base text-[color:var(--text-muted)]">{t.noClasses}</p>
           </div>
-        ) : null}
+        ) : (
+          <section>
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {classesWithSessions.map((cls) => (
+                <ClassCard
+                  key={cls.id}
+                  cls={cls}
+                  locale={locale}
+                  t={t}
+                  subCategoryLabel={getSubCategoryLabel(cls.subCategory, t)}
+                  formatDate={formatDate}
+                  formatTime={formatTime}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

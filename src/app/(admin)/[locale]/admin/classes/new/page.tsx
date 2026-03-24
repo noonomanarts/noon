@@ -955,7 +955,6 @@ export default function NewClassPage() {
               </>
             ) : (
               <>
-                <IoCheckmark className="text-xl" />
                 {isRTL ? 'إنشاء الصف' : 'Create Class'}
               </>
             )}
