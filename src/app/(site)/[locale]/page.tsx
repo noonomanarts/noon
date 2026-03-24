@@ -24,6 +24,7 @@ import { HiOutlineBanknotes } from "react-icons/hi2";
 
 type UpcomingCard = {
   id: string;
+  slug: string;
   title: string;
   datetimeText: string;
   priceText: string;
@@ -154,6 +155,7 @@ async function resolveUpcomingItems(
           priceText: formatAmountWithCurrency(classItem.price, classItem.currency),
           trainerName: classItem.trainer?.fullName?.trim() || noTrainerLabel,
           imageSrc: classItem.image || "/og-image.png",
+          slug: String(classItem.slug),
           href: `/${locale}/classes/${classItem.slug}`,
           createdAt: new Date(classItem.createdAt),
         };
@@ -501,9 +503,9 @@ export default async function HomePage({
               key={c.id}
               className="group flex h-full flex-col overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="relative aspect-square overflow-hidden">
+              <Link href={c.href} aria-label={c.title} className="relative block aspect-square overflow-hidden">
                 <Image src={c.imageSrc} alt={c.title} fill className="object-cover transition duration-500 group-hover:scale-[1.03]" />
-              </div>
+              </Link>
               <div className="flex flex-1 flex-col space-y-3 p-4 sm:p-5">
                 <h3 className="line-clamp-2 inline-flex items-start gap-2 text-base font-semibold text-[color:var(--text)] sm:text-lg">
                   <FiBookOpen className="mt-0.5 size-4 shrink-0 text-purple-500" />
@@ -524,7 +526,7 @@ export default async function HomePage({
                     {c.priceText}
                   </p>
                   <Link
-                    href={c.href}
+                    href={`/${locale}/classes/${c.slug}/book`}
                     className="inline-flex w-full items-center justify-center gap-1 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
                     style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
                   >

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiArrowRight, FiBookOpen, FiCalendar } from "react-icons/fi";
+import { FiArrowRight, FiBookOpen, FiCalendar, FiUser } from "react-icons/fi";
 import { GiChefToque } from "react-icons/gi";
 import { HiOutlineBanknotes } from "react-icons/hi2";
 
@@ -23,6 +23,7 @@ type ClassWithSessions = {
   price: number;
   currency: string;
   durationMinutes: number | null;
+  trainer: { id: string; fullName: string; profileImage: string | null } | null;
   sessions: {
     id: string;
     startTime: Date;
@@ -46,6 +47,7 @@ function ClassCard({
   formatTime: (date: Date | string) => string;
 }) {
   const title = locale === "ar" && cls.titleAr ? cls.titleAr : cls.title;
+  const trainerName = cls.trainer?.fullName ?? null;
   const nextSession = cls.sessions[0];
   const datetimeText = nextSession
     ? `${formatDate(nextSession.startTime)} · ${formatTime(nextSession.startTime)}`
@@ -89,6 +91,22 @@ function ClassCard({
           <FiCalendar className="size-4 shrink-0 text-teal-500" />
           {datetimeText}
         </p>
+        {trainerName ? (
+          <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
+            {cls.trainer?.profileImage ? (
+              <Image
+                src={cls.trainer.profileImage}
+                alt={trainerName}
+                width={20}
+                height={20}
+                className="size-5 shrink-0 rounded-full object-cover"
+              />
+            ) : (
+              <FiUser className="size-4 shrink-0 text-coral" />
+            )}
+            {trainerName}
+          </p>
+        ) : null}
         <div className="mt-auto pt-2">
           <p className="mb-3 inline-flex items-center gap-2 text-2xl font-black leading-none text-[color:var(--text)] sm:text-3xl">
             <HiOutlineBanknotes className="size-6 shrink-0 text-emerald-600" />
@@ -148,6 +166,7 @@ export default async function CookingClassesPage({
         price: cls.price as number,
         currency: cls.currency as string,
         durationMinutes: cls.durationMinutes as number | null,
+        trainer: cls.trainer ? { id: cls.trainer.id, fullName: cls.trainer.fullName, profileImage: cls.trainer.profileImage } : null,
         sessions,
       };
     })
