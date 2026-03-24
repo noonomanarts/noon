@@ -93,17 +93,7 @@ function ClassCard({
         </p>
         {trainerName ? (
           <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
-            {cls.trainer?.profileImage ? (
-              <Image
-                src={cls.trainer.profileImage}
-                alt={trainerName}
-                width={20}
-                height={20}
-                className="size-5 shrink-0 rounded-full object-cover"
-              />
-            ) : (
-              <FiUser className="size-4 shrink-0 text-coral" />
-            )}
+            <FiUser className="size-4 shrink-0 text-indigo-500" />
             {trainerName}
           </p>
         ) : null}
