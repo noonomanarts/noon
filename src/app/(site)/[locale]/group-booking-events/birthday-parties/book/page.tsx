@@ -370,6 +370,7 @@ export default function BirthdayPartyBookingPage() {
             <PublicEventAvailabilityPicker
               locale={locale}
               eventType="BIRTHDAY_PARTY"
+              layoutVariant="tables"
               selectedDate={formData.selectedDate}
               selectedTime={formData.selectedTime}
               onChange={({ date, time }) =>

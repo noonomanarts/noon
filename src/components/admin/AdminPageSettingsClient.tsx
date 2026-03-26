@@ -514,7 +514,6 @@ export default function AdminPageSettingsClient({
   const heroMediaSrc = heroMediaIsVideo ? heroVideoSrc : heroImageSrc;
   const classHeaderTitle =
     (isArabic ? settings.headingAr : settings.headingEn).trim() || (isArabic ? page.nameAr : page.nameEn);
-  const competitionHeaderSubtitle = (isArabic ? settings.subheadingAr : settings.subheadingEn).trim();
   const classHeaderBackgroundColor = normalizeHexColor(
     settings.classListingHero.backgroundColor,
     defaults.classListingHero.backgroundColor
@@ -1604,9 +1603,6 @@ export default function AdminPageSettingsClient({
                 <div className="absolute inset-0 flex items-center justify-center px-4 text-center">
                   <div className="max-w-2xl space-y-2">
                     <h3 className="text-2xl font-bold text-white">{classHeaderTitle}</h3>
-                    {competitionHeaderSubtitle ? (
-                      <p className="line-clamp-2 text-sm text-white/90">{competitionHeaderSubtitle}</p>
-                    ) : null}
                   </div>
                 </div>
               </div>

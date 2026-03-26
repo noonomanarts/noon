@@ -226,6 +226,7 @@ export default function PrivateClassBookingPage() {
               locale={locale}
               eventType="PRIVATE_CLASS"
               classType={classType}
+              layoutVariant="tables"
               selectedDate={formData.selectedDate}
               selectedTime={formData.selectedTime}
               onChange={({ date, time }) =>
