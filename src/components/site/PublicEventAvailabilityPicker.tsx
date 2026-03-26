@@ -31,12 +31,27 @@ function formatSlot(locale: Locale, value: string) {
   });
 }
 
+function formatMonth(locale: Locale, value: string) {
+  return new Date(`${value}-01T00:00:00`).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function toDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function PublicEventAvailabilityPicker({
   locale,
   eventType,
   classType,
   selectedDate,
   selectedTime,
+  layoutVariant = 'cards',
   onChange,
 }: {
   locale: Locale;
@@ -44,12 +59,14 @@ export default function PublicEventAvailabilityPicker({
   classType?: 'cooking' | 'arts-crafts';
   selectedDate: string;
   selectedTime: string;
+  layoutVariant?: 'cards' | 'tables';
   onChange: (value: { date: string; time: string }) => void;
 }) {
   const isArabic = locale === 'ar';
   const [availability, setAvailability] = useState<AvailabilityResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [visibleMonthKey, setVisibleMonthKey] = useState<string>('');
 
   useEffect(() => {
     let ignore = false;
@@ -115,11 +132,84 @@ export default function PublicEventAvailabilityPicker({
     availability?.days[0] ??
     null;
 
+  const daysByDate = useMemo(() => {
+    const map = new Map<string, AvailabilityResponse['days'][number]>();
+    availability?.days.forEach((day) => {
+      map.set(day.date, day);
+    });
+    return map;
+  }, [availability]);
+
+  const availableMonthKeys = useMemo(() => {
+    if (!availability) return [];
+    return Array.from(new Set(availability.days.map((day) => day.date.slice(0, 7))));
+  }, [availability]);
+
+  useEffect(() => {
+    if (availableMonthKeys.length === 0) {
+      setVisibleMonthKey('');
+      return;
+    }
+
+    const selectedMonthKey = selectedDate.slice(0, 7);
+    setVisibleMonthKey((previous) => {
+      if (availableMonthKeys.includes(selectedMonthKey)) {
+        return selectedMonthKey;
+      }
+      if (previous && availableMonthKeys.includes(previous)) {
+        return previous;
+      }
+      return availableMonthKeys[0];
+    });
+  }, [availableMonthKeys, selectedDate]);
+
+  const monthGrid = useMemo(() => {
+    if (!visibleMonthKey) return [];
+
+    const base = new Date(`${visibleMonthKey}-01T00:00:00`);
+    const year = base.getFullYear();
+    const month = base.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startWeekday = firstDay.getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+
+    const cells: Array<{ dateKey: string; dayNumber: number; availabilityDay?: AvailabilityResponse['days'][number] } | null> = [];
+
+    for (let index = 0; index < startWeekday; index += 1) {
+      cells.push(null);
+    }
+
+    for (let day = 1; day <= lastDate; day += 1) {
+      const dateKey = `${visibleMonthKey}-${String(day).padStart(2, '0')}`;
+      cells.push({
+        dateKey,
+        dayNumber: day,
+        availabilityDay: daysByDate.get(dateKey),
+      });
+    }
+
+    const totalCells = Math.ceil(cells.length / 7) * 7;
+    while (cells.length < totalCells) {
+      cells.push(null);
+    }
+
+    return cells;
+  }, [daysByDate, visibleMonthKey]);
+
   const durationLabel = useMemo(() => {
     if (!availability) return '';
     const hours = availability.durationMinutes / 60;
     return isArabic ? `${hours} ساعات` : `${hours} hours`;
   }, [availability, isArabic]);
+
+  const weekDayHeaders = useMemo(() => {
+    return Array.from({ length: 7 }).map((_, index) =>
+      new Date(`2025-01-${String(5 + index).padStart(2, '0')}T00:00:00`).toLocaleDateString(
+        locale === 'ar' ? 'ar-OM' : 'en-OM',
+        { weekday: 'short' }
+      )
+    );
+  }, [locale]);
 
   const t = {
     title: isArabic ? 'التواريخ والأوقات المتاحة' : 'Available Dates & Times',
@@ -130,6 +220,15 @@ export default function PublicEventAvailabilityPicker({
     timezone: isArabic ? 'المنطقة الزمنية' : 'Timezone',
     chooseDay: isArabic ? 'اختاري اليوم' : 'Choose a day',
     chooseTime: isArabic ? 'اختاري الوقت' : 'Choose a time',
+    dayColumn: isArabic ? 'التاريخ' : 'Date',
+    slotsColumn: isArabic ? 'الأوقات' : 'Slots',
+    timeColumn: isArabic ? 'الوقت' : 'Time',
+    durationColumn: isArabic ? 'المدة' : 'Duration',
+    prev: isArabic ? 'السابق' : 'Prev',
+    next: isArabic ? 'التالي' : 'Next',
+    today: isArabic ? 'اليوم' : 'Today',
+    selectedDate: isArabic ? 'التاريخ المختار' : 'Selected date',
+    noTimesForDay: isArabic ? 'لا توجد أوقات متاحة لهذا اليوم.' : 'No available times for this date.',
     loading: isArabic ? 'جاري تحميل التوفر...' : 'Loading availability...',
     empty: isArabic ? 'لا توجد مواعيد متاحة حالياً. جرّبي لاحقاً.' : 'No slots are currently available. Please check back later.',
     retry: isArabic ? 'إعادة المحاولة' : 'Retry',
@@ -183,49 +282,241 @@ export default function PublicEventAvailabilityPicker({
         </div>
       </div>
 
-      <div className="mt-5">
-        <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">{t.chooseDay}</p>
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {availability.days.map((day) => (
-            <button
-              key={day.date}
-              type="button"
-              onClick={() => onChange({ date: day.date, time: day.slots[0]?.time ?? '' })}
-              className={`min-w-[110px] rounded-2xl border px-4 py-3 text-start transition ${
-                day.date === selectedDay.date
-                  ? 'border-[color:var(--primary)] bg-[color:var(--muted)] shadow-sm'
-                  : 'border-[color:var(--border)] hover:border-[color:var(--primary)]/40'
-              }`}
-            >
-              <p className="text-sm font-semibold text-[color:var(--text)]">{formatDay(locale, day.date)}</p>
-              <p className="mt-1 text-xs text-[color:var(--text-muted)]">
-                {isArabic ? `${day.slots.length} أوقات` : `${day.slots.length} slots`}
-              </p>
-            </button>
-          ))}
-        </div>
-      </div>
+      {layoutVariant === 'tables' ? (
+        <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+          <div>
+            <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">{t.chooseDay}</p>
+            <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[color:var(--border)] p-3">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const index = availableMonthKeys.indexOf(visibleMonthKey);
+                      if (index > 0) {
+                        setVisibleMonthKey(availableMonthKeys[index - 1]);
+                      }
+                    }}
+                    disabled={availableMonthKeys.indexOf(visibleMonthKey) <= 0}
+                    className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {t.prev}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const index = availableMonthKeys.indexOf(visibleMonthKey);
+                      if (index >= 0 && index < availableMonthKeys.length - 1) {
+                        setVisibleMonthKey(availableMonthKeys[index + 1]);
+                      }
+                    }}
+                    disabled={
+                      availableMonthKeys.indexOf(visibleMonthKey) < 0 ||
+                      availableMonthKeys.indexOf(visibleMonthKey) >= availableMonthKeys.length - 1
+                    }
+                    className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--muted)] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {t.next}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const todayKey = toDateKey(new Date());
+                      const todayMonth = todayKey.slice(0, 7);
+                      if (availableMonthKeys.includes(todayMonth)) {
+                        setVisibleMonthKey(todayMonth);
+                      }
+                      const day = daysByDate.get(todayKey);
+                      if (day) {
+                        onChange({ date: day.date, time: day.slots[0]?.time ?? '' });
+                      }
+                    }}
+                    className="rounded-lg border border-[color:var(--border)] px-3 py-1.5 text-xs font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
+                  >
+                    {t.today}
+                  </button>
+                </div>
+                <p className="text-sm font-semibold text-[color:var(--text)]">
+                  {visibleMonthKey ? formatMonth(locale, visibleMonthKey) : '--'}
+                </p>
+              </div>
 
-      <div className="mt-6">
-        <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">{t.chooseTime}</p>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {selectedDay.slots.map((slot) => (
-            <button
-              key={slot.startDateTime}
-              type="button"
-              onClick={() => onChange({ date: selectedDay.date, time: slot.time })}
-              className={`rounded-2xl border px-4 py-4 text-start transition ${
-                selectedDay.date === selectedDate && slot.time === selectedTime
-                  ? 'border-[color:var(--primary)] bg-[color:var(--primary)] text-[color:var(--primary-foreground)] shadow-lg'
-                  : 'border-[color:var(--border)] bg-[color:var(--surface)] hover:border-[color:var(--primary)]/40 hover:bg-[color:var(--muted)]'
-              }`}
-            >
-              <p className="text-base font-semibold">{formatSlot(locale, slot.time)}</p>
-              <p className="mt-1 text-xs opacity-80">{durationLabel}</p>
-            </button>
-          ))}
+              <div className="grid grid-cols-7 border-b border-[color:var(--border)] bg-[color:var(--muted)]/60 text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
+                {weekDayHeaders.map((dayName, index) => (
+                  <div key={`${index}-${dayName}`} className="px-1 py-2">
+                    {dayName}
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7">
+                {monthGrid.map((cell, index) => {
+                  if (!cell) {
+                    return (
+                      <div
+                        key={`blank-${index}`}
+                        className="aspect-square border-b border-r border-[color:var(--border)] bg-[color:var(--muted)]/30"
+                      />
+                    );
+                  }
+
+                  const day = cell.availabilityDay;
+                  const isSelected = cell.dateKey === selectedDay.date;
+                  const isToday = cell.dateKey === toDateKey(new Date());
+
+                  if (!day) {
+                    return (
+                      <div
+                        key={cell.dateKey}
+                        className="aspect-square border-b border-r border-[color:var(--border)] bg-[color:var(--surface)]/70 p-1.5 text-[color:var(--text-subtle)]"
+                      >
+                        <div className="text-xs font-semibold opacity-60">{cell.dayNumber}</div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={cell.dateKey}
+                      type="button"
+                      onClick={() => {
+                        const hasSelectedTime = day.slots.some((slot) => slot.time === selectedTime);
+                        onChange({
+                          date: day.date,
+                          time: hasSelectedTime ? selectedTime : day.slots[0]?.time ?? '',
+                        });
+                      }}
+                      className={`aspect-square border-b border-r border-[color:var(--border)] p-1.5 text-left transition ${
+                        isSelected
+                          ? 'bg-[color:var(--primary)]/12'
+                          : 'bg-[color:var(--surface)] hover:bg-[color:var(--muted)]/60'
+                      }`}
+                    >
+                      <div className="flex items-start">
+                        <span
+                          className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold ${
+                            isToday
+                              ? 'bg-[color:var(--primary)] text-[color:var(--primary-foreground)]'
+                              : 'bg-[color:var(--muted)] text-[color:var(--text)]'
+                          }`}
+                        >
+                          {cell.dayNumber}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">{t.chooseTime}</p>
+            <div className="mb-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/40 px-3 py-2 text-sm">
+              <span className="font-semibold text-[color:var(--text)]">{t.selectedDate}: </span>
+              <span className="text-[color:var(--text-muted)]">{formatDay(locale, selectedDay.date)}</span>
+            </div>
+            <div className="overflow-hidden rounded-2xl border border-[color:var(--border)]">
+              <table className="w-full table-fixed text-sm">
+                <thead className="bg-[color:var(--muted)]/70">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.timeColumn}</th>
+                    <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.durationColumn}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedDay.slots.length === 0 ? (
+                    <tr className="border-t border-[color:var(--border)]">
+                      <td colSpan={2} className="px-4 py-4 text-sm text-[color:var(--text-muted)]">
+                        {t.noTimesForDay}
+                      </td>
+                    </tr>
+                  ) : (
+                    selectedDay.slots.map((slot) => {
+                      const isSelected = selectedDay.date === selectedDate && slot.time === selectedTime;
+                      return (
+                        <tr
+                          key={slot.startDateTime}
+                          className={`border-t border-[color:var(--border)] transition ${
+                            isSelected
+                              ? 'bg-[color:var(--primary)] text-[color:var(--primary-foreground)]'
+                              : 'hover:bg-[color:var(--muted)]/60'
+                          }`}
+                        >
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              onClick={() => onChange({ date: selectedDay.date, time: slot.time })}
+                              className="w-full text-left font-semibold"
+                            >
+                              {formatSlot(locale, slot.time)}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              onClick={() => onChange({ date: selectedDay.date, time: slot.time })}
+                              className="w-full text-left"
+                            >
+                              {durationLabel}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="mt-5">
+            <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">{t.chooseDay}</p>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {availability.days.map((day) => (
+                <button
+                  key={day.date}
+                  type="button"
+                  onClick={() => onChange({ date: day.date, time: day.slots[0]?.time ?? '' })}
+                  className={`min-w-[110px] rounded-2xl border px-4 py-3 text-start transition ${
+                    day.date === selectedDay.date
+                      ? 'border-[color:var(--primary)] bg-[color:var(--muted)] shadow-sm'
+                      : 'border-[color:var(--border)] hover:border-[color:var(--primary)]/40'
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-[color:var(--text)]">{formatDay(locale, day.date)}</p>
+                  <p className="mt-1 text-xs text-[color:var(--text-muted)]">
+                    {isArabic ? `${day.slots.length} أوقات` : `${day.slots.length} slots`}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">{t.chooseTime}</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {selectedDay.slots.map((slot) => (
+                <button
+                  key={slot.startDateTime}
+                  type="button"
+                  onClick={() => onChange({ date: selectedDay.date, time: slot.time })}
+                  className={`rounded-2xl border px-4 py-4 text-start transition ${
+                    selectedDay.date === selectedDate && slot.time === selectedTime
+                      ? 'border-[color:var(--primary)] bg-[color:var(--primary)] text-[color:var(--primary-foreground)] shadow-lg'
+                      : 'border-[color:var(--border)] bg-[color:var(--surface)] hover:border-[color:var(--primary)]/40 hover:bg-[color:var(--muted)]'
+                  }`}
+                >
+                  <p className="text-base font-semibold">{formatSlot(locale, slot.time)}</p>
+                  <p className="mt-1 text-xs opacity-80">{durationLabel}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

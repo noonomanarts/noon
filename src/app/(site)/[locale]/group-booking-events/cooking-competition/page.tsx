@@ -3,6 +3,7 @@ import { FiArrowRight, FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
 import { GiCookingPot, GiChefToque } from "react-icons/gi";
 import { IoTrophyOutline } from "react-icons/io5";
 
+import CookingCompetitionPriceCalculator from "@/components/site/CookingCompetitionPriceCalculator";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
 
@@ -72,20 +73,87 @@ export default async function CookingCompetitionPage({
     },
   ];
 
-  const standardItems = [
-    isArabic ? "8-40 مشارك" : "8-40 participants",
-    isArabic ? "2-8 فرق" : "2-8 teams",
-    isArabic ? "1-2 طبق لكل فريق" : "1-2 dishes per team",
-    isArabic ? "مدة التجربة: 3 ساعات" : "3-hour experience",
-    isArabic ? "المكونات والمعدات مشمولة" : "Ingredients and equipment included",
-  ];
-
-  const premiumItems = [
-    isArabic ? "كل مميزات الباقة القياسية" : "All standard package features",
-    isArabic ? "2-3 أطباق لكل فريق" : "2-3 dishes per team",
-    isArabic ? "مريلة قماش لكل مشارك" : "Fabric apron for each participant",
-    isArabic ? "خيارات هدايا إضافية للفائزين" : "Optional winner gift add-ons",
-    isArabic ? "مناسبة للشركات والفعاليات الخاصة" : "Ideal for corporate and premium events",
+  const packageCards = [
+    {
+      key: "standard" as const,
+      title: isArabic ? "الباقة القياسية" : "Standard Competition",
+      participants: isArabic ? "8-40 مشارك" : "8-40 participants",
+      priceSummary: isArabic ? "ابتداءً من 16 ر.ع / شخص" : "From 16 OMR / person",
+      details: [
+        {
+          label: isArabic ? "مثالية لـ" : "Ideal for",
+          value: isArabic ? "بناء الفريق، الأصدقاء، والتجارب الجماعية" : "Team building, friends, and casual group experiences",
+        },
+        { label: isArabic ? "عدد المجموعات" : "Number of Groups", value: isArabic ? "2-8 فرق" : "2-8 groups" },
+        {
+          label: isArabic ? "الأطباق لكل مجموعة" : "Dishes per Group",
+          value: isArabic ? "1-2 طبق (حسب حجم المجموعة)" : "1-2 dishes (depending on group size)",
+        },
+        { label: isArabic ? "المدة" : "Duration", value: isArabic ? "3 ساعات" : "3 hours" },
+        {
+          label: isArabic ? "الهدايا" : "Gifts",
+          value: isArabic ? "غير مشمولة (متاحة كإضافة)" : "Not included (available as an add-on)",
+        },
+      ],
+      includes: [
+        isArabic ? "قهوة عربية وحلويات ترحيبية" : "Welcome Arabic coffee & sweets",
+        isArabic ? "تحدي صندوق المفاجآت (دجاج، لحم بقري وروبيان)" : "Mystery box challenge (chicken, beef & prawns)",
+        isArabic ? "استخدام جميع المعدات والمكونات" : "Use of all kitchen equipment and ingredients",
+        isArabic ? "تجربة موجهة بإشراف فريق نون" : "Guided experience by the Noon team",
+        isArabic ? "تقديم الحلوى والمشروبات بعد المسابقة" : "Dessert & drinks served after the competition",
+      ],
+      priceTiers: [
+        {
+          range: isArabic ? "6-10 مشاركين" : "6-10 participants",
+          price: isArabic ? "25 ر.ع / شخص" : "25 OMR / person",
+        },
+        {
+          range: isArabic ? "11-20 مشارك" : "11-20 participants",
+          price: isArabic ? "21 ر.ع / شخص" : "21 OMR / person",
+        },
+        {
+          range: isArabic ? "21-30 مشارك" : "21-30 participants",
+          price: isArabic ? "19 ر.ع / شخص" : "19 OMR / person",
+        },
+        {
+          range: isArabic ? "31-40 مشارك" : "31-40 participants",
+          price: isArabic ? "16 ر.ع / شخص" : "16 OMR / person",
+        },
+      ],
+      bookingHref: `/${locale}/group-booking-events/cooking-competition/book?package=standard`,
+    },
+    {
+      key: "premium" as const,
+      title: isArabic ? "الباقة المميزة" : "Premium Competition",
+      participants: isArabic ? "8-40 مشارك" : "8-40 participants",
+      priceSummary: isArabic ? "السعر حسب الطلب" : "Price on request",
+      details: [
+        {
+          label: isArabic ? "مثالية لـ" : "Ideal for",
+          value: isArabic ? "فعاليات الشركات، الاحتفالات، والتجارب الراقية" : "Corporate events, celebrations, and premium experiences",
+        },
+        { label: isArabic ? "عدد المجموعات" : "Number of Groups", value: isArabic ? "2-8 فرق" : "2-8 groups" },
+        {
+          label: isArabic ? "الأطباق لكل مجموعة" : "Dishes per Group",
+          value: isArabic ? "2-3 أطباق (حسب حجم المجموعة)" : "2-3 dishes (depending on group size)",
+        },
+        { label: isArabic ? "المدة" : "Duration", value: isArabic ? "3 ساعات" : "3 hours" },
+        {
+          label: isArabic ? "الهدايا" : "Gifts",
+          value: isArabic ? "مرايل قماش لجميع المشاركين" : "Fabric aprons for all participants",
+        },
+      ],
+      includes: [
+        isArabic ? "قهوة عربية وحلويات ترحيبية" : "Welcome Arabic coffee & sweets",
+        isArabic ? "تحدي صندوق المفاجآت (دجاج، لحم بقري وروبيان)" : "Mystery box challenge (chicken, beef & prawns)",
+        isArabic ? "استخدام جميع المعدات والمكونات" : "Use of all kitchen equipment and ingredients",
+        isArabic ? "تجربة موجهة بإشراف فريق نون" : "Guided experience by the Noon team",
+        isArabic ? "تقديم الحلوى والمشروبات بعد المسابقة" : "Dessert & drinks served after the competition",
+        isArabic ? "اختياري: هدايا إضافية للفريق الفائز" : "Optional: additional gifts for the winning team",
+      ],
+      priceTiers: [],
+      bookingHref: `/${locale}/group-booking-events/cooking-competition/book?package=premium`,
+    },
   ];
 
   return (
@@ -135,34 +203,99 @@ export default async function CookingCompetitionPage({
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
         <h2 className="text-center text-2xl font-semibold text-[color:var(--text)]">{t.packageTitle}</h2>
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <article className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
-            <h3 className="text-center text-lg font-semibold text-[color:var(--text)]">
-              {isArabic ? "الباقة القياسية" : "Standard Competition"}
-            </h3>
-            <ul className="mt-4 space-y-2.5">
-              {standardItems.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
-                  <FiCheckCircle className="mt-0.5 size-4 shrink-0 text-teal" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </article>
+          {packageCards.map((pkg) => {
+            const isStandardPackage = pkg.key === "standard";
 
-          <article className="rounded-2xl border border-coral/40 bg-[color:var(--surface)] p-6 shadow-sm">
-            <h3 className="text-center text-lg font-semibold text-[color:var(--text)]">
-              {isArabic ? "الباقة المميزة" : "Premium Competition"}
-            </h3>
-            <ul className="mt-4 space-y-2.5">
-              {premiumItems.map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
-                  <FiCheckCircle className="mt-0.5 size-4 shrink-0 text-coral" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </article>
+            return (
+              <article
+                key={pkg.key}
+                className={`overflow-hidden rounded-2xl border bg-[color:var(--surface)] shadow-sm ${
+                  isStandardPackage ? "border-teal/40" : "border-coral/40"
+                }`}
+              >
+                <div
+                  className={`border-b px-6 py-6 ${
+                    isStandardPackage
+                      ? "border-teal/30 bg-gradient-to-br from-teal/15 to-teal-light/5"
+                      : "border-coral/30 bg-gradient-to-br from-coral/15 to-yellow/5"
+                  }`}
+                >
+                  <h3 className="text-center text-xl font-semibold text-[color:var(--text)]">{pkg.title}</h3>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
+                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
+                        {isArabic ? "المشاركون" : "Participants"}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.participants}</p>
+                    </div>
+                    <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
+                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
+                        {isArabic ? "السعر" : "Price"}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.priceSummary}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex justify-center">
+                    <Link
+                      href={pkg.bookingHref}
+                      className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition ${
+                        isStandardPackage ? "bg-teal hover:bg-teal/90" : "bg-coral hover:bg-coral/90"
+                      }`}
+                    >
+                      {isArabic ? "اختر الباقة" : "Choose Package"}
+                      <FiArrowRight className="size-4" />
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="space-y-5 p-6">
+                  <div className="space-y-2.5">
+                    {pkg.details.map((detail) => (
+                      <div
+                        key={`${pkg.key}-${detail.label}`}
+                        className="flex items-start justify-between gap-3 border-b border-[color:var(--border)] pb-2 text-sm"
+                      >
+                        <span className="font-semibold text-[color:var(--text)]">{detail.label}</span>
+                        <span className="text-right text-[color:var(--text-muted)]">{detail.value}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-semibold text-[color:var(--text)]">{isArabic ? "يشمل" : "Includes"}</h4>
+                    <ul className="mt-2 space-y-2.5">
+                      {pkg.includes.map((item) => (
+                        <li key={item} className="flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
+                          <FiCheckCircle className={`mt-0.5 size-4 shrink-0 ${isStandardPackage ? "text-teal" : "text-coral"}`} />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {pkg.priceTiers.length > 0 && (
+                    <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/65 p-4">
+                      <h4 className="text-sm font-semibold text-[color:var(--text)]">
+                        {isArabic ? "قائمة الأسعار (للباقة القياسية)" : "Price List (Standard Package)"}
+                      </h4>
+                      <div className="mt-3 space-y-2">
+                        {pkg.priceTiers.map((tier) => (
+                          <div key={tier.range} className="flex items-center justify-between gap-3 text-sm">
+                            <span className="text-[color:var(--text-muted)]">{tier.range}</span>
+                            <span className="font-semibold text-[color:var(--text)]">{tier.price}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </div>
+        <CookingCompetitionPriceCalculator locale={locale} />
       </section>
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">

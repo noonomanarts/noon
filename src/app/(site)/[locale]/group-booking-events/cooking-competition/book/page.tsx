@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { isLocale, type Locale } from '@/lib/locale';
-import { useParams, useRouter } from 'next/navigation';
-import { MdGroup, MdSchedule, MdEmail, MdPhone, MdBusiness } from 'react-icons/md';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { MdGroup, MdSchedule, MdEmail, MdPhone, MdBusiness, MdCalculate } from 'react-icons/md';
 import { IoTrophy, IoCalendar, IoCheckmarkCircle, IoClose } from 'react-icons/io5';
 import { GiCookingPot } from 'react-icons/gi';
 import { BiSolidGift } from 'react-icons/bi';
@@ -11,6 +11,11 @@ import { HiSparkles } from 'react-icons/hi2';
 import BookingFormError from '@/components/site/BookingFormError';
 import PublicEventAvailabilityPicker from '@/components/site/PublicEventAvailabilityPicker';
 import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
+import {
+  STANDARD_COMPETITION_PRICE_TIERS,
+  getStandardCompetitionPricePerPerson,
+  getStandardCompetitionTotal,
+} from '@/lib/competitionPricing';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -61,9 +66,14 @@ const giftOptions = [
   },
 ];
 
+function isValidCompetitionParticipants(value: number): boolean {
+  return Number.isInteger(value) && value >= 8 && value <= 40;
+}
+
 export default function CookingCompetitionBookingPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const locale = (isLocale(params.locale as string) ? params.locale : 'en') as Locale;
   
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -71,6 +81,38 @@ export default function CookingCompetitionBookingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bookingNumber, setBookingNumber] = useState<string | null>(null);
+
+  useEffect(() => {
+    const packageFromUrl = searchParams.get('package')?.toLowerCase();
+    const participantsFromUrl = Number.parseInt(searchParams.get('participants') ?? '', 10);
+    const normalizedPackage =
+      packageFromUrl === 'standard'
+        ? 'STANDARD'
+        : packageFromUrl === 'premium'
+        ? 'PREMIUM'
+        : null;
+    const normalizedParticipants = isValidCompetitionParticipants(participantsFromUrl)
+      ? participantsFromUrl
+      : null;
+
+    setBookingData((prev) => {
+      const nextPackageType = prev.packageType ?? normalizedPackage ?? 'STANDARD';
+      const nextParticipants = prev.numberOfParticipants ?? normalizedParticipants ?? undefined;
+
+      if (
+        nextPackageType === prev.packageType &&
+        nextParticipants === prev.numberOfParticipants
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        packageType: nextPackageType,
+        numberOfParticipants: nextParticipants,
+      };
+    });
+  }, [searchParams]);
 
   const t = {
     title: locale === 'ar' ? 'حجز مسابقة الطبخ' : 'Book Cooking Competition',
@@ -89,17 +131,25 @@ export default function CookingCompetitionBookingPage() {
       : 'Welcome with Arabic coffee & sweets, team draw, mystery box challenge, cook & compete, voting, and winner announcement!',
     
     // Step 2
-    step2Title: locale === 'ar' ? 'اختر الباقة' : 'Choose Your Package',
+    step2Title: locale === 'ar' ? 'التسعير والإضافات' : 'Pricing & Add-ons',
     standardPackage: locale === 'ar' ? 'الباقة العادية' : 'Standard Competition',
     premiumPackage: locale === 'ar' ? 'الباقة المميزة' : 'Premium Competition',
+    selectedPackage: locale === 'ar' ? 'الباقة المختارة' : 'Selected Package',
+    changePackage: locale === 'ar' ? 'تغيير الباقة' : 'Change Package',
+    packageLockedHint: locale === 'ar'
+      ? 'تم اختيار هذه الباقة في الخطوة السابقة. يمكنك تغييرها من صفحة الباقات.'
+      : 'This package was selected in the previous step. You can change it from the packages page.',
+    packageDefaultHint: locale === 'ar'
+      ? 'تم اعتماد الباقة القياسية تلقائياً. يمكنك تغييرها من صفحة الباقات.'
+      : 'Standard package is preselected by default. You can change it from the packages page.',
     participants: locale === 'ar' ? 'المشاركون' : 'Participants',
     groups: locale === 'ar' ? 'المجموعات' : 'Groups',
     dishes: locale === 'ar' ? 'الأطباق لكل مجموعة' : 'Dishes per Group',
     duration: locale === 'ar' ? 'المدة' : 'Duration',
     hours: locale === 'ar' ? 'ساعات' : 'hours',
     gifts: locale === 'ar' ? 'الهدايا' : 'Gifts',
-    notIncluded: locale === 'ar' ? 'غير مشملة' : 'Not Included',
-    included: locale === 'ar' ? 'مشملة' : 'Included',
+    notIncluded: locale === 'ar' ? 'غير مشمولة' : 'Not Included',
+    included: locale === 'ar' ? 'مشمولة' : 'Included',
     availableAsAddon: locale === 'ar' ? '(متاحة كإضافة)' : '(Available as add-on)',
     includes: locale === 'ar' ? 'يشمل' : 'Includes',
     giftAddons: locale === 'ar' ? 'إضافات الهدايا' : 'Gift Add-ons',
@@ -110,6 +160,23 @@ export default function CookingCompetitionBookingPage() {
     standardSubtitle: locale === 'ar' ? 'تجربة رائعة للفرق' : 'Great team experience',
     premiumSubtitle: locale === 'ar' ? 'تجربة لا تُنسى' : 'Unforgettable experience',
     popular: locale === 'ar' ? 'الأفضل' : 'POPULAR',
+    calculatorTitle: locale === 'ar' ? 'حاسبة السعر' : 'Price Calculator',
+    calculatorSubtitle: locale === 'ar'
+      ? 'أدخلي عدد المشاركين ليتم احتساب السعر تلقائياً حسب الشرائح، وسيتم نقل القيمة للخطوة التالية.'
+      : 'Enter participants to calculate pricing by tier. This value is carried to the next step.',
+    perPersonRate: locale === 'ar' ? 'سعر الفرد' : 'Per Person Rate',
+    baseAmount: locale === 'ar' ? 'المبلغ الأساسي' : 'Base Amount',
+    giftsAmount: locale === 'ar' ? 'قيمة الهدايا' : 'Gifts Amount',
+    estimatedTotal: locale === 'ar' ? 'الإجمالي التقديري' : 'Estimated Total',
+    premiumOnRequest: locale === 'ar' ? 'سعر المميزة حسب الطلب' : 'Premium pricing on request',
+    priceTableTitle: locale === 'ar' ? 'جدول التسعير القياسي' : 'Standard Pricing Table',
+    range: locale === 'ar' ? 'العدد' : 'Range',
+    pricePerPerson: locale === 'ar' ? 'السعر/فرد' : 'Price/person',
+    participantsCarryHint: locale === 'ar'
+      ? 'هذه القيمة مأخوذة من الحاسبة ويمكن تعديلها.'
+      : 'This value comes from the calculator and can be edited.',
+    summaryParticipants: locale === 'ar' ? 'المشاركون' : 'Participants',
+    summaryEstimate: locale === 'ar' ? 'السعر التقديري' : 'Estimated Price',
     
     // Step 3
     step3Title: locale === 'ar' ? 'معلومات الحجز' : 'Booking Information',
@@ -147,6 +214,39 @@ export default function CookingCompetitionBookingPage() {
     loading: locale === 'ar' ? 'جاري الإرسال...' : 'Submitting...',
   };
 
+  const participantsCount = Number(bookingData.numberOfParticipants);
+  const hasValidParticipants = isValidCompetitionParticipants(participantsCount);
+  const packageFromEntry = searchParams.get('package')?.toLowerCase();
+  const packageSelectedFromEntry = packageFromEntry === 'standard' || packageFromEntry === 'premium';
+  const standardRate = hasValidParticipants ? getStandardCompetitionPricePerPerson(participantsCount) : null;
+  const standardBaseAmount = hasValidParticipants ? getStandardCompetitionTotal(participantsCount) : null;
+  const giftsAmount = (bookingData.gifts || []).reduce((sum, gift) => sum + gift.price, 0);
+  const estimatedTotalAmount =
+    bookingData.packageType === 'STANDARD' && standardBaseAmount !== null
+      ? standardBaseAmount + giftsAmount
+      : null;
+  const selectedPackageLabel =
+    bookingData.packageType === 'STANDARD'
+      ? t.standardPackage
+      : bookingData.packageType === 'PREMIUM'
+      ? t.premiumPackage
+      : '--';
+  const selectedPackageSubtitle =
+    bookingData.packageType === 'PREMIUM' ? t.premiumSubtitle : t.standardSubtitle;
+  const selectedPackageDishes = bookingData.packageType === 'PREMIUM' ? '2-3' : '1-2';
+  const selectedPackageGifts =
+    bookingData.packageType === 'PREMIUM'
+      ? t.included
+      : `${t.notIncluded} ${t.availableAsAddon}`;
+  const selectedPackageIdealText =
+    bookingData.packageType === 'PREMIUM'
+      ? locale === 'ar'
+        ? 'فعاليات الشركات والاحتفالات والتجارب الراقية'
+        : 'Corporate events, celebrations, and premium experiences'
+      : locale === 'ar'
+      ? 'بناء الفريق، الأصدقاء، والتجارب الجماعية'
+      : 'Team building, friends, and casual group experiences';
+
   const validateStep = (stepToValidate: 1 | 2 | 3): boolean => {
     if (stepToValidate === 1) {
       if (!bookingData.selectedDate) {
@@ -167,6 +267,11 @@ export default function CookingCompetitionBookingPage() {
     if (stepToValidate === 2) {
       if (!bookingData.packageType) {
         setError(t.packageRequired);
+        return false;
+      }
+      const participants = Number(bookingData.numberOfParticipants);
+      if (!isValidCompetitionParticipants(participants)) {
+        setError(t.participantsRange);
         return false;
       }
       return true;
@@ -194,7 +299,7 @@ export default function CookingCompetitionBookingPage() {
     }
 
     const participants = Number(bookingData.numberOfParticipants);
-    if (!Number.isInteger(participants) || participants < 8 || participants > 40) {
+    if (!isValidCompetitionParticipants(participants)) {
       setError(t.participantsRange);
       return false;
     }
@@ -347,6 +452,7 @@ export default function CookingCompetitionBookingPage() {
               <PublicEventAvailabilityPicker
                 locale={locale}
                 eventType="COOKING_COMPETITION"
+                layoutVariant="tables"
                 selectedDate={bookingData.selectedDate || ''}
                 selectedTime={bookingData.selectedTime || ''}
                 onChange={({ date, time }) =>
@@ -368,88 +474,64 @@ export default function CookingCompetitionBookingPage() {
               <h2 className="text-2xl font-bold text-[color:var(--text)] dark:text-white">{t.step2Title}</h2>
             </div>
 
-            {/* Package Options */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              {/* Standard Package */}
+            {/* Package Summary */}
+            <div
+              className={`overflow-hidden rounded-2xl border shadow-sm ${
+                bookingData.packageType === 'PREMIUM'
+                  ? 'border-purple/30 dark:border-purple/40'
+                  : 'border-teal/30 dark:border-teal/40'
+              }`}
+            >
               <div
-                onClick={() =>
-                  setBookingData({ ...bookingData, packageType: 'STANDARD' })
-                }
-                className={`group cursor-pointer overflow-hidden rounded-2xl border-2 transition-all hover:shadow-xl ${
-                  bookingData.packageType === 'STANDARD'
-                    ? 'shadow-xl'
-                    : 'border-[color:var(--border)] dark:border-zinc-800'
+                className={`flex flex-wrap items-center justify-between gap-3 border-b p-5 ${
+                  bookingData.packageType === 'PREMIUM'
+                    ? 'border-purple/20 bg-purple/5 dark:border-purple/30 dark:bg-purple/10'
+                    : 'border-teal/20 bg-teal/5 dark:border-teal/30 dark:bg-teal/10'
                 }`}
-                style={bookingData.packageType === 'STANDARD' ? { borderColor: 'var(--noon-teal)' } : {}}
               >
-                <div className="p-6" style={bookingData.packageType === 'STANDARD' ? { background: 'var(--noon-teal-gradient)' } : { background: 'linear-gradient(135deg, #17A2B810 0%, #17A2B805 100%)' }}>
-                  <h3 className="mb-2 text-2xl font-bold" style={bookingData.packageType === 'STANDARD' ? { color: 'white' } : { color: 'var(--noon-teal)' }}>
-                    {t.standardPackage}
-                  </h3>
-                  <p className={bookingData.packageType === 'STANDARD' ? 'text-white' : 'text-[color:var(--text-muted)] dark:text-zinc-400'}>
-                    {t.standardSubtitle}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
+                    {t.selectedPackage}
                   </p>
+                  <h3 className="mt-1 text-2xl font-bold text-[color:var(--text)] dark:text-white">
+                    {selectedPackageLabel}
+                  </h3>
+                  <p className="mt-1 text-sm text-[color:var(--text-muted)]">{selectedPackageSubtitle}</p>
                 </div>
-                <div className="space-y-3 p-6">
-                  {[
-                    { Icon: MdGroup, label: t.participants, value: '8-40' },
-                    { Icon: MdSchedule, label: t.duration, value: `3 ${t.hours}` },
-                    { Icon: GiCookingPot, label: t.dishes, value: '1-2' },
-                    { Icon: BiSolidGift, label: t.gifts, value: t.notIncluded },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <item.Icon className="h-6 w-6 text-teal" />
-                      <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                        <strong>{item.label}:</strong> {item.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/${locale}/group-booking-events/cooking-competition`)}
+                  className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
+                >
+                  {t.changePackage}
+                </button>
               </div>
 
-              {/* Premium Package */}
-              <div
-                onClick={() =>
-                  setBookingData({ ...bookingData, packageType: 'PREMIUM' })
-                }
-                className={`group relative cursor-pointer overflow-hidden rounded-2xl border-2 transition-all hover:shadow-xl ${
-                  bookingData.packageType === 'PREMIUM'
-                    ? 'shadow-2xl'
-                    : 'border-[color:var(--border)] dark:border-zinc-800'
-                }`}
-                style={bookingData.packageType === 'PREMIUM' ? { borderColor: 'var(--noon-purple)' } : {}}
-              >
-                {bookingData.packageType !== 'PREMIUM' && (
-                  <div className="absolute right-4 top-4">
-                    <span className="rounded-full px-3 py-1 text-xs font-bold text-white" style={{ background: 'var(--noon-yellow-gradient)' }}>
-                      {t.popular}
-                    </span>
+              <div className="grid gap-3 p-5 md:grid-cols-2">
+                {[
+                  { Icon: MdGroup, label: t.participants, value: '8-40' },
+                  { Icon: MdSchedule, label: t.duration, value: `3 ${t.hours}` },
+                  { Icon: GiCookingPot, label: t.dishes, value: selectedPackageDishes },
+                  { Icon: BiSolidGift, label: t.gifts, value: selectedPackageGifts },
+                ].map((item) => (
+                  <div
+                    key={`${item.label}-${item.value}`}
+                    className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5"
+                  >
+                    <p className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)]">
+                      <item.Icon className="h-4 w-4 text-coral" />
+                      {item.label}
+                    </p>
+                    <p className="mt-1 text-sm text-[color:var(--text-muted)]">{item.value}</p>
                   </div>
-                )}
-                <div className="p-6" style={bookingData.packageType === 'PREMIUM' ? { background: 'var(--noon-purple-gradient)' } : { background: 'linear-gradient(135deg, #8E44AD10 0%, #6C348305 100%)' }}>
-                  <h3 className="mb-2 text-2xl font-bold" style={bookingData.packageType === 'PREMIUM' ? { color: 'white' } : { color: 'var(--noon-purple)' }}>
-                    {t.premiumPackage}
-                  </h3>
-                  <p className={bookingData.packageType === 'PREMIUM' ? 'text-white' : 'text-[color:var(--text-muted)] dark:text-zinc-400'}>
-                    {t.premiumSubtitle}
-                  </p>
-                </div>
-                <div className="space-y-3 p-6">
-                  {[
-                    { Icon: MdGroup, label: t.participants, value: '8-40' },
-                    { Icon: MdSchedule, label: t.duration, value: `3 ${t.hours}` },
-                    { Icon: GiCookingPot, label: t.dishes, value: '2-3' },
-                    { Icon: HiSparkles, label: t.gifts, value: t.included },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center gap-3">
-                      <item.Icon className="h-6 w-6 text-purple" />
-                      <span className="text-sm font-semibold text-[color:var(--text)] dark:text-white">
-                        <strong>{item.label}:</strong> {item.value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                ))}
               </div>
+
+              <p className="px-5 pb-5 text-xs text-[color:var(--text-subtle)]">
+                {selectedPackageIdealText}
+                {' • '}
+                {packageSelectedFromEntry ? t.packageLockedHint : t.packageDefaultHint}
+              </p>
             </div>
 
             {/* Gift Add-ons */}
@@ -513,6 +595,110 @@ export default function CookingCompetitionBookingPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Price Calculator */}
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm dark:border-zinc-700">
+              <div className="mb-4 flex items-center gap-2">
+                <MdCalculate className="h-5 w-5 text-coral" />
+                <h3 className="text-xl font-bold text-[color:var(--text)] dark:text-white">{t.calculatorTitle}</h3>
+              </div>
+              <p className="text-sm text-[color:var(--text-muted)] dark:text-zinc-300">{t.calculatorSubtitle}</p>
+
+              <div className="mt-5 grid gap-5 lg:grid-cols-2">
+                <div>
+                  <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
+                    <MdGroup className="h-5 w-5 text-teal" />
+                    {t.numberOfParticipants} *
+                  </label>
+                  <input
+                    type="number"
+                    min="8"
+                    max="40"
+                    className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                    value={bookingData.numberOfParticipants || ''}
+                    onChange={(e) =>
+                      setBookingData({
+                        ...bookingData,
+                        numberOfParticipants: parseIntegerInput(e.target.value, 0),
+                      })
+                    }
+                    required
+                  />
+                  <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{t.participantsRange}</p>
+                </div>
+
+                <div className="space-y-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/40 p-4 dark:border-zinc-700">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-semibold text-[color:var(--text)]">{t.perPersonRate}</span>
+                    <span className="font-semibold text-[color:var(--text-muted)]">
+                      {bookingData.packageType === 'STANDARD'
+                        ? standardRate !== null
+                          ? `${standardRate} OMR`
+                          : '--'
+                        : t.premiumOnRequest}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-semibold text-[color:var(--text)]">{t.baseAmount}</span>
+                    <span className="font-semibold text-[color:var(--text-muted)]">
+                      {bookingData.packageType === 'STANDARD'
+                        ? standardBaseAmount !== null
+                          ? `${standardBaseAmount} OMR`
+                          : '--'
+                        : t.premiumOnRequest}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-semibold text-[color:var(--text)]">{t.giftsAmount}</span>
+                    <span className="font-semibold text-[color:var(--text-muted)]">{giftsAmount} OMR</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-lg bg-[color:var(--surface)] px-3 py-2 text-sm dark:bg-zinc-800">
+                    <span className="font-semibold text-[color:var(--text)]">{t.estimatedTotal}</span>
+                    <span className="font-bold text-coral">
+                      {bookingData.packageType === 'STANDARD'
+                        ? estimatedTotalAmount !== null
+                          ? `${estimatedTotalAmount} OMR`
+                          : '--'
+                        : t.premiumOnRequest}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 overflow-hidden rounded-xl border border-[color:var(--border)] dark:border-zinc-700">
+                <table className="w-full text-sm">
+                  <thead className="bg-[color:var(--muted)]/70">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.range}</th>
+                      <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.pricePerPerson}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {STANDARD_COMPETITION_PRICE_TIERS.map((tier) => {
+                      const isActive =
+                        hasValidParticipants &&
+                        tier.pricePerPerson === standardRate &&
+                        participantsCount >= tier.minParticipants &&
+                        participantsCount <= tier.maxParticipants;
+                      return (
+                        <tr
+                          key={`${tier.minParticipants}-${tier.maxParticipants}`}
+                          className={`border-t border-[color:var(--border)] dark:border-zinc-700 ${
+                            isActive ? 'bg-teal/10' : ''
+                          }`}
+                        >
+                          <td className="px-4 py-2.5 text-[color:var(--text-muted)]">
+                            {tier.minParticipants}-{tier.maxParticipants}
+                          </td>
+                          <td className="px-4 py-2.5 font-semibold text-[color:var(--text)]">{tier.pricePerPerson} OMR</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-3 text-xs text-[color:var(--text-subtle)]">{t.priceTableTitle}</p>
             </div>
           </div>
         )}
@@ -592,26 +778,6 @@ export default function CookingCompetitionBookingPage() {
                 />
               </div>
 
-              <div>
-                <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
-                  <MdGroup className="h-5 w-5 text-purple" />
-                  {t.numberOfParticipants} *
-                </label>
-                <input
-                  type="number"
-                  min="8"
-                  max="40"
-                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                  value={bookingData.numberOfParticipants || ''}
-                  onChange={(e) =>
-                    setBookingData({
-                      ...bookingData,
-                      numberOfParticipants: parseIntegerInput(e.target.value, 0),
-                    })
-                  }
-                  required
-                />
-              </div>
             </div>
 
             <div>
@@ -649,7 +815,22 @@ export default function CookingCompetitionBookingPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <BiSolidGift className="h-4 w-4 text-yellow" />
-                  <strong>{t.summaryPackage}:</strong> {bookingData.packageType}
+                  <strong>{t.summaryPackage}:</strong> {selectedPackageLabel}
+                </div>
+                <div className="flex items-center gap-2">
+                  <MdGroup className="h-4 w-4 text-coral" />
+                  <strong>{t.summaryParticipants}:</strong> {bookingData.numberOfParticipants || '--'}
+                </div>
+                <div className="flex items-center gap-2">
+                  <MdCalculate className="h-4 w-4 text-teal" />
+                  <strong>{t.summaryEstimate}:</strong>{' '}
+                  {bookingData.packageType === 'STANDARD'
+                    ? estimatedTotalAmount !== null
+                      ? `${estimatedTotalAmount} OMR`
+                      : '--'
+                    : bookingData.packageType === 'PREMIUM'
+                    ? t.premiumOnRequest
+                    : '--'}
                 </div>
                 {bookingData.gifts && bookingData.gifts.length > 0 && (
                   <div>
@@ -707,7 +888,8 @@ export default function CookingCompetitionBookingPage() {
                   loading ||
                   (currentStep === 1 &&
                     (!bookingData.selectedDate || !bookingData.selectedTime)) ||
-                  (currentStep === 2 && !bookingData.packageType)
+                  (currentStep === 2 &&
+                    (!bookingData.packageType || !isValidCompetitionParticipants(Number(bookingData.numberOfParticipants))))
                 }
                 className="flex items-center gap-2 rounded-xl px-8 py-3 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:hover:scale-100"
                 style={{ background: 'var(--noon-coral-gradient)' }}

@@ -12,6 +12,7 @@ import {
   shouldCreateCleaningBlock,
 } from '@/lib/calendar';
 import { createCalendarEvent } from '@/lib/db/events';
+import { getStandardCompetitionTotal } from '@/lib/competitionPricing';
 
 const EVENT_TYPES = new Set(['COOKING_COMPETITION', 'PRIVATE_CLASS', 'BIRTHDAY_PARTY']);
 const PACKAGE_TYPES = new Set(['STANDARD', 'PREMIUM']);
@@ -234,7 +235,12 @@ export async function POST(request: NextRequest) {
     // Keep amount as preliminary estimate; admin can update final pricing later.
     let totalAmount: number | undefined;
     if (eventType === 'COOKING_COMPETITION') {
-      totalAmount = (packageType === 'PREMIUM' ? 3500 : 2500) + giftsTotal;
+      if (packageType === 'STANDARD') {
+        const standardTotal = getStandardCompetitionTotal(numberOfParticipants);
+        totalAmount = (standardTotal ?? 0) + giftsTotal;
+      } else {
+        totalAmount = 3500 + giftsTotal;
+      }
     } else if (giftsTotal > 0) {
       totalAmount = giftsTotal;
     }
