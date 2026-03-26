@@ -1,8 +1,15 @@
 import Link from "next/link";
-import { FiArrowRight, FiCalendar, FiClock, FiUsers } from "react-icons/fi";
+import { FiArrowRight, FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
 import { GiChefToque, GiPalette } from "react-icons/gi";
 
 import { isLocale, type Locale } from "@/lib/locale";
+import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
+
+function isVideoSource(source: string): boolean {
+  const normalized = source.trim().toLowerCase();
+  if (!normalized) return false;
+  return /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/.test(normalized);
+}
 
 export default async function PrivateClassesPage({
   params,
@@ -12,133 +19,270 @@ export default async function PrivateClassesPage({
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const isArabic = locale === "ar";
+  const pageSettings = await getPublicSitePageSettings("events_private_classes");
 
   const t = {
-    eyebrow: isArabic ? "فعاليات المجموعات" : "Group Events",
     title: isArabic ? "الدروس الخاصة" : "Private Classes",
-    subtitle: isArabic
-      ? "جلسات مخصصة للمجموعات مع مسارات طبخ أو فنون، بإشراف فريق نون."
-      : "Tailored sessions for groups with either cooking or arts tracks, guided by the Noon team.",
-    optionsTitle: isArabic ? "اختر نوع التجربة" : "Choose Your Experience",
-    commonTitle: isArabic ? "مواصفات مشتركة" : "Shared Experience Specs",
-    cta: isArabic ? "ابدأ الحجز" : "Start Booking",
+    processTitle: isArabic ? "كيف تسير التجربة" : "How the Experience Works",
+    packageTitle: isArabic ? "أنواع الجلسات" : "Session Types",
+    readyTitle: isArabic ? "جاهزون لجلسة خاصة؟" : "Ready for a Private Session?",
+    readySubtitle: isArabic
+      ? "احجز الموعد الأنسب وسيقوم فريق نون بتأكيد جميع التفاصيل معك."
+      : "Book your preferred date and the Noon team will confirm all details with you.",
   };
+  const pageTitle = (isArabic ? pageSettings?.headingAr : pageSettings?.headingEn)?.trim() || t.title;
 
-  const commonItems = [
-    isArabic ? "8-32 مشارك" : "8-32 participants",
-    isArabic ? "1-2 مشارك لكل محطة" : "1-2 participants per station",
-    isArabic ? "المدة 2-3 ساعات" : "Duration 2-3 hours",
-    isArabic ? "المكونات والمعدات مشمولة" : "Ingredients and equipment included",
-    isArabic ? "ضيافة قهوة عربية وحلويات" : "Arabic coffee and sweets welcome",
+  const mediaTypeFromSettings = pageSettings?.homeHero.backgroundMediaType;
+  const mediaImageFromSettings = pageSettings?.homeHero.backgroundImageSrc?.trim() || "";
+  const mediaVideoFromSettings = pageSettings?.homeHero.backgroundVideoSrc?.trim() || "";
+  const legacyHeaderMedia = pageSettings?.homeHero.slideImages?.find((item) => item.trim())?.trim() || "";
+  const legacyHeaderIsVideo = isVideoSource(legacyHeaderMedia);
+  const headerMediaType = mediaTypeFromSettings ?? (legacyHeaderIsVideo ? "video" : "image");
+  let headerMedia =
+    headerMediaType === "video"
+      ? mediaVideoFromSettings || (legacyHeaderIsVideo ? legacyHeaderMedia : "")
+      : mediaImageFromSettings || (!legacyHeaderIsVideo ? legacyHeaderMedia : "");
+  let headerMediaIsVideo = headerMediaType === "video";
+
+  if (!headerMedia) {
+    headerMedia = "/images/art.png";
+    headerMediaIsVideo = false;
+  }
+
+  const steps = [
+    {
+      title: isArabic ? "الترحيب" : "Welcome",
+      desc: isArabic ? "استقبال الضيوف مع قهوة عربية وحلويات." : "Guests are welcomed with Arabic coffee and sweets.",
+      icon: FiUsers,
+    },
+    {
+      title: isArabic ? "اختيار المسار" : "Choose Track",
+      desc: isArabic
+        ? "اختيار جلسة طبخ أو فنون وأشغال حسب هدف المجموعة."
+        : "Select either cooking or arts & crafts based on group goals.",
+      icon: GiChefToque,
+    },
+    {
+      title: isArabic ? "جلسة عملية" : "Hands-On Session",
+      desc: isArabic
+        ? "تنفيذ الجلسة بشكل عملي بإشراف فريق نون."
+        : "Run a practical, guided session with the Noon team.",
+      icon: GiPalette,
+    },
+    {
+      title: isArabic ? "ختام التجربة" : "Wrap-up",
+      desc: isArabic ? "مراجعة المخرجات وتقديم الضيافة الختامية." : "Review outcomes and enjoy closing refreshments.",
+      icon: FiCheckCircle,
+    },
+  ];
+
+  const packageCards = [
+    {
+      key: "cooking" as const,
+      title: isArabic ? "جلسة طبخ خاصة" : "Private Cooking Class",
+      participants: isArabic ? "8-32 مشارك" : "8-32 participants",
+      priceSummary: isArabic ? "السعر حسب الطلب" : "Price on request",
+      details: [
+        {
+          label: isArabic ? "مثالية لـ" : "Ideal for",
+          value: isArabic ? "الشركات، الأصدقاء، وبناء الفريق" : "Corporate groups, friends, and team building",
+        },
+        {
+          label: isArabic ? "عدد المشاركين" : "Group Size",
+          value: isArabic ? "8-32 مشارك" : "8-32 participants",
+        },
+        { label: isArabic ? "المدة" : "Duration", value: isArabic ? "2-3 ساعات" : "2-3 hours" },
+        {
+          label: isArabic ? "نمط الجلسة" : "Session Format",
+          value: isArabic ? "1-2 مشارك لكل محطة" : "1-2 participants per station",
+        },
+      ],
+      includes: [
+        isArabic ? "قهوة عربية وحلويات ترحيبية" : "Welcome Arabic coffee & sweets",
+        isArabic ? "جميع المكونات والمعدات مشمولة" : "All ingredients and kitchen equipment included",
+        isArabic ? "إشراف مباشر من فريق نون" : "Guided by the Noon team",
+        isArabic ? "اختيار الطبق مسبقاً حسب مستوى المجموعة" : "Dish planning based on group level",
+      ],
+      bookingHref: `/${locale}/group-booking-events/private-classes/book?type=cooking`,
+    },
+    {
+      key: "arts-crafts" as const,
+      title: isArabic ? "جلسة فنون وأشغال خاصة" : "Private Arts & Crafts Class",
+      participants: isArabic ? "8-32 مشارك" : "8-32 participants",
+      priceSummary: isArabic ? "السعر حسب الطلب" : "Price on request",
+      details: [
+        {
+          label: isArabic ? "مثالية لـ" : "Ideal for",
+          value: isArabic ? "الفعاليات التعليمية ومجموعات الشركات" : "Educational events and corporate groups",
+        },
+        {
+          label: isArabic ? "عدد المشاركين" : "Group Size",
+          value: isArabic ? "8-32 مشارك" : "8-32 participants",
+        },
+        { label: isArabic ? "المدة" : "Duration", value: isArabic ? "2-3 ساعات" : "2-3 hours" },
+        {
+          label: isArabic ? "نمط الجلسة" : "Session Format",
+          value: isArabic ? "خيارات مشاريع مرنة" : "Flexible project options",
+        },
+      ],
+      includes: [
+        isArabic ? "قهوة عربية وحلويات ترحيبية" : "Welcome Arabic coffee & sweets",
+        isArabic ? "جميع أدوات وخامات الفنون مشمولة" : "All arts tools and materials included",
+        isArabic ? "تجربة إبداعية موجهة بإشراف فريق نون" : "Creative guided experience by the Noon team",
+        isArabic ? "اختيار المشروع وفق هدف المجموعة" : "Project selection tailored to your goals",
+      ],
+      bookingHref: `/${locale}/group-booking-events/private-classes/book?type=arts-crafts`,
+    },
   ];
 
   return (
-    <div className="relative overflow-x-clip pb-14">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem]">
-        <div className="absolute -left-20 top-8 h-72 w-72 rounded-full bg-teal/18 blur-3xl dark:bg-teal/10" />
-        <div className="absolute right-0 top-16 h-80 w-80 rounded-full bg-coral/16 blur-3xl dark:bg-coral/10" />
-      </div>
-
-      <section className="mx-auto w-full max-w-6xl px-4 pt-10">
-        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[color:var(--muted)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text-muted)]">
-            <FiUsers className="h-4 w-4 text-teal" />
-            {t.eyebrow}
+    <div className="route-sharp pb-14">
+      <section className="relative mb-10 h-[17rem] w-full overflow-hidden sm:h-[20rem] md:h-[22rem]">
+        {headerMediaIsVideo ? (
+          <video
+            className="absolute inset-0 h-full w-full object-cover"
+            src={headerMedia}
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+        ) : (
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url("${headerMedia}")` }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/40 to-black/55" />
+        <div className="absolute inset-0 mx-auto flex w-full max-w-6xl items-center justify-center px-4 text-center">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl font-bold text-white sm:text-5xl">{pageTitle}</h1>
           </div>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-[color:var(--text)] sm:text-5xl">
-            {t.title}
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
-            {t.subtitle}
-          </p>
         </div>
       </section>
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
-        <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.optionsTitle}</h2>
+        <h2 className="text-center text-2xl font-semibold text-[color:var(--text)]">{t.processTitle}</h2>
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {steps.map((item) => (
+            <article
+              key={item.title}
+              className="rounded-2xl border border-purple-300/35 bg-purple-700 p-5 shadow-sm"
+            >
+              <div className="mb-3 flex justify-center">
+                <item.icon className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-center text-base font-semibold text-white">{item.title}</h3>
+              <p className="mt-2 text-center text-sm leading-6 text-white/90">{item.desc}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="mx-auto mt-10 w-full max-w-6xl px-4">
+        <h2 className="text-center text-2xl font-semibold text-[color:var(--text)]">{t.packageTitle}</h2>
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <article className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
-            <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[color:var(--muted)]">
-              <GiChefToque className="h-6 w-6 text-coral" />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-[color:var(--text)]">
-              {isArabic ? "درس طبخ خاص" : "Private Cooking Class"}
-            </h3>
-            <p className="mt-2 text-sm text-[color:var(--text-muted)]">
-              {isArabic
-                ? "جلسة عملية تركّز على وصفات مختارة وفق مستوى المجموعة."
-                : "A practical session focused on selected recipes based on your group level."}
-            </p>
-            <div className="mt-4 space-y-2">
-              <p className="inline-flex items-center gap-2 text-sm text-[color:var(--text-muted)]">
-                <FiUsers className="size-4 text-teal" />
-                {isArabic ? "مناسب للشركات والأصدقاء" : "Ideal for teams and friends"}
-              </p>
-              <p className="inline-flex items-center gap-2 text-sm text-[color:var(--text-muted)]">
-                <FiClock className="size-4 text-coral" />
-                {isArabic ? "اختيار الطبق مسبقاً" : "Dish selection in advance"}
-              </p>
-            </div>
-            <Link
-              href={`/${locale}/group-booking-events/private-classes/book?type=cooking`}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
-            >
-              <FiCalendar className="size-4" />
-              {isArabic ? "احجز درس الطبخ" : "Book Cooking Session"}
-            </Link>
-          </article>
+          {packageCards.map((pkg) => {
+            const isCookingClass = pkg.key === "cooking";
 
-          <article className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
-            <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[color:var(--muted)]">
-              <GiPalette className="h-6 w-6 text-teal" />
-            </div>
-            <h3 className="mt-4 text-lg font-semibold text-[color:var(--text)]">
-              {isArabic ? "درس فنون وأشغال خاص" : "Private Arts & Crafts Class"}
-            </h3>
-            <p className="mt-2 text-sm text-[color:var(--text-muted)]">
-              {isArabic
-                ? "تجربة إبداعية بخيارات متنوعة تناسب أهداف المجموعة."
-                : "A creative session with project options tailored to group goals."}
-            </p>
-            <div className="mt-4 space-y-2">
-              <p className="inline-flex items-center gap-2 text-sm text-[color:var(--text-muted)]">
-                <FiUsers className="size-4 text-teal" />
-                {isArabic ? "مثالي للفعاليات التعليمية" : "Perfect for educational team events"}
-              </p>
-              <p className="inline-flex items-center gap-2 text-sm text-[color:var(--text-muted)]">
-                <FiClock className="size-4 text-coral" />
-                {isArabic ? "مرونة في نوع المشروع" : "Flexible project selection"}
-              </p>
-            </div>
-            <Link
-              href={`/${locale}/group-booking-events/private-classes/book?type=arts-crafts`}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
-            >
-              <FiCalendar className="size-4" />
-              {isArabic ? "احجز درس الفنون" : "Book Arts Session"}
-            </Link>
-          </article>
+            return (
+              <article
+                key={pkg.key}
+                className={`overflow-hidden rounded-2xl border bg-[color:var(--surface)] shadow-sm ${
+                  isCookingClass ? "border-teal/40" : "border-coral/40"
+                }`}
+              >
+                <div
+                  className={`border-b px-6 py-6 ${
+                    isCookingClass
+                      ? "border-teal/30 bg-gradient-to-br from-teal/15 to-teal-light/5"
+                      : "border-coral/30 bg-gradient-to-br from-coral/15 to-yellow/5"
+                  }`}
+                >
+                  <h3 className="text-center text-xl font-semibold text-[color:var(--text)]">{pkg.title}</h3>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
+                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
+                        {isArabic ? "المشاركون" : "Participants"}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.participants}</p>
+                    </div>
+                    <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
+                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
+                        {isArabic ? "السعر" : "Price"}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.priceSummary}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex justify-center">
+                    <Link
+                      href={pkg.bookingHref}
+                      className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition ${
+                        isCookingClass ? "bg-teal hover:bg-teal/90" : "bg-coral hover:bg-coral/90"
+                      }`}
+                    >
+                      {isArabic ? "اختر الجلسة" : "Choose Session"}
+                      <FiArrowRight className="size-4" />
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="space-y-5 p-6">
+                  <div className="space-y-2.5">
+                    {pkg.details.map((detail) => (
+                      <div
+                        key={`${pkg.key}-${detail.label}`}
+                        className="flex items-start justify-between gap-3 border-b border-[color:var(--border)] pb-2 text-sm"
+                      >
+                        <span className="font-semibold text-[color:var(--text)]">{detail.label}</span>
+                        <span className="text-right text-[color:var(--text-muted)]">{detail.value}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-semibold text-[color:var(--text)]">{isArabic ? "يشمل" : "Includes"}</h4>
+                    <ul className="mt-2 space-y-2.5">
+                      {pkg.includes.map((item) => (
+                        <li key={item} className="flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
+                          <FiCheckCircle className={`mt-0.5 size-4 shrink-0 ${isCookingClass ? "text-teal" : "text-coral"}`} />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
-        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
-          <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.commonTitle}</h2>
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
-            {commonItems.map((item) => (
-              <p key={item} className="inline-flex items-start gap-2 rounded-xl bg-[color:var(--muted)] px-3 py-2 text-sm text-[color:var(--text-muted)]">
-                <FiArrowRight className="mt-0.5 size-4 shrink-0 text-[color:var(--primary)]" />
-                {item}
-              </p>
-            ))}
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center shadow-sm">
+          <h3 className="text-2xl font-semibold text-[color:var(--text)]">{t.readyTitle}</h3>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-[color:var(--text-muted)]">{t.readySubtitle}</p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-[color:var(--text-subtle)]">
+            <span className="inline-flex items-center gap-1">
+              <FiUsers className="size-3.5" />
+              {isArabic ? "8-32 مشارك" : "8-32 participants"}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <FiClock className="size-3.5" />
+              {isArabic ? "2-3 ساعات" : "2-3 hours"}
+            </span>
           </div>
-          <Link
-            href={`/${locale}/group-booking-events/private-classes/book`}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
-          >
-            {t.cta}
-            <FiArrowRight className="size-4" />
-          </Link>
+          <div className="mt-6">
+            <Link
+              href={`/${locale}/group-booking-events/private-classes/book`}
+              className="inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+            >
+              {isArabic ? "ابدأ الحجز" : "Start Booking"}
+              <FiArrowRight className="size-4" />
+            </Link>
+          </div>
         </div>
       </section>
     </div>

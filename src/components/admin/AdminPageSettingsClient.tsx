@@ -136,6 +136,9 @@ export default function AdminPageSettingsClient({
   const isShopIndexPage = page.key === "shop_index";
   const isClassListingPage = page.key === "classes_cooking" || page.key === "classes_arts_crafts";
   const isCompetitionPage = page.key === "events_competition";
+  const isPrivateClassesPage = page.key === "events_private_classes";
+  const isBirthdayPage = page.key === "events_birthday";
+  const isEventHeaderPage = isCompetitionPage || isPrivateClassesPage || isBirthdayPage;
   const previewEn = buildLocalizedPagePath(page.pathTemplate, "en");
   const previewAr = buildLocalizedPagePath(page.pathTemplate, "ar");
 
@@ -232,21 +235,21 @@ export default function AdminPageSettingsClient({
     classHeaderUploadFailed: isArabic ? "فشل رفع صورة الهيدر." : "Failed to upload header image.",
     classHeaderAutoplay: isArabic ? "سرعة السلايدشو (ms)" : "Slideshow Speed (ms)",
     classHeaderPreview: isArabic ? "معاينة الهيدر" : "Header Preview",
-    competitionHeaderSection: isArabic ? "إعدادات هيدر صفحة مسابقة الطبخ" : "Competition Header Settings",
+    competitionHeaderSection: isArabic ? "إعدادات هيدر صفحة الفعالية" : "Event Header Settings",
     competitionHeaderHint: isArabic
       ? "يمكنك رفع صورة أو فيديو واحد ليظهر كخلفية هيدر الصفحة مع عنوان في المنتصف."
-      : "Upload a single image or video to be used as the page header background with centered title.",
+      : "Upload a single image or video to be used as the event page header background with centered title.",
     competitionHeaderMedia: isArabic ? "وسائط الخلفية" : "Background Media",
     competitionHeaderMediaHint: isArabic
       ? "لا يوجد سلايدشو هنا. سيتم عرض وسيط واحد فقط حسب النوع المحدد."
       : "No slideshow here. Only one media asset will be shown based on selected type.",
     competitionHeaderPreview: isArabic ? "معاينة الهيدر" : "Header Preview",
     competitionHeaderUploadDone: isArabic
-      ? "تم تحديث وسائط هيدر صفحة المسابقة."
-      : "Competition header media updated successfully.",
+      ? "تم تحديث وسائط هيدر صفحة الفعالية."
+      : "Event header media updated successfully.",
     competitionHeaderUploadFailed: isArabic
-      ? "فشل رفع وسائط هيدر صفحة المسابقة."
-      : "Failed to upload competition header media.",
+      ? "فشل رفع وسائط هيدر صفحة الفعالية."
+      : "Failed to upload event header media.",
     shopHeaderSection: isArabic ? "إعدادات هيدر صفحة الشوب" : "Shop Header Settings",
     shopHeaderHint: isArabic
       ? "اختر صورة الهيدر التي تظهر أعلى صفحة الشوب العامة."
@@ -1052,8 +1055,8 @@ export default function AdminPageSettingsClient({
     setInfo(null);
 
     try {
-      const uploadFailedMessage = isCompetitionPage ? t.competitionHeaderUploadFailed : t.heroUploadFailed;
-      const uploadDoneMessage = isCompetitionPage ? t.competitionHeaderUploadDone : t.heroUploadDone;
+      const uploadFailedMessage = isEventHeaderPage ? t.competitionHeaderUploadFailed : t.heroUploadFailed;
+      const uploadDoneMessage = isEventHeaderPage ? t.competitionHeaderUploadDone : t.heroUploadDone;
       const activeType = settings.homeHero.backgroundMediaType ?? "image";
       const folder = activeType === "video" ? "home-hero-video" : "home-hero-image";
       const url = await uploadAsset(file, folder, uploadFailedMessage);
@@ -1064,7 +1067,7 @@ export default function AdminPageSettingsClient({
       }
       setInfo(uploadDoneMessage);
     } catch (uploadError) {
-      const uploadFailedMessage = isCompetitionPage ? t.competitionHeaderUploadFailed : t.heroUploadFailed;
+      const uploadFailedMessage = isEventHeaderPage ? t.competitionHeaderUploadFailed : t.heroUploadFailed;
       setError(uploadError instanceof Error ? uploadError.message : uploadFailedMessage);
     } finally {
       setUploadingHeroMedia(false);
@@ -1484,7 +1487,7 @@ export default function AdminPageSettingsClient({
         </div>
       </section>
 
-      {isCompetitionPage && (
+      {isEventHeaderPage && (
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
           <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
             {t.competitionHeaderSection}
