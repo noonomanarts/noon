@@ -228,32 +228,38 @@ export default async function CookingCompetitionPage({
                 >
                   <h3 className="text-center text-xl font-semibold text-[color:var(--text)]">{pkg.title}</h3>
 
-                  <div className="mt-5 grid grid-cols-2 gap-3">
-                    <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
-                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
-                        {isArabic ? "المشاركون" : "Participants"}
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.participants}</p>
-                    </div>
-                    <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
-                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
-                        {isArabic ? "السعر" : "Price"}
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.priceSummary}</p>
-                    </div>
-                  </div>
+                  {isStandardPackage ? (
+                    <CookingCompetitionPriceCalculator locale={locale} variant="compactStandard" />
+                  ) : (
+                    <>
+                      <div className="mt-5 grid grid-cols-2 gap-3">
+                        <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
+                            {isArabic ? "المشاركون" : "Participants"}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.participants}</p>
+                        </div>
+                        <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
+                            {isArabic ? "السعر" : "Price"}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.priceSummary}</p>
+                        </div>
+                      </div>
 
-                  <div className="mt-5 flex justify-center">
-                    <Link
-                      href={pkg.bookingHref}
-                      className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition ${
-                        isStandardPackage ? "bg-teal hover:bg-teal/90" : "bg-coral hover:bg-coral/90"
-                      }`}
-                    >
-                      {isArabic ? "اختر الباقة" : "Choose Package"}
-                      <FiArrowRight className="size-4" />
-                    </Link>
-                  </div>
+                      <div className="mt-5 flex justify-center">
+                        <Link
+                          href={pkg.bookingHref}
+                          className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition ${
+                            isStandardPackage ? "bg-teal hover:bg-teal/90" : "bg-coral hover:bg-coral/90"
+                          }`}
+                        >
+                          {isArabic ? "اختر الباقة" : "Choose Package"}
+                          <FiArrowRight className="size-4" />
+                        </Link>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="space-y-5 p-6">
@@ -269,9 +275,11 @@ export default async function CookingCompetitionPage({
                     ))}
                   </div>
 
-                  <div>
-                    <h4 className="text-sm font-semibold text-[color:var(--text)]">{isArabic ? "يشمل" : "Includes"}</h4>
-                    <ul className="mt-2 space-y-2.5">
+                  <details className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/35 px-3 py-2.5">
+                    <summary className="cursor-pointer text-sm font-semibold text-[color:var(--text)]">
+                      {isArabic ? "يشمل" : "Includes"}
+                    </summary>
+                    <ul className="mt-3 space-y-2.5">
                       {pkg.includes.map((item) => (
                         <li key={item} className="flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
                           <FiCheckCircle className={`mt-0.5 size-4 shrink-0 ${isStandardPackage ? "text-teal" : "text-coral"}`} />
@@ -279,14 +287,13 @@ export default async function CookingCompetitionPage({
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </details>
 
                 </div>
               </article>
             );
           })}
         </div>
-        <CookingCompetitionPriceCalculator locale={locale} />
       </section>
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">

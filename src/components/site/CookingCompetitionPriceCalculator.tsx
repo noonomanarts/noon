@@ -16,9 +16,14 @@ type PackageType = 'STANDARD' | 'PREMIUM';
 
 export default function CookingCompetitionPriceCalculator({
   locale,
+  variant = 'full',
+  className = '',
 }: {
   locale: Locale;
+  variant?: 'full' | 'compactStandard';
+  className?: string;
 }) {
+  const isCompact = variant === 'compactStandard';
   const isArabic = locale === 'ar';
   const router = useRouter();
   const [packageType, setPackageType] = useState<PackageType>('STANDARD');
@@ -59,18 +64,73 @@ export default function CookingCompetitionPriceCalculator({
     range: isArabic ? 'العدد' : 'Range',
     price: isArabic ? 'السعر / فرد' : 'Price / person',
     invalidParticipants: isArabic ? 'يرجى إدخال عدد صحيح بين 8 و40.' : 'Please enter a valid number between 8 and 40.',
+    compactTitle: isArabic ? 'احسب السعر مباشرة' : 'Quick Price Calculator',
   };
 
   const handleContinue = () => {
     if (!isParticipantsValid) return;
-    const packageQuery = packageType.toLowerCase();
+    const packageQuery = isCompact ? 'standard' : packageType.toLowerCase();
     router.push(
       `/${locale}/group-booking-events/cooking-competition/book?package=${packageQuery}&participants=${participants}`
     );
   };
 
+  if (isCompact) {
+    return (
+      <div className={`mt-5 rounded-xl border border-teal/25 bg-[color:var(--surface)]/90 p-4 ${className}`.trim()}>
+        <h4 className="text-sm font-semibold text-[color:var(--text)]">{t.compactTitle}</h4>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <div className="sm:col-span-1">
+            <label className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
+              <FiUsers className="h-3.5 w-3.5 text-teal" />
+              {t.participants}
+            </label>
+            <input
+              type="number"
+              min="8"
+              max="40"
+              value={participantsInput}
+              onChange={(event) => setParticipantsInput(event.target.value)}
+              className="w-full rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)] outline-none transition focus:border-teal"
+            />
+            <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{t.participantsHint}</p>
+            {!isParticipantsValid ? (
+              <p className="mt-1 text-xs font-medium text-rose-600 dark:text-rose-300">{t.invalidParticipants}</p>
+            ) : null}
+          </div>
+
+          <div className="space-y-3 sm:col-span-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg bg-[color:var(--muted)] px-3 py-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">{t.perPerson}</p>
+                <p className="mt-1 text-base font-semibold text-[color:var(--text)]">
+                  {pricing.tier ? `${pricing.tier.pricePerPerson} OMR` : '--'}
+                </p>
+              </div>
+              <div className="rounded-lg bg-[color:var(--muted)] px-3 py-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">{t.subtotal}</p>
+                <p className="mt-1 text-base font-semibold text-[color:var(--text)]">
+                  {pricing.subtotal !== null ? `${pricing.subtotal} OMR` : '--'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleContinue}
+              disabled={!isParticipantsValid}
+              className="w-full rounded-xl bg-teal px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t.continueBooking}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <section className="mt-6 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
+    <section className={`mt-6 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm ${className}`.trim()}>
       <div className="flex items-center gap-2">
         <MdCalculate className="h-5 w-5 text-coral" />
         <h3 className="text-lg font-semibold text-[color:var(--text)]">{t.title}</h3>
