@@ -281,21 +281,6 @@ export default async function CookingCompetitionPage({
                     </ul>
                   </div>
 
-                  {pkg.priceTiers.length > 0 && (
-                    <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/65 p-4">
-                      <h4 className="text-sm font-semibold text-[color:var(--text)]">
-                        {isArabic ? "قائمة الأسعار (للباقة القياسية)" : "Price List (Standard Package)"}
-                      </h4>
-                      <div className="mt-3 space-y-2">
-                        {pkg.priceTiers.map((tier) => (
-                          <div key={tier.range} className="flex items-center justify-between gap-3 text-sm">
-                            <span className="text-[color:var(--text-muted)]">{tier.range}</span>
-                            <span className="font-semibold text-[color:var(--text)]">{tier.price}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </article>
             );
