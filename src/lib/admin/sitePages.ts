@@ -209,6 +209,11 @@ export type ClassListingHeroSettings = {
   autoplayMs: number;
 };
 
+export type EventCompetitionSettings = {
+  processCardBackgroundColor: string;
+  processCardBorderColor: string;
+};
+
 export type SitePageDefinition = {
   key: string;
   pathTemplate: string;
@@ -253,6 +258,7 @@ export type SitePageSettings = {
   contactPage: ContactPageSettings;
   aboutPage: AboutPageSettings;
   classListingHero: ClassListingHeroSettings;
+  eventCompetition: EventCompetitionSettings;
 };
 
 export const sitePageCatalog: SitePageDefinition[] = [
@@ -1209,6 +1215,11 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
             autoplayMs: 4200,
           };
 
+  const eventCompetition: EventCompetitionSettings = {
+    processCardBackgroundColor: "#7e22ce",
+    processCardBorderColor: "#c4b5fd",
+  };
+
   return {
     visibility: page.defaultVisibility ?? "PUBLISHED",
     navPlacement: page.defaultNavPlacement,
@@ -1387,6 +1398,7 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
     },
     aboutPage,
     classListingHero,
+    eventCompetition,
   };
 }
 
@@ -1615,6 +1627,16 @@ export function sanitizeSitePageSettings(
         defaults.classListingHero.autoplayMs,
         2000,
         12000
+      ),
+    },
+    eventCompetition: {
+      processCardBackgroundColor: toHexColor(
+        source.eventCompetition?.processCardBackgroundColor,
+        defaults.eventCompetition.processCardBackgroundColor
+      ),
+      processCardBorderColor: toHexColor(
+        source.eventCompetition?.processCardBorderColor,
+        defaults.eventCompetition.processCardBorderColor
       ),
     },
   };

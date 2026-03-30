@@ -1,6 +1,5 @@
 "use client";
 
-import useEmblaCarousel from "embla-carousel-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -20,12 +19,8 @@ export default function ClassHeaderSlideshow({
   const preparedImages = images.map((item) => item.trim()).filter((item) => item.length > 0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const autoplayTimerRef = useRef<number | null>(null);
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    loop: preparedImages.length > 1,
-    align: "start",
-    containScroll: "trimSnaps",
-    dragFree: false,
-  });
+  const displayIndex =
+    preparedImages.length > 0 ? Math.min(selectedIndex, preparedImages.length - 1) : 0;
 
   const stopAutoplay = useCallback(() => {
     if (autoplayTimerRef.current !== null) {
@@ -35,29 +30,12 @@ export default function ClassHeaderSlideshow({
   }, []);
 
   const startAutoplay = useCallback(() => {
-    if (!emblaApi || preparedImages.length <= 1) return;
+    if (preparedImages.length <= 1) return;
     stopAutoplay();
     autoplayTimerRef.current = window.setInterval(() => {
-      emblaApi.scrollNext();
+      setSelectedIndex((prev) => (prev + 1) % preparedImages.length);
     }, intervalMs);
-  }, [emblaApi, intervalMs, preparedImages.length, stopAutoplay]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-
-    const updateSelectedIndex = () => {
-      setSelectedIndex(emblaApi.selectedScrollSnap());
-    };
-
-    updateSelectedIndex();
-    emblaApi.on("select", updateSelectedIndex);
-    emblaApi.on("reInit", updateSelectedIndex);
-
-    return () => {
-      emblaApi.off("select", updateSelectedIndex);
-      emblaApi.off("reInit", updateSelectedIndex);
-    };
-  }, [emblaApi]);
+  }, [intervalMs, preparedImages.length, stopAutoplay]);
 
   useEffect(() => {
     startAutoplay();
@@ -75,12 +53,14 @@ export default function ClassHeaderSlideshow({
   return (
     <div className="w-full">
       <div
-        ref={emblaRef}
         className="overflow-hidden rounded-[2.25rem] border border-white/35 bg-white/15 shadow-[0_34px_90px_rgba(46,27,17,0.24)] backdrop-blur-sm"
         onMouseEnter={stopAutoplay}
         onMouseLeave={startAutoplay}
       >
-        <div className="flex">
+        <div
+          className="flex transition-transform duration-500 ease-out"
+          style={{ transform: `translateX(-${displayIndex * 100}%)` }}
+        >
           {preparedImages.map((src, index) => (
             <div key={`${src}-${index}`} className="relative min-w-0 flex-[0_0_100%]">
               <div className="relative aspect-[3/4] w-full bg-white/20">
@@ -104,12 +84,12 @@ export default function ClassHeaderSlideshow({
             key={`${src}-dot-${index}`}
             type="button"
             aria-label={`Slide ${index + 1}`}
-            aria-pressed={selectedIndex === index}
-            onClick={() => emblaApi?.scrollTo(index)}
-            className={`h-3.5 w-3.5 rounded-full transition ${selectedIndex === index ? "scale-110" : ""}`}
+            aria-pressed={displayIndex === index}
+            onClick={() => setSelectedIndex(index)}
+            className={`h-3.5 w-3.5 rounded-full transition ${displayIndex === index ? "scale-110" : ""}`}
             style={{
               backgroundColor: indicatorColor,
-              opacity: selectedIndex === index ? 1 : 0.38,
+              opacity: displayIndex === index ? 1 : 0.38,
             }}
           />
         ))}

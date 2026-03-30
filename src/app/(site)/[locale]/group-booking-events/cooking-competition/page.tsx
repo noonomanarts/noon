@@ -49,6 +49,8 @@ export default async function CookingCompetitionPage({
     headerMedia = "/images/cooking.png";
     headerMediaIsVideo = false;
   }
+  const processCardBackgroundColor = pageSettings?.eventCompetition.processCardBackgroundColor || "#7e22ce";
+  const processCardBorderColor = pageSettings?.eventCompetition.processCardBorderColor || "#c4b5fd";
 
   const steps = [
     {
@@ -188,7 +190,11 @@ export default async function CookingCompetitionPage({
           {steps.map((item) => (
             <article
               key={item.title}
-              className="rounded-2xl border border-purple-300/35 bg-purple-700 p-5 shadow-sm"
+              className="rounded-2xl border p-5 shadow-sm"
+              style={{
+                backgroundColor: processCardBackgroundColor,
+                borderColor: processCardBorderColor,
+              }}
             >
               <div className="mb-3 flex justify-center">
                 <item.icon className="h-10 w-10 text-white" />

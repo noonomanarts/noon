@@ -75,7 +75,7 @@ export default function AdminPagesPageClient({
     indexableOff: isArabic ? "غير مفهرس" : "Noindex",
     customized: isArabic ? "مخصص" : "Customized",
     default: isArabic ? "افتراضي" : "Default",
-    manage: isArabic ? "إدارة الإعدادات" : "Manage Settings",
+    manage: isArabic ? "إدارة الإعدادات" : "Settings",
     preview: isArabic ? "فتح الصفحة" : "Open Page",
     templateOnly: isArabic ? "قالب ديناميكي" : "Dynamic Template",
     empty: isArabic ? "لا توجد صفحات مطابقة." : "No matching pages found.",

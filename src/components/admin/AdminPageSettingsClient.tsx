@@ -250,6 +250,12 @@ export default function AdminPageSettingsClient({
     competitionHeaderUploadFailed: isArabic
       ? "فشل رفع وسائط هيدر صفحة الفعالية."
       : "Failed to upload event header media.",
+    competitionProcessCardsSection: isArabic ? "ألوان بطاقات خطوات التجربة" : "Process Cards Colors",
+    competitionProcessCardBgColor: isArabic ? "لون خلفية البطاقة" : "Card Background Color",
+    competitionProcessCardBorderColor: isArabic ? "لون حدود البطاقة" : "Card Border Color",
+    competitionProcessCardsHint: isArabic
+      ? "تُطبّق على البطاقات البنفسجية في قسم (كيف تسير التجربة)."
+      : "Applied to the purple cards in the “How the Experience Works” section.",
     shopHeaderSection: isArabic ? "إعدادات هيدر صفحة الشوب" : "Shop Header Settings",
     shopHeaderHint: isArabic
       ? "اختر صورة الهيدر التي تظهر أعلى صفحة الشوب العامة."
@@ -519,6 +525,14 @@ export default function AdminPageSettingsClient({
     defaults.classListingHero.backgroundColor
   );
   const classHeaderTextColor = getReadableTextColor(classHeaderBackgroundColor);
+  const competitionProcessCardBgColor = normalizeHexColor(
+    settings.eventCompetition.processCardBackgroundColor,
+    defaults.eventCompetition.processCardBackgroundColor
+  );
+  const competitionProcessCardBorderColor = normalizeHexColor(
+    settings.eventCompetition.processCardBorderColor,
+    defaults.eventCompetition.processCardBorderColor
+  );
   const cookingPreviewTitle = (isArabic ? settings.homeCourses.cookingTitleAr : settings.homeCourses.cookingTitleEn).trim() || (isArabic ? "دورات الطبخ" : "Cooking classes");
   const artsPreviewTitle = (isArabic ? settings.homeCourses.artsTitleAr : settings.homeCourses.artsTitleEn).trim() || (isArabic ? "دورات الفنون" : "Arts & crafts classes");
 
@@ -1559,6 +1573,88 @@ export default function AdminPageSettingsClient({
             </div>
 
             <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.competitionHeaderMediaHint}</p>
+
+            {(isCompetitionPage || isPrivateClassesPage) ? (
+              <div className="space-y-3 rounded-xl border border-zinc-200 p-3 dark:border-zinc-700">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {t.competitionProcessCardsSection}
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.competitionProcessCardBgColor}</span>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={competitionProcessCardBgColor}
+                        onChange={(event) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            eventCompetition: {
+                              ...prev.eventCompetition,
+                              processCardBackgroundColor: event.target.value,
+                            },
+                          }))
+                        }
+                        className="h-11 w-14 rounded-lg border border-zinc-300 bg-transparent p-1 dark:border-zinc-700"
+                      />
+                      <input
+                        value={settings.eventCompetition.processCardBackgroundColor}
+                        onChange={(event) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            eventCompetition: {
+                              ...prev.eventCompetition,
+                              processCardBackgroundColor: normalizeHexColor(
+                                event.target.value,
+                                defaults.eventCompetition.processCardBackgroundColor
+                              ),
+                            },
+                          }))
+                        }
+                        className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                    </div>
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.competitionProcessCardBorderColor}</span>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={competitionProcessCardBorderColor}
+                        onChange={(event) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            eventCompetition: {
+                              ...prev.eventCompetition,
+                              processCardBorderColor: event.target.value,
+                            },
+                          }))
+                        }
+                        className="h-11 w-14 rounded-lg border border-zinc-300 bg-transparent p-1 dark:border-zinc-700"
+                      />
+                      <input
+                        value={settings.eventCompetition.processCardBorderColor}
+                        onChange={(event) =>
+                          setSettings((prev) => ({
+                            ...prev,
+                            eventCompetition: {
+                              ...prev.eventCompetition,
+                              processCardBorderColor: normalizeHexColor(
+                                event.target.value,
+                                defaults.eventCompetition.processCardBorderColor
+                              ),
+                            },
+                          }))
+                        }
+                        className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                    </div>
+                  </label>
+                </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.competitionProcessCardsHint}</p>
+              </div>
+            ) : null}
 
             {heroMediaType === "image" ? (
               <label className="block space-y-1 text-sm">
