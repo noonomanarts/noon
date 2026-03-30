@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
+import { formatDurationClock } from '@/lib/formatDuration';
 
 type AvailabilityResponse = {
   days: Array<{
@@ -198,9 +199,8 @@ export default function PublicEventAvailabilityPicker({
 
   const durationLabel = useMemo(() => {
     if (!availability) return '';
-    const hours = availability.durationMinutes / 60;
-    return isArabic ? `${hours} ساعات` : `${hours} hours`;
-  }, [availability, isArabic]);
+    return formatDurationClock(availability.durationMinutes);
+  }, [availability]);
 
   const weekDayHeaders = useMemo(() => {
     return Array.from({ length: 7 }).map((_, index) =>
@@ -236,7 +236,7 @@ export default function PublicEventAvailabilityPicker({
 
   if (loading) {
     return (
-      <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
+      <div className="noon-border-strong rounded-3xl border-2 border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
         <p className="text-sm text-[color:var(--text-muted)]">{t.loading}</p>
       </div>
     );
@@ -259,14 +259,14 @@ export default function PublicEventAvailabilityPicker({
 
   if (!availability || availability.days.length === 0 || !selectedDay) {
     return (
-      <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
+      <div className="noon-border-strong rounded-3xl border-2 border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
         <p className="text-sm text-[color:var(--text-muted)]">{t.empty}</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
+    <div className="noon-border-strong rounded-3xl border-2 border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
       <div className="flex flex-col gap-3 border-b border-[color:var(--border)] pb-5">
         <div>
           <h3 className="text-xl font-semibold text-[color:var(--text)]">{t.title}</h3>
@@ -286,7 +286,7 @@ export default function PublicEventAvailabilityPicker({
         <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
           <div>
             <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">{t.chooseDay}</p>
-            <div className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)]">
+            <div className="noon-border-strong overflow-hidden rounded-2xl border-2 border-[color:var(--border)] bg-[color:var(--surface)]">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[color:var(--border)] p-3">
                 <div className="flex gap-2">
                   <button
@@ -416,7 +416,7 @@ export default function PublicEventAvailabilityPicker({
               <span className="font-semibold text-[color:var(--text)]">{t.selectedDate}: </span>
               <span className="text-[color:var(--text-muted)]">{formatDay(locale, selectedDay.date)}</span>
             </div>
-            <div className="overflow-hidden rounded-2xl border border-[color:var(--border)]">
+            <div className="noon-border-strong overflow-hidden rounded-2xl border-2 border-[color:var(--border)]">
               <table className="w-full table-fixed text-sm">
                 <thead className="bg-[color:var(--muted)]/70">
                   <tr>

@@ -491,6 +491,100 @@ export default function CookingCompetitionBookingPage() {
               <h2 className="text-2xl font-bold text-[color:var(--text)] dark:text-white">{t.step2Title}</h2>
             </div>
 
+            {/* Price Calculator */}
+            <div className="rounded-2xl border-2 border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm dark:border-zinc-700">
+              <div className="mb-4 flex items-center gap-2">
+                <MdCalculate className="h-5 w-5 text-coral" />
+                <h3 className="text-xl font-bold text-[color:var(--text)] dark:text-white">{t.calculatorTitle}</h3>
+              </div>
+              <p className="text-sm text-[color:var(--text-muted)] dark:text-zinc-300">{t.calculatorSubtitle}</p>
+
+              <div className="mt-5 space-y-4">
+                <div>
+                  <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
+                    <MdGroup className="h-5 w-5 text-teal" />
+                    {t.numberOfParticipants} *
+                  </label>
+                  <input
+                    type="number"
+                    min={participantsMin}
+                    max="40"
+                    className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                    value={bookingData.numberOfParticipants || ''}
+                    onChange={(e) =>
+                      setBookingData({
+                        ...bookingData,
+                        numberOfParticipants: parseIntegerInput(e.target.value, 0),
+                      })
+                    }
+                    required
+                  />
+                  <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{participantsRangeMessage}</p>
+                </div>
+
+                <div className="space-y-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/40 p-4 dark:border-zinc-700">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-semibold text-[color:var(--text)]">{t.perPersonRate}</span>
+                    <span className="font-semibold text-[color:var(--text-muted)]">
+                      {packageRate !== null ? `${packageRate} OMR` : '--'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-semibold text-[color:var(--text)]">{t.baseAmount}</span>
+                    <span className="font-semibold text-[color:var(--text-muted)]">
+                      {packageBaseAmount !== null ? `${packageBaseAmount} OMR` : '--'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-semibold text-[color:var(--text)]">{t.giftsAmount}</span>
+                    <span className="font-semibold text-[color:var(--text-muted)]">{giftsAmount} OMR</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 rounded-lg bg-[color:var(--surface)] px-3 py-2 text-sm dark:bg-zinc-800">
+                    <span className="font-semibold text-[color:var(--text)]">{t.estimatedTotal}</span>
+                    <span className="font-bold text-coral">
+                      {estimatedTotalAmount !== null ? `${estimatedTotalAmount} OMR` : '--'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 overflow-hidden rounded-xl border border-[color:var(--border)] dark:border-zinc-700">
+                <table className="w-full text-sm">
+                  <thead className="bg-[color:var(--muted)]/70">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.range}</th>
+                      <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.pricePerPerson}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(bookingData.packageType === 'PREMIUM'
+                      ? PREMIUM_COMPETITION_PRICE_TIERS
+                      : STANDARD_COMPETITION_PRICE_TIERS).map((tier) => {
+                      const isActive =
+                        hasValidParticipants &&
+                        tier.pricePerPerson === packageRate &&
+                        participantsCount >= tier.minParticipants &&
+                        participantsCount <= tier.maxParticipants;
+                      return (
+                        <tr
+                          key={`${tier.minParticipants}-${tier.maxParticipants}`}
+                          className={`border-t border-[color:var(--border)] dark:border-zinc-700 ${
+                            isActive ? 'bg-teal/10' : ''
+                          }`}
+                        >
+                          <td className="px-4 py-2.5 text-[color:var(--text-muted)]">
+                            {tier.minParticipants}-{tier.maxParticipants}
+                          </td>
+                          <td className="px-4 py-2.5 font-semibold text-[color:var(--text)]">{tier.pricePerPerson} OMR</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-3 text-xs text-[color:var(--text-subtle)]">{t.priceTableTitle}</p>
+            </div>
+
             {/* Package Summary */}
             <div
               className={`overflow-hidden rounded-2xl border shadow-sm ${
@@ -524,7 +618,7 @@ export default function CookingCompetitionBookingPage() {
                 </button>
               </div>
 
-              <div className="grid gap-3 p-5 md:grid-cols-2">
+              <div className="grid gap-3 p-5">
                 {[
                   { Icon: MdGroup, label: t.participants, value: bookingData.packageType === 'PREMIUM' ? '6-40' : '8-40' },
                   { Icon: MdSchedule, label: t.duration, value: `3 ${t.hours}` },
@@ -614,99 +708,6 @@ export default function CookingCompetitionBookingPage() {
               </div>
             </div>
 
-            {/* Price Calculator */}
-            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm dark:border-zinc-700">
-              <div className="mb-4 flex items-center gap-2">
-                <MdCalculate className="h-5 w-5 text-coral" />
-                <h3 className="text-xl font-bold text-[color:var(--text)] dark:text-white">{t.calculatorTitle}</h3>
-              </div>
-              <p className="text-sm text-[color:var(--text-muted)] dark:text-zinc-300">{t.calculatorSubtitle}</p>
-
-              <div className="mt-5 grid gap-5 lg:grid-cols-2">
-                <div>
-                  <label className="mb-3 flex items-center gap-2 font-bold text-[color:var(--text)] dark:text-white">
-                    <MdGroup className="h-5 w-5 text-teal" />
-                    {t.numberOfParticipants} *
-                  </label>
-                  <input
-                    type="number"
-                    min={participantsMin}
-                    max="40"
-                    className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                    value={bookingData.numberOfParticipants || ''}
-                    onChange={(e) =>
-                      setBookingData({
-                        ...bookingData,
-                        numberOfParticipants: parseIntegerInput(e.target.value, 0),
-                      })
-                    }
-                    required
-                  />
-                  <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{participantsRangeMessage}</p>
-                </div>
-
-                <div className="space-y-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/40 p-4 dark:border-zinc-700">
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-semibold text-[color:var(--text)]">{t.perPersonRate}</span>
-                    <span className="font-semibold text-[color:var(--text-muted)]">
-                      {packageRate !== null ? `${packageRate} OMR` : '--'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-semibold text-[color:var(--text)]">{t.baseAmount}</span>
-                    <span className="font-semibold text-[color:var(--text-muted)]">
-                      {packageBaseAmount !== null ? `${packageBaseAmount} OMR` : '--'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-semibold text-[color:var(--text)]">{t.giftsAmount}</span>
-                    <span className="font-semibold text-[color:var(--text-muted)]">{giftsAmount} OMR</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 rounded-lg bg-[color:var(--surface)] px-3 py-2 text-sm dark:bg-zinc-800">
-                    <span className="font-semibold text-[color:var(--text)]">{t.estimatedTotal}</span>
-                    <span className="font-bold text-coral">
-                      {estimatedTotalAmount !== null ? `${estimatedTotalAmount} OMR` : '--'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 overflow-hidden rounded-xl border border-[color:var(--border)] dark:border-zinc-700">
-                <table className="w-full text-sm">
-                  <thead className="bg-[color:var(--muted)]/70">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.range}</th>
-                      <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.pricePerPerson}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(bookingData.packageType === 'PREMIUM'
-                      ? PREMIUM_COMPETITION_PRICE_TIERS
-                      : STANDARD_COMPETITION_PRICE_TIERS).map((tier) => {
-                      const isActive =
-                        hasValidParticipants &&
-                        tier.pricePerPerson === packageRate &&
-                        participantsCount >= tier.minParticipants &&
-                        participantsCount <= tier.maxParticipants;
-                      return (
-                        <tr
-                          key={`${tier.minParticipants}-${tier.maxParticipants}`}
-                          className={`border-t border-[color:var(--border)] dark:border-zinc-700 ${
-                            isActive ? 'bg-teal/10' : ''
-                          }`}
-                        >
-                          <td className="px-4 py-2.5 text-[color:var(--text-muted)]">
-                            {tier.minParticipants}-{tier.maxParticipants}
-                          </td>
-                          <td className="px-4 py-2.5 font-semibold text-[color:var(--text)]">{tier.pricePerPerson} OMR</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-3 text-xs text-[color:var(--text-subtle)]">{t.priceTableTitle}</p>
-            </div>
           </div>
         )}
 

@@ -20,6 +20,7 @@ import {
 } from 'react-icons/io5';
 import ClassSettlementPanel from '@/components/admin/ClassSettlementPanel';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import { formatDurationClock } from '@/lib/formatDuration';
 
 type ClassStatus = 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED';
 
@@ -490,7 +491,7 @@ export default function AdminClassDetailsPage({
               </div>
               <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
                 <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.duration}</p>
-                <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{classData.durationMinutes} min</p>
+                <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{formatDurationClock(classData.durationMinutes)}</p>
               </div>
               <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
                 <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.price}</p>

@@ -17,6 +17,8 @@ import {
   MdCategory,
   MdAttachMoney
 } from 'react-icons/md';
+import { composeDurationMinutes, splitDurationMinutes } from '@/lib/formatDuration';
+import { defaultClassFinanceAdminSettings, type ClassFinanceAdminSettings } from '@/lib/adminSettings';
 
 type ClassCategory = 'COOKING' | 'ARTS_CRAFTS';
 type ClassSubCategory =
@@ -109,6 +111,12 @@ export default function EditClassPage() {
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const [durationParts, setDurationParts] = useState<{ hours: string; minutes: string }>(
+    splitDurationMinutes(0)
+  );
+  const [classFinanceSettings, setClassFinanceSettings] = useState<ClassFinanceAdminSettings>(
+    defaultClassFinanceAdminSettings
+  );
 
   const inputBase =
     'w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white transition-all duration-200';
@@ -120,7 +128,7 @@ export default function EditClassPage() {
     'rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900';
 
   useEffect(() => {
-    Promise.all([fetchClass(), fetchTrainers()]);
+    void Promise.all([fetchClass(), fetchTrainers(), fetchClassFinanceSettings()]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId]);
 
@@ -151,6 +159,7 @@ export default function EditClassPage() {
         metaTitle: data.metaTitle || '',
         metaDescription: data.metaDescription || ''
       });
+      setDurationParts(splitDurationMinutes(data.durationMinutes));
     } catch (error) {
       console.error('Error fetching class:', error);
       showNotification('error', 'Failed to load class data');
@@ -171,6 +180,29 @@ export default function EditClassPage() {
     }
   };
 
+  const fetchClassFinanceSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/settings', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = (await res.json().catch(() => ({}))) as { classFinance?: ClassFinanceAdminSettings };
+      if (data.classFinance) {
+        setClassFinanceSettings(data.classFinance);
+      }
+    } catch (error) {
+      console.error('Error fetching class finance settings:', error);
+    }
+  };
+
+  const formatRate = (value: number) => {
+    const normalized = Number(value || 0);
+    return normalized.toFixed(3).replace(/\.?0+$/, '');
+  };
+
+  const selectedCategoryFinance =
+    formData.category === 'ARTS_CRAFTS'
+      ? classFinanceSettings.artsCrafts
+      : classFinanceSettings.cooking;
+
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ show: true, type, message });
     setTimeout(() => setNotification({ show: false, type: 'success', message: '' }), 5000);
@@ -183,6 +215,21 @@ export default function EditClassPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleDurationPartChange = (field: 'hours' | 'minutes', value: string) => {
+    const nextParts =
+      field === 'hours'
+        ? { ...durationParts, hours: value }
+        : { ...durationParts, minutes: value };
+    setDurationParts(nextParts);
+    setFormData((prev) => ({
+      ...prev,
+      durationMinutes: String(composeDurationMinutes(nextParts.hours, nextParts.minutes)),
+    }));
+    if (errors.durationMinutes) {
+      setErrors((prev) => ({ ...prev, durationMinutes: '' }));
     }
   };
 
@@ -777,20 +824,32 @@ export default function EditClassPage() {
             {/* Duration */}
             <div className="md:col-span-3">
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {isRTL ? 'المدة (بالدقائق)' : 'Duration (minutes)'}
+                {isRTL ? 'المدة (ساعة:دقيقة)' : 'Duration (HH:MM)'}
                 <span className="text-red-500">*</span>
               </label>
-              <input
-                type="number"
-                name="durationMinutes"
-                value={formData.durationMinutes}
-                onChange={handleInputChange}
-                min="1"
-                placeholder="e.g. 120"
-                className={`${inputBase} ${
-                  errors.durationMinutes ? 'border-red-500 dark:border-red-400' : ''
-                }`}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="number"
+                  value={durationParts.hours}
+                  onChange={(event) => handleDurationPartChange('hours', event.target.value)}
+                  min="0"
+                  placeholder={isRTL ? 'ساعة (مثال: 2)' : 'Hours (e.g. 2)'}
+                  className={`${inputBase} ${
+                    errors.durationMinutes ? 'border-red-500 dark:border-red-400' : ''
+                  }`}
+                />
+                <input
+                  type="number"
+                  value={durationParts.minutes}
+                  onChange={(event) => handleDurationPartChange('minutes', event.target.value)}
+                  min="0"
+                  max="59"
+                  placeholder={isRTL ? 'دقيقة (مثال: 30)' : 'Minutes (e.g. 30)'}
+                  className={`${inputBase} ${
+                    errors.durationMinutes ? 'border-red-500 dark:border-red-400' : ''
+                  }`}
+                />
+              </div>
               {errors.durationMinutes && (
                 <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
                   <IoAlertCircle />
@@ -806,8 +865,8 @@ export default function EditClassPage() {
                 </p>
                 <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">
                   {isRTL
-                    ? 'عند التسوية ستحتسب التكاليف الثابتة تلقائياً: استخدام المطبخ = 2.8 × مدة الورشة بالساعات، ومحتوى الورشة = 0.2 × عدد المشاركين. تكلفة المواد تضاف يدوياً، ثم تحتسب أتعاب المدرب من المتبقي، ورسوم نون هي ما يتبقى بعد ذلك.'
-                    : 'At settlement time, fixed costs are calculated automatically: kitchen usage = 2.8 x workshop duration in hours, and workshop content = 0.2 x participant count. Material costs are added manually, trainer fee is calculated from the remaining revenue, and Noon fee is whatever remains after that.'}
+                    ? `عند التسوية ستحتسب التكاليف الثابتة تلقائياً: استخدام المطبخ = ${formatRate(selectedCategoryFinance.kitchenUsageRatePerHour)} × مدة الورشة بالساعات، ومحتوى الورشة = ${formatRate(selectedCategoryFinance.workshopContentRatePerParticipant)} × عدد المشاركين. تكلفة المواد تضاف يدوياً، ثم تحتسب أتعاب المدرب من المتبقي، ورسوم نون هي ما يتبقى بعد ذلك.`
+                    : `At settlement time, fixed costs are calculated automatically: kitchen usage = ${formatRate(selectedCategoryFinance.kitchenUsageRatePerHour)} x workshop duration in hours, and workshop content = ${formatRate(selectedCategoryFinance.workshopContentRatePerParticipant)} x participant count. Material costs are added manually, trainer fee is calculated from the remaining revenue, and Noon fee is whatever remains after that.`}
                 </p>
               </div>
             </div>

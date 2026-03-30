@@ -8,9 +8,13 @@ import {
   IoArrowBack,
   IoCalendar,
   IoCheckmarkCircle,
+  IoClose,
+  IoCreateOutline,
   IoPeople,
   IoTime,
+  IoTrashOutline,
 } from 'react-icons/io5';
+import { formatDurationClock } from '@/lib/formatDuration';
 
 type ClassDetails = {
   id: string;
@@ -56,6 +60,10 @@ type CreateForm = {
   seatsTotal: string;
 };
 
+type EditForm = CreateForm & {
+  sessionId: string;
+};
+
 function toDateInputValue(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -78,6 +86,15 @@ function buildDefaultForm(durationMinutes: number, seatsTotal: number): CreateFo
   };
 }
 
+function toMuscatInputParts(value: string): { date: string; time: string } {
+  const date = new Date(value);
+  const shifted = new Date(date.getTime() + 4 * 60 * 60 * 1000);
+  return {
+    date: shifted.toISOString().slice(0, 10),
+    time: shifted.toISOString().slice(11, 16),
+  };
+}
+
 export default function AdminClassSessionsPage({
   params,
 }: {
@@ -91,6 +108,10 @@ export default function AdminClassSessionsPage({
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [form, setForm] = useState<CreateForm>(buildDefaultForm(120, 12));
@@ -124,6 +145,20 @@ export default function AdminClassSessionsPage({
       ? 'يفضل نشر الصف أولاً ثم تعريف الجلسات المتاحة للحجز.'
       : 'Prefer publishing the class before creating public sessions.',
     sessionSaved: isArabic ? 'تمت إضافة الجلسة بنجاح.' : 'Session created successfully.',
+    sessionUpdated: isArabic ? 'تم تحديث الجلسة بنجاح.' : 'Session updated successfully.',
+    editSession: isArabic ? 'تعديل الجلسة' : 'Edit session',
+    saveChanges: isArabic ? 'حفظ التعديلات' : 'Save changes',
+    saving: isArabic ? 'جاري الحفظ...' : 'Saving...',
+    cancel: isArabic ? 'إلغاء' : 'Cancel',
+    deleteSession: isArabic ? 'حذف الجلسة' : 'Delete session',
+    deleting: isArabic ? 'جاري الحذف...' : 'Deleting...',
+    sessionDeleted: isArabic ? 'تم حذف الجلسة بنجاح.' : 'Session deleted successfully.',
+    deleteBlockedWithBookings: isArabic
+      ? 'لا يمكن حذف جلسة تحتوي على حجوزات.'
+      : 'Cannot delete a session that has bookings.',
+    deleteConfirm: isArabic
+      ? 'هل أنت متأكد من حذف هذه الجلسة؟ لا يمكن التراجع عن العملية.'
+      : 'Are you sure you want to delete this session? This action cannot be undone.',
   };
 
   const loadData = async () => {
@@ -209,6 +244,101 @@ export default function AdminClassSessionsPage({
     }
   };
 
+  const startEditingSession = (session: SessionItem) => {
+    const startParts = toMuscatInputParts(session.startTime);
+    const endSource = session.endTime ?? session.startTime;
+    const endParts = toMuscatInputParts(endSource);
+    setEditingSessionId(session.id);
+    setEditForm({
+      sessionId: session.id,
+      startDate: startParts.date,
+      startTime: startParts.time,
+      endTime: endParts.time,
+      seatsTotal: String(session.seatsTotal ?? classData?.seatsTotal ?? 0),
+    });
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleUpdateSession = async () => {
+    if (!editForm) return;
+
+    setUpdating(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const startDateTime = `${editForm.startDate}T${editForm.startTime}:00+04:00`;
+      const endDateTime = `${editForm.startDate}T${editForm.endTime}:00+04:00`;
+
+      const response = await fetch(`/api/admin/classes/${classId}/sessions`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: editForm.sessionId,
+          startDateTime,
+          endDateTime,
+          seatsTotal: Number(editForm.seatsTotal),
+        }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        conflicts?: Array<{ title: string; startDateTime: string; endDateTime: string }>;
+      };
+
+      if (!response.ok) {
+        const conflictMessage =
+          Array.isArray(payload.conflicts) && payload.conflicts.length > 0
+            ? `${t.conflictTitle} ${payload.conflicts[0].title} (${new Date(payload.conflicts[0].startDateTime).toLocaleString(localeCode)})`
+            : payload.error;
+        throw new Error(conflictMessage || 'Failed to update session');
+      }
+
+      setSuccess(t.sessionUpdated);
+      setEditingSessionId(null);
+      setEditForm(null);
+      await loadData();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Failed to update session');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteSession = async (session: SessionItem) => {
+    const confirmed = window.confirm(t.deleteConfirm);
+    if (!confirmed) return;
+
+    setDeletingSessionId(session.id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(
+        `/api/admin/classes/${classId}/sessions?sessionId=${encodeURIComponent(session.id)}`,
+        { method: 'DELETE' }
+      );
+
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to delete session');
+      }
+
+      if (editingSessionId === session.id) {
+        setEditingSessionId(null);
+        setEditForm(null);
+      }
+
+      setSuccess(t.sessionDeleted);
+      await loadData();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Failed to delete session');
+    } finally {
+      setDeletingSessionId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-zinc-600 dark:text-zinc-400">
@@ -286,7 +416,7 @@ export default function AdminClassSessionsPage({
               </div>
               <div className="rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-950/40">
                 <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.duration}</p>
-                <p className="mt-1 font-semibold text-zinc-900 dark:text-zinc-100">{classData.durationMinutes} min</p>
+                <p className="mt-1 font-semibold text-zinc-900 dark:text-zinc-100">{formatDurationClock(classData.durationMinutes)}</p>
               </div>
               <div className="rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-950/40">
                 <p className="text-xs uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.seatsTotal}</p>
@@ -432,13 +562,110 @@ export default function AdminClassSessionsPage({
                       </div>
                     </div>
 
-                    <div className="rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:bg-zinc-950/40 dark:text-zinc-300">
-                      <p><strong>{t.calendar}:</strong> {session.calendarEvent?.type || 'CLASS'}</p>
-                      <p className="mt-1">
-                        {session.seatsBooked}/{session.seatsTotal ?? classData.seatsTotal} {isArabic ? 'محجوز' : 'booked'}
-                      </p>
+                    <div className="space-y-3">
+                      <div className="rounded-2xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:bg-zinc-950/40 dark:text-zinc-300">
+                        <p><strong>{t.calendar}:</strong> {session.calendarEvent?.type || 'CLASS'}</p>
+                        <p className="mt-1">
+                          {session.seatsBooked}/{session.seatsTotal ?? classData.seatsTotal} {isArabic ? 'محجوز' : 'booked'}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => startEditingSession(session)}
+                          className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                        >
+                          <IoCreateOutline className="h-4 w-4" />
+                          {t.editSession}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteSession(session)}
+                          disabled={deletingSessionId === session.id || bookingsCount > 0}
+                          title={bookingsCount > 0 ? t.deleteBlockedWithBookings : undefined}
+                          className="inline-flex items-center gap-2 rounded-xl border border-rose-300 bg-white px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-800 dark:bg-zinc-900 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                        >
+                          <IoTrashOutline className="h-4 w-4" />
+                          {deletingSessionId === session.id ? t.deleting : t.deleteSession}
+                        </button>
+                      </div>
                     </div>
                   </div>
+
+                  {editingSessionId === session.id && editForm ? (
+                    <div className="mt-4 rounded-2xl border border-zinc-300 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-950/50">
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <label className="space-y-1.5 text-sm">
+                          <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.startDate}</span>
+                          <input
+                            type="date"
+                            value={editForm.startDate}
+                            onChange={(event) =>
+                              setEditForm((prev) => (prev ? { ...prev, startDate: event.target.value } : prev))
+                            }
+                            className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                          />
+                        </label>
+                        <label className="space-y-1.5 text-sm">
+                          <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.seatsTotal}</span>
+                          <input
+                            type="number"
+                            min={session.seatsBooked}
+                            value={editForm.seatsTotal}
+                            onChange={(event) =>
+                              setEditForm((prev) => (prev ? { ...prev, seatsTotal: event.target.value } : prev))
+                            }
+                            className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                          />
+                        </label>
+                        <label className="space-y-1.5 text-sm">
+                          <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.startTime}</span>
+                          <input
+                            type="time"
+                            value={editForm.startTime}
+                            onChange={(event) =>
+                              setEditForm((prev) => (prev ? { ...prev, startTime: event.target.value } : prev))
+                            }
+                            className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                          />
+                        </label>
+                        <label className="space-y-1.5 text-sm">
+                          <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.endTime}</span>
+                          <input
+                            type="time"
+                            value={editForm.endTime}
+                            onChange={(event) =>
+                              setEditForm((prev) => (prev ? { ...prev, endTime: event.target.value } : prev))
+                            }
+                            className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleUpdateSession()}
+                          disabled={updating}
+                          className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                        >
+                          <IoCheckmarkCircle className="h-4 w-4" />
+                          {updating ? t.saving : t.saveChanges}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSessionId(null);
+                            setEditForm(null);
+                          }}
+                          className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                        >
+                          <IoClose className="h-4 w-4" />
+                          {t.cancel}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
 
                   {bookingsCount > 0 ? (
                     <div className="mt-4 rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">

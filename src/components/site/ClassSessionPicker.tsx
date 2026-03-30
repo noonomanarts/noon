@@ -87,7 +87,7 @@ export default function ClassSessionPicker({
   if (!selectedDay) return null;
 
   return (
-    <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+    <div className="noon-border-strong rounded-2xl border-2 border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
       <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.title}</h2>
       <p className="mt-1 text-sm text-[color:var(--text-muted)]">{t.subtitle}</p>
 

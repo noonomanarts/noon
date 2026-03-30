@@ -9,15 +9,10 @@ import { findClassBySlug, findClassSessions, findClassReviews } from "@/lib/db/c
 import { findTrainerById } from "@/lib/db/trainers";
 import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
+import { formatDurationClock } from "@/lib/formatDuration";
 import { isLocale, type Locale } from "@/lib/locale";
 
 const DISPLAY_TIMEZONE = "Asia/Muscat";
-
-function formatDurationHours(minutes: number | null | undefined): string {
-  const safeMinutes = typeof minutes === "number" && Number.isFinite(minutes) ? minutes : 0;
-  const hours = safeMinutes / 60;
-  return Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, "");
-}
 
 export default async function ClassDetailPage({
   params,
@@ -53,7 +48,6 @@ export default async function ClassDetailPage({
     artsCrafts: isArabic ? "فنون وحرف" : "Arts & Crafts",
     subCategory: isArabic ? "القسم" : "Section",
     duration: isArabic ? "المدة" : "Duration",
-    hours: isArabic ? "ساعة" : "hours",
     seatsAvailable: isArabic ? "مقاعد متاحة" : "seats available",
     totalSeats: isArabic ? "إجمالي المقاعد" : "Total seats",
     averageRating: isArabic ? "متوسط التقييم" : "Average rating",
@@ -195,7 +189,7 @@ export default async function ClassDetailPage({
                     {t.duration}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">
-                    {formatDurationHours(classData.durationMinutes)} {t.hours}
+                    {formatDurationClock(classData.durationMinutes)}
                   </p>
                 </div>
                 <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3">

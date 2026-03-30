@@ -9,6 +9,7 @@ import { HiSparkles } from "react-icons/hi2";
 import { findTrainerById, findTrainerClasses, getTrainerProfile } from "@/lib/db/trainers";
 import { findClassSessions } from "@/lib/db/classes";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
+import { formatDurationClock } from "@/lib/formatDuration";
 
 type UpcomingItem =
   | {
@@ -91,12 +92,6 @@ function formatSessionDateTime(value: Date | string | null, locale: Locale): str
 function formatMoney(value: number | null, currency: string): string {
   if (value === null || !Number.isFinite(value)) return `- ${currency}`;
   return formatAmountWithCurrency(value, currency);
-}
-
-function formatDurationHours(minutes: number | null | undefined): string {
-  if (typeof minutes !== "number" || !Number.isFinite(minutes)) return "0";
-  const hours = minutes / 60;
-  return Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, "");
 }
 
 function escapeHtml(text: string): string {
@@ -664,8 +659,7 @@ export default async function TrainerProfilePage({
                       <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                         <FiClock className="h-4 w-4 text-teal" />
                         <span>
-                          {formatDurationHours(cls.durationMinutes as number | null | undefined)}{" "}
-                          {locale === "ar" ? "ساعة" : "hours"}
+                          {formatDurationClock(cls.durationMinutes as number | null | undefined)}
                         </span>
                       </div>
                       <span className="font-bold text-coral">{formatMoney(cls.price, cls.currency)}</span>
