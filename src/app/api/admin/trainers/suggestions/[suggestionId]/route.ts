@@ -61,6 +61,17 @@ export async function PATCH(
     const liveClassId =
       body.liveClassId === undefined ? undefined : body.liveClassId === null ? null : body.liveClassId;
 
+    if (status === 'PUBLISHED') {
+      const normalizedLiveClassId =
+        typeof liveClassId === 'string' ? liveClassId.trim() : '';
+      if (!normalizedLiveClassId) {
+        return NextResponse.json(
+          { error: 'Published status requires a linked live class ID.' },
+          { status: 400 }
+        );
+      }
+    }
+
     const updateInput: {
       suggestionId: string;
       status?: TrainerWorkshopSuggestionStatus;
@@ -93,6 +104,9 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('Error updating trainer workshop suggestion:', error);
+    if (error instanceof Error && error.message.includes('requires a linked live class')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json({ error: 'Failed to update suggested workshop' }, { status: 500 });
   }
 }

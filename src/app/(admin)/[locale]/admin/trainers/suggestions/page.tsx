@@ -32,6 +32,7 @@ type SuggestionDraft = {
 };
 
 const STATUS_OPTIONS: SuggestionStatus[] = ['PENDING_REVIEW', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED'];
+const REVIEW_STATUS_OPTIONS: SuggestionStatus[] = ['PENDING_REVIEW', 'IN_REVIEW', 'APPROVED', 'REJECTED'];
 
 function toLocalDate(value: string, locale: string): string {
   const date = new Date(value);
@@ -364,7 +365,7 @@ export default function AdminTrainerSuggestionsPage() {
                         }
                         className="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
                       >
-                        {STATUS_OPTIONS.map((statusValue) => (
+                        {REVIEW_STATUS_OPTIONS.map((statusValue) => (
                           <option key={statusValue} value={statusValue}>
                             {t.statusLabels[statusValue]}
                           </option>

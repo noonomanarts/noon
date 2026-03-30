@@ -83,7 +83,7 @@ function workshopToDraft(workshop: TrainerDashboardWorkshopPublic): SubmissionDr
   };
 }
 
-function getSuggestionStatusMeta(status: SuggestionStatus, isArabic: boolean) {
+function getSuggestionStatusMeta(status: SuggestionStatus, isArabic: boolean, hasLiveClassId: boolean) {
   const selectLabels = (english: string, arabic: string) => ({
     label: isArabic ? arabic : english,
     secondaryLabel: isArabic ? english : arabic,
@@ -118,10 +118,18 @@ function getSuggestionStatusMeta(status: SuggestionStatus, isArabic: boolean) {
     };
   }
 
+  if (hasLiveClassId) {
+    return {
+      ...selectLabels('Published As Workshop', 'تم النشر كورشة'),
+      className: 'border-purple-200 bg-purple-50 text-purple-800 dark:border-purple-800/60 dark:bg-purple-900/25 dark:text-purple-300',
+      dotClassName: 'bg-purple-500',
+    };
+  }
+
   return {
-    ...selectLabels('Published As Workshop', 'تم النشر كورشة'),
-    className: 'border-purple-200 bg-purple-50 text-purple-800 dark:border-purple-800/60 dark:bg-purple-900/25 dark:text-purple-300',
-    dotClassName: 'bg-purple-500',
+    ...selectLabels('Status Updated', 'تم تحديث الحالة'),
+    className: 'border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-800/60 dark:bg-indigo-900/25 dark:text-indigo-300',
+    dotClassName: 'bg-indigo-500',
   };
 }
 
@@ -1063,7 +1071,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                     {locale === 'ar' && item.titleAr ? item.titleAr : item.title}
                   </p>
                   {(() => {
-                    const statusMeta = getSuggestionStatusMeta(item.status, isArabic);
+                    const statusMeta = getSuggestionStatusMeta(item.status, isArabic, Boolean(item.liveClassId));
                     return (
                       <span
                         className={`inline-flex flex-col items-start rounded-xl border px-2.5 py-1.5 ${statusMeta.className}`}

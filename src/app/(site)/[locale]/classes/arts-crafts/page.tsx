@@ -10,6 +10,12 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
 import ClassListingHeader from "@/components/site/ClassListingHeader";
 
+function formatDurationHours(minutes: number | null | undefined): string {
+  if (typeof minutes !== "number" || !Number.isFinite(minutes)) return "0";
+  const hours = minutes / 60;
+  return Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, "");
+}
+
 export default async function ArtsCraftsClassesPage({
   params,
 }: {
@@ -46,7 +52,7 @@ export default async function ArtsCraftsClassesPage({
       ? "لا توجد دروس فنون وحرف منشورة حالياً."
       : "No published arts & crafts classes right now.",
     duration: isArabic ? "المدة" : "Duration",
-    minutes: isArabic ? "دقيقة" : "min",
+    hours: isArabic ? "ساعة" : "hours",
     noUpcomingSessions: isArabic ? "لا توجد مواعيد قادمة حالياً." : "No upcoming sessions yet.",
     backToClasses: isArabic ? "العودة إلى الدورات" : "Back to classes",
   };
@@ -128,7 +134,7 @@ export default async function ArtsCraftsClassesPage({
                     {cls.durationMinutes ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--muted)] px-2.5 py-1">
                         <FiClock className="size-3.5" />
-                        {t.duration}: {cls.durationMinutes} {t.minutes}
+                        {t.duration}: {formatDurationHours(cls.durationMinutes)} {t.hours}
                       </span>
                     ) : null}
                     <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--muted)] px-2.5 py-1">

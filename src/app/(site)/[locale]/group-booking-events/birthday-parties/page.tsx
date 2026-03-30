@@ -94,26 +94,26 @@ export default async function BirthdayPartiesPage({
         <div className="grid gap-5 lg:grid-cols-2">
           <article className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-[color:var(--text)]">{t.includesTitle}</h2>
-            <div className="mt-4 space-y-2.5">
+            <ul className="mt-4 space-y-2.5">
               {includes.map((item) => (
-                <p key={item} className="inline-flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
+                <li key={item} className="flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
                   <FiCheckCircle className="mt-0.5 size-4 shrink-0 text-teal" />
                   {item}
-                </p>
+                </li>
               ))}
-            </div>
+            </ul>
           </article>
 
           <article className="rounded-2xl border border-coral/40 bg-[color:var(--surface)] p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-[color:var(--text)]">{t.excludesTitle}</h2>
-            <div className="mt-4 space-y-2.5">
+            <ul className="mt-4 space-y-2.5">
               {excludes.map((item) => (
-                <p key={item} className="inline-flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
+                <li key={item} className="flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
                   <MdCake className="mt-0.5 size-4 shrink-0 text-coral" />
                   {item}
-                </p>
+                </li>
               ))}
-            </div>
+            </ul>
             <p className="mt-5 rounded-xl bg-[color:var(--muted)] px-3 py-2 text-xs text-[color:var(--text-subtle)]">
               {isArabic
                 ? "يمكن إحضار الزينة والهدايا والكعكة بشكل مستقل."

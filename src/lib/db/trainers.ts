@@ -981,10 +981,32 @@ export async function updateTrainerWorkshopSuggestionByAdmin(args: {
   const updates: string[] = [];
   const values: unknown[] = [args.suggestionId];
   let paramIndex = 2;
+  const normalizedStatus = hasOwnField(args, "status")
+    ? sanitizeTrainerWorkshopSuggestionStatus(args.status)
+    : undefined;
+  const normalizedLiveClassId = hasOwnField(args, "liveClassId")
+    ? sanitizeText(args.liveClassId, 120)
+    : undefined;
+
+  if (normalizedStatus === "PUBLISHED" && !normalizedLiveClassId) {
+    const existing = await query(
+      `SELECT live_class_id
+       FROM trainer_workshop_suggestions
+       WHERE id = $1
+       LIMIT 1`,
+      [args.suggestionId]
+    );
+    const existingLiveClassId = existing.rows[0]?.live_class_id
+      ? String(existing.rows[0].live_class_id)
+      : null;
+    if (!existingLiveClassId) {
+      throw new Error("Published status requires a linked live class.");
+    }
+  }
 
   if (hasOwnField(args, "status")) {
     updates.push(`status = $${paramIndex++}`);
-    values.push(sanitizeTrainerWorkshopSuggestionStatus(args.status));
+    values.push(normalizedStatus);
   }
 
   if (hasOwnField(args, "adminNotes")) {
@@ -994,7 +1016,7 @@ export async function updateTrainerWorkshopSuggestionByAdmin(args: {
 
   if (hasOwnField(args, "liveClassId")) {
     updates.push(`live_class_id = $${paramIndex++}`);
-    values.push(sanitizeText(args.liveClassId, 120));
+    values.push(normalizedLiveClassId);
   }
 
   if (updates.length === 0) {
