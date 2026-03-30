@@ -9,6 +9,7 @@ import {
 } from '@/lib/db/users';
 import type { UserRole } from '@/lib/db/types';
 import { validateWhatsAppVerificationCode, type WhatsAppVerificationPurpose } from '@/lib/db/whatsappAuth';
+import { isEnglishPassword } from '@/lib/passwordPolicy';
 
 type RegisterData = {
   firstName?: string;
@@ -135,6 +136,17 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error: locale === 'ar' ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.' : 'Password must be at least 8 characters.',
+          },
+          { status: 400 }
+        );
+      }
+      if (!isEnglishPassword(password)) {
+        return NextResponse.json(
+          {
+            error:
+              locale === 'ar'
+                ? 'كلمة المرور يجب أن تحتوي على أحرف إنجليزية فقط (A-Z, a-z, 0-9 والرموز الإنجليزية).'
+                : 'Password must contain English characters only (A-Z, a-z, 0-9, and English symbols).',
           },
           { status: 400 }
         );

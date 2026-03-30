@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import PasswordInput from '@/components/site/PasswordInput';
+import { isEnglishPassword } from '@/lib/passwordPolicy';
 
 type Locale = 'en' | 'ar';
 
@@ -89,6 +91,12 @@ export default function WhatsAppAuthCard({
       needCodeFirst: isArabic ? 'اطلب رمز التحقق أولاً.' : 'Please request a verification code first.',
       passMismatch: isArabic ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.',
       passWeak: isArabic ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.' : 'Password must be at least 8 characters.',
+      passEnglishOnly: isArabic
+        ? 'كلمة المرور يجب أن تحتوي على أحرف إنجليزية فقط (A-Z, a-z, 0-9 والرموز الإنجليزية).'
+        : 'Password must contain English characters only (A-Z, a-z, 0-9, and English symbols).',
+      passRuleHint: isArabic
+        ? 'استخدم لوحة مفاتيح إنجليزية فقط. لن يتم قبول أحرف عربية في كلمة المرور.'
+        : 'Use English keyboard only. Arabic characters are not accepted in password.',
       missingRegisterFields: isArabic ? 'يرجى إكمال بيانات التسجيل المطلوبة.' : 'Please complete required registration fields.',
       invalidEmail: isArabic ? 'البريد الإلكتروني غير صحيح.' : 'Invalid email address.',
       termsRequired: isArabic ? 'يجب الموافقة على الشروط والأحكام لإكمال التسجيل.' : 'You must accept the Terms & Conditions to register.',
@@ -116,6 +124,10 @@ export default function WhatsAppAuthCard({
       }
       if (password.length < 8) {
         setError(t.passWeak);
+        return;
+      }
+      if (!isEnglishPassword(password)) {
+        setError(t.passEnglishOnly);
         return;
       }
       if (password !== confirmPassword) {
@@ -294,22 +306,27 @@ export default function WhatsAppAuthCard({
                 <option value="ar">{t.arabic}</option>
               </select>
 
-              <input
-                type="password"
+              <PasswordInput
+                locale={locale}
                 value={registerForm.password}
-                onChange={(event) => setRegisterForm((prev) => ({ ...prev, password: event.target.value }))}
+                onValueChange={(value) => setRegisterForm((prev) => ({ ...prev, password: value }))}
                 placeholder={t.password}
-                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                autoComplete="new-password"
+                restrictEnglish
+                inputClassName="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
 
-              <input
-                type="password"
+              <PasswordInput
+                locale={locale}
                 value={registerForm.confirmPassword}
-                onChange={(event) => setRegisterForm((prev) => ({ ...prev, confirmPassword: event.target.value }))}
+                onValueChange={(value) => setRegisterForm((prev) => ({ ...prev, confirmPassword: value }))}
                 placeholder={t.confirmPassword}
-                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                autoComplete="new-password"
+                restrictEnglish
+                inputClassName="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
             </div>
+            <p className="text-xs text-[color:var(--text-subtle)] dark:text-zinc-400">{t.passRuleHint}</p>
 
             <label className="flex items-start gap-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 px-4 py-3 text-sm text-[color:var(--text)] dark:border-zinc-800 dark:bg-zinc-950/60 dark:text-zinc-200">
               <input

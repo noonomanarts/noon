@@ -5,7 +5,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
-  *:not(.admin-panel *),
+  *:not(.admin-panel *):not(input):not(select):not(textarea):not(button),
   *:not(.admin-panel *)::before,
   *:not(.admin-panel *)::after {
     border-width: 0 !important;
@@ -366,7 +366,10 @@ body {
   /* ──── Site-wide professional form inputs ──── */
   .route-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
   .route-sharp select,
-  .route-sharp textarea {
+  .route-sharp textarea,
+  .home-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .home-sharp select,
+  .home-sharp textarea {
     border-width: 1px !important;
     border-style: solid !important;
     border-color: var(--input-border) !important;
@@ -380,19 +383,26 @@ body {
 
   .route-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
   .route-sharp select:hover,
-  .route-sharp textarea:hover {
+  .route-sharp textarea:hover,
+  .home-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):hover,
+  .home-sharp select:hover,
+  .home-sharp textarea:hover {
     border-color: #8a8279 !important;
   }
 
   .route-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
   .route-sharp select:focus,
-  .route-sharp textarea:focus {
+  .route-sharp textarea:focus,
+  .home-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+  .home-sharp select:focus,
+  .home-sharp textarea:focus {
     border-color: var(--primary) !important;
     outline: none !important;
     box-shadow: 0 0 0 3px var(--focus) !important;
   }
 
-  .route-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):read-only {
+  .route-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):read-only,
+  .home-sharp input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):read-only {
     background-color: var(--muted) !important;
     border-color: var(--border) !important;
     cursor: not-allowed;

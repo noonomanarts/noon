@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useMemo, useRef, useState } from 'react';
 import { FiLock, FiSave, FiShield, FiUser } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
+import PasswordInput from '@/components/site/PasswordInput';
 
 type AccountSettingsUser = {
   id: string;
@@ -382,31 +383,34 @@ export default function AccountSettingsPageClient({
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="space-y-1 text-sm sm:col-span-2">
               <span className="text-[color:var(--text-muted)]">{t.currentPassword}</span>
-              <input
-                type="password"
+              <PasswordInput
+                locale={locale}
                 value={form.currentPassword}
-                onChange={(event) => setForm((previous) => ({ ...previous, currentPassword: event.target.value }))}
-                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
+                onValueChange={(value) => setForm((previous) => ({ ...previous, currentPassword: value }))}
+                autoComplete="current-password"
+                inputClassName="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
               />
             </label>
 
             <label className="space-y-1 text-sm">
               <span className="text-[color:var(--text-muted)]">{t.newPassword}</span>
-              <input
-                type="password"
+              <PasswordInput
+                locale={locale}
                 value={form.newPassword}
-                onChange={(event) => setForm((previous) => ({ ...previous, newPassword: event.target.value }))}
-                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
+                onValueChange={(value) => setForm((previous) => ({ ...previous, newPassword: value }))}
+                autoComplete="new-password"
+                inputClassName="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
               />
             </label>
 
             <label className="space-y-1 text-sm">
               <span className="text-[color:var(--text-muted)]">{t.confirmPassword}</span>
-              <input
-                type="password"
+              <PasswordInput
+                locale={locale}
                 value={form.confirmPassword}
-                onChange={(event) => setForm((previous) => ({ ...previous, confirmPassword: event.target.value }))}
-                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
+                onValueChange={(value) => setForm((previous) => ({ ...previous, confirmPassword: value }))}
+                autoComplete="new-password"
+                inputClassName="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
               />
             </label>
 

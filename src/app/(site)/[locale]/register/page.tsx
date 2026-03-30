@@ -5,6 +5,8 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { registerUser } from "@/lib/authStore";
 import { cookies } from "next/headers";
 import WhatsAppAuthCard from "@/components/site/WhatsAppAuthCard";
+import PasswordInput from "@/components/site/PasswordInput";
+import { isEnglishPassword } from "@/lib/passwordPolicy";
 
 export default async function RegisterPage({
   params,
@@ -46,6 +48,10 @@ export default async function RegisterPage({
 
     if (password.length < 8) {
       redirect(`/${localeValue ?? "en"}/register?error=password_weak`);
+    }
+
+    if (!isEnglishPassword(password)) {
+      redirect(`/${localeValue ?? "en"}/register?error=password_english_only`);
     }
 
     if (!acceptedTerms) {
@@ -113,7 +119,10 @@ export default async function RegisterPage({
     arabic: locale === "ar" ? "العربية" : "Arabic",
     password: locale === "ar" ? "كلمة المرور" : "Password",
     confirmPassword: locale === "ar" ? "تأكيد كلمة المرور" : "Confirm Password",
-    passwordHint: locale === "ar" ? "يجب أن تكون 8 أحرف على الأقل" : "Must be at least 8 characters",
+    passwordHint:
+      locale === "ar"
+        ? "8 أحرف على الأقل. كلمة المرور يجب أن تكون بالإنجليزية فقط (A-Z, a-z, 0-9 والرموز الإنجليزية). عند تفعيل لوحة مفاتيح عربية لن يتم إدخال أحرف عربية."
+        : "Minimum 8 characters. Password must use English characters only (A-Z, a-z, 0-9, and English symbols). If Arabic keyboard is active, Arabic characters will not be entered.",
     acceptTermsPrefix: locale === "ar" ? "لقد قرأت" : "I have read and accept the",
     acceptTermsLink: locale === "ar" ? "الشروط والأحكام" : "Terms & Conditions",
     acceptTermsSuffix: locale === "ar" ? "وأوافق عليها" : "",
@@ -128,6 +137,10 @@ export default async function RegisterPage({
     missing_fields: locale === "ar" ? "يرجى ملء جميع الحقول المطلوبة" : "Please fill in all required fields",
     password_mismatch: locale === "ar" ? "كلمات المرور غير متطابقة" : "Passwords do not match",
     password_weak: locale === "ar" ? "كلمة المرور يجب أن تكون 8 أحرف على الأقل" : "Password must be at least 8 characters",
+    password_english_only:
+      locale === "ar"
+        ? "كلمة المرور يجب أن تحتوي على أحرف إنجليزية فقط (A-Z, a-z, 0-9 والرموز الإنجليزية)."
+        : "Password must contain English characters only (A-Z, a-z, 0-9, and English symbols).",
     invalid_email: locale === "ar" ? "البريد الإلكتروني غير صحيح" : "Invalid email address",
     invalid_phone: locale === "ar" ? "رقم الهاتف غير صحيح" : "Invalid phone number",
     email_exists: locale === "ar" ? "البريد الإلكتروني مسجل بالفعل" : "Email already registered",
@@ -299,12 +312,14 @@ export default async function RegisterPage({
                   {t.password}
                   <span className="text-red-500">*</span>
                 </span>
-                <input
-                  type="password"
+                <PasswordInput
+                  locale={locale}
                   name="password"
                   required
                   minLength={8}
-                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
+                  autoComplete="new-password"
+                  restrictEnglish
+                  inputClassName="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
                 />
                 <span className="text-xs text-[color:var(--text-subtle)] dark:text-zinc-400">{t.passwordHint}</span>
               </label>
@@ -314,12 +329,14 @@ export default async function RegisterPage({
                   {t.confirmPassword}
                   <span className="text-red-500">*</span>
                 </span>
-                <input
-                  type="password"
+                <PasswordInput
+                  locale={locale}
                   name="confirmPassword"
                   required
                   minLength={8}
-                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
+                  autoComplete="new-password"
+                  restrictEnglish
+                  inputClassName="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
                 />
               </label>
             </div>
