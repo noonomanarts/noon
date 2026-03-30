@@ -53,11 +53,18 @@ function sanitizeGifts(value: unknown): Array<{
   return sanitized;
 }
 
-function validateParticipantsByEvent(eventType: string, participants: number): boolean {
+function validateParticipantsByEvent(
+  eventType: string,
+  participants: number,
+  packageType?: 'STANDARD' | 'PREMIUM'
+): boolean {
   if (!Number.isInteger(participants)) return false;
-  if (eventType === 'COOKING_COMPETITION') return participants >= 8 && participants <= 40;
-  if (eventType === 'PRIVATE_CLASS') return participants >= 8 && participants <= 32;
-  if (eventType === 'BIRTHDAY_PARTY') return participants >= 1 && participants <= 16;
+  if (eventType === 'COOKING_COMPETITION') {
+    const minParticipants = packageType === 'PREMIUM' ? 6 : 8;
+    return participants >= minParticipants && participants <= 40;
+  }
+  if (eventType === 'PRIVATE_CLASS') return participants >= 6 && participants <= 32;
+  if (eventType === 'BIRTHDAY_PARTY') return participants >= 1 && participants <= 40;
   return false;
 }
 
@@ -168,18 +175,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
     }
 
-    if (!validateParticipantsByEvent(eventType, numberOfParticipants)) {
-      return NextResponse.json(
-        { error: 'Invalid number of participants for this event type' },
-        { status: 400 }
-      );
-    }
-
-    const user = await getUserById(userId);
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     const packageType =
       packageTypeRaw && PACKAGE_TYPES.has(packageTypeRaw)
         ? (packageTypeRaw as 'STANDARD' | 'PREMIUM')
@@ -194,6 +189,18 @@ export async function POST(request: NextRequest) {
 
     if (eventType !== 'COOKING_COMPETITION' && packageTypeRaw && !packageType) {
       return NextResponse.json({ error: 'Invalid package type' }, { status: 400 });
+    }
+
+    if (!validateParticipantsByEvent(eventType, numberOfParticipants, packageType)) {
+      return NextResponse.json(
+        { error: 'Invalid number of participants for this event type' },
+        { status: 400 }
+      );
+    }
+
+    const user = await getUserById(userId);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     if (!isValidEmail(email)) {

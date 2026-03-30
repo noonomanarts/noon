@@ -11,6 +11,8 @@ import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { isLocale, type Locale } from "@/lib/locale";
 
+const DISPLAY_TIMEZONE = "Asia/Muscat";
+
 function formatDurationHours(minutes: number | null | undefined): string {
   const safeMinutes = typeof minutes === "number" && Number.isFinite(minutes) ? minutes : 0;
   const hours = safeMinutes / 60;
@@ -119,12 +121,14 @@ export default async function ClassDetailPage({
       year: "numeric",
       month: "long",
       day: "numeric",
+      timeZone: DISPLAY_TIMEZONE,
     });
 
   const formatTime = (date: Date | string) =>
     new Date(date).toLocaleTimeString(isArabic ? "ar-OM" : "en-OM", {
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: DISPLAY_TIMEZONE,
     });
 
   return (
@@ -166,7 +170,7 @@ export default async function ClassDetailPage({
                   <p className="mt-1 text-sm font-semibold sm:text-base">
                     {formatDate(nextSession.startTime)}
                   </p>
-                  <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-white/90 sm:text-sm">
+                  <p className="mt-1 inline-flex items-center gap-1.5 text-base font-semibold text-white sm:text-xl">
                     <MdAccessTime className="h-4 w-4" />
                     {formatTime(nextSession.startTime)}
                   </p>
@@ -293,12 +297,12 @@ export default async function ClassDetailPage({
                       <MdCalendarMonth className={`h-4 w-4 ${isCooking ? "text-coral" : "text-purple"}`} />
                       {formatDate(session.startTime)}
                     </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[color:var(--text-muted)] sm:text-sm">
-                      <span className="inline-flex items-center gap-1">
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[color:var(--text-muted)]">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
                         <MdAccessTime className="h-4 w-4" />
                         {formatTime(session.startTime)}
                       </span>
-                      <span className="inline-flex items-center gap-1">
+                      <span className="inline-flex items-center gap-1 text-xs sm:text-sm">
                         <MdPerson className="h-4 w-4" />
                         {session.seatsAvailable} {t.seatsAvailable}
                       </span>

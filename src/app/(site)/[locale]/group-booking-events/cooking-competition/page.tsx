@@ -79,7 +79,7 @@ export default async function CookingCompetitionPage({
     {
       key: "standard" as const,
       title: isArabic ? "الباقة القياسية" : "Standard Competition",
-      participants: isArabic ? "8-40 مشارك" : "8-40 participants",
+      participants: isArabic ? "6-40 مشارك" : "6-40 participants",
       priceSummary: isArabic ? "ابتداءً من 16 ر.ع / شخص" : "From 16 OMR / person",
       details: [
         {
@@ -127,8 +127,8 @@ export default async function CookingCompetitionPage({
     {
       key: "premium" as const,
       title: isArabic ? "الباقة المميزة" : "Premium Competition",
-      participants: isArabic ? "8-40 مشارك" : "8-40 participants",
-      priceSummary: isArabic ? "السعر حسب الطلب" : "Price on request",
+      participants: isArabic ? "6-40 مشارك" : "6-40 participants",
+      priceSummary: isArabic ? "ابتداءً من 24 ر.ع / شخص" : "From 24 OMR / person",
       details: [
         {
           label: isArabic ? "مثالية لـ" : "Ideal for",
@@ -153,7 +153,24 @@ export default async function CookingCompetitionPage({
         isArabic ? "تقديم الحلوى والمشروبات بعد المسابقة" : "Dessert & drinks served after the competition",
         isArabic ? "اختياري: هدايا إضافية للفريق الفائز" : "Optional: additional gifts for the winning team",
       ],
-      priceTiers: [],
+      priceTiers: [
+        {
+          range: isArabic ? "6-10 مشاركين" : "6-10 participants",
+          price: isArabic ? "33 ر.ع / شخص" : "33 OMR / person",
+        },
+        {
+          range: isArabic ? "11-20 مشارك" : "11-20 participants",
+          price: isArabic ? "30 ر.ع / شخص" : "30 OMR / person",
+        },
+        {
+          range: isArabic ? "21-30 مشارك" : "21-30 participants",
+          price: isArabic ? "27 ر.ع / شخص" : "27 OMR / person",
+        },
+        {
+          range: isArabic ? "31-40 مشارك" : "31-40 participants",
+          price: isArabic ? "24 ر.ع / شخص" : "24 OMR / person",
+        },
+      ],
       bookingHref: `/${locale}/group-booking-events/cooking-competition/book?package=premium`,
     },
   ];
@@ -231,34 +248,7 @@ export default async function CookingCompetitionPage({
                   {isStandardPackage ? (
                     <CookingCompetitionPriceCalculator locale={locale} variant="compactStandard" />
                   ) : (
-                    <>
-                      <div className="mt-5 grid grid-cols-2 gap-3">
-                        <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
-                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
-                            {isArabic ? "المشاركون" : "Participants"}
-                          </p>
-                          <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.participants}</p>
-                        </div>
-                        <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
-                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
-                            {isArabic ? "السعر" : "Price"}
-                          </p>
-                          <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.priceSummary}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-5 flex justify-center">
-                        <Link
-                          href={pkg.bookingHref}
-                          className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition ${
-                            isStandardPackage ? "bg-teal hover:bg-teal/90" : "bg-coral hover:bg-coral/90"
-                          }`}
-                        >
-                          {isArabic ? "اختر الباقة" : "Choose Package"}
-                          <FiArrowRight className="size-4" />
-                        </Link>
-                      </div>
-                    </>
+                    <CookingCompetitionPriceCalculator locale={locale} variant="compactPremium" />
                   )}
                 </div>
 

@@ -7,6 +7,8 @@ import type { Locale } from '@/lib/locale';
 import ClassSessionPicker from '@/components/site/ClassSessionPicker';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
+const DISPLAY_TIMEZONE = 'Asia/Muscat';
+
 type SessionItem = {
   id: string;
   startTime: string;
@@ -170,6 +172,7 @@ export default function ClassBookingClient({
         day: 'numeric',
         hour: 'numeric',
         minute: '2-digit',
+        timeZone: DISPLAY_TIMEZONE,
       })
     : null;
 

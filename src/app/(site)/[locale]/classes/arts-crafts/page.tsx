@@ -10,6 +10,8 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
 import ClassListingHeader from "@/components/site/ClassListingHeader";
 
+const DISPLAY_TIMEZONE = "Asia/Muscat";
+
 function formatDurationHours(minutes: number | null | undefined): string {
   if (typeof minutes !== "number" || !Number.isFinite(minutes)) return "0";
   const hours = minutes / 60;
@@ -65,6 +67,7 @@ export default async function ArtsCraftsClassesPage({
     return d.toLocaleDateString(isArabic ? "ar-OM" : "en-OM", {
       month: "short",
       day: "numeric",
+      timeZone: DISPLAY_TIMEZONE,
     });
   };
 
@@ -73,6 +76,7 @@ export default async function ArtsCraftsClassesPage({
     return d.toLocaleTimeString(isArabic ? "ar-OM" : "en-OM", {
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: DISPLAY_TIMEZONE,
     });
   };
 

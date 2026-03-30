@@ -12,7 +12,10 @@ import BookingFormError from '@/components/site/BookingFormError';
 import PublicEventAvailabilityPicker from '@/components/site/PublicEventAvailabilityPicker';
 import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
 import {
+  PREMIUM_COMPETITION_PRICE_TIERS,
   STANDARD_COMPETITION_PRICE_TIERS,
+  getPremiumCompetitionPricePerPerson,
+  getPremiumCompetitionTotal,
   getStandardCompetitionPricePerPerson,
   getStandardCompetitionTotal,
 } from '@/lib/competitionPricing';
@@ -66,8 +69,9 @@ const giftOptions = [
   },
 ];
 
-function isValidCompetitionParticipants(value: number): boolean {
-  return Number.isInteger(value) && value >= 8 && value <= 40;
+function isValidCompetitionParticipants(value: number, packageType: 'STANDARD' | 'PREMIUM' = 'STANDARD'): boolean {
+  const minParticipants = packageType === 'PREMIUM' ? 6 : 8;
+  return Number.isInteger(value) && value >= minParticipants && value <= 40;
 }
 
 export default function CookingCompetitionBookingPage() {
@@ -91,7 +95,7 @@ export default function CookingCompetitionBookingPage() {
         : packageFromUrl === 'premium'
         ? 'PREMIUM'
         : null;
-    const normalizedParticipants = isValidCompetitionParticipants(participantsFromUrl)
+    const normalizedParticipants = isValidCompetitionParticipants(participantsFromUrl, normalizedPackage ?? 'STANDARD')
       ? participantsFromUrl
       : null;
 
@@ -168,8 +172,7 @@ export default function CookingCompetitionBookingPage() {
     baseAmount: locale === 'ar' ? 'المبلغ الأساسي' : 'Base Amount',
     giftsAmount: locale === 'ar' ? 'قيمة الهدايا' : 'Gifts Amount',
     estimatedTotal: locale === 'ar' ? 'الإجمالي التقديري' : 'Estimated Total',
-    premiumOnRequest: locale === 'ar' ? 'سعر المميزة حسب الطلب' : 'Premium pricing on request',
-    priceTableTitle: locale === 'ar' ? 'جدول التسعير القياسي' : 'Standard Pricing Table',
+    priceTableTitle: locale === 'ar' ? 'جدول التسعير حسب الباقة' : 'Package Pricing Table',
     range: locale === 'ar' ? 'العدد' : 'Range',
     pricePerPerson: locale === 'ar' ? 'السعر/فرد' : 'Price/person',
     participantsCarryHint: locale === 'ar'
@@ -199,7 +202,8 @@ export default function CookingCompetitionBookingPage() {
     dateRequired: locale === 'ar' ? 'يرجى اختيار التاريخ.' : 'Please select a date.',
     timeRequired: locale === 'ar' ? 'يرجى اختيار الوقت.' : 'Please select a time.',
     packageRequired: locale === 'ar' ? 'يرجى اختيار الباقة.' : 'Please choose a package.',
-    participantsRange: locale === 'ar' ? 'عدد المشاركين يجب أن يكون بين 8 و 40.' : 'Participants must be between 8 and 40.',
+    participantsRangeStandard: locale === 'ar' ? 'عدد المشاركين يجب أن يكون بين 8 و 40.' : 'Participants must be between 8 and 40.',
+    participantsRangePremium: locale === 'ar' ? 'عدد المشاركين يجب أن يكون بين 6 و 40.' : 'Participants must be between 6 and 40.',
     fullNameRequired: locale === 'ar' ? 'يرجى إدخال الاسم الكامل.' : 'Please enter full name.',
     emailRequired: locale === 'ar' ? 'يرجى إدخال البريد الإلكتروني.' : 'Please enter email.',
     phoneRequired: locale === 'ar' ? 'يرجى إدخال رقم الهاتف.' : 'Please enter phone number.',
@@ -215,15 +219,25 @@ export default function CookingCompetitionBookingPage() {
   };
 
   const participantsCount = Number(bookingData.numberOfParticipants);
-  const hasValidParticipants = isValidCompetitionParticipants(participantsCount);
+  const hasValidParticipants = isValidCompetitionParticipants(participantsCount, bookingData.packageType ?? 'STANDARD');
   const packageFromEntry = searchParams.get('package')?.toLowerCase();
   const packageSelectedFromEntry = packageFromEntry === 'standard' || packageFromEntry === 'premium';
-  const standardRate = hasValidParticipants ? getStandardCompetitionPricePerPerson(participantsCount) : null;
-  const standardBaseAmount = hasValidParticipants ? getStandardCompetitionTotal(participantsCount) : null;
+  const packageRate =
+    hasValidParticipants && bookingData.packageType === 'PREMIUM'
+      ? getPremiumCompetitionPricePerPerson(participantsCount)
+      : hasValidParticipants
+      ? getStandardCompetitionPricePerPerson(participantsCount)
+      : null;
+  const packageBaseAmount =
+    hasValidParticipants && bookingData.packageType === 'PREMIUM'
+      ? getPremiumCompetitionTotal(participantsCount)
+      : hasValidParticipants
+      ? getStandardCompetitionTotal(participantsCount)
+      : null;
   const giftsAmount = (bookingData.gifts || []).reduce((sum, gift) => sum + gift.price, 0);
   const estimatedTotalAmount =
-    bookingData.packageType === 'STANDARD' && standardBaseAmount !== null
-      ? standardBaseAmount + giftsAmount
+    bookingData.packageType && packageBaseAmount !== null
+      ? packageBaseAmount + giftsAmount
       : null;
   const selectedPackageLabel =
     bookingData.packageType === 'STANDARD'
@@ -246,6 +260,9 @@ export default function CookingCompetitionBookingPage() {
       : locale === 'ar'
       ? 'بناء الفريق، الأصدقاء، والتجارب الجماعية'
       : 'Team building, friends, and casual group experiences';
+  const participantsRangeMessage =
+    bookingData.packageType === 'PREMIUM' ? t.participantsRangePremium : t.participantsRangeStandard;
+  const participantsMin = bookingData.packageType === 'PREMIUM' ? 6 : 8;
 
   const validateStep = (stepToValidate: 1 | 2 | 3): boolean => {
     if (stepToValidate === 1) {
@@ -270,8 +287,8 @@ export default function CookingCompetitionBookingPage() {
         return false;
       }
       const participants = Number(bookingData.numberOfParticipants);
-      if (!isValidCompetitionParticipants(participants)) {
-        setError(t.participantsRange);
+      if (!isValidCompetitionParticipants(participants, bookingData.packageType ?? 'STANDARD')) {
+        setError(participantsRangeMessage);
         return false;
       }
       return true;
@@ -299,8 +316,8 @@ export default function CookingCompetitionBookingPage() {
     }
 
     const participants = Number(bookingData.numberOfParticipants);
-    if (!isValidCompetitionParticipants(participants)) {
-      setError(t.participantsRange);
+    if (!isValidCompetitionParticipants(participants, bookingData.packageType ?? 'STANDARD')) {
+      setError(participantsRangeMessage);
       return false;
     }
 
@@ -509,7 +526,7 @@ export default function CookingCompetitionBookingPage() {
 
               <div className="grid gap-3 p-5 md:grid-cols-2">
                 {[
-                  { Icon: MdGroup, label: t.participants, value: '8-40' },
+                  { Icon: MdGroup, label: t.participants, value: bookingData.packageType === 'PREMIUM' ? '6-40' : '8-40' },
                   { Icon: MdSchedule, label: t.duration, value: `3 ${t.hours}` },
                   { Icon: GiCookingPot, label: t.dishes, value: selectedPackageDishes },
                   { Icon: BiSolidGift, label: t.gifts, value: selectedPackageGifts },
@@ -613,7 +630,7 @@ export default function CookingCompetitionBookingPage() {
                   </label>
                   <input
                     type="number"
-                    min="8"
+                    min={participantsMin}
                     max="40"
                     className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 font-medium transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-coral dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                     value={bookingData.numberOfParticipants || ''}
@@ -625,28 +642,20 @@ export default function CookingCompetitionBookingPage() {
                     }
                     required
                   />
-                  <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{t.participantsRange}</p>
+                  <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{participantsRangeMessage}</p>
                 </div>
 
                 <div className="space-y-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/40 p-4 dark:border-zinc-700">
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-semibold text-[color:var(--text)]">{t.perPersonRate}</span>
                     <span className="font-semibold text-[color:var(--text-muted)]">
-                      {bookingData.packageType === 'STANDARD'
-                        ? standardRate !== null
-                          ? `${standardRate} OMR`
-                          : '--'
-                        : t.premiumOnRequest}
+                      {packageRate !== null ? `${packageRate} OMR` : '--'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-semibold text-[color:var(--text)]">{t.baseAmount}</span>
                     <span className="font-semibold text-[color:var(--text-muted)]">
-                      {bookingData.packageType === 'STANDARD'
-                        ? standardBaseAmount !== null
-                          ? `${standardBaseAmount} OMR`
-                          : '--'
-                        : t.premiumOnRequest}
+                      {packageBaseAmount !== null ? `${packageBaseAmount} OMR` : '--'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-3 text-sm">
@@ -656,11 +665,7 @@ export default function CookingCompetitionBookingPage() {
                   <div className="flex items-center justify-between gap-3 rounded-lg bg-[color:var(--surface)] px-3 py-2 text-sm dark:bg-zinc-800">
                     <span className="font-semibold text-[color:var(--text)]">{t.estimatedTotal}</span>
                     <span className="font-bold text-coral">
-                      {bookingData.packageType === 'STANDARD'
-                        ? estimatedTotalAmount !== null
-                          ? `${estimatedTotalAmount} OMR`
-                          : '--'
-                        : t.premiumOnRequest}
+                      {estimatedTotalAmount !== null ? `${estimatedTotalAmount} OMR` : '--'}
                     </span>
                   </div>
                 </div>
@@ -675,10 +680,12 @@ export default function CookingCompetitionBookingPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {STANDARD_COMPETITION_PRICE_TIERS.map((tier) => {
+                    {(bookingData.packageType === 'PREMIUM'
+                      ? PREMIUM_COMPETITION_PRICE_TIERS
+                      : STANDARD_COMPETITION_PRICE_TIERS).map((tier) => {
                       const isActive =
                         hasValidParticipants &&
-                        tier.pricePerPerson === standardRate &&
+                        tier.pricePerPerson === packageRate &&
                         participantsCount >= tier.minParticipants &&
                         participantsCount <= tier.maxParticipants;
                       return (
@@ -824,13 +831,7 @@ export default function CookingCompetitionBookingPage() {
                 <div className="flex items-center gap-2">
                   <MdCalculate className="h-4 w-4 text-teal" />
                   <strong>{t.summaryEstimate}:</strong>{' '}
-                  {bookingData.packageType === 'STANDARD'
-                    ? estimatedTotalAmount !== null
-                      ? `${estimatedTotalAmount} OMR`
-                      : '--'
-                    : bookingData.packageType === 'PREMIUM'
-                    ? t.premiumOnRequest
-                    : '--'}
+                  {estimatedTotalAmount !== null ? `${estimatedTotalAmount} OMR` : '--'}
                 </div>
                 {bookingData.gifts && bookingData.gifts.length > 0 && (
                   <div>
@@ -889,7 +890,7 @@ export default function CookingCompetitionBookingPage() {
                   (currentStep === 1 &&
                     (!bookingData.selectedDate || !bookingData.selectedTime)) ||
                   (currentStep === 2 &&
-                    (!bookingData.packageType || !isValidCompetitionParticipants(Number(bookingData.numberOfParticipants))))
+                    (!bookingData.packageType || !isValidCompetitionParticipants(Number(bookingData.numberOfParticipants), bookingData.packageType)))
                 }
                 className="flex items-center gap-2 rounded-xl px-8 py-3 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:hover:scale-100"
                 style={{ background: 'var(--noon-coral-gradient)' }}

@@ -11,6 +11,8 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
 import ClassListingHeader from "@/components/site/ClassListingHeader";
 
+const DISPLAY_TIMEZONE = "Asia/Muscat";
+
 type ClassWithSessions = {
   id: string;
   slug: string;
@@ -191,6 +193,7 @@ export default async function CookingClassesPage({
     return d.toLocaleDateString(isArabic ? "ar-OM" : "en-OM", {
       month: "short",
       day: "numeric",
+      timeZone: DISPLAY_TIMEZONE,
     });
   };
 
@@ -199,6 +202,7 @@ export default async function CookingClassesPage({
     return d.toLocaleTimeString(isArabic ? "ar-OM" : "en-OM", {
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: DISPLAY_TIMEZONE,
     });
   };
 

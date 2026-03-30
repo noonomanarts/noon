@@ -6,6 +6,10 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import BookingFormError from '@/components/site/BookingFormError';
 import PublicEventAvailabilityPicker from '@/components/site/PublicEventAvailabilityPicker';
 import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
+import {
+  getPrivateCookingClassPricePerPerson,
+  getPrivateCookingClassTotal,
+} from '@/lib/competitionPricing';
 
 type ClassType = 'cooking' | 'arts-crafts';
 
@@ -17,6 +21,11 @@ export default function PrivateClassBookingPage() {
   
   const rawClassType = searchParams.get('type');
   const classType: ClassType = rawClassType === 'arts-crafts' ? 'arts-crafts' : 'cooking';
+  const participantsFromUrl = Number.parseInt(searchParams.get('participants') ?? '', 10);
+  const initialParticipants =
+    Number.isInteger(participantsFromUrl) && participantsFromUrl >= 6 && participantsFromUrl <= 32
+      ? participantsFromUrl
+      : 8;
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -26,7 +35,7 @@ export default function PrivateClassBookingPage() {
     classType,
     selectedDate: '',
     selectedTime: '',
-    numberOfParticipants: 8,
+    numberOfParticipants: initialParticipants,
     preferredDish: '',
     fullName: '',
     email: '',
@@ -71,7 +80,7 @@ export default function PrivateClassBookingPage() {
     selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
     dateRequired: locale === 'ar' ? 'يرجى اختيار التاريخ.' : 'Please select a date.',
     timeRequired: locale === 'ar' ? 'يرجى اختيار الوقت.' : 'Please select a time.',
-    participantsRange: locale === 'ar' ? 'عدد المشاركين يجب أن يكون بين 8 و 32.' : 'Participants must be between 8 and 32.',
+    participantsRange: locale === 'ar' ? 'عدد المشاركين يجب أن يكون بين 6 و 32.' : 'Participants must be between 6 and 32.',
     fullNameRequired: locale === 'ar' ? 'يرجى إدخال الاسم الكامل.' : 'Please enter full name.',
     emailRequired: locale === 'ar' ? 'يرجى إدخال البريد الإلكتروني.' : 'Please enter email.',
     phoneRequired: locale === 'ar' ? 'يرجى إدخال رقم الهاتف.' : 'Please enter phone number.',
@@ -89,8 +98,19 @@ export default function PrivateClassBookingPage() {
     summaryPreferredDish: locale === 'ar' ? 'الطبق المفضل' : 'Preferred Dish',
     summaryName: locale === 'ar' ? 'الاسم' : 'Name',
     summaryPhone: locale === 'ar' ? 'رقم الهاتف' : 'Phone',
+    estimatedPrice: locale === 'ar' ? 'السعر التقديري' : 'Estimated Price',
+    pricePerPerson: locale === 'ar' ? 'السعر/فرد' : 'Price/person',
+    privateCookingPricingHint: locale === 'ar'
+      ? 'تسعير الطبخ الخاص: 6-10 = 26، 11-18 = 22، 19-25 = 19، 26-32 = 17 ر.ع/فرد.'
+      : 'Private cooking pricing: 6-10 = 26, 11-18 = 22, 19-25 = 19, 26-32 = 17 OMR/person.',
     loading: locale === 'ar' ? 'جاري الإرسال...' : 'Submitting...',
   };
+
+  const participantsCount = Number(formData.numberOfParticipants);
+  const privateCookingRate =
+    classType === 'cooking' ? getPrivateCookingClassPricePerPerson(participantsCount) : null;
+  const privateCookingTotal =
+    classType === 'cooking' ? getPrivateCookingClassTotal(participantsCount) : null;
 
   const validateStep = (stepToValidate: 1 | 2 | 3): boolean => {
     if (stepToValidate === 1) {
@@ -108,7 +128,7 @@ export default function PrivateClassBookingPage() {
       }
 
       const participants = Number(formData.numberOfParticipants);
-      if (!Number.isInteger(participants) || participants < 8 || participants > 32) {
+      if (!Number.isInteger(participants) || participants < 6 || participants > 32) {
         setError(t.participantsRange);
         return false;
       }
@@ -244,7 +264,7 @@ export default function PrivateClassBookingPage() {
               </label>
               <input
                 type="number"
-                min="8"
+                min="6"
                 max="32"
                 className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                 value={formData.numberOfParticipants}
@@ -255,8 +275,23 @@ export default function PrivateClassBookingPage() {
                   })
                 }
               />
-              <p className="mt-1 text-xs text-[color:var(--text-subtle)]">8-32 {t.participants}</p>
+              <p className="mt-1 text-xs text-[color:var(--text-subtle)]">6-32 {t.participants}</p>
             </div>
+
+            {classType === 'cooking' && (
+              <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
+                <p className="text-sm font-semibold text-[color:var(--text)]">{t.estimatedPrice}</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <p className="text-sm text-[color:var(--text-muted)]">
+                    {t.pricePerPerson}: <span className="font-semibold text-[color:var(--text)]">{privateCookingRate !== null ? `${privateCookingRate} OMR` : '--'}</span>
+                  </p>
+                  <p className="text-sm text-[color:var(--text-muted)]">
+                    {t.estimatedPrice}: <span className="font-semibold text-[color:var(--text)]">{privateCookingTotal !== null ? `${privateCookingTotal} OMR` : '--'}</span>
+                  </p>
+                </div>
+                <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{t.privateCookingPricingHint}</p>
+              </div>
+            )}
 
             {classType === 'cooking' && (
               <div>
@@ -363,6 +398,9 @@ export default function PrivateClassBookingPage() {
                 <div><strong>{t.summaryDate}:</strong> {formData.selectedDate}</div>
                 <div><strong>{t.summaryTime}:</strong> {formData.selectedTime}</div>
                 <div><strong>{t.summaryParticipants}:</strong> {formData.numberOfParticipants}</div>
+                {classType === 'cooking' && (
+                  <div><strong>{t.estimatedPrice}:</strong> {privateCookingTotal !== null ? `${privateCookingTotal} OMR` : '--'}</div>
+                )}
                 {formData.preferredDish && (
                   <div><strong>{t.summaryPreferredDish}:</strong> {formData.preferredDish}</div>
                 )}

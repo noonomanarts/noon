@@ -2,6 +2,8 @@
 
 import type { Locale } from '@/lib/locale';
 
+const DISPLAY_TIMEZONE = 'Asia/Muscat';
+
 type SessionItem = {
   id: string;
   startTime: string;
@@ -11,11 +13,18 @@ type SessionItem = {
   seatsAvailable: number;
 };
 
-function toLocalDateKey(rawDate: string) {
+function toDateKey(rawDate: string) {
   const date = new Date(rawDate);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: DISPLAY_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(date);
+  const year = parts.find((part) => part.type === 'year')?.value ?? '0000';
+  const month = parts.find((part) => part.type === 'month')?.value ?? '00';
+  const day = parts.find((part) => part.type === 'day')?.value ?? '00';
   return `${year}-${month}-${day}`;
 }
 
@@ -24,6 +33,7 @@ function formatDay(locale: Locale, rawDate: string) {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
+    timeZone: DISPLAY_TIMEZONE,
   });
 }
 
@@ -31,6 +41,7 @@ function formatTime(locale: Locale, rawDate: string) {
   return new Date(rawDate).toLocaleTimeString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: DISPLAY_TIMEZONE,
   });
 }
 
@@ -47,7 +58,7 @@ export default function ClassSessionPicker({
 }) {
   const isArabic = locale === 'ar';
   const grouped = sessions.reduce<Record<string, SessionItem[]>>((accumulator, session) => {
-    const dateKey = toLocalDateKey(session.startTime);
+    const dateKey = toDateKey(session.startTime);
     accumulator[dateKey] = accumulator[dateKey] ? [...accumulator[dateKey], session] : [session];
     return accumulator;
   }, {});

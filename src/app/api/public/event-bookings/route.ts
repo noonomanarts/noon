@@ -12,7 +12,12 @@ import {
   shouldCreateCleaningBlock,
 } from '@/lib/calendar';
 import { createCalendarEvent } from '@/lib/db/events';
-import { getStandardCompetitionTotal } from '@/lib/competitionPricing';
+import {
+  getBirthdayPartyTotal,
+  getPremiumCompetitionTotal,
+  getPrivateCookingClassTotal,
+  getStandardCompetitionTotal,
+} from '@/lib/competitionPricing';
 
 const EVENT_TYPES = new Set(['COOKING_COMPETITION', 'PRIVATE_CLASS', 'BIRTHDAY_PARTY']);
 const PACKAGE_TYPES = new Set(['STANDARD', 'PREMIUM']);
@@ -58,11 +63,18 @@ function sanitizeGifts(value: unknown): Array<{
   return sanitized;
 }
 
-function validateParticipantsByEvent(eventType: string, participants: number): boolean {
+function validateParticipantsByEvent(
+  eventType: string,
+  participants: number,
+  packageType?: 'STANDARD' | 'PREMIUM'
+): boolean {
   if (!Number.isInteger(participants)) return false;
-  if (eventType === 'COOKING_COMPETITION') return participants >= 8 && participants <= 40;
-  if (eventType === 'PRIVATE_CLASS') return participants >= 8 && participants <= 32;
-  if (eventType === 'BIRTHDAY_PARTY') return participants >= 1 && participants <= 16;
+  if (eventType === 'COOKING_COMPETITION') {
+    const minParticipants = packageType === 'PREMIUM' ? 6 : 8;
+    return participants >= minParticipants && participants <= 40;
+  }
+  if (eventType === 'PRIVATE_CLASS') return participants >= 6 && participants <= 32;
+  if (eventType === 'BIRTHDAY_PARTY') return participants >= 1 && participants <= 40;
   return false;
 }
 
@@ -124,20 +136,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!validateParticipantsByEvent(eventType, numberOfParticipants)) {
-      return NextResponse.json(
-        { error: 'Invalid number of participants for this event type' },
-        { status: 400 }
-      );
-    }
-
-    if (eventType === 'BIRTHDAY_PARTY' && (!Number.isInteger(childAge) || childAge < 10)) {
-      return NextResponse.json(
-        { error: 'Birthday party age is required and minimum age is 10' },
-        { status: 400 }
-      );
-    }
-
     const packageType =
       packageTypeRaw && PACKAGE_TYPES.has(packageTypeRaw)
         ? (packageTypeRaw as 'STANDARD' | 'PREMIUM')
@@ -153,6 +151,20 @@ export async function POST(request: NextRequest) {
     if (eventType !== 'COOKING_COMPETITION' && packageTypeRaw && !packageType) {
       return NextResponse.json(
         { error: 'Invalid package type' },
+        { status: 400 }
+      );
+    }
+
+    if (!validateParticipantsByEvent(eventType, numberOfParticipants, packageType)) {
+      return NextResponse.json(
+        { error: 'Invalid number of participants for this event type' },
+        { status: 400 }
+      );
+    }
+
+    if (eventType === 'BIRTHDAY_PARTY' && (!Number.isInteger(childAge) || childAge < 10)) {
+      return NextResponse.json(
+        { error: 'Birthday party age is required and minimum age is 10' },
         { status: 400 }
       );
     }
@@ -239,8 +251,15 @@ export async function POST(request: NextRequest) {
         const standardTotal = getStandardCompetitionTotal(numberOfParticipants);
         totalAmount = (standardTotal ?? 0) + giftsTotal;
       } else {
-        totalAmount = 3500 + giftsTotal;
+        const premiumTotal = getPremiumCompetitionTotal(numberOfParticipants);
+        totalAmount = (premiumTotal ?? 0) + giftsTotal;
       }
+    } else if (eventType === 'PRIVATE_CLASS' && classTypeRaw === 'cooking') {
+      const privateCookingTotal = getPrivateCookingClassTotal(numberOfParticipants);
+      totalAmount = (privateCookingTotal ?? 0) + giftsTotal;
+    } else if (eventType === 'BIRTHDAY_PARTY') {
+      const birthdayTotal = getBirthdayPartyTotal(numberOfParticipants);
+      totalAmount = (birthdayTotal ?? 0) + giftsTotal;
     } else if (giftsTotal > 0) {
       totalAmount = giftsTotal;
     }

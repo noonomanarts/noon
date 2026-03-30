@@ -11,16 +11,47 @@ export const STANDARD_COMPETITION_PRICE_TIERS: StandardCompetitionPriceTier[] = 
   { minParticipants: 31, maxParticipants: 40, pricePerPerson: 16 },
 ];
 
-export function getStandardCompetitionTier(participants: number): StandardCompetitionPriceTier | null {
+export const PREMIUM_COMPETITION_PRICE_TIERS: StandardCompetitionPriceTier[] = [
+  { minParticipants: 6, maxParticipants: 10, pricePerPerson: 33 },
+  { minParticipants: 11, maxParticipants: 20, pricePerPerson: 30 },
+  { minParticipants: 21, maxParticipants: 30, pricePerPerson: 27 },
+  { minParticipants: 31, maxParticipants: 40, pricePerPerson: 24 },
+];
+
+export const PRIVATE_COOKING_CLASS_PRICE_TIERS: StandardCompetitionPriceTier[] = [
+  { minParticipants: 6, maxParticipants: 10, pricePerPerson: 26 },
+  { minParticipants: 11, maxParticipants: 18, pricePerPerson: 22 },
+  { minParticipants: 19, maxParticipants: 25, pricePerPerson: 19 },
+  { minParticipants: 26, maxParticipants: 32, pricePerPerson: 17 },
+];
+
+export const BIRTHDAY_PARTY_BASE_INCLUDED_PARTICIPANTS = 16;
+export const BIRTHDAY_PARTY_BASE_AMOUNT = 180;
+export const BIRTHDAY_PARTY_ADDITIONAL_PERSON_AMOUNT = 10;
+
+function findTier(
+  participants: number,
+  tiers: StandardCompetitionPriceTier[]
+): StandardCompetitionPriceTier | null {
   if (!Number.isInteger(participants)) {
     return null;
   }
 
   return (
-    STANDARD_COMPETITION_PRICE_TIERS.find(
+    tiers.find(
       (tier) => participants >= tier.minParticipants && participants <= tier.maxParticipants
     ) ?? null
   );
+}
+
+function calculateTieredTotal(participants: number, tiers: StandardCompetitionPriceTier[]): number | null {
+  const tier = findTier(participants, tiers);
+  if (!tier) return null;
+  return participants * tier.pricePerPerson;
+}
+
+export function getStandardCompetitionTier(participants: number): StandardCompetitionPriceTier | null {
+  return findTier(participants, STANDARD_COMPETITION_PRICE_TIERS);
 }
 
 export function getStandardCompetitionPricePerPerson(participants: number): number | null {
@@ -28,9 +59,38 @@ export function getStandardCompetitionPricePerPerson(participants: number): numb
 }
 
 export function getStandardCompetitionTotal(participants: number): number | null {
-  const perPerson = getStandardCompetitionPricePerPerson(participants);
-  if (perPerson === null) {
-    return null;
-  }
-  return participants * perPerson;
+  return calculateTieredTotal(participants, STANDARD_COMPETITION_PRICE_TIERS);
+}
+
+export function getPremiumCompetitionTier(participants: number): StandardCompetitionPriceTier | null {
+  return findTier(participants, PREMIUM_COMPETITION_PRICE_TIERS);
+}
+
+export function getPremiumCompetitionPricePerPerson(participants: number): number | null {
+  return getPremiumCompetitionTier(participants)?.pricePerPerson ?? null;
+}
+
+export function getPremiumCompetitionTotal(participants: number): number | null {
+  return calculateTieredTotal(participants, PREMIUM_COMPETITION_PRICE_TIERS);
+}
+
+export function getPrivateCookingClassTier(participants: number): StandardCompetitionPriceTier | null {
+  return findTier(participants, PRIVATE_COOKING_CLASS_PRICE_TIERS);
+}
+
+export function getPrivateCookingClassPricePerPerson(participants: number): number | null {
+  return getPrivateCookingClassTier(participants)?.pricePerPerson ?? null;
+}
+
+export function getPrivateCookingClassTotal(participants: number): number | null {
+  return calculateTieredTotal(participants, PRIVATE_COOKING_CLASS_PRICE_TIERS);
+}
+
+export function getBirthdayPartyTotal(participants: number): number | null {
+  if (!Number.isInteger(participants) || participants < 1) return null;
+  if (participants <= BIRTHDAY_PARTY_BASE_INCLUDED_PARTICIPANTS) return BIRTHDAY_PARTY_BASE_AMOUNT;
+  return (
+    BIRTHDAY_PARTY_BASE_AMOUNT +
+    (participants - BIRTHDAY_PARTY_BASE_INCLUDED_PARTICIPANTS) * BIRTHDAY_PARTY_ADDITIONAL_PERSON_AMOUNT
+  );
 }

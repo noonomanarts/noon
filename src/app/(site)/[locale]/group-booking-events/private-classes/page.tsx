@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FiArrowRight, FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
 import { GiChefToque, GiPalette } from "react-icons/gi";
 
+import PrivateCookingQuickPriceCalculator from "@/components/site/PrivateCookingQuickPriceCalculator";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
 
@@ -82,8 +83,8 @@ export default async function PrivateClassesPage({
     {
       key: "cooking" as const,
       title: isArabic ? "جلسة طبخ خاصة" : "Private Cooking Class",
-      participants: isArabic ? "8-32 مشارك" : "8-32 participants",
-      priceSummary: isArabic ? "السعر حسب الطلب" : "Price on request",
+      participants: isArabic ? "6-32 مشارك" : "6-32 participants",
+      priceSummary: isArabic ? "ابتداءً من 17 ر.ع / شخص" : "From 17 OMR / person",
       details: [
         {
           label: isArabic ? "مثالية لـ" : "Ideal for",
@@ -91,7 +92,7 @@ export default async function PrivateClassesPage({
         },
         {
           label: isArabic ? "عدد المشاركين" : "Group Size",
-          value: isArabic ? "8-32 مشارك" : "8-32 participants",
+          value: isArabic ? "6-32 مشارك" : "6-32 participants",
         },
         { label: isArabic ? "المدة" : "Duration", value: isArabic ? "2-3 ساعات" : "2-3 hours" },
         {
@@ -110,7 +111,7 @@ export default async function PrivateClassesPage({
     {
       key: "arts-crafts" as const,
       title: isArabic ? "جلسة فنون وأشغال خاصة" : "Private Arts & Crafts Class",
-      participants: isArabic ? "8-32 مشارك" : "8-32 participants",
+      participants: isArabic ? "6-32 مشارك" : "6-32 participants",
       priceSummary: isArabic ? "السعر حسب الطلب" : "Price on request",
       details: [
         {
@@ -119,7 +120,7 @@ export default async function PrivateClassesPage({
         },
         {
           label: isArabic ? "عدد المشاركين" : "Group Size",
-          value: isArabic ? "8-32 مشارك" : "8-32 participants",
+          value: isArabic ? "6-32 مشارك" : "6-32 participants",
         },
         { label: isArabic ? "المدة" : "Duration", value: isArabic ? "2-3 ساعات" : "2-3 hours" },
         {
@@ -207,32 +208,38 @@ export default async function PrivateClassesPage({
                 >
                   <h3 className="text-center text-xl font-semibold text-[color:var(--text)]">{pkg.title}</h3>
 
-                  <div className="mt-5 grid grid-cols-2 gap-3">
-                    <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
-                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
-                        {isArabic ? "المشاركون" : "Participants"}
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.participants}</p>
-                    </div>
-                    <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
-                      <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
-                        {isArabic ? "السعر" : "Price"}
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.priceSummary}</p>
-                    </div>
-                  </div>
+                  {isCookingClass ? (
+                    <PrivateCookingQuickPriceCalculator locale={locale} />
+                  ) : (
+                    <>
+                      <div className="mt-5 grid grid-cols-2 gap-3">
+                        <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
+                            {isArabic ? "المشاركون" : "Participants"}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.participants}</p>
+                        </div>
+                        <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
+                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
+                            {isArabic ? "السعر" : "Price"}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.priceSummary}</p>
+                        </div>
+                      </div>
 
-                  <div className="mt-5 flex justify-center">
-                    <Link
-                      href={pkg.bookingHref}
-                      className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition ${
-                        isCookingClass ? "bg-teal hover:bg-teal/90" : "bg-coral hover:bg-coral/90"
-                      }`}
-                    >
-                      {isArabic ? "اختر الجلسة" : "Choose Session"}
-                      <FiArrowRight className="size-4" />
-                    </Link>
-                  </div>
+                      <div className="mt-5 flex justify-center">
+                        <Link
+                          href={pkg.bookingHref}
+                          className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition ${
+                            isCookingClass ? "bg-teal hover:bg-teal/90" : "bg-coral hover:bg-coral/90"
+                          }`}
+                        >
+                          {isArabic ? "اختر الجلسة" : "Choose Session"}
+                          <FiArrowRight className="size-4" />
+                        </Link>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="space-y-5 p-6">
@@ -273,7 +280,7 @@ export default async function PrivateClassesPage({
           <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-[color:var(--text-subtle)]">
             <span className="inline-flex items-center gap-1">
               <FiUsers className="size-3.5" />
-              {isArabic ? "8-32 مشارك" : "8-32 participants"}
+              {isArabic ? "6-32 مشارك" : "6-32 participants"}
             </span>
             <span className="inline-flex items-center gap-1">
               <FiClock className="size-3.5" />

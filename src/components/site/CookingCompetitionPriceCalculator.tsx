@@ -7,7 +7,10 @@ import { MdCalculate } from 'react-icons/md';
 
 import type { Locale } from '@/lib/locale';
 import {
+  PREMIUM_COMPETITION_PRICE_TIERS,
   STANDARD_COMPETITION_PRICE_TIERS,
+  getPremiumCompetitionTier,
+  getPremiumCompetitionTotal,
   getStandardCompetitionTier,
   getStandardCompetitionTotal,
 } from '@/lib/competitionPricing';
@@ -20,17 +23,23 @@ export default function CookingCompetitionPriceCalculator({
   className = '',
 }: {
   locale: Locale;
-  variant?: 'full' | 'compactStandard';
+  variant?: 'full' | 'compactStandard' | 'compactPremium';
   className?: string;
 }) {
-  const isCompact = variant === 'compactStandard';
+  const isCompact = variant === 'compactStandard' || variant === 'compactPremium';
   const isArabic = locale === 'ar';
   const router = useRouter();
-  const [packageType, setPackageType] = useState<PackageType>('STANDARD');
-  const [participantsInput, setParticipantsInput] = useState('8');
+  const [packageType, setPackageType] = useState<PackageType>(
+    variant === 'compactPremium' ? 'PREMIUM' : 'STANDARD'
+  );
+  const [participantsInput, setParticipantsInput] = useState(
+    variant === 'compactPremium' ? '6' : '8'
+  );
+
+  const minParticipants = packageType === 'PREMIUM' ? 6 : 8;
 
   const participants = Number.parseInt(participantsInput, 10);
-  const isParticipantsValid = Number.isInteger(participants) && participants >= 8 && participants <= 40;
+  const isParticipantsValid = Number.isInteger(participants) && participants >= minParticipants && participants <= 40;
 
   const pricing = useMemo(() => {
     if (!isParticipantsValid) {
@@ -41,10 +50,16 @@ export default function CookingCompetitionPriceCalculator({
     }
 
     return {
-      tier: getStandardCompetitionTier(participants),
-      subtotal: getStandardCompetitionTotal(participants),
+      tier:
+        packageType === 'PREMIUM'
+          ? getPremiumCompetitionTier(participants)
+          : getStandardCompetitionTier(participants),
+      subtotal:
+        packageType === 'PREMIUM'
+          ? getPremiumCompetitionTotal(participants)
+          : getStandardCompetitionTotal(participants),
     };
-  }, [isParticipantsValid, participants]);
+  }, [isParticipantsValid, packageType, participants]);
 
   const t = {
     title: isArabic ? 'حاسبة السعر' : 'Price Calculator',
@@ -55,21 +70,26 @@ export default function CookingCompetitionPriceCalculator({
     standard: isArabic ? 'قياسية' : 'Standard',
     premium: isArabic ? 'مميزة' : 'Premium',
     participants: isArabic ? 'عدد المشاركين' : 'Participants',
-    participantsHint: isArabic ? 'من 8 إلى 40 مشارك' : 'From 8 to 40 participants',
+    participantsHint:
+      minParticipants === 6
+        ? (isArabic ? 'من 6 إلى 40 مشارك' : 'From 6 to 40 participants')
+        : (isArabic ? 'من 8 إلى 40 مشارك' : 'From 8 to 40 participants'),
     perPerson: isArabic ? 'سعر الفرد' : 'Per person',
     subtotal: isArabic ? 'الإجمالي التقديري' : 'Estimated total',
-    premiumNote: isArabic ? 'سعر الباقة المميزة حسب الطلب' : 'Premium package is priced on request',
     continueBooking: isArabic ? 'متابعة الحجز' : 'Continue to Booking',
-    pricingFormula: isArabic ? 'شرائح التسعير (قياسية)' : 'Standard Pricing Formula',
+    pricingFormula: isArabic ? 'شرائح التسعير حسب الباقة' : 'Package Pricing Formula',
     range: isArabic ? 'العدد' : 'Range',
     price: isArabic ? 'السعر / فرد' : 'Price / person',
-    invalidParticipants: isArabic ? 'يرجى إدخال عدد صحيح بين 8 و40.' : 'Please enter a valid number between 8 and 40.',
+    invalidParticipants:
+      minParticipants === 6
+        ? (isArabic ? 'يرجى إدخال عدد صحيح بين 6 و40.' : 'Please enter a valid number between 6 and 40.')
+        : (isArabic ? 'يرجى إدخال عدد صحيح بين 8 و40.' : 'Please enter a valid number between 8 and 40.'),
     compactTitle: isArabic ? 'احسب السعر مباشرة' : 'Quick Price Calculator',
   };
 
   const handleContinue = () => {
     if (!isParticipantsValid) return;
-    const packageQuery = isCompact ? 'standard' : packageType.toLowerCase();
+    const packageQuery = packageType.toLowerCase();
     router.push(
       `/${locale}/group-booking-events/cooking-competition/book?package=${packageQuery}&participants=${participants}`
     );
@@ -87,7 +107,7 @@ export default function CookingCompetitionPriceCalculator({
             </label>
             <input
               type="number"
-              min="8"
+              min={minParticipants}
               max="40"
               value={participantsInput}
               onChange={(event) => setParticipantsInput(event.target.value)}
@@ -176,7 +196,7 @@ export default function CookingCompetitionPriceCalculator({
             </label>
             <input
               type="number"
-              min="8"
+              min={minParticipants}
               max="40"
               value={participantsInput}
               onChange={(event) => setParticipantsInput(event.target.value)}
@@ -201,21 +221,17 @@ export default function CookingCompetitionPriceCalculator({
         <div className="space-y-4 rounded-xl border border-[color:var(--border)] p-4">
           <div className="rounded-lg bg-[color:var(--muted)] px-3 py-2.5">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">{t.perPerson}</p>
-            <p className="mt-1 text-lg font-semibold text-[color:var(--text)]">
-              {packageType === 'STANDARD'
-                ? pricing.tier
-                  ? `${pricing.tier.pricePerPerson} OMR`
-                  : '--'
-                : t.premiumNote}
-            </p>
-          </div>
+                <p className="mt-1 text-lg font-semibold text-[color:var(--text)]">
+                  {pricing.tier ? `${pricing.tier.pricePerPerson} OMR` : '--'}
+                </p>
+              </div>
 
           <div className="rounded-lg bg-[color:var(--muted)] px-3 py-2.5">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">{t.subtotal}</p>
-            <p className="mt-1 text-lg font-semibold text-[color:var(--text)]">
-              {packageType === 'STANDARD' ? (pricing.subtotal !== null ? `${pricing.subtotal} OMR` : '--') : t.premiumNote}
-            </p>
-          </div>
+                <p className="mt-1 text-lg font-semibold text-[color:var(--text)]">
+                  {pricing.subtotal !== null ? `${pricing.subtotal} OMR` : '--'}
+                </p>
+              </div>
 
           <div className="overflow-hidden rounded-lg border border-[color:var(--border)]">
             <table className="w-full text-sm">
@@ -226,7 +242,9 @@ export default function CookingCompetitionPriceCalculator({
                 </tr>
               </thead>
               <tbody>
-                {STANDARD_COMPETITION_PRICE_TIERS.map((tier) => (
+                {(packageType === 'PREMIUM'
+                  ? PREMIUM_COMPETITION_PRICE_TIERS
+                  : STANDARD_COMPETITION_PRICE_TIERS).map((tier) => (
                   <tr
                     key={`${tier.minParticipants}-${tier.maxParticipants}`}
                     className={

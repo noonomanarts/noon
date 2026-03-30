@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FiArrowRight, FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
 import { MdCake } from "react-icons/md";
 
+import BirthdayQuickPriceCalculator from "@/components/site/BirthdayQuickPriceCalculator";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
 
@@ -51,7 +52,7 @@ export default async function BirthdayPartiesPage({
   }
 
   const includes = [
-    isArabic ? "حتى 16 مشاركة" : "Up to 16 participants",
+    isArabic ? "حتى 16 مشاركة (ثم +10 ر.ع لكل مشاركة إضافية)" : "Up to 16 participants (then +10 OMR per additional person)",
     isArabic ? "المدة: ساعتان" : "Duration: 2 hours",
     isArabic ? "قهوة عربية وحلويات" : "Arabic coffee and sweets",
     isArabic ? "المعدات والمكونات مشمولة" : "Equipment and ingredients included",
@@ -89,6 +90,8 @@ export default async function BirthdayPartiesPage({
           </div>
         </div>
       </section>
+
+      <BirthdayQuickPriceCalculator locale={locale} />
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
         <div className="grid gap-5 lg:grid-cols-2">
@@ -130,7 +133,7 @@ export default async function BirthdayPartiesPage({
           <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-[color:var(--text-subtle)]">
             <span className="inline-flex items-center gap-1">
               <FiUsers className="size-3.5" />
-              {isArabic ? "حتى 16 مشاركة" : "Up to 16 participants"}
+              {isArabic ? "حتى 16 مشاركة (+10 ر.ع لكل مشاركة إضافية)" : "Up to 16 participants (+10 OMR per additional person)"}
             </span>
             <span className="inline-flex items-center gap-1">
               <FiClock className="size-3.5" />
