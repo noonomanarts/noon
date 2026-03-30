@@ -10,39 +10,22 @@ type ClassListingHeaderProps = {
   title: string;
   subtitle?: string;
   backgroundColor: string;
+  textColor?: string;
   slideImages: string[];
   autoplayMs?: number;
   backLabel: string;
 };
-
-function getReadableTextColor(hex: string): "#ffffff" | "#23150f" {
-  const normalized = hex.trim().toLowerCase();
-  const raw = /^#([0-9a-f]{6})$/.test(normalized)
-    ? normalized.slice(1)
-    : /^#([0-9a-f]{3})$/.test(normalized)
-      ? normalized
-          .slice(1)
-          .split("")
-          .map((item) => `${item}${item}`)
-          .join("")
-      : "cb8578";
-  const r = Number.parseInt(raw.slice(0, 2), 16);
-  const g = Number.parseInt(raw.slice(2, 4), 16);
-  const b = Number.parseInt(raw.slice(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.62 ? "#23150f" : "#ffffff";
-}
 
 export default function ClassListingHeader({
   locale,
   title,
   subtitle,
   backgroundColor,
+  textColor = "#ffffff",
   slideImages,
   autoplayMs,
   backLabel,
 }: ClassListingHeaderProps) {
-  const textColor = getReadableTextColor(backgroundColor);
   const titleFont = locale === "ar" ? "var(--font-hero-ar)" : "var(--font-home-title-en)";
 
   return (

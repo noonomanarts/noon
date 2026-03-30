@@ -208,6 +208,7 @@ export default async function CookingClassesPage({
         locale={locale}
         title={pageTitle}
         backgroundColor={pageSettings?.classListingHero.backgroundColor || "#cb8578"}
+        textColor={pageSettings?.classListingHero.textColor || "#ffffff"}
         slideImages={pageSettings?.classListingHero.slideImages || ["/images/cooking.png"]}
         autoplayMs={pageSettings?.classListingHero.autoplayMs}
         backLabel={t.backToClasses}

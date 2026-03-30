@@ -224,6 +224,8 @@ export default function AdminPageSettingsClient({
       : "The header title uses the heading fields above. Configure the background color and slideshow images for this page here.",
     classHeaderBackgroundColor: isArabic ? "لون خلفية الهيدر" : "Header Background Color",
     classHeaderBackgroundHint: isArabic ? "يظهر مباشرة خلف العنوان والصور." : "Shown directly behind the title and slideshow.",
+    classHeaderTextColor: isArabic ? "لون نص الهيدر" : "Header Text Color",
+    classHeaderTextHint: isArabic ? "اللون الافتراضي أبيض." : "Default is white.",
     classHeaderSlides: isArabic ? "صور السلايدشو" : "Slideshow Images",
     classHeaderSlidesEmpty: isArabic ? "لا توجد صور حالياً. أضف صورة أو ارفع ملفاً." : "No slides yet. Add an image path or upload a file.",
     classHeaderSlidePath: isArabic ? "مسار الصورة" : "Image Path",
@@ -524,7 +526,10 @@ export default function AdminPageSettingsClient({
     settings.classListingHero.backgroundColor,
     defaults.classListingHero.backgroundColor
   );
-  const classHeaderTextColor = getReadableTextColor(classHeaderBackgroundColor);
+  const classHeaderTextColor = normalizeHexColor(
+    settings.classListingHero.textColor,
+    defaults.classListingHero.textColor
+  );
   const competitionProcessCardBgColor = normalizeHexColor(
     settings.eventCompetition.processCardBackgroundColor,
     defaults.eventCompetition.processCardBackgroundColor
@@ -1759,7 +1764,7 @@ export default function AdminPageSettingsClient({
           <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.classHeaderSection}</h2>
           <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.classHeaderHint}</p>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <label className="space-y-1 text-sm">
               <span className="text-zinc-600 dark:text-zinc-300">{t.classHeaderBackgroundColor}</span>
               <div className="flex gap-2">
@@ -1792,6 +1797,40 @@ export default function AdminPageSettingsClient({
                 />
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.classHeaderBackgroundHint}</p>
+            </label>
+
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.classHeaderTextColor}</span>
+              <div className="flex gap-2">
+                <input
+                  value={settings.classListingHero.textColor}
+                  onChange={(event) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      classListingHero: {
+                        ...prev.classListingHero,
+                        textColor: normalizeHexColor(event.target.value, defaults.classListingHero.textColor),
+                      },
+                    }))
+                  }
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+                <input
+                  type="color"
+                  value={classHeaderTextColor}
+                  onChange={(event) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      classListingHero: {
+                        ...prev.classListingHero,
+                        textColor: event.target.value,
+                      },
+                    }))
+                  }
+                  className="h-11 w-14 rounded-lg border border-zinc-300 bg-transparent p-1 dark:border-zinc-700"
+                />
+              </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.classHeaderTextHint}</p>
             </label>
 
             <label className="space-y-1 text-sm">

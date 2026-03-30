@@ -205,6 +205,7 @@ export type AboutPageSettings = {
 
 export type ClassListingHeroSettings = {
   backgroundColor: string;
+  textColor: string;
   slideImages: string[];
   autoplayMs: number;
 };
@@ -1200,17 +1201,20 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
     page.key === "classes_cooking"
       ? {
           backgroundColor: "#cb8578",
+          textColor: "#ffffff",
           slideImages: ["/images/cooking.png"],
           autoplayMs: 4200,
         }
       : page.key === "classes_arts_crafts"
         ? {
             backgroundColor: "#cb8578",
+            textColor: "#ffffff",
             slideImages: ["/images/art.png"],
             autoplayMs: 4200,
           }
         : {
             backgroundColor: "#cb8578",
+            textColor: "#ffffff",
             slideImages: [],
             autoplayMs: 4200,
           };
@@ -1619,6 +1623,10 @@ export function sanitizeSitePageSettings(
       backgroundColor: toHexColor(
         source.classListingHero?.backgroundColor,
         defaults.classListingHero.backgroundColor
+      ),
+      textColor: toHexColor(
+        source.classListingHero?.textColor,
+        defaults.classListingHero.textColor
       ),
       slideImages:
         classListingSlides.length > 0 ? classListingSlides : defaults.classListingHero.slideImages,
