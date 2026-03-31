@@ -223,12 +223,12 @@ export default function ClassSettlementPanel({
     negativeNoonFee: isArabic
       ? 'رسوم نون أصبحت سالبة. راجع تكاليف المواد أو الإيراد قبل الإغلاق.'
       : 'Noon fee is negative. Review material costs or revenue before closing.',
-    reprocessWallet: isArabic ? 'إعادة تحويل المستحقات للمحافظ' : 'Reprocess Wallet Credits',
+    reprocessWallet: isArabic ? 'إعادة معالجة المستحقات والحسابات' : 'Reprocess Wallet & Finance Entries',
     reprocessHint: isArabic
-      ? 'إذا لم يتم تحويل المستحقات لمحفظة المدرب عند الإغلاق، اضغط هنا لإعادة التحويل.'
-      : 'If wallet credits were not transferred when this class was closed, click here to reprocess them.',
-    reprocessDone: isArabic ? 'تم تحويل المستحقات بنجاح.' : 'Wallet credits reprocessed successfully.',
-    reprocessNone: isArabic ? 'المستحقات سبق تحويلها بالكامل.' : 'All wallet credits were already processed.',
+      ? 'إذا لم يتم تحويل المستحقات أو تسجيل الإيرادات/المصروفات عند إغلاق هذا الورشة، اضغط هنا لإعادة المعالجة.'
+      : 'If wallet credits or finance entries (trainer expense / Noon income) were not recorded when this class was closed, click here to reprocess them.',
+    reprocessDone: isArabic ? 'تمت إعادة المعالجة بنجاح.' : 'Reprocessing completed successfully.',
+    reprocessNone: isArabic ? 'جميع المستحقات والحسابات مسجلة بالفعل.' : 'All wallet credits and finance entries are already processed.',
   };
 
   const formatMoney = (value: number, currency: string) => formatAmountWithCurrency(value, currency);
@@ -476,19 +476,28 @@ export default function ClassSettlementPanel({
         adminCredited?: boolean;
         trainerAmount?: number;
         adminAmount?: number;
+        trainerExpenseCreated?: boolean;
+        noonIncomeCreated?: boolean;
       };
 
       if (!response.ok || !payload.success) {
         throw new Error(payload.error || 'Failed to reprocess wallet credits');
       }
 
-      if (payload.trainerCredited || payload.adminCredited) {
+      const anyAction = payload.trainerCredited || payload.adminCredited || payload.trainerExpenseCreated || payload.noonIncomeCreated;
+      if (anyAction) {
         const parts: string[] = [];
         if (payload.trainerCredited && payload.trainerAmount) {
-          parts.push(`Trainer: ${payload.trainerAmount.toFixed(3)} ${snapshot?.currency || 'OMR'}`);
+          parts.push(`Trainer wallet: ${payload.trainerAmount.toFixed(3)} ${snapshot?.currency || 'OMR'}`);
         }
         if (payload.adminCredited && payload.adminAmount) {
-          parts.push(`Noon: ${payload.adminAmount.toFixed(3)} ${snapshot?.currency || 'OMR'}`);
+          parts.push(`Noon wallet: ${payload.adminAmount.toFixed(3)} ${snapshot?.currency || 'OMR'}`);
+        }
+        if (payload.trainerExpenseCreated) {
+          parts.push('Trainer salary expense recorded');
+        }
+        if (payload.noonIncomeCreated) {
+          parts.push('Noon net profit income recorded');
         }
         setSuccess(`${t.reprocessDone} (${parts.join(' | ')})`);
       } else {

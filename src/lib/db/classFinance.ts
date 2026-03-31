@@ -1212,7 +1212,7 @@ export async function closeClassSettlement(args: {
 export async function reprocessSettlementWalletCredits(args: {
   classId: string;
   adminUserId: string;
-}): Promise<{ trainerCredited: boolean; adminCredited: boolean; trainerAmount: number; adminAmount: number }> {
+}): Promise<{ trainerCredited: boolean; adminCredited: boolean; trainerAmount: number; adminAmount: number; trainerExpenseCreated: boolean; noonIncomeCreated: boolean }> {
   await ensureClassFinanceSchema();
 
   const client = await pool.connect();
@@ -1274,6 +1274,78 @@ export async function reprocessSettlementWalletCredits(args: {
       adminCredited = true;
     }
 
+    // --- Also reprocess missing finance entries ---
+    const settledAt = row.settled_at ? new Date(row.settled_at).toISOString() : new Date().toISOString();
+    const trainerName = row.trainer_name ? String(row.trainer_name) : 'Trainer';
+
+    // Check if finance entries already exist for this class from a previous close
+    const existingEntries = await client.query(
+      `SELECT entry_type, metadata->>'component' AS component
+       FROM admin_finance_entries
+       WHERE metadata->>'source' = 'CLASS_SETTLEMENT_CLOSE'
+         AND metadata->>'classId' = $1`,
+      [args.classId]
+    );
+    const existingComponents = new Set(existingEntries.rows.map((r: Record<string, unknown>) => String(r.component)));
+
+    let trainerExpenseCreated = false;
+    let noonIncomeCreated = false;
+
+    // Create trainer salary expense if missing
+    if (!existingComponents.has('TRAINER_FEE') && trainerPayoutAmount > 0) {
+      const trainerSalaryReason = await resolveAutoFinanceReason({
+        db: client,
+        type: 'EXPENSE',
+        preferredNames: ['Salaries', 'Other Expense'],
+      });
+      await insertAutoFinanceEntry({
+        db: client,
+        type: 'EXPENSE',
+        title: `Trainer salary for workshop ${args.classId}`,
+        amount: trainerPayoutAmount,
+        currency,
+        occurredAtIso: settledAt,
+        createdByUserId: args.adminUserId,
+        reason: trainerSalaryReason,
+        counterparty: trainerName,
+        notes: 'Auto-generated from reprocess wallet credits.',
+        metadata: {
+          source: 'CLASS_SETTLEMENT_CLOSE',
+          classId: args.classId,
+          component: 'TRAINER_FEE',
+          trainerUserId: trainerId,
+        },
+      });
+      trainerExpenseCreated = true;
+    }
+
+    // Create Noon net profit income if missing
+    if (!existingComponents.has('NOON_NET_PROFIT') && noonFeeAmount > 0) {
+      const netProfitReason = await resolveAutoFinanceReason({
+        db: client,
+        type: 'INCOME',
+        preferredNames: ['Net Profit', 'Classes Revenue', 'Other Income'],
+      });
+      await insertAutoFinanceEntry({
+        db: client,
+        type: 'INCOME',
+        title: `Noon net profit from workshop ${args.classId}`,
+        amount: noonFeeAmount,
+        currency,
+        occurredAtIso: settledAt,
+        createdByUserId: args.adminUserId,
+        reason: netProfitReason,
+        counterparty: 'Noon',
+        notes: 'Auto-generated from reprocess wallet credits.',
+        metadata: {
+          source: 'CLASS_SETTLEMENT_CLOSE',
+          classId: args.classId,
+          component: 'NOON_NET_PROFIT',
+        },
+      });
+      noonIncomeCreated = true;
+    }
+
     if (trainerCredited || adminCredited) {
       await client.query(
         `UPDATE class_settlements
@@ -1291,6 +1363,8 @@ export async function reprocessSettlementWalletCredits(args: {
       adminCredited,
       trainerAmount: trainerCredited ? trainerPayoutAmount : 0,
       adminAmount: adminCredited ? noonFeeAmount : 0,
+      trainerExpenseCreated,
+      noonIncomeCreated,
     };
   } catch (error) {
     await client.query('ROLLBACK');
