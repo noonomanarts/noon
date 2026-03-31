@@ -79,6 +79,7 @@ export default async function ClassBookingPage({
           price: classData.price,
           currency: classData.currency,
           subCategory: classData.subCategory,
+          minimumAge: classData.minimumAge,
         }}
         sessions={sessions.map((session) => ({
           id: session.id,

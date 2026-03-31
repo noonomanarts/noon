@@ -184,6 +184,7 @@ export async function POST(request: NextRequest) {
 
     const classSessionResult = await client.query(
       `SELECT c.id AS class_id, c.title, c.title_ar, c.price, c.currency, c.seats_total AS class_seats_total, c.status AS class_status,
+              c.minimum_age,
               s.id AS session_id, s.start_date_time, s.seats_total AS session_seats_total, s.seats_booked, s.is_cancelled
        FROM classes c
        JOIN class_sessions s ON s.class_id = c.id
@@ -208,6 +209,27 @@ export async function POST(request: NextRequest) {
     const sessionStart = new Date(classSession.start_date_time as string);
     if (sessionStart.getTime() < Date.now()) {
       throw new ApiError('Selected session has already started', 409);
+    }
+
+    // Enforce minimum age restriction
+    const minimumAge = classSession.minimum_age != null ? Number(classSession.minimum_age) : null;
+    if (minimumAge != null && minimumAge > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      for (const p of participants) {
+        const dob = new Date(`${p.dateOfBirth}T00:00:00`);
+        let age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+          age--;
+        }
+        if (age < minimumAge) {
+          throw new ApiError(
+            `A participant is below the minimum age requirement (${minimumAge} years).`,
+            400
+          );
+        }
+      }
     }
 
     const sessionSeatsTotal =

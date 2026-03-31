@@ -277,6 +277,8 @@ export async function findUniqueClass(
     publishedAt: row.published_at,
     closedAt: row.closed_at,
     closedByUserId: row.closed_by_user_id,
+    minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
+    showMinimumAge: Boolean(row.show_minimum_age),
   };
 
   if (include?.trainer) {
@@ -420,6 +422,8 @@ export async function createClass(data: {
     publishedAt: row.published_at,
     closedAt: row.closed_at,
     closedByUserId: row.closed_by_user_id,
+    minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
+    showMinimumAge: Boolean(row.show_minimum_age),
   };
 }
 
@@ -452,6 +456,8 @@ export async function updateClass(
     expenseSharePercent: number;
     closedAt: Date | null;
     closedByUserId: string | null;
+    minimumAge: number | null;
+    showMinimumAge: boolean;
   }>
 ): Promise<Record<string, unknown> | null> {
   await ensureClassFinanceSchema();
@@ -483,6 +489,8 @@ export async function updateClass(
     expenseSharePercent: 'expense_share_percent',
     closedAt: 'closed_at',
     closedByUserId: 'closed_by_user_id',
+    minimumAge: 'minimum_age',
+    showMinimumAge: 'show_minimum_age',
   };
 
   for (const [key, dbField] of Object.entries(fieldMap)) {
@@ -536,6 +544,8 @@ export async function updateClass(
     publishedAt: row.published_at,
     closedAt: row.closed_at,
     closedByUserId: row.closed_by_user_id,
+    minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
+    showMinimumAge: Boolean(row.show_minimum_age),
   };
 }
 
@@ -682,6 +692,8 @@ export async function findClassBySlug(slug: string): Promise<{
   seatsTotal: number;
   durationMinutes: number;
   status: string;
+  minimumAge: number | null;
+  showMinimumAge: boolean;
 } | null> {
   const result = await query(
     `SELECT * FROM classes WHERE slug = $1`,
@@ -707,6 +719,8 @@ export async function findClassBySlug(slug: string): Promise<{
     seatsTotal: row.seats_total,
     durationMinutes: row.duration_minutes,
     status: row.status,
+    minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
+    showMinimumAge: Boolean(row.show_minimum_age),
   };
 }
 

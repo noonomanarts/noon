@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GiChefToque } from "react-icons/gi";
-import { HiPaintBrush, HiClock, HiUsers, HiStar, HiSparkles } from "react-icons/hi2";
+import { HiPaintBrush, HiClock, HiUsers, HiStar, HiSparkles, HiShieldCheck } from "react-icons/hi2";
 import { MdCalendarMonth, MdAccessTime, MdPerson } from "react-icons/md";
 
 import { findClassBySlug, findClassSessions, findClassReviews } from "@/lib/db/classes";
@@ -70,6 +70,8 @@ export default async function ClassDetailPage({
     byVerifiedAttendees: isArabic ? "تقييمات من الحضور" : "Feedback from attendees",
     bookNow: isArabic ? "احجز الآن" : "Book Now",
     upcomingSessions: isArabic ? "الجلسات القادمة" : "Upcoming Sessions",
+    minimumAge: isArabic ? "الحد الأدنى للعمر" : "Minimum Age",
+    yearsOld: isArabic ? "سنة فأكثر" : "years & above",
   };
 
   const title = isArabic && classData.titleAr ? classData.titleAr : classData.title;
@@ -212,6 +214,17 @@ export default async function ClassDetailPage({
                     {averageRating > 0 ? `${averageRating.toFixed(1)} (${reviews.length})` : t.noReviews}
                   </p>
                 </div>
+                {classData.showMinimumAge && classData.minimumAge != null && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20 sm:col-span-2">
+                    <p className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+                      <HiShieldCheck className="h-4 w-4" />
+                      {t.minimumAge}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-amber-900 dark:text-amber-100">
+                      {classData.minimumAge}+ {t.yearsOld}
+                    </p>
+                  </div>
+                )}
               </div>
 
             </div>

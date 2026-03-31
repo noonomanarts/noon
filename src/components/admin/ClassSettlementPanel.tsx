@@ -747,7 +747,7 @@ export default function ClassSettlementPanel({
                         </div>
 
                         {catalogItem?.allowsManualCost ? (
-                          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
+                          <div>
                             <label className="text-sm">
                               <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.manualMaterialCost}</span>
                               <input
@@ -780,9 +780,7 @@ export default function ClassSettlementPanel({
                                 className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                               />
                             </label>
-                            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-                              {t.manualCostHint}
-                            </div>
+                            <p className="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">{t.manualCostHint}</p>
                           </div>
                         ) : null}
 

@@ -58,6 +58,8 @@ interface FormData {
   status: ClassStatus;
   metaTitle: string;
   metaDescription: string;
+  minimumAge: string;
+  showMinimumAge: boolean;
 }
 
 interface FormErrors {
@@ -107,7 +109,9 @@ export default function EditClassPage() {
     durationMinutes: '',
     status: 'DRAFT',
     metaTitle: '',
-    metaDescription: ''
+    metaDescription: '',
+    minimumAge: '',
+    showMinimumAge: false,
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -157,7 +161,9 @@ export default function EditClassPage() {
         durationMinutes: data.durationMinutes?.toString() || '',
         status: data.status || 'DRAFT',
         metaTitle: data.metaTitle || '',
-        metaDescription: data.metaDescription || ''
+        metaDescription: data.metaDescription || '',
+        minimumAge: data.minimumAge != null ? data.minimumAge.toString() : '',
+        showMinimumAge: data.showMinimumAge || false,
       });
       setDurationParts(splitDurationMinutes(data.durationMinutes));
     } catch (error) {
@@ -405,7 +411,9 @@ export default function EditClassPage() {
         durationMinutes: parseInt(formData.durationMinutes),
         status: formData.status,
         metaTitle: formData.metaTitle || formData.title,
-        metaDescription: formData.metaDescription || formData.description
+        metaDescription: formData.metaDescription || formData.description,
+        minimumAge: formData.minimumAge ? parseInt(formData.minimumAge) : null,
+        showMinimumAge: formData.showMinimumAge,
       };
 
       const res = await fetch(`/api/admin/classes/${classId}`, {
@@ -869,6 +877,69 @@ export default function EditClassPage() {
                     : `At settlement time, fixed costs are calculated automatically: kitchen usage = ${formatRate(selectedCategoryFinance.kitchenUsageRatePerHour)} x workshop duration in hours, and workshop content = ${formatRate(selectedCategoryFinance.workshopContentRatePerParticipant)} x participant count. Material costs are added manually, trainer fee is calculated from the remaining revenue, and Noon fee is whatever remains after that.`}
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Age Restriction */}
+        <div className={sectionCard}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-amber-500/10 dark:bg-amber-500/20 rounded-lg">
+              <IoAlertCircle className="text-2xl text-amber-600 dark:text-amber-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              {isRTL ? 'شرط العمر' : 'Age Restriction'}
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                {isRTL ? 'الحد الأدنى للعمر' : 'Minimum Age'}
+              </label>
+              <input
+                type="number"
+                name="minimumAge"
+                value={formData.minimumAge}
+                onChange={handleInputChange}
+                min="1"
+                max="99"
+                placeholder={isRTL ? 'مثال: 10' : 'e.g. 10'}
+                className={inputBase}
+              />
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                {isRTL
+                  ? 'اتركه فارغاً إذا لم يكن هناك شرط عمر. لن يتمكن أحد من التسجيل إذا كان عمره أقل من هذا.'
+                  : 'Leave empty for no age restriction. Participants below this age will not be able to register.'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 self-start mt-6">
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    showMinimumAge: !prev.showMinimumAge,
+                  }))
+                }
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  formData.showMinimumAge
+                    ? 'bg-teal-600'
+                    : 'bg-zinc-300 dark:bg-zinc-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    formData.showMinimumAge
+                      ? isRTL ? '-translate-x-6' : 'translate-x-6'
+                      : isRTL ? '-translate-x-1' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                {isRTL ? 'عرض شرط العمر في صفحة الورشة' : 'Show age restriction on workshop page'}
+              </span>
             </div>
           </div>
         </div>

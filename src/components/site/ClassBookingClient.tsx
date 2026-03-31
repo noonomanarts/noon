@@ -138,6 +138,7 @@ export default function ClassBookingClient({
     price: number;
     currency: string;
     subCategory: string | null;
+    minimumAge?: number | null;
   };
   sessions: SessionItem[];
   initialSessionId?: string;
@@ -236,6 +237,9 @@ export default function ClassBookingClient({
     yourDetails: isArabic ? 'بياناتك (تلقائية)' : 'Your Details (auto-filled)',
     selectSaved: isArabic ? 'اختر مشارك محفوظ...' : 'Select saved participant...',
     newParticipant: isArabic ? 'مشارك جديد' : 'New participant',
+    ageTooYoung: isArabic
+      ? `عمر أحد المشاركين أقل من الحد الأدنى المطلوب (${classData.minimumAge ?? 0} سنة).`
+      : `A participant is below the minimum age requirement (${classData.minimumAge ?? 0} years).`,
   };
 
   const loadWallet = useCallback(async () => {
@@ -369,6 +373,18 @@ export default function ClassBookingClient({
       if (Number.isNaN(dob.getTime()) || dob.getTime() > today.getTime()) {
         setError(t.invalidDob);
         return false;
+      }
+
+      if (classData.minimumAge != null && classData.minimumAge > 0) {
+        let age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+          age--;
+        }
+        if (age < classData.minimumAge) {
+          setError(t.ageTooYoung);
+          return false;
+        }
       }
     }
 
