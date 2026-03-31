@@ -60,22 +60,22 @@ export default async function PrivateClassesPage({
       icon: FiUsers,
     },
     {
-      title: isArabic ? "اختيار المسار" : "Choose Track",
+      title: isArabic ? "الاستماع لشرح المدربة" : "Choose Track",
       desc: isArabic
         ? "اختيار جلسة طبخ أو فنون وأشغال حسب هدف المجموعة."
         : "Select either cooking or arts & crafts based on group goals.",
       icon: GiChefToque,
     },
     {
-      title: isArabic ? "جلسة عملية" : "Hands-On Session",
+      title: isArabic ? "التطبيق العملي" : "Hands-On Session",
       desc: isArabic
-        ? "تنفيذ الجلسة بشكل عملي بإشراف فريق نون."
+        ? "تنفيذ الخطوات عملياً."
         : "Run a practical, guided session with the Noon team.",
       icon: GiPalette,
     },
     {
-      title: isArabic ? "ختام التجربة" : "Wrap-up",
-      desc: isArabic ? "مراجعة المخرجات وتقديم الضيافة الختامية." : "Review outcomes and enjoy closing refreshments.",
+      title: isArabic ? "تذوق الطبخة وتبادل الآراء" : "Wrap-up",
+      desc: isArabic ? "تذوق الطبخة وتبادل الآراء." : "Review outcomes and enjoy closing refreshments.",
       icon: FiCheckCircle,
     },
   ];

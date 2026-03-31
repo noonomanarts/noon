@@ -598,7 +598,7 @@ export const sitePageCatalog: SitePageDefinition[] = [
     pathTemplate: "/account/orders",
     group: "account",
     nameEn: "My Orders",
-    nameAr: "طلباتي",
+    nameAr: "طلباتي من المتجر",
     descriptionEn: "Customer order and bookings history.",
     descriptionAr: "سجل طلبات وحجوزات العميل.",
     defaultNavPlacement: "NONE",

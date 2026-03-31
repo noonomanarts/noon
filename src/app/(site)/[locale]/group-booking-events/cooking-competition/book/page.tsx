@@ -136,8 +136,8 @@ export default function CookingCompetitionBookingPage() {
     
     // Step 2
     step2Title: locale === 'ar' ? 'التسعير والإضافات' : 'Pricing & Add-ons',
-    standardPackage: locale === 'ar' ? 'الباقة العادية' : 'Standard Competition',
-    premiumPackage: locale === 'ar' ? 'الباقة المميزة' : 'Premium Competition',
+    standardPackage: locale === 'ar' ? 'المسابقة العادية' : 'Standard Competition',
+    premiumPackage: locale === 'ar' ? 'المسابقة المتميزة' : 'Premium Competition',
     selectedPackage: locale === 'ar' ? 'الباقة المختارة' : 'Selected Package',
     changePackage: locale === 'ar' ? 'تغيير الباقة' : 'Change Package',
     packageLockedHint: locale === 'ar'
@@ -147,8 +147,8 @@ export default function CookingCompetitionBookingPage() {
       ? 'تم اعتماد الباقة القياسية تلقائياً. يمكنك تغييرها من صفحة الباقات.'
       : 'Standard package is preselected by default. You can change it from the packages page.',
     participants: locale === 'ar' ? 'المشاركون' : 'Participants',
-    groups: locale === 'ar' ? 'المجموعات' : 'Groups',
-    dishes: locale === 'ar' ? 'الأطباق لكل مجموعة' : 'Dishes per Group',
+    groups: locale === 'ar' ? 'عدد الفرق' : 'Groups',
+    dishes: locale === 'ar' ? 'عدد الأطباق لكل فريق' : 'Dishes per Group',
     duration: locale === 'ar' ? 'المدة' : 'Duration',
     hours: locale === 'ar' ? 'ساعات' : 'hours',
     gifts: locale === 'ar' ? 'الهدايا' : 'Gifts',
@@ -560,11 +560,13 @@ export default function CookingCompetitionBookingPage() {
                     {(bookingData.packageType === 'PREMIUM'
                       ? PREMIUM_COMPETITION_PRICE_TIERS
                       : STANDARD_COMPETITION_PRICE_TIERS).map((tier) => {
+                      const withinMaxParticipants =
+                        tier.maxParticipants === null || participantsCount <= tier.maxParticipants;
                       const isActive =
                         hasValidParticipants &&
                         tier.pricePerPerson === packageRate &&
                         participantsCount >= tier.minParticipants &&
-                        participantsCount <= tier.maxParticipants;
+                        withinMaxParticipants;
                       return (
                         <tr
                           key={`${tier.minParticipants}-${tier.maxParticipants}`}

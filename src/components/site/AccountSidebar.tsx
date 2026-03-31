@@ -35,7 +35,7 @@ export function AccountSidebar({ locale, role }: AccountSidebarProps) {
           },
         ]
       : []),
-    { key: 'orders', label: isArabic ? 'طلباتي' : 'Orders', href: `/${locale}/account/orders`, icon: FiShoppingBag },
+    { key: 'orders', label: isArabic ? 'طلباتي من المتجر' : 'Orders', href: `/${locale}/account/orders`, icon: FiShoppingBag },
     { key: 'wallet', label: isArabic ? 'المحفظة' : 'Wallet', href: `/${locale}/account/wallet`, icon: FiCreditCard },
     { key: 'notifications', label: isArabic ? 'الإشعارات' : 'Notifications', href: `/${locale}/account/notifications`, icon: FiBell },
     { key: 'settings', label: isArabic ? 'الإعدادات' : 'Settings', href: `/${locale}/account/settings`, icon: FiSettings },

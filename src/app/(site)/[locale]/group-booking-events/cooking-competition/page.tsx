@@ -59,8 +59,8 @@ export default async function CookingCompetitionPage({
       icon: FiUsers,
     },
     {
-      title: isArabic ? "تقسيم الفرق" : "Team Draw",
-      desc: isArabic ? "توزيع المشاركين على فرق وسحب صندوق المكونات." : "Participants are split into teams and receive mystery ingredients.",
+      title: isArabic ? "توزيع المشاركين على الفرق وكشف صندوق المكونات" : "Team Draw",
+      desc: isArabic ? "توزيع المشاركين على الفرق وكشف صندوق المكونات." : "Participants are split into teams and receive mystery ingredients.",
       icon: GiChefToque,
     },
     {
@@ -78,7 +78,7 @@ export default async function CookingCompetitionPage({
   const packageCards = [
     {
       key: "standard" as const,
-      title: isArabic ? "الباقة القياسية" : "Standard Competition",
+      title: isArabic ? "المسابقة العادية" : "Standard Competition",
       participants: isArabic ? "6-40 مشارك" : "6-40 participants",
       priceSummary: isArabic ? "ابتداءً من 16 ر.ع / شخص" : "From 16 OMR / person",
       details: [
@@ -86,9 +86,9 @@ export default async function CookingCompetitionPage({
           label: isArabic ? "مثالية لـ" : "Ideal for",
           value: isArabic ? "بناء الفريق، الأصدقاء، والتجارب الجماعية" : "Team building, friends, and casual group experiences",
         },
-        { label: isArabic ? "عدد المجموعات" : "Number of Groups", value: isArabic ? "2-8 فرق" : "2-8 groups" },
+        { label: isArabic ? "عدد الفرق" : "Number of Groups", value: isArabic ? "2-8 فرق" : "2-8 groups" },
         {
-          label: isArabic ? "الأطباق لكل مجموعة" : "Dishes per Group",
+          label: isArabic ? "عدد الأطباق لكل فريق" : "Dishes per Group",
           value: isArabic ? "1-2 طبق (حسب حجم المجموعة)" : "1-2 dishes (depending on group size)",
         },
         { label: isArabic ? "المدة" : "Duration", value: isArabic ? "3 ساعات" : "3 hours" },
@@ -126,7 +126,7 @@ export default async function CookingCompetitionPage({
     },
     {
       key: "premium" as const,
-      title: isArabic ? "الباقة المميزة" : "Premium Competition",
+      title: isArabic ? "المسابقة المتميزة" : "Premium Competition",
       participants: isArabic ? "6-40 مشارك" : "6-40 participants",
       priceSummary: isArabic ? "ابتداءً من 24 ر.ع / شخص" : "From 24 OMR / person",
       details: [
@@ -134,9 +134,9 @@ export default async function CookingCompetitionPage({
           label: isArabic ? "مثالية لـ" : "Ideal for",
           value: isArabic ? "فعاليات الشركات، الاحتفالات، والتجارب الراقية" : "Corporate events, celebrations, and premium experiences",
         },
-        { label: isArabic ? "عدد المجموعات" : "Number of Groups", value: isArabic ? "2-8 فرق" : "2-8 groups" },
+        { label: isArabic ? "عدد الفرق" : "Number of Groups", value: isArabic ? "2-8 فرق" : "2-8 groups" },
         {
-          label: isArabic ? "الأطباق لكل مجموعة" : "Dishes per Group",
+          label: isArabic ? "عدد الأطباق لكل فريق" : "Dishes per Group",
           value: isArabic ? "2-3 أطباق (حسب حجم المجموعة)" : "2-3 dishes (depending on group size)",
         },
         { label: isArabic ? "المدة" : "Duration", value: isArabic ? "3 ساعات" : "3 hours" },
