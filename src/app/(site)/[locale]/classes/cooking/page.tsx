@@ -89,8 +89,8 @@ function ClassCard({
           <FiBookOpen className="mt-0.5 size-4 shrink-0 text-purple-500" />
           <span>{title}</span>
         </h3>
-        <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
-          <FiCalendar className="size-4 shrink-0 text-teal-500" />
+        <p className="inline-flex items-center gap-2 text-sm font-bold text-[color:var(--text)] sm:text-base">
+          <FiCalendar className="size-5 shrink-0 text-teal-500" />
           {datetimeText}
         </p>
         {trainerName ? (
