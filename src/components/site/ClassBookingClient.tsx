@@ -77,8 +77,18 @@ function buildSelfParticipant(user: CurrentUserLite): Participant {
   return {
     fullName: user.fullName.trim(),
     dateOfBirth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : '',
-    preferredLanguage: user.preferredLanguage === 'ARABIC' ? 'ar-u-nu-latn' : 'en',
+    preferredLanguage: user.preferredLanguage === 'ARABIC' ? 'ar' : 'en',
   };
+}
+
+function calculateAgeFromDateString(dateOfBirth: string, today: Date): number {
+  const dob = new Date(`${dateOfBirth}T00:00:00`);
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1;
+  }
+  return age;
 }
 
 function getTerms(locale: Locale, isMomKid: boolean): { title: string; lines: string[] } {
@@ -235,6 +245,15 @@ export default function ClassBookingClient({
     ageTooYoung: isArabic
       ? `عمر أحد المشاركين أقل من الحد الأدنى المطلوب (${classData.minimumAge ?? 0} سنة).`
       : `A participant is below the minimum age requirement (${classData.minimumAge ?? 0} years).`,
+    momKidPolicy: isArabic
+      ? 'سياسة العمر: من عمر 10 سنوات فأكثر يمكن التسجيل منفرداً. الأعمار 5-9 تتطلب شريكاً بعمر 10+ مع تسجيل الاسمين. أقل من 5 سنوات غير مسموح.'
+      : 'Age policy: 10+ can register alone. Ages 5-9 require a 10+ partner and both names must be registered. Under 5 is not accepted.',
+    momKidUnderFive: isArabic
+      ? 'لا نقبل الأطفال أقل من 5 سنوات في هذه الورشة.'
+      : 'Children under 5 are not accepted in this workshop.',
+    momKidPartnerRequired: isArabic
+      ? 'الأطفال بعمر 5-9 سنوات يحتاجون شريكاً بعمر 10+ مع تسجيل الاسمين.'
+      : 'Children aged 5-9 must be registered with a 10+ partner, and both names must be provided.',
   };
 
   const loadWallet = useCallback(async () => {
@@ -371,15 +390,25 @@ export default function ClassBookingClient({
       }
 
       if (classData.minimumAge != null && classData.minimumAge > 0) {
-        let age = today.getFullYear() - dob.getFullYear();
-        const monthDiff = today.getMonth() - dob.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-          age--;
-        }
+        const age = calculateAgeFromDateString(participant.dateOfBirth, today);
         if (age < classData.minimumAge) {
           setError(t.ageTooYoung);
           return false;
         }
+      }
+    }
+
+    if (isMomKid) {
+      const ages = allParticipants.map((participant) => calculateAgeFromDateString(participant.dateOfBirth, new Date()));
+      if (ages.some((age) => age < 5)) {
+        setError(t.momKidUnderFive);
+        return false;
+      }
+      const hasChildNeedingPartner = ages.some((age) => age >= 5 && age <= 9);
+      const hasTenOrAbovePartner = ages.some((age) => age >= 10);
+      if (hasChildNeedingPartner && (allParticipants.length < 2 || !hasTenOrAbovePartner)) {
+        setError(t.momKidPartnerRequired);
+        return false;
       }
     }
 
@@ -565,6 +594,11 @@ export default function ClassBookingClient({
           {/* ── Participant Details ── */}
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.participants}</h2>
+            {isMomKid ? (
+              <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-300">
+                {t.momKidPolicy}
+              </p>
+            ) : null}
             <div className="mt-4 space-y-5">
 
               {/* Self participant – read-only auto-filled */}

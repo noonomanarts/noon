@@ -9,8 +9,9 @@ function buildSwitchedPath(pathname: string, currentLocale: Locale): string {
   const nextLocale = otherLocale(currentLocale);
   const normalizedPath = pathname || `/${currentLocale}`;
 
-  if (/^\/(en|ar)(?=\/|$)/.test(normalizedPath)) {
-    return normalizedPath.replace(/^\/(en|ar)(?=\/|$)/, `/${nextLocale}`);
+  // Also handle legacy Arabic locale segment to prevent paths like /ar/ar-u-nu-latn/...
+  if (/^\/(en|ar|ar-u-nu-latn)(?=\/|$)/.test(normalizedPath)) {
+    return normalizedPath.replace(/^\/(en|ar|ar-u-nu-latn)(?=\/|$)/, `/${nextLocale}`);
   }
 
   if (normalizedPath.startsWith("/")) {

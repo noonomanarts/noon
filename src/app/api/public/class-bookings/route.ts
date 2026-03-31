@@ -21,6 +21,16 @@ type ParticipantPayload = {
   preferredLanguage: 'en' | 'ar';
 };
 
+function calculateAgeFromDateString(dateOfBirth: string, today: Date): number {
+  const dob = new Date(`${dateOfBirth}T00:00:00`);
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
+
 function parseSafeString(value: unknown, maxLength = 255): string {
   if (typeof value !== 'string') return '';
   return value.trim().slice(0, maxLength);
@@ -184,7 +194,8 @@ export async function POST(request: NextRequest) {
     await client.query('BEGIN');
 
     const classSessionResult = await client.query(
-      `SELECT c.id AS class_id, c.title, c.title_ar, c.price, c.currency, c.seats_total AS class_seats_total, c.status AS class_status,
+            `SELECT c.id AS class_id, c.title, c.title_ar, c.price, c.currency, c.seats_total AS class_seats_total, c.status AS class_status,
+              c.sub_category,
               c.minimum_age,
               s.id AS session_id, s.start_date_time, s.seats_total AS session_seats_total, s.seats_booked, s.is_cancelled
        FROM classes c
@@ -218,18 +229,27 @@ export async function POST(request: NextRequest) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       for (const p of participants) {
-        const dob = new Date(`${p.dateOfBirth}T00:00:00`);
-        let age = today.getFullYear() - dob.getFullYear();
-        const monthDiff = today.getMonth() - dob.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-          age--;
-        }
+        const age = calculateAgeFromDateString(p.dateOfBirth, today);
         if (age < minimumAge) {
           throw new ApiError(
             `A participant is below the minimum age requirement (${minimumAge} years).`,
             400
           );
         }
+      }
+    }
+
+    if (String(classSession.sub_category || '') === 'MOM_AND_KID') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const ages = participants.map((participant) => calculateAgeFromDateString(participant.dateOfBirth, today));
+      if (ages.some((age) => age < 5)) {
+        throw new ApiError('Children under 5 are not accepted in this workshop.', 400);
+      }
+      const hasChildNeedingPartner = ages.some((age) => age >= 5 && age <= 9);
+      const hasTenOrAbovePartner = ages.some((age) => age >= 10);
+      if (hasChildNeedingPartner && (participants.length < 2 || !hasTenOrAbovePartner)) {
+        throw new ApiError('Children aged 5-9 must be registered with a 10+ partner, and both names must be provided.', 400);
       }
     }
 
