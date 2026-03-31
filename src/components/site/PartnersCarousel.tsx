@@ -55,7 +55,7 @@ export default function PartnersCarousel({
       <div className="space-y-4">
         <div
           ref={emblaRef}
-          className="touch-pan-y overflow-hidden select-none"
+          className="mx-10 touch-pan-y overflow-hidden select-none sm:mx-12"
           role="region"
           aria-roledescription="carousel"
           aria-label={isArabic ? "شعارات الشركاء" : "Partner logos"}
@@ -66,7 +66,7 @@ export default function PartnersCarousel({
                 key={item.id}
                 className="min-w-0 flex-[0_0_50%] pe-2 sm:flex-[0_0_33.333%] sm:pe-3 md:flex-[0_0_25%] lg:flex-[0_0_16.6667%]"
               >
-                <div className="group flex min-h-[9.25rem] items-center justify-center rounded-2xl bg-transparent px-3 py-6 text-center text-sm font-semibold text-[color:var(--text-muted)] transition duration-300">
+                <div className="group flex min-h-[7rem] items-center justify-center rounded-2xl bg-transparent px-3 py-3 text-center text-sm font-semibold text-[color:var(--text-muted)] transition duration-300">
                   {item.logoSrc ? (
                     <div className="relative h-20 w-full max-w-[210px]">
                       <Image
@@ -87,12 +87,12 @@ export default function PartnersCarousel({
         </div>
 
         {items.length > 1 ? (
-          <div className="flex items-center justify-end gap-2">
+          <div className="pointer-events-none absolute inset-y-0 left-0 right-0 flex items-center justify-between px-1 sm:px-2">
             <button
               type="button"
               onClick={() => emblaApi?.scrollPrev()}
               disabled={!canScrollPrev}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--muted)]/70 text-[color:var(--text)] transition hover:bg-[color:var(--muted)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-300/60 bg-white/90 text-[color:var(--text)] shadow-sm backdrop-blur transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700/70 dark:bg-zinc-900/85 dark:hover:bg-zinc-900"
               aria-label={isArabic ? "السابق" : "Previous"}
             >
               <FiChevronLeft className="size-5" />
@@ -101,7 +101,7 @@ export default function PartnersCarousel({
               type="button"
               onClick={() => emblaApi?.scrollNext()}
               disabled={!canScrollNext}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--muted)]/70 text-[color:var(--text)] transition hover:bg-[color:var(--muted)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-300/60 bg-white/90 text-[color:var(--text)] shadow-sm backdrop-blur transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700/70 dark:bg-zinc-900/85 dark:hover:bg-zinc-900"
               aria-label={isArabic ? "التالي" : "Next"}
             >
               <FiChevronRight className="size-5" />

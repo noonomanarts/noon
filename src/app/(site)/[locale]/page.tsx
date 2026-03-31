@@ -506,7 +506,7 @@ export default async function HomePage({
               key={c.id}
               className="group flex h-full flex-col overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
             >
-              <Link href={c.href} aria-label={c.title} className="relative block aspect-square overflow-hidden">
+              <Link href={c.href} aria-label={c.title} className="relative block aspect-[3/4] overflow-hidden">
                 <Image src={c.imageSrc} alt={c.title} fill className="object-cover transition duration-500 group-hover:scale-[1.03]" />
               </Link>
               <div className="flex flex-1 flex-col space-y-3 p-4 sm:p-5">
@@ -622,7 +622,7 @@ export default async function HomePage({
       )}
 
       {showPartners && partnerItems.length > 0 && (
-        <Section isArabic={isArabic} title={partnersTitle}>
+        <Section isArabic={isArabic} title={partnersTitle} sectionClassName="py-8 sm:py-10">
         <PartnersCarousel items={partnerItems} isArabic={isArabic} />
         </Section>
       )}

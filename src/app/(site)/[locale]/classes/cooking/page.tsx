@@ -60,7 +60,7 @@ function ClassCard({
     <article className="group flex h-full flex-col overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
       <Link
         href={`/${locale}/classes/${cls.slug}`}
-        className="relative block aspect-square overflow-hidden"
+        className="relative block aspect-[3/4] overflow-hidden"
         aria-label={title}
       >
         {cls.image ? (

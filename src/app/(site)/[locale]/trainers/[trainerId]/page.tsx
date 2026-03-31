@@ -489,7 +489,7 @@ export default async function TrainerProfilePage({
 
                 const cardBody = (
                   <>
-                    <div className="relative aspect-square overflow-hidden bg-zinc-900">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900">
                       {item.kind === "manual" ? (
                         item.mediaType === "YOUTUBE" && item.mediaUrl ? (
                           toYoutubeEmbedUrl(item.mediaUrl) ? (
@@ -635,7 +635,7 @@ export default async function TrainerProfilePage({
                   href={`/${locale}/classes/${cls.slug}`}
                   className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white/85 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900/75"
                 >
-                  <div className="relative aspect-square overflow-hidden">
+                  <div className="relative aspect-[3/4] overflow-hidden">
                     {cls.image ? (
                       <Image
                         src={cls.image as string}

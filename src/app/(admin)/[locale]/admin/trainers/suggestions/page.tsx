@@ -398,7 +398,7 @@ export default function AdminTrainerSuggestionsPage() {
                               <img
                                 src={photo}
                                 alt={`Suggestion ${item.id} photo ${index + 1}`}
-                                className="h-24 w-full object-cover transition group-hover:scale-105"
+                                className="aspect-[3/4] w-full object-cover transition group-hover:scale-105"
                               />
                             </a>
                           ))}

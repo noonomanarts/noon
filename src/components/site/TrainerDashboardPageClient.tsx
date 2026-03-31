@@ -83,6 +83,25 @@ function workshopToDraft(workshop: TrainerDashboardWorkshopPublic): SubmissionDr
   };
 }
 
+async function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const img = new window.Image();
+      img.onload = () => {
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => {
+        reject(new Error('Unable to read image dimensions.'));
+      };
+      img.src = objectUrl;
+    });
+    return dimensions;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 function getSuggestionStatusMeta(status: SuggestionStatus, isArabic: boolean, hasLiveClassId: boolean) {
   const selectLabels = (english: string, arabic: string) => ({
     label: isArabic ? arabic : english,
@@ -284,6 +303,19 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
     try {
       setUploadingSuggestionPhoto(true);
       setMessage(null);
+
+      const { width, height } = await getImageDimensions(file);
+      const ratio = width / height;
+      const targetRatio = 3 / 4;
+      const ratioTolerance = 0.02;
+      if (Math.abs(ratio - targetRatio) > ratioTolerance) {
+        throw new Error(
+          isArabic
+            ? 'يرجى رفع صورة بنسبة 3:4 فقط.'
+            : 'Please upload workshop photos in 3:4 ratio only.'
+        );
+      }
+
       const uploadedUrl = await uploadTrainerSuggestionAsset(file);
       setSuggestionPhotos((prev) => [...prev, uploadedUrl].slice(0, 12));
       setMessage({
@@ -715,7 +747,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                 >
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
-                      <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800">
+                      <div className="relative w-20 flex-shrink-0 overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 aspect-[3/4] dark:border-zinc-700 dark:bg-zinc-800">
                         {workshop.classImage ? (
                           <Image
                             src={workshop.classImage}
@@ -972,7 +1004,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                 {isArabic ? 'صور الورشة المقترحة' : 'Suggested Workshop Photos'}
               </p>
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                {isArabic ? 'PNG/JPG/WEBP حتى 8MB' : 'PNG/JPG/WEBP up to 8MB'}
+                {isArabic ? 'PNG/JPG/WEBP حتى 8MB بنسبة 3:4' : 'PNG/JPG/WEBP up to 8MB in 3:4 ratio'}
               </p>
               <label className="mt-3 inline-flex cursor-pointer items-center rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
                 {uploadingSuggestionPhoto ? (isArabic ? 'جارٍ الرفع...' : 'Uploading...') : isArabic ? 'رفع صورة' : 'Upload Photo'}
@@ -992,7 +1024,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                       <img
                         src={url}
                         alt={`Suggestion upload ${index + 1}`}
-                        className="aspect-square w-full object-cover"
+                        className="aspect-[3/4] w-full object-cover"
                       />
                       <button
                         type="button"
@@ -1130,7 +1162,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                         <img
                           src={photo}
                           alt={`Suggested workshop ${item.id} ${index + 1}`}
-                          className="aspect-square w-full object-cover"
+                          className="aspect-[3/4] w-full object-cover"
                         />
                       </a>
                     ))}

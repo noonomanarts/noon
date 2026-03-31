@@ -1047,7 +1047,7 @@ export default function EditClassPage() {
                         alt={`Gallery ${index + 1}`}
                         width={200}
                         height={200}
-                        className="rounded-lg border border-zinc-200 object-cover w-full aspect-square"
+                        className="rounded-lg border border-zinc-200 object-cover w-full aspect-[3/4]"
                       />
                       <button
                         type="button"
