@@ -66,9 +66,9 @@ export default function PartnersCarousel({
                 key={item.id}
                 className="min-w-0 flex-[0_0_50%] pe-2 sm:flex-[0_0_33.333%] sm:pe-3 md:flex-[0_0_25%] lg:flex-[0_0_16.6667%]"
               >
-                <div className="group flex min-h-[7rem] items-center justify-center rounded-2xl bg-transparent px-3 py-3 text-center text-sm font-semibold text-[color:var(--text-muted)] transition duration-300">
+                <div className="group flex min-h-[5.5rem] items-center justify-center rounded-2xl bg-transparent px-3 py-1 text-center text-sm font-semibold text-[color:var(--text-muted)] transition duration-300">
                   {item.logoSrc ? (
-                    <div className="relative h-20 w-full max-w-[210px]">
+                    <div className="relative h-16 w-full max-w-[210px]">
                       <Image
                         src={item.logoSrc}
                         alt={item.name}

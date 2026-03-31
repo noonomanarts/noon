@@ -433,7 +433,7 @@ export default async function HomePage({
   return (
     <div className="home-sharp relative overflow-x-clip pb-8">
       {showHero && (
-        <section className="relative isolate min-h-[74vh] overflow-hidden border-b border-black/20 sm:min-h-[78vh]">
+        <section className="relative isolate h-screen min-h-screen overflow-hidden border-b border-black/20">
           {heroBackgroundIsVideo ? (
             <video
               className="absolute inset-0 h-full w-full object-cover"
@@ -455,7 +455,7 @@ export default async function HomePage({
             />
           )}
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,8,7,0.25)_0%,rgba(9,8,7,0.45)_45%,rgba(9,8,7,0.68)_100%)]" />
-          <div className="relative z-10 mx-auto flex min-h-[74vh] w-full max-w-6xl items-center justify-center px-4 py-20 text-center sm:min-h-[78vh]">
+          <div className="relative z-10 mx-auto flex h-full min-h-screen w-full max-w-6xl items-center justify-center px-4 py-20 text-center">
             <div className="w-full max-w-5xl">
               <h1
                 className="text-4xl font-black leading-[1.2] tracking-[0.01em] text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:text-5xl lg:text-7xl"
@@ -494,53 +494,59 @@ export default async function HomePage({
         </section>
       )}
 
-      {showUpcoming && upcomingItems.length > 0 && (
+      {showUpcoming && (
         <Section
           isArabic={isArabic}
           title={upcomingTitle}
           sectionClassName="bg-gradient-to-l from-zinc-100 via-zinc-200/55 to-zinc-100 dark:from-zinc-800/70 dark:via-zinc-700/45 dark:to-zinc-800/70"
         >
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {upcomingItems.map((c) => (
-            <article
-              key={c.id}
-              className="group flex h-full flex-col overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-            >
-              <Link href={c.href} aria-label={c.title} className="relative block aspect-[3/4] overflow-hidden">
-                <Image src={c.imageSrc} alt={c.title} fill className="object-cover transition duration-500 group-hover:scale-[1.03]" />
-              </Link>
-              <div className="flex flex-1 flex-col space-y-3 p-4 sm:p-5">
-                <h3 className="line-clamp-2 inline-flex items-start gap-2 text-base font-semibold text-[color:var(--text)] sm:text-lg">
-                  <FiBookOpen className="mt-0.5 size-4 shrink-0 text-purple-500" />
-                  <span>{c.title}</span>
-                </h3>
-                <p className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)] sm:text-base">
-                  <FiCalendar className="size-5 shrink-0 text-teal-500" />
-                  {c.datetimeText}
-                </p>
-                <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
-                  <FiUser className="size-4 shrink-0 text-indigo-500" />
-                  <span className="font-semibold text-[color:var(--text)]">{upcomingTrainerLabel}:</span>
-                  <span>{c.trainerName}</span>
-                </p>
-                <div className="mt-auto pt-2">
-                  <p className="mb-3 inline-flex items-center gap-2 text-2xl font-black leading-none text-[color:var(--text)] sm:text-3xl">
-                    <HiOutlineBanknotes className="size-6 shrink-0 text-emerald-600" />
-                    {c.priceText}
+        {upcomingItems.length > 0 ? (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {upcomingItems.map((c) => (
+              <article
+                key={c.id}
+                className="group flex h-full flex-col overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              >
+                <Link href={c.href} aria-label={c.title} className="relative block aspect-[3/4] overflow-hidden">
+                  <Image src={c.imageSrc} alt={c.title} fill className="object-cover transition duration-500 group-hover:scale-[1.03]" />
+                </Link>
+                <div className="flex flex-1 flex-col space-y-3 p-4 sm:p-5">
+                  <h3 className="line-clamp-2 inline-flex items-start gap-2 text-base font-semibold text-[color:var(--text)] sm:text-lg">
+                    <FiBookOpen className="mt-0.5 size-4 shrink-0 text-purple-500" />
+                    <span>{c.title}</span>
+                  </h3>
+                  <p className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)] sm:text-base">
+                    <FiCalendar className="size-5 shrink-0 text-teal-500" />
+                    {c.datetimeText}
                   </p>
-                  <Link
-                    href={`/${locale}/classes/${c.slug}/book`}
-                    className="inline-flex w-full items-center justify-center gap-1 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
-                    style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
-                  >
-                    {upcomingBookNowLabel}
-                    <FiArrowRight className="size-3.5" />
-                  </Link>
+                  <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
+                    <FiUser className="size-4 shrink-0 text-indigo-500" />
+                    <span className="font-semibold text-[color:var(--text)]">{upcomingTrainerLabel}:</span>
+                    <span>{c.trainerName}</span>
+                  </p>
+                  <div className="mt-auto pt-2">
+                    <p className="mb-3 inline-flex items-center gap-2 text-2xl font-black leading-none text-[color:var(--text)] sm:text-3xl">
+                      <HiOutlineBanknotes className="size-6 shrink-0 text-emerald-600" />
+                      {c.priceText}
+                    </p>
+                    <Link
+                      href={`/${locale}/classes/${c.slug}/book`}
+                      className="inline-flex w-full items-center justify-center gap-1 px-4 py-3 text-sm font-extrabold uppercase tracking-wide transition hover:brightness-95"
+                      style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
+                    >
+                      {upcomingBookNowLabel}
+                      <FiArrowRight className="size-3.5" />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
-        </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center text-sm font-medium text-[color:var(--text-muted)] sm:p-10">
+            {isArabic ? "در حال حاضر کلاسی وجود ندارد." : "No classes are available right now."}
+          </div>
+        )}
 
         {showNumbers && (
           <div className="mt-12 border-t border-[color:var(--border)] pt-10">
@@ -578,7 +584,7 @@ export default async function HomePage({
       )}
 
       {showWhyNoon && (
-        <section className="relative overflow-hidden py-14 sm:py-16">
+        <section className="relative overflow-hidden py-20 sm:py-24">
           {whyNoonBackgroundImage ? (
             <div
               className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center bg-no-repeat bg-fixed"
@@ -622,7 +628,7 @@ export default async function HomePage({
       )}
 
       {showPartners && partnerItems.length > 0 && (
-        <Section isArabic={isArabic} title={partnersTitle} sectionClassName="py-8 sm:py-10">
+        <Section isArabic={isArabic} title={partnersTitle} sectionClassName="pt-14 pb-2 sm:pt-16 sm:pb-3">
         <PartnersCarousel items={partnerItems} isArabic={isArabic} />
         </Section>
       )}
