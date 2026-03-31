@@ -6,6 +6,7 @@ import { registerUser } from "@/lib/authStore";
 import { cookies } from "next/headers";
 import WhatsAppAuthCard from "@/components/site/WhatsAppAuthCard";
 import PasswordInput from "@/components/site/PasswordInput";
+import CountryCodeSelect from "@/components/site/CountryCodeSelect";
 import { isEnglishPassword } from "@/lib/passwordPolicy";
 
 export default async function RegisterPage({
@@ -255,21 +256,18 @@ export default async function RegisterPage({
                 />
               </label>
 
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <div className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 <span className="flex items-center gap-1">
                   {t.phone}
                   <span className="text-red-500">*</span>
                 </span>
-                <input
-                  type="tel"
+                <CountryCodeSelect
+                  locale={locale}
                   name="phone"
                   required
-                  lang="en"
-                  dir="ltr"
-                  placeholder="+966 50 000 0000"
-                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
+                  inputClassName="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
                 />
-              </label>
+              </div>
             </div>
 
             {/* Date of Birth & Language */}
