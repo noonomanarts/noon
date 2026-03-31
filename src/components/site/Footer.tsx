@@ -146,7 +146,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
 
   return (
     <footer
-      className="relative overflow-hidden border-t border-[color:var(--footer-border)] text-[color:var(--footer-text)]"
+      className="relative overflow-hidden text-[color:var(--footer-text)]"
       style={footerStyle}
     >
       <div className="mx-auto w-full max-w-6xl px-4 py-10">
@@ -158,9 +158,9 @@ export default async function Footer({ locale }: { locale: Locale }) {
 
             <div
               dir={isArabic ? "rtl" : "ltr"}
-              className="max-w-[25rem] space-y-2 rounded-2xl border border-[color:var(--footer-border)] bg-[linear-gradient(135deg,var(--footer-panel),transparent)] p-3"
+              className="max-w-[25rem] space-y-2 rounded-2xl bg-[linear-gradient(135deg,var(--footer-panel),transparent)] p-3"
             >
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-[color:var(--footer-border)]/80 bg-[color:var(--footer-panel)]/80 px-2.5 py-2">
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-[color:var(--footer-panel)]/80 px-2.5 py-2">
                 <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.09em] text-[color:var(--footer-soft)]">
                   <FiMapPin className="size-4" />
                   {t.location}
@@ -180,7 +180,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
                 )}
               </div>
 
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-[color:var(--footer-border)]/80 bg-[color:var(--footer-panel)]/80 px-2.5 py-2">
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-[color:var(--footer-panel)]/80 px-2.5 py-2">
                 <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.09em] text-[color:var(--footer-soft)]">
                   <FiPhone className="size-4" />
                   {t.phone}
@@ -198,7 +198,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
                 )}
               </div>
 
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-[color:var(--footer-border)]/80 bg-[color:var(--footer-panel)]/80 px-2.5 py-2">
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-[color:var(--footer-panel)]/80 px-2.5 py-2">
                 <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.09em] text-[color:var(--footer-soft)]">
                   <FiMail className="size-4" />
                   {t.email}
@@ -280,10 +280,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
         </div>
       </div>
 
-      <div
-        className="border-t border-black/20"
-        style={{ backgroundColor: headerColor, color: getReadableTextColor(headerColor) }}
-      >
+      <div style={{ backgroundColor: headerColor, color: getReadableTextColor(headerColor) }}>
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between">
           <p>{copyrightLabel}</p>
           <a

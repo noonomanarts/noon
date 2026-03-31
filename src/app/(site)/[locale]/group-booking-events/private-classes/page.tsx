@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FiArrowRight, FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
 import { GiChefToque, GiPalette } from "react-icons/gi";
 
+import PrivateArtsCraftsQuickPriceCalculator from "@/components/site/PrivateArtsCraftsQuickPriceCalculator";
 import PrivateCookingQuickPriceCalculator from "@/components/site/PrivateCookingQuickPriceCalculator";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
@@ -111,21 +112,23 @@ export default async function PrivateClassesPage({
     {
       key: "arts-crafts" as const,
       title: isArabic ? "جلسة فنون وأشغال خاصة" : "Private Arts & Crafts Class",
-      participants: isArabic ? "6-32 مشارك" : "6-32 participants",
-      priceSummary: isArabic ? "السعر حسب الطلب" : "Price on request",
+      participants: isArabic ? "6+ مشارك" : "6+ participants",
+      priceSummary: isArabic ? "ابتداءً من 15 ر.ع / شخص" : "From 15 OMR / person",
       details: [
         {
           label: isArabic ? "مثالية لـ" : "Ideal for",
-          value: isArabic ? "الفعاليات التعليمية ومجموعات الشركات" : "Educational events and corporate groups",
+          value: isArabic ? "مجموعات الشركات، الأصدقاء، وبناء الفريق" : "Corporate groups, friends, and team building",
         },
         {
           label: isArabic ? "عدد المشاركين" : "Group Size",
-          value: isArabic ? "6-32 مشارك" : "6-32 participants",
+          value: isArabic
+            ? "6-12 في مركز نون، وأكثر من 12 في موقع بديل مناسب"
+            : "6-12 at Noon Center; above 12 at an alternative suitable venue",
         },
         { label: isArabic ? "المدة" : "Duration", value: isArabic ? "2-3 ساعات" : "2-3 hours" },
         {
           label: isArabic ? "نمط الجلسة" : "Session Format",
-          value: isArabic ? "خيارات مشاريع مرنة" : "Flexible project options",
+          value: isArabic ? "فردي" : "Individual",
         },
       ],
       includes: [
@@ -133,6 +136,9 @@ export default async function PrivateClassesPage({
         isArabic ? "جميع أدوات وخامات الفنون مشمولة" : "All arts tools and materials included",
         isArabic ? "تجربة إبداعية موجهة بإشراف فريق نون" : "Creative guided experience by the Noon team",
         isArabic ? "اختيار المشروع وفق هدف المجموعة" : "Project selection tailored to your goals",
+        isArabic
+          ? "للمجموعات الأكبر من 12 قد يتطلب الأمر موقعاً خارجياً، وتضاف تكلفة الإيجار على السعر النهائي"
+          : "For groups above 12, an external venue may be required and rental cost is added to final workshop price",
       ],
       bookingHref: `/${locale}/group-booking-events/private-classes/book?type=arts-crafts`,
     },
@@ -212,32 +218,7 @@ export default async function PrivateClassesPage({
                     <PrivateCookingQuickPriceCalculator locale={locale} />
                   ) : (
                     <>
-                      <div className="mt-5 grid grid-cols-2 gap-3">
-                        <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
-                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
-                            {isArabic ? "المشاركون" : "Participants"}
-                          </p>
-                          <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.participants}</p>
-                        </div>
-                        <div className="rounded-xl bg-[color:var(--surface)]/85 px-3 py-3 text-center shadow-sm">
-                          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
-                            {isArabic ? "السعر" : "Price"}
-                          </p>
-                          <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{pkg.priceSummary}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-5 flex justify-center">
-                        <Link
-                          href={pkg.bookingHref}
-                          className={`inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition ${
-                            isCookingClass ? "bg-teal hover:bg-teal/90" : "bg-coral hover:bg-coral/90"
-                          }`}
-                        >
-                          {isArabic ? "اختر الجلسة" : "Choose Session"}
-                          <FiArrowRight className="size-4" />
-                        </Link>
-                      </div>
+                      <PrivateArtsCraftsQuickPriceCalculator locale={locale} />
                     </>
                   )}
                 </div>
@@ -280,7 +261,7 @@ export default async function PrivateClassesPage({
           <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-[color:var(--text-subtle)]">
             <span className="inline-flex items-center gap-1">
               <FiUsers className="size-3.5" />
-              {isArabic ? "6-32 مشارك" : "6-32 participants"}
+              {isArabic ? "6+ مشارك" : "6+ participants"}
             </span>
             <span className="inline-flex items-center gap-1">
               <FiClock className="size-3.5" />

@@ -73,7 +73,7 @@ export default async function Header({ locale }: { locale: Locale }) {
 
   return (
     <header
-      className="sticky top-0 z-40 border-b border-black/15 shadow-none"
+      className="sticky top-0 z-40 shadow-none"
       style={{ backgroundColor: headerColor }}
     >
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">

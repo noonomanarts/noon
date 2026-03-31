@@ -159,7 +159,7 @@ export default function ContactPageClient({
 
       <section className="mt-8 grid gap-6 lg:grid-cols-[0.95fr_1.55fr]">
         <div className="space-y-4">
-          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+          <div className="rounded-2xl bg-[color:var(--surface)] p-5 shadow-sm">
             <p className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)]">
               <FiMapPin className="size-4 text-coral" />
               {t.visitUs}
@@ -196,7 +196,7 @@ export default function ContactPageClient({
           </div>
 
           {phone ? (
-            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+            <div className="rounded-2xl bg-[color:var(--surface)] p-5 shadow-sm">
               <p className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)]">
                 <FiPhone className="size-4 text-teal" />
                 {t.callUs}
@@ -212,7 +212,7 @@ export default function ContactPageClient({
           ) : null}
 
           {email ? (
-            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
+            <div className="rounded-2xl bg-[color:var(--surface)] p-5 shadow-sm">
               <p className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)]">
                 <FiMail className="size-4 text-teal" />
                 {t.emailUs}

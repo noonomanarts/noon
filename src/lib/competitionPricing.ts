@@ -1,6 +1,6 @@
 export type StandardCompetitionPriceTier = {
   minParticipants: number;
-  maxParticipants: number;
+  maxParticipants: number | null;
   pricePerPerson: number;
 };
 
@@ -25,6 +25,13 @@ export const PRIVATE_COOKING_CLASS_PRICE_TIERS: StandardCompetitionPriceTier[] =
   { minParticipants: 26, maxParticipants: 32, pricePerPerson: 17 },
 ];
 
+export const PRIVATE_ARTS_CRAFTS_CLASS_PRICE_TIERS: StandardCompetitionPriceTier[] = [
+  { minParticipants: 6, maxParticipants: 12, pricePerPerson: 18 },
+  { minParticipants: 13, maxParticipants: 20, pricePerPerson: 17 },
+  { minParticipants: 21, maxParticipants: 30, pricePerPerson: 16 },
+  { minParticipants: 31, maxParticipants: null, pricePerPerson: 15 },
+];
+
 export const BIRTHDAY_PARTY_BASE_INCLUDED_PARTICIPANTS = 16;
 export const BIRTHDAY_PARTY_BASE_AMOUNT = 180;
 export const BIRTHDAY_PARTY_ADDITIONAL_PERSON_AMOUNT = 10;
@@ -39,7 +46,9 @@ function findTier(
 
   return (
     tiers.find(
-      (tier) => participants >= tier.minParticipants && participants <= tier.maxParticipants
+      (tier) =>
+        participants >= tier.minParticipants &&
+        (tier.maxParticipants === null || participants <= tier.maxParticipants)
     ) ?? null
   );
 }
@@ -84,6 +93,18 @@ export function getPrivateCookingClassPricePerPerson(participants: number): numb
 
 export function getPrivateCookingClassTotal(participants: number): number | null {
   return calculateTieredTotal(participants, PRIVATE_COOKING_CLASS_PRICE_TIERS);
+}
+
+export function getPrivateArtsCraftsClassTier(participants: number): StandardCompetitionPriceTier | null {
+  return findTier(participants, PRIVATE_ARTS_CRAFTS_CLASS_PRICE_TIERS);
+}
+
+export function getPrivateArtsCraftsClassPricePerPerson(participants: number): number | null {
+  return getPrivateArtsCraftsClassTier(participants)?.pricePerPerson ?? null;
+}
+
+export function getPrivateArtsCraftsClassTotal(participants: number): number | null {
+  return calculateTieredTotal(participants, PRIVATE_ARTS_CRAFTS_CLASS_PRICE_TIERS);
 }
 
 export function getBirthdayPartyTotal(participants: number): number | null {

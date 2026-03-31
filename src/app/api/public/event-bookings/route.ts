@@ -15,6 +15,7 @@ import { createCalendarEvent } from '@/lib/db/events';
 import {
   getBirthdayPartyTotal,
   getPremiumCompetitionTotal,
+  getPrivateArtsCraftsClassTotal,
   getPrivateCookingClassTotal,
   getStandardCompetitionTotal,
 } from '@/lib/competitionPricing';
@@ -66,14 +67,18 @@ function sanitizeGifts(value: unknown): Array<{
 function validateParticipantsByEvent(
   eventType: string,
   participants: number,
-  packageType?: 'STANDARD' | 'PREMIUM'
+  packageType?: 'STANDARD' | 'PREMIUM',
+  privateClassType?: string
 ): boolean {
   if (!Number.isInteger(participants)) return false;
   if (eventType === 'COOKING_COMPETITION') {
     const minParticipants = packageType === 'PREMIUM' ? 6 : 8;
     return participants >= minParticipants && participants <= 40;
   }
-  if (eventType === 'PRIVATE_CLASS') return participants >= 6 && participants <= 32;
+  if (eventType === 'PRIVATE_CLASS') {
+    if (privateClassType === 'arts-crafts') return participants >= 6;
+    return participants >= 6 && participants <= 32;
+  }
   if (eventType === 'BIRTHDAY_PARTY') return participants >= 1 && participants <= 40;
   return false;
 }
@@ -155,7 +160,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!validateParticipantsByEvent(eventType, numberOfParticipants, packageType)) {
+    if (!validateParticipantsByEvent(eventType, numberOfParticipants, packageType, classTypeRaw)) {
       return NextResponse.json(
         { error: 'Invalid number of participants for this event type' },
         { status: 400 }
@@ -257,6 +262,9 @@ export async function POST(request: NextRequest) {
     } else if (eventType === 'PRIVATE_CLASS' && classTypeRaw === 'cooking') {
       const privateCookingTotal = getPrivateCookingClassTotal(numberOfParticipants);
       totalAmount = (privateCookingTotal ?? 0) + giftsTotal;
+    } else if (eventType === 'PRIVATE_CLASS' && classTypeRaw === 'arts-crafts') {
+      const privateArtsCraftsTotal = getPrivateArtsCraftsClassTotal(numberOfParticipants);
+      totalAmount = (privateArtsCraftsTotal ?? 0) + giftsTotal;
     } else if (eventType === 'BIRTHDAY_PARTY') {
       const birthdayTotal = getBirthdayPartyTotal(numberOfParticipants);
       totalAmount = (birthdayTotal ?? 0) + giftsTotal;
@@ -274,6 +282,9 @@ export async function POST(request: NextRequest) {
     const metadataParts: string[] = [];
     if (eventType === 'PRIVATE_CLASS' && PRIVATE_CLASS_TYPES.has(classTypeRaw)) {
       metadataParts.push(`Private class type: ${classTypeRaw}`);
+      if (classTypeRaw === 'arts-crafts' && numberOfParticipants > 12) {
+        metadataParts.push('External venue may be required; rental cost will be added to final workshop price');
+      }
     }
     if (eventType === 'BIRTHDAY_PARTY') {
       metadataParts.push(`Child age: ${childAge}`);

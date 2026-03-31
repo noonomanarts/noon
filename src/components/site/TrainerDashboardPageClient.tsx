@@ -203,6 +203,13 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
         .slice(0, 30);
 
       const highlightedIngredients = parseIngredients(draft.ingredientsText);
+      const isReadyToSubmit = Boolean(
+        draft.recipePdf.trim()
+        && draft.groceryList.trim()
+        && draft.workshopBrief.trim()
+        && photos.length > 0
+        && highlightedIngredients.length > 0
+      );
 
       const response = await fetch(`/api/account/trainer/workshops/${sessionId}/submission`, {
         method: 'PATCH',
@@ -213,7 +220,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
           workshopBrief: draft.workshopBrief,
           trainerPhotos: photos,
           highlightedIngredients,
-          recipeSubmitted: true,
+          recipeSubmitted: isReadyToSubmit,
         }),
       });
 
@@ -239,7 +246,9 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
 
       setMessage({
         type: 'success',
-        text: isArabic ? 'تم حفظ إرسال الورشة بنجاح.' : 'Workshop submission saved successfully.',
+        text: isReadyToSubmit
+          ? (isArabic ? 'تم إرسال الورشة بنجاح.' : 'Workshop submitted successfully.')
+          : (isArabic ? 'تم حفظ المسودة. أكمل الحقول المتبقية للإرسال النهائي.' : 'Draft saved. Complete the remaining fields to submit.'),
       });
     } catch (error) {
       setMessage({
@@ -561,6 +570,17 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
           <div className="space-y-4">
             {ongoingWorkshops.map((workshop) => {
               const draft = submissionDrafts[workshop.sessionId] || workshopToDraft(workshop);
+              const isDraftReadyToSubmit = Boolean(
+                draft.recipePdf.trim()
+                && draft.groceryList.trim()
+                && draft.workshopBrief.trim()
+                && draft.photosText
+                  .split('\n')
+                  .map((item) => item.trim())
+                  .filter((item) => item.length > 0)
+                  .length > 0
+                && parseIngredients(draft.ingredientsText).length > 0
+              );
 
               return (
                 <div key={workshop.sessionId} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
@@ -652,9 +672,9 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                         ? isArabic
                           ? 'جارٍ الحفظ...'
                           : 'Saving...'
-                        : isArabic
-                          ? 'حفظ الإرسال'
-                          : 'Save Submission'}
+                        : isDraftReadyToSubmit
+                          ? (isArabic ? 'إرسال الورشة' : 'Submit Workshop')
+                          : (isArabic ? 'حفظ كمسودة' : 'Save Draft')}
                     </button>
                   </div>
                 </div>
