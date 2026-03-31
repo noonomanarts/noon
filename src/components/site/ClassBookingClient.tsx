@@ -710,20 +710,14 @@ export default function ClassBookingClient({
           </div>
 
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-[color:var(--text)]">{terms.title}</h2>
-            <ul className="mt-3 list-disc space-y-1 ps-5 text-sm text-[color:var(--text-muted)]">
-              {terms.lines.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-            <p className="mt-3 text-xs text-[color:var(--text-subtle)]">
-              <Link href={`/${locale}/terms`} className="underline">
-                {isArabic ? 'قراءة صفحة الشروط الكاملة' : 'Read full terms page'}
-              </Link>
-            </p>
-            <label className="mt-4 flex items-start gap-2 text-sm text-[color:var(--text)]">
+            <label className="flex items-start gap-2 text-sm text-[color:var(--text)]">
               <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-0.5" />
-              <span>{t.agree}</span>
+              <span>
+                {isArabic ? 'أوافق على ' : 'I agree to the '}
+                <Link href={`/${locale}/terms`} className="underline font-medium text-blue-600 hover:text-blue-800">
+                  {isArabic ? 'الشروط والأحكام' : 'terms and conditions'}
+                </Link>
+              </span>
             </label>
           </div>
 
