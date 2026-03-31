@@ -83,7 +83,7 @@ function formatSessionDateTime(value: Date | string | null, locale: Locale): str
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "";
 
-  return date.toLocaleString(locale === "ar" ? "ar" : "en-GB", {
+  return date.toLocaleString(locale === "ar" ? "ar-u-nu-latn" : "en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
   });

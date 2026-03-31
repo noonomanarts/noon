@@ -9,5 +9,5 @@ export function getDir(locale: Locale): "ltr" | "rtl" {
 }
 
 export function otherLocale(locale: Locale): Locale {
-  return locale === "en" ? "ar" : "en";
+  return locale === "en" ? "ar-u-nu-latn" : "en";
 }

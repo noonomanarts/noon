@@ -11,7 +11,7 @@ export default function LocaleSync() {
   useEffect(() => {
     const isArabic = pathname.startsWith("/ar");
     const html = document.documentElement;
-    const currentLocale = isArabic ? "ar" : "en";
+    const currentLocale = isArabic ? "ar-u-nu-latn" : "en";
 
     // Update HTML attributes
     if (isArabic) {
