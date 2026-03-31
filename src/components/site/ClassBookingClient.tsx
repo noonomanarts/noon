@@ -24,6 +24,16 @@ type Participant = {
   preferredLanguage: 'en' | 'ar';
 };
 
+type SavedParticipant = {
+  id: string;
+  label: string | null;
+  fullName: string;
+  dateOfBirth: string;
+  preferredLanguage: 'en' | 'ar';
+};
+
+type RegistrationType = 'self' | 'other' | 'both';
+
 type CurrentUserLite = {
   fullName: string;
   email: string;
@@ -141,9 +151,11 @@ export default function ClassBookingClient({
     sessions.find((session) => session.seatsAvailable > 0)?.id ??
     sessions[0]?.id ??
     '';
-  const [bookingFor, setBookingFor] = useState<'self' | 'other'>('self');
-  const [participantCount, setParticipantCount] = useState(1);
-  const [participants, setParticipants] = useState<Participant[]>([selfDefaultParticipant]);
+  const [bookingFor, setBookingFor] = useState<RegistrationType>('self');
+  const [otherCount, setOtherCount] = useState(1);
+  const [otherParticipants, setOtherParticipants] = useState<Participant[]>([emptyParticipant()]);
+  const [savedList, setSavedList] = useState<SavedParticipant[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<string>(defaultSessionId);
   const [specialRequests, setSpecialRequests] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -159,9 +171,20 @@ export default function ClassBookingClient({
   const selectedSession = sessions.find((session) => session.id === selectedSessionId) ?? sessions[0] ?? null;
   const seatsAvailable = selectedSession?.seatsAvailable ?? 0;
   const hasBookableSeats = seatsAvailable > 0;
-  const maxParticipantsAllowed = Math.max(0, Math.min(10, seatsAvailable));
-  const participantOptionMax = Math.max(1, maxParticipantsAllowed);
-  const totalAmount = Number((classData.price * participantCount).toFixed(3));
+
+  const selfIncluded = bookingFor === 'self' || bookingFor === 'both';
+  const othersIncluded = bookingFor === 'other' || bookingFor === 'both';
+  const totalParticipants = (selfIncluded ? 1 : 0) + (othersIncluded ? otherCount : 0);
+  const allParticipants: Participant[] = useMemo(() => {
+    const list: Participant[] = [];
+    if (selfIncluded) list.push(selfDefaultParticipant);
+    if (othersIncluded) list.push(...otherParticipants.slice(0, otherCount));
+    return list;
+  }, [selfIncluded, othersIncluded, selfDefaultParticipant, otherParticipants, otherCount]);
+
+  const maxOthersAllowed = Math.max(0, Math.min(10, seatsAvailable) - (selfIncluded ? 1 : 0));
+  const otherOptionMax = Math.max(1, maxOthersAllowed);
+  const totalAmount = Number((classData.price * totalParticipants).toFixed(3));
   const hasEnoughBalance = (wallet?.balance ?? 0) >= totalAmount;
   const isMomKid = classData.subCategory === 'MOM_AND_KID';
   const terms = getTerms(locale, isMomKid);
@@ -183,7 +206,8 @@ export default function ClassBookingClient({
     bookingFor: isArabic ? 'نوع التسجيل' : 'Registration Type',
     self: isArabic ? 'أنا أحضر هذه الدورة' : 'I am attending this class',
     other: isArabic ? 'أسجل نيابة عن شخص آخر' : 'I am registering on behalf of someone else',
-    participantsCount: isArabic ? 'عدد المشاركين' : 'Number of Participants',
+    both: isArabic ? 'أنا أحضر وأسجل أيضاً نيابة عن شخص آخر' : 'I am attending this class and registering on behalf of someone else',
+    participantsCount: isArabic ? 'عدد المشاركين الإضافيين' : 'Number of Participants',
     participants: isArabic ? 'بيانات المشاركين' : 'Participants Details',
     participant: isArabic ? 'مشارك' : 'Participant',
     fullName: isArabic ? 'الاسم الكامل' : 'Full Name',
@@ -209,6 +233,9 @@ export default function ClassBookingClient({
     soldOut: isArabic ? 'المقاعد مكتملة' : 'Sold out',
     noSeats: isArabic ? 'هذه الجلسة ممتلئة حالياً. اختر جلسة أخرى.' : 'This session is currently full. Please choose another session.',
     insufficient: isArabic ? 'رصيد المحفظة المستخدم داخل الموقع غير كافٍ لإتمام الدفع.' : 'Your website wallet balance is insufficient for this payment.',
+    yourDetails: isArabic ? 'بياناتك (تلقائية)' : 'Your Details (auto-filled)',
+    selectSaved: isArabic ? 'اختر مشارك محفوظ...' : 'Select saved participant...',
+    newParticipant: isArabic ? 'مشارك جديد' : 'New participant',
   };
 
   const loadWallet = useCallback(async () => {
@@ -232,34 +259,45 @@ export default function ClassBookingClient({
     void loadWallet();
   }, [loadWallet]);
 
-  useEffect(() => {
-    const next: Participant[] = Array.from({ length: participantCount }, (_, index) => {
-      const previous = participants[index];
-      if (previous) return previous;
-      return emptyParticipant();
-    });
-
-    if (bookingFor === 'self') {
-      next[0] = selfDefaultParticipant;
+  /* Load saved participants on mount */
+  const loadSavedParticipants = useCallback(async () => {
+    setLoadingSaved(true);
+    try {
+      const res = await fetch('/api/public/saved-participants', { cache: 'no-store' });
+      if (res.ok) {
+        const data = (await res.json()) as SavedParticipant[];
+        setSavedList(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      /* ignore – saved list is optional */
+    } finally {
+      setLoadingSaved(false);
     }
+  }, []);
 
-    setParticipants(next);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [participantCount, bookingFor, selfDefaultParticipant]);
+  useEffect(() => {
+    void loadSavedParticipants();
+  }, [loadSavedParticipants]);
 
+  /* Keep otherParticipants array in sync with otherCount */
+  useEffect(() => {
+    setOtherParticipants((prev) => {
+      const next: Participant[] = Array.from({ length: otherCount }, (_, i) => prev[i] ?? emptyParticipant());
+      return next;
+    });
+  }, [otherCount]);
+
+  /* Clamp otherCount when seats change */
   useEffect(() => {
     if (!selectedSession) return;
-    if (maxParticipantsAllowed === 0) {
-      if (participantCount !== 1) {
-        setParticipantCount(1);
-      }
+    if (maxOthersAllowed === 0 && otherCount !== 1) {
+      setOtherCount(1);
       return;
     }
-
-    if (participantCount > maxParticipantsAllowed) {
-      setParticipantCount(maxParticipantsAllowed);
+    if (otherCount > maxOthersAllowed) {
+      setOtherCount(Math.max(1, maxOthersAllowed));
     }
-  }, [maxParticipantsAllowed, participantCount, selectedSession]);
+  }, [maxOthersAllowed, otherCount, selectedSession]);
 
   useEffect(() => {
     const topupStatus = searchParams.get('topup');
@@ -282,12 +320,24 @@ export default function ClassBookingClient({
     }
   }, [isArabic, loadWallet, searchParams]);
 
-  const updateParticipant = (index: number, key: keyof Participant, value: string) => {
-    setParticipants((prev) => {
+  const updateOtherParticipant = (index: number, key: keyof Participant, value: string) => {
+    setOtherParticipants((prev) => {
       const next = [...prev];
       next[index] = {
         ...next[index],
         [key]: value,
+      };
+      return next;
+    });
+  };
+
+  const applySavedParticipant = (index: number, saved: SavedParticipant) => {
+    setOtherParticipants((prev) => {
+      const next = [...prev];
+      next[index] = {
+        fullName: saved.fullName,
+        dateOfBirth: saved.dateOfBirth,
+        preferredLanguage: saved.preferredLanguage,
       };
       return next;
     });
@@ -302,12 +352,12 @@ export default function ClassBookingClient({
       setError(t.noSeats);
       return false;
     }
-    if (participantCount > selectedSession.seatsAvailable) {
+    if (totalParticipants > selectedSession.seatsAvailable) {
       setError(t.seatsError);
       return false;
     }
 
-    for (const participant of participants) {
+    for (const participant of allParticipants) {
       if (participant.fullName.trim().length === 0 || participant.dateOfBirth.trim().length === 0) {
         setError(t.required);
         return false;
@@ -397,8 +447,8 @@ export default function ClassBookingClient({
         body: JSON.stringify({
           classId: classData.id,
           sessionId: selectedSession.id,
-          numberOfParticipants: participantCount,
-          participants,
+          numberOfParticipants: totalParticipants,
+          participants: allParticipants,
           termsAccepted,
           specialRequests,
         }),
@@ -411,6 +461,23 @@ export default function ClassBookingClient({
 
       setResult(payload as BookingResult);
       setWallet((payload as BookingResult).wallet);
+
+      /* Auto-save other participants for future bookings (fire & forget) */
+      if (othersIncluded) {
+        for (const p of otherParticipants.slice(0, otherCount)) {
+          if (p.fullName.trim()) {
+            void fetch('/api/public/saved-participants', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fullName: p.fullName.trim(),
+                dateOfBirth: p.dateOfBirth,
+                preferredLanguage: p.preferredLanguage,
+              }),
+            }).catch(() => {});
+          }
+        }
+      }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Booking failed.');
     } finally {
@@ -479,56 +546,137 @@ export default function ClassBookingClient({
             onSelect={setSelectedSessionId}
           />
 
+          {/* ── Registration Type ── */}
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.bookingFor}</h2>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <label className="flex items-center gap-2 rounded-xl border border-[color:var(--border)] px-3 py-2 text-sm text-[color:var(--text)]">
-                <input type="radio" checked={bookingFor === 'self'} onChange={() => setBookingFor('self')} />
-                <span>{t.self}</span>
-              </label>
-              <label className="flex items-center gap-2 rounded-xl border border-[color:var(--border)] px-3 py-2 text-sm text-[color:var(--text)]">
-                <input type="radio" checked={bookingFor === 'other'} onChange={() => setBookingFor('other')} />
-                <span>{t.other}</span>
-              </label>
+            <div className="mt-4 grid gap-2">
+              {([
+                { value: 'self' as RegistrationType, label: t.self },
+                { value: 'other' as RegistrationType, label: t.other },
+                { value: 'both' as RegistrationType, label: t.both },
+              ]).map((opt) => (
+                <label
+                  key={opt.value}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition cursor-pointer ${
+                    bookingFor === opt.value
+                      ? 'border-[color:var(--primary)] bg-[color:var(--primary)]/5 text-[color:var(--text)]'
+                      : 'border-[color:var(--border)] text-[color:var(--text)]'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="registrationType"
+                    checked={bookingFor === opt.value}
+                    onChange={() => setBookingFor(opt.value)}
+                  />
+                  <span>{opt.label}</span>
+                </label>
+              ))}
             </div>
 
-            <label className="mt-4 block text-sm">
-              <span className="mb-1 block text-[color:var(--text)]">{t.participantsCount}</span>
-              <select
-                value={participantCount}
-                onChange={(event) => setParticipantCount(Number(event.target.value))}
-                disabled={!hasBookableSeats}
-                className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
-              >
-                {Array.from({ length: participantOptionMax }, (_, index) => index + 1).map((count) => (
-                  <option key={count} value={count}>
-                    {count}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {/* Participant count selector – shown only when registering others */}
+            {othersIncluded && (
+              <label className="mt-4 block text-sm">
+                <span className="mb-1 block text-[color:var(--text)]">{t.participantsCount}</span>
+                <select
+                  value={otherCount}
+                  onChange={(event) => setOtherCount(Number(event.target.value))}
+                  disabled={!hasBookableSeats}
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                >
+                  {Array.from({ length: otherOptionMax }, (_, index) => index + 1).map((count) => (
+                    <option key={count} value={count}>
+                      {count}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             {!hasBookableSeats && (
               <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">{t.noSeats}</p>
             )}
           </div>
 
+          {/* ── Participant Details ── */}
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.participants}</h2>
             <div className="mt-4 space-y-5">
-              {participants.map((participant, index) => (
-                <div
-                  key={`participant-${index}`}
-                  className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4"
-                >
+
+              {/* Self participant – read-only auto-filled */}
+              {selfIncluded && (
+                <div className="rounded-xl border border-[color:var(--primary)]/30 bg-[color:var(--primary)]/5 p-4">
                   <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">
-                    {t.participant} {index + 1}
+                    {t.yourDetails}
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <label className="text-sm">
                       <span className="mb-1.5 block text-[color:var(--text)]">{t.fullName}</span>
                       <input
+                        value={selfDefaultParticipant.fullName}
+                        readOnly
+                        disabled
+                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-sm text-[color:var(--text)] opacity-70 cursor-not-allowed"
+                      />
+                    </label>
+                    <label className="text-sm">
+                      <span className="mb-1.5 block text-[color:var(--text)]">{t.dateOfBirth}</span>
+                      <input
+                        type="date"
+                        value={selfDefaultParticipant.dateOfBirth}
+                        readOnly
+                        disabled
+                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-sm text-[color:var(--text)] opacity-70 cursor-not-allowed"
+                      />
+                    </label>
+                    <label className="text-sm">
+                      <span className="mb-1.5 block text-[color:var(--text)]">{t.preferredLanguage}</span>
+                      <select
+                        value={selfDefaultParticipant.preferredLanguage}
+                        disabled
+                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-sm text-[color:var(--text)] opacity-70 cursor-not-allowed"
+                      >
+                        <option value="en">{isArabic ? 'الإنجليزية' : 'English'}</option>
+                        <option value="ar">{isArabic ? 'العربية' : 'Arabic'}</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Other participants – editable, with saved participants selector */}
+              {othersIncluded && otherParticipants.slice(0, otherCount).map((participant, index) => (
+                <div
+                  key={`other-${index}`}
+                  className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4"
+                >
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-[color:var(--text)]">
+                      {t.participant} {selfIncluded ? index + 2 : index + 1}
+                    </p>
+                    {savedList.length > 0 && (
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const saved = savedList.find((s) => s.id === e.target.value);
+                          if (saved) applySavedParticipant(index, saved);
+                        }}
+                        className="rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] px-2 py-1 text-xs text-[color:var(--text)]"
+                      >
+                        <option value="">{loadingSaved ? '...' : t.selectSaved}</option>
+                        {savedList.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.label ?? s.fullName}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <label className="text-sm">
+                      <span className="mb-1.5 block text-[color:var(--text)]">{t.fullName}</span>
+                      <input
                         value={participant.fullName}
-                        onChange={(event) => updateParticipant(index, 'fullName', event.target.value)}
+                        onChange={(event) => updateOtherParticipant(index, 'fullName', event.target.value)}
                         placeholder={t.fullName}
                         autoComplete="name"
                         className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
@@ -539,7 +687,7 @@ export default function ClassBookingClient({
                       <input
                         type="date"
                         value={participant.dateOfBirth}
-                        onChange={(event) => updateParticipant(index, 'dateOfBirth', event.target.value)}
+                        onChange={(event) => updateOtherParticipant(index, 'dateOfBirth', event.target.value)}
                         max={new Date().toISOString().split('T')[0]}
                         className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
                       />
@@ -548,7 +696,7 @@ export default function ClassBookingClient({
                       <span className="mb-1.5 block text-[color:var(--text)]">{t.preferredLanguage}</span>
                       <select
                         value={participant.preferredLanguage}
-                        onChange={(event) => updateParticipant(index, 'preferredLanguage', event.target.value)}
+                        onChange={(event) => updateOtherParticipant(index, 'preferredLanguage', event.target.value)}
                         className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
                       >
                         <option value="en">{isArabic ? 'الإنجليزية' : 'English'}</option>
@@ -603,7 +751,7 @@ export default function ClassBookingClient({
             </div>
             <div className="flex items-center justify-between">
               <span>{t.participantsCount}</span>
-              <span className="font-semibold">{participantCount}</span>
+              <span className="font-semibold">{totalParticipants}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>{t.walletBalance}</span>
