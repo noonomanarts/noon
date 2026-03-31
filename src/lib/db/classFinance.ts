@@ -170,15 +170,17 @@ function sanitizeInventoryUsageItems(value: unknown): ClassInventoryUsageInput[]
       const item = row as Record<string, unknown>;
       const inventoryItemId = typeof item.inventoryItemId === 'string' ? item.inventoryItemId.trim() : '';
       const quantity = toMoney(item.quantity);
+      const manualCostAmount = item.manualCostAmount == null ? 0 : toMoney(item.manualCostAmount);
       const notes = typeof item.notes === 'string' ? item.notes.trim().slice(0, 1000) : '';
 
-      if (!inventoryItemId || quantity <= 0) {
+      if (!inventoryItemId || (quantity <= 0 && manualCostAmount <= 0)) {
         return null;
       }
 
       return {
         inventoryItemId,
         quantity,
+        manualCostAmount: manualCostAmount > 0 ? manualCostAmount : null,
         notes: notes || null,
       };
     })

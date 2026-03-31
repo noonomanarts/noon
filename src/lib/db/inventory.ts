@@ -17,6 +17,7 @@ export type InventoryItem = {
   totalPurchaseCost: number;
   totalConsumedCost: number;
   currency: string;
+  allowsManualCost: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -29,6 +30,7 @@ export type InventoryCatalogItem = {
   currentStock: number;
   averageUnitCost: number;
   reorderLevel: number;
+  allowsManualCost: boolean;
   isLowStock: boolean;
 };
 
@@ -85,6 +87,7 @@ export type InventoryOverview = {
 export type ClassInventoryUsageInput = {
   inventoryItemId: string;
   quantity: number;
+  manualCostAmount?: number | null;
   notes?: string | null;
 };
 
@@ -97,6 +100,7 @@ export type ClassInventoryUsageItem = {
   quantity: number;
   unitCost: number;
   totalCost: number;
+  manualCostAmount: number | null;
   notes: string | null;
   status: 'PLANNED' | 'POSTED';
   postedAt: string | null;
@@ -120,15 +124,17 @@ function sanitizeText(value: unknown, max: number): string | null {
 }
 
 function normalizeUsageItems(items: ClassInventoryUsageInput[]): ClassInventoryUsageInput[] {
-  const grouped = new Map<string, { quantity: number; notes: string[] }>();
+  const grouped = new Map<string, { quantity: number; manualCostAmount: number; notes: string[] }>();
 
   for (const item of items) {
     const inventoryItemId = String(item.inventoryItemId || '').trim();
     const quantity = toMoney(item.quantity);
-    if (!inventoryItemId || quantity <= 0) continue;
+    const manualCostAmount = toMoney(item.manualCostAmount ?? 0);
+    if (!inventoryItemId || (quantity <= 0 && manualCostAmount <= 0)) continue;
 
-    const bucket = grouped.get(inventoryItemId) ?? { quantity: 0, notes: [] };
+    const bucket = grouped.get(inventoryItemId) ?? { quantity: 0, manualCostAmount: 0, notes: [] };
     bucket.quantity = toMoney(bucket.quantity + quantity);
+    bucket.manualCostAmount = toMoney(bucket.manualCostAmount + manualCostAmount);
     if (item.notes) {
       const note = String(item.notes).trim().slice(0, 500);
       if (note) bucket.notes.push(note);
@@ -139,6 +145,7 @@ function normalizeUsageItems(items: ClassInventoryUsageInput[]): ClassInventoryU
   return Array.from(grouped.entries()).map(([inventoryItemId, item]) => ({
     inventoryItemId,
     quantity: item.quantity,
+    manualCostAmount: item.manualCostAmount > 0 ? item.manualCostAmount : null,
     notes: item.notes.length > 0 ? item.notes.join(' | ').slice(0, 1000) : null,
   }));
 }
@@ -159,6 +166,7 @@ export async function ensureInventorySchema(): Promise<void> {
         total_purchase_cost DECIMAL(12, 3) NOT NULL DEFAULT 0 CHECK (total_purchase_cost >= 0),
         total_consumed_cost DECIMAL(12, 3) NOT NULL DEFAULT 0 CHECK (total_consumed_cost >= 0),
         currency VARCHAR(10) NOT NULL DEFAULT 'OMR',
+        allows_manual_cost BOOLEAN NOT NULL DEFAULT FALSE,
         is_active BOOLEAN NOT NULL DEFAULT TRUE,
         created_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
         updated_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -170,6 +178,7 @@ export async function ensureInventorySchema(): Promise<void> {
     await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_inventory_items_sku_unique ON inventory_items((LOWER(sku))) WHERE sku IS NOT NULL`);
     await query(`CREATE INDEX IF NOT EXISTS idx_inventory_items_name ON inventory_items(name)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_inventory_items_active ON inventory_items(is_active)`);
+    await query(`ALTER TABLE inventory_items ADD COLUMN IF NOT EXISTS allows_manual_cost BOOLEAN NOT NULL DEFAULT FALSE`);
 
     await query(`
       CREATE TABLE IF NOT EXISTS inventory_purchases (
@@ -234,6 +243,7 @@ export async function ensureInventorySchema(): Promise<void> {
         quantity DECIMAL(12, 3) NOT NULL CHECK (quantity > 0),
         unit_cost DECIMAL(12, 3) NOT NULL DEFAULT 0 CHECK (unit_cost >= 0),
         total_cost DECIMAL(12, 3) NOT NULL DEFAULT 0 CHECK (total_cost >= 0),
+        manual_cost_amount DECIMAL(12, 3),
         notes TEXT,
         status VARCHAR(20) NOT NULL DEFAULT 'PLANNED' CHECK (status IN ('PLANNED', 'POSTED')),
         posted_movement_id UUID REFERENCES inventory_movements(id) ON DELETE SET NULL,
@@ -247,6 +257,22 @@ export async function ensureInventorySchema(): Promise<void> {
     await query(`CREATE INDEX IF NOT EXISTS idx_class_inventory_usages_class_id ON class_inventory_usages(class_id)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_class_inventory_usages_item_id ON class_inventory_usages(inventory_item_id)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_class_inventory_usages_status ON class_inventory_usages(status)`);
+    await query(`ALTER TABLE class_inventory_usages ADD COLUMN IF NOT EXISTS manual_cost_amount DECIMAL(12, 3)`);
+
+    await query(
+      `INSERT INTO inventory_items (
+         name, unit, reorder_level, current_stock, average_unit_cost,
+         total_purchase_cost, total_consumed_cost, currency, allows_manual_cost, is_active,
+         created_by_user_id, updated_by_user_id, created_at, updated_at
+       )
+       SELECT
+         'General Materials Pool', 'credit', 0, 0, 1,
+         0, 0, 'OMR', TRUE, TRUE,
+         NULL, NULL, NOW(), NOW()
+       WHERE NOT EXISTS (
+         SELECT 1 FROM inventory_items WHERE allows_manual_cost = TRUE
+       )`
+    );
   })().catch((error) => {
     inventorySchemaReady = null;
     throw error;
@@ -271,6 +297,7 @@ function mapInventoryItem(row: QueryResultRow): InventoryItem {
     totalPurchaseCost: toMoney(row.total_purchase_cost),
     totalConsumedCost: toMoney(row.total_consumed_cost),
     currency: String(row.currency || 'OMR'),
+    allowsManualCost: Boolean(row.allows_manual_cost),
     isActive: Boolean(row.is_active),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -296,7 +323,7 @@ export async function listInventoryCatalog(db: Queryable = { query }): Promise<I
   await ensureInventorySchema();
 
   const result = await db.query(
-    `SELECT id, name, unit, reorder_level, current_stock, average_unit_cost
+    `SELECT id, name, unit, reorder_level, current_stock, average_unit_cost, allows_manual_cost
      FROM inventory_items
      WHERE is_active = TRUE
      ORDER BY name ASC`
@@ -313,6 +340,7 @@ export async function listInventoryCatalog(db: Queryable = { query }): Promise<I
       currentStock,
       averageUnitCost: toMoney(row.average_unit_cost),
       reorderLevel,
+      allowsManualCost: Boolean(row.allows_manual_cost),
       isLowStock: reorderLevel > 0 && currentStock <= reorderLevel,
     };
   });
@@ -324,6 +352,7 @@ export async function createInventoryItem(input: {
   unit?: string | null;
   reorderLevel?: number;
   currency?: string | null;
+  allowsManualCost?: boolean;
   adminUserId: string;
 }): Promise<InventoryItem> {
   await ensureInventorySchema();
@@ -337,13 +366,14 @@ export async function createInventoryItem(input: {
   const unit = sanitizeText(input.unit, 40) ?? 'unit';
   const reorderLevel = Math.max(0, toMoney(input.reorderLevel ?? 0));
   const currency = sanitizeText(input.currency, 10) ?? 'OMR';
+  const allowsManualCost = Boolean(input.allowsManualCost);
 
   const result = await query(
     `INSERT INTO inventory_items (
-       name, sku, unit, reorder_level, currency, created_by_user_id, updated_by_user_id, created_at, updated_at
-     ) VALUES ($1, $2, $3, $4, $5, $6, $6, NOW(), NOW())
+       name, sku, unit, reorder_level, currency, allows_manual_cost, created_by_user_id, updated_by_user_id, created_at, updated_at
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $7, NOW(), NOW())
      RETURNING *`,
-    [name, sku, unit, reorderLevel, currency, input.adminUserId]
+    [name, sku, unit, reorderLevel, currency, allowsManualCost, input.adminUserId]
   );
 
   const row = result.rows[0];
@@ -633,6 +663,7 @@ export async function listClassInventoryUsageItems(classId: string, db: Queryabl
             u.quantity,
             u.unit_cost,
             u.total_cost,
+            u.manual_cost_amount,
             u.notes,
             u.status,
             u.posted_at,
@@ -656,6 +687,7 @@ export async function listClassInventoryUsageItems(classId: string, db: Queryabl
     quantity: toMoney(row.quantity),
     unitCost: toMoney(row.unit_cost),
     totalCost: toMoney(row.total_cost),
+    manualCostAmount: row.manual_cost_amount == null ? null : toMoney(row.manual_cost_amount),
     notes: row.notes ? String(row.notes) : null,
     status: String(row.status) === 'POSTED' ? 'POSTED' : 'PLANNED',
     postedAt: row.posted_at ? String(row.posted_at) : null,
@@ -682,7 +714,7 @@ export async function replaceClassInventoryUsagePlans(params: {
 
   const itemIds = normalized.map((item) => item.inventoryItemId);
   const itemsResult = await params.db.query(
-    `SELECT id, average_unit_cost
+    `SELECT id, average_unit_cost, current_stock, allows_manual_cost
      FROM inventory_items
      WHERE id = ANY($1::uuid[])
      FOR UPDATE`,
@@ -700,15 +732,49 @@ export async function replaceClassInventoryUsagePlans(params: {
       throw new Error('One of the selected inventory items does not exist');
     }
 
-    const unitCost = toMoney(itemRow.average_unit_cost);
-    const totalCost = toMoney(item.quantity * unitCost);
+    const averageUnitCost = toMoney(itemRow.average_unit_cost);
+    const availableStock = toMoney(itemRow.current_stock);
+    const allowsManualCost = Boolean(itemRow.allows_manual_cost);
+    const requestedManualCost = item.manualCostAmount == null ? null : toMoney(item.manualCostAmount);
+    let quantity = toMoney(item.quantity);
+    let unitCost = averageUnitCost;
+    let totalCost = toMoney(quantity * unitCost);
+
+    if (requestedManualCost != null && requestedManualCost > 0) {
+      if (!allowsManualCost) {
+        throw new Error('Manual material cost is only allowed for inventory pool items.');
+      }
+      if (averageUnitCost <= 0) {
+        throw new Error('Manual-cost inventory pool has no purchase history yet. Add stock purchases before using manual material amount.');
+      }
+      quantity = toMoney(requestedManualCost / averageUnitCost);
+      if (quantity <= 0) {
+        throw new Error('Manual material cost is too small for the selected inventory pool average cost.');
+      }
+      if (quantity > availableStock) {
+        throw new Error('Insufficient stock in selected inventory pool for the requested manual material cost.');
+      }
+      unitCost = toMoney(requestedManualCost / quantity);
+      totalCost = requestedManualCost;
+    } else if (quantity <= 0) {
+      throw new Error('Inventory usage quantity must be greater than zero.');
+    }
 
     await params.db.query(
       `INSERT INTO class_inventory_usages (
-         class_id, inventory_item_id, quantity, unit_cost, total_cost, notes,
+         class_id, inventory_item_id, quantity, unit_cost, total_cost, manual_cost_amount, notes,
          status, created_by_user_id, created_at, updated_at
-       ) VALUES ($1, $2, $3, $4, $5, $6, 'PLANNED', $7, NOW(), NOW())`,
-      [params.classId, item.inventoryItemId, item.quantity, unitCost, totalCost, item.notes || null, params.adminUserId]
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'PLANNED', $8, NOW(), NOW())`,
+      [
+        params.classId,
+        item.inventoryItemId,
+        quantity,
+        unitCost,
+        totalCost,
+        requestedManualCost,
+        item.notes || null,
+        params.adminUserId,
+      ]
     );
   }
 }
@@ -724,10 +790,14 @@ export async function finalizeClassInventoryUsagePlans(params: {
     `SELECT u.id,
             u.inventory_item_id,
             u.quantity,
+          u.unit_cost,
+          u.total_cost,
+          u.manual_cost_amount,
             u.notes,
             i.name AS item_name,
             i.current_stock,
-            i.average_unit_cost
+          i.average_unit_cost,
+          i.allows_manual_cost
      FROM class_inventory_usages u
      INNER JOIN inventory_items i ON i.id = u.inventory_item_id
      WHERE u.class_id = $1
@@ -752,8 +822,15 @@ export async function finalizeClassInventoryUsagePlans(params: {
       throw new Error(`Insufficient stock for \"${itemName}\". Available: ${availableStock.toFixed(3)}, required: ${quantity.toFixed(3)}.`);
     }
 
-    const unitCost = toMoney(usageRow.average_unit_cost);
-    const totalCost = toMoney(quantity * unitCost);
+    const averageUnitCost = toMoney(usageRow.average_unit_cost);
+    const allowsManualCost = Boolean(usageRow.allows_manual_cost);
+    const manualCostAmount = usageRow.manual_cost_amount == null ? null : toMoney(usageRow.manual_cost_amount);
+    const savedUnitCost = toMoney(usageRow.unit_cost);
+    const savedTotalCost = toMoney(usageRow.total_cost);
+    const unitCost = savedUnitCost > 0 ? savedUnitCost : averageUnitCost;
+    const totalCost = allowsManualCost && manualCostAmount != null && manualCostAmount > 0
+      ? manualCostAmount
+      : (savedTotalCost > 0 ? savedTotalCost : toMoney(quantity * unitCost));
     const nextStock = toMoney(availableStock - quantity);
 
     await params.db.query(
@@ -783,11 +860,18 @@ export async function finalizeClassInventoryUsagePlans(params: {
        SET status = 'POSTED',
            unit_cost = $1,
            total_cost = $2,
-           posted_movement_id = $3,
+           manual_cost_amount = $3,
+           posted_movement_id = $4,
            posted_at = NOW(),
            updated_at = NOW()
-       WHERE id = $4`,
-      [unitCost, totalCost, movementResult.rows[0] ? String(movementResult.rows[0].id) : null, usageId]
+       WHERE id = $5`,
+      [
+        unitCost,
+        totalCost,
+        manualCostAmount,
+        movementResult.rows[0] ? String(movementResult.rows[0].id) : null,
+        usageId,
+      ]
     );
   }
 }

@@ -16,6 +16,7 @@ type InventoryUsageItemInput = {
   id?: string;
   inventoryItemId: string;
   quantity: number;
+  manualCostAmount?: number | null;
   notes?: string | null;
   unitCost?: number;
   totalCost?: number;
@@ -87,6 +88,7 @@ type SettlementSnapshot = {
     quantity: number;
     unitCost: number;
     totalCost: number;
+    manualCostAmount: number | null;
     notes: string | null;
     status: 'PLANNED' | 'POSTED';
     postedAt: string | null;
@@ -100,6 +102,7 @@ type SettlementSnapshot = {
     currentStock: number;
     averageUnitCost: number;
     reorderLevel: number;
+    allowsManualCost: boolean;
     isLowStock: boolean;
   }>;
   settlement: {
@@ -124,6 +127,7 @@ function emptyInventoryUsage(): InventoryUsageItemInput {
   return {
     inventoryItemId: '',
     quantity: 0,
+    manualCostAmount: null,
     notes: '',
   };
 }
@@ -176,6 +180,10 @@ export default function ClassSettlementPanel({
     usageQuantity: isArabic ? 'الكمية المستخدمة' : 'Used Quantity',
     unitCost: isArabic ? 'تكلفة الوحدة' : 'Unit Cost',
     lineTotal: isArabic ? 'إجمالي التكلفة' : 'Line Total',
+    manualMaterialCost: isArabic ? 'تكلفة المواد (يدوي)' : 'Manual Material Cost',
+    manualCostHint: isArabic
+      ? 'لهذا الصنف يمكن إدخال تكلفة يدوية مباشرة. سيتم خصم الكمية المكافئة تلقائياً من مخزون الصنف.'
+      : 'For this item you can enter a manual cost directly. The equivalent quantity will be deducted from this inventory pool automatically.',
     stockAvailable: isArabic ? 'المتوفر' : 'Available',
     noInventoryItems: isArabic ? 'لا توجد مواد في المخزون بعد. أضفها من صفحة Inventory.' : 'No inventory items found yet. Add items from the Inventory page.',
     addInventoryUsage: isArabic ? 'إضافة سحب من المخزون' : 'Add Inventory Usage',
@@ -248,6 +256,7 @@ export default function ClassSettlementPanel({
               id: item.id,
               inventoryItemId: item.inventoryItemId,
               quantity: item.quantity,
+              manualCostAmount: item.manualCostAmount,
               notes: item.notes,
               unitCost: item.unitCost,
               totalCost: item.totalCost,
@@ -282,6 +291,10 @@ export default function ClassSettlementPanel({
     () =>
       inventoryUsageItems.reduce((sum, item) => {
         const catalogItem = inventoryCatalogById.get(item.inventoryItemId);
+        const manualCostAmount = Number(item.manualCostAmount ?? 0);
+        if (canEdit && catalogItem?.allowsManualCost && manualCostAmount > 0) {
+          return sum + manualCostAmount;
+        }
         const unitCost = canEdit ? (catalogItem?.averageUnitCost ?? item.unitCost ?? 0) : (item.unitCost ?? catalogItem?.averageUnitCost ?? 0);
         return sum + (Number.isFinite(item.quantity) ? Number(item.quantity) : 0) * unitCost;
       }, 0),
@@ -297,7 +310,11 @@ export default function ClassSettlementPanel({
         && inventoryUsageItems.some((item) => {
           const catalogItem = inventoryCatalogById.get(item.inventoryItemId);
           if (!catalogItem) return false;
-          return item.quantity > catalogItem.currentStock;
+          const manualCostAmount = Number(item.manualCostAmount ?? 0);
+          const requiredQuantity = catalogItem.allowsManualCost && manualCostAmount > 0
+            ? (catalogItem.averageUnitCost > 0 ? Number((manualCostAmount / catalogItem.averageUnitCost).toFixed(3)) : Number.POSITIVE_INFINITY)
+            : item.quantity;
+          return requiredQuantity > catalogItem.currentStock;
         }),
     [canEdit, inventoryCatalogById, inventoryUsageItems]
   );
@@ -366,6 +383,7 @@ export default function ClassSettlementPanel({
           id: item.id,
           inventoryItemId: item.inventoryItemId,
           quantity: item.quantity,
+          manualCostAmount: item.manualCostAmount,
           notes: item.notes,
           unitCost: item.unitCost,
           totalCost: item.totalCost,
@@ -414,6 +432,7 @@ export default function ClassSettlementPanel({
           id: item.id,
           inventoryItemId: item.inventoryItemId,
           quantity: item.quantity,
+          manualCostAmount: item.manualCostAmount,
           notes: item.notes,
           unitCost: item.unitCost,
           totalCost: item.totalCost,
@@ -658,11 +677,16 @@ export default function ClassSettlementPanel({
                   ) : null}
                   {inventoryUsageItems.map((item, index) => {
                     const catalogItem = inventoryCatalogById.get(item.inventoryItemId);
+                    const manualCostAmount = Number(item.manualCostAmount ?? 0);
+                    const usesManualCost = canEdit && Boolean(catalogItem?.allowsManualCost) && manualCostAmount > 0;
+                    const resolvedQuantity = usesManualCost
+                      ? (catalogItem && catalogItem.averageUnitCost > 0 ? Number((manualCostAmount / catalogItem.averageUnitCost).toFixed(3)) : 0)
+                      : item.quantity;
                     const unitCost = canEdit
                       ? (catalogItem?.averageUnitCost ?? item.unitCost ?? 0)
                       : (item.unitCost ?? catalogItem?.averageUnitCost ?? 0);
-                    const lineTotal = Number((item.quantity * unitCost).toFixed(3));
-                    const hasShortage = canEdit && Boolean(catalogItem) && item.quantity > (catalogItem?.currentStock ?? 0);
+                    const lineTotal = usesManualCost ? Number(manualCostAmount.toFixed(3)) : Number((resolvedQuantity * unitCost).toFixed(3));
+                    const hasShortage = canEdit && Boolean(catalogItem) && resolvedQuantity > (catalogItem?.currentStock ?? 0);
                     return (
                       <div key={`inventory-usage-${index}`} className="grid gap-3 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
                         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px]">
@@ -694,12 +718,18 @@ export default function ClassSettlementPanel({
                               type="number"
                               min="0"
                               step="0.001"
-                              value={item.quantity}
-                              disabled={!canEdit}
+                              value={resolvedQuantity}
+                              disabled={!canEdit || usesManualCost}
                               onChange={(event) =>
                                 setInventoryUsageItems((prev) =>
                                   prev.map((row, rowIndex) =>
-                                    rowIndex === index ? { ...row, quantity: Number(event.target.value || 0) } : row
+                                    rowIndex === index
+                                      ? {
+                                          ...row,
+                                          quantity: Number(event.target.value || 0),
+                                          manualCostAmount: catalogItem?.allowsManualCost ? null : row.manualCostAmount,
+                                        }
+                                      : row
                                   )
                                 )
                               }
@@ -715,6 +745,46 @@ export default function ClassSettlementPanel({
                             </div>
                           </div>
                         </div>
+
+                        {catalogItem?.allowsManualCost ? (
+                          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
+                            <label className="text-sm">
+                              <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.manualMaterialCost}</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.001"
+                                value={manualCostAmount > 0 ? manualCostAmount : ''}
+                                disabled={!canEdit}
+                                onChange={(event) => {
+                                  const nextManualAmount = Number(event.target.value || 0);
+                                  setInventoryUsageItems((prev) =>
+                                    prev.map((row, rowIndex) => {
+                                      if (rowIndex !== index) return row;
+                                      if (nextManualAmount <= 0) {
+                                        return { ...row, manualCostAmount: null };
+                                      }
+
+                                      const nextQuantity = catalogItem.averageUnitCost > 0
+                                        ? Number((nextManualAmount / catalogItem.averageUnitCost).toFixed(3))
+                                        : row.quantity;
+
+                                      return {
+                                        ...row,
+                                        manualCostAmount: Number(nextManualAmount.toFixed(3)),
+                                        quantity: nextQuantity,
+                                      };
+                                    })
+                                  );
+                                }}
+                                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                              />
+                            </label>
+                            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+                              {t.manualCostHint}
+                            </div>
+                          </div>
+                        ) : null}
 
                         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto]">
                           <label className="text-sm">
