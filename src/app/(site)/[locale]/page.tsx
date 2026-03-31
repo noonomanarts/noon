@@ -126,49 +126,52 @@ async function resolveUpcomingItems(
 ): Promise<UpcomingCard[]> {
   try {
     const classes = await findManyClasses({ status: "PUBLISHED", limit: 48 });
-    const noUpcomingLabel = locale === "ar" ? "لا توجد جلسات قادمة حالياً" : "No upcoming sessions yet";
     const noTrainerLabel = locale === "ar" ? "المدرب غير محدد" : "Trainer TBD";
     const localeCode = locale === "ar" ? "ar-OM" : "en-OM";
 
-    const upcoming = await Promise.all(
+    // Collect ALL upcoming sessions across all classes — each session becomes its own card
+    const sessionCards: (UpcomingCard & { sessionStart: Date })[] = [];
+
+    await Promise.all(
       classes.map(async (classItem) => {
-        const [nextSession] = await findClassSessions(classItem.id, {
+        const sessions = await findClassSessions(classItem.id, {
           upcomingOnly: true,
           includeCancelled: false,
-          limit: 1,
         });
 
-        const datetimeText = nextSession
-          ? `${new Date(nextSession.startTime).toLocaleDateString(localeCode, {
-              month: "short",
-              day: "numeric",
-            })} · ${new Date(nextSession.startTime).toLocaleTimeString(localeCode, {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}`
-          : noUpcomingLabel;
+        for (const session of sessions) {
+          const dt = new Date(session.startTime);
+          const datetimeText = `${dt.toLocaleDateString(localeCode, {
+            month: "short",
+            day: "numeric",
+          })} · ${dt.toLocaleTimeString(localeCode, {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}`;
 
-        return {
-          id: String(classItem.id),
-          title: locale === "ar" && classItem.titleAr ? classItem.titleAr : classItem.title,
-          datetimeText,
-          priceText: formatAmountWithCurrency(classItem.price, classItem.currency),
-          trainerName: classItem.trainer?.fullName?.trim() || noTrainerLabel,
-          imageSrc: classItem.image || "/og-image.png",
-          slug: String(classItem.slug),
-          href: `/${locale}/classes/${classItem.slug}`,
-          createdAt: new Date(classItem.createdAt),
-        };
+          sessionCards.push({
+            id: `${classItem.id}_${session.id}`,
+            title: locale === "ar" && classItem.titleAr ? classItem.titleAr : classItem.title,
+            datetimeText,
+            priceText: formatAmountWithCurrency(classItem.price, classItem.currency),
+            trainerName: classItem.trainer?.fullName?.trim() || noTrainerLabel,
+            imageSrc: classItem.image || "/og-image.png",
+            slug: String(classItem.slug),
+            href: `/${locale}/classes/${classItem.slug}`,
+            sessionStart: dt,
+          });
+        }
       })
     );
 
-    const latestThree = upcoming
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    // Sort by nearest session first, take 3
+    const nearest = sessionCards
+      .sort((a, b) => a.sessionStart.getTime() - b.sessionStart.getTime())
       .slice(0, 3)
-      .map(({ createdAt: _createdAt, ...item }) => item);
+      .map(({ sessionStart: _sessionStart, ...item }) => item);
 
-    if (latestThree.length > 0) {
-      return latestThree;
+    if (nearest.length > 0) {
+      return nearest;
     }
   } catch {
     // Fallback to static content when database is unavailable.
@@ -511,8 +514,8 @@ export default async function HomePage({
                   <FiBookOpen className="mt-0.5 size-4 shrink-0 text-purple-500" />
                   <span>{c.title}</span>
                 </h3>
-                <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
-                  <FiCalendar className="size-4 shrink-0 text-teal-500" />
+                <p className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)] sm:text-base">
+                  <FiCalendar className="size-5 shrink-0 text-teal-500" />
                   {c.datetimeText}
                 </p>
                 <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
