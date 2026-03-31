@@ -6,11 +6,14 @@ import { WalletSection } from '@/components/site/WalletSection';
 
 export default async function AccountWalletPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ returnUrl?: string }>;
 }) {
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'en';
+  const { returnUrl } = await searchParams;
 
   const user = await getCurrentUser();
   if (!user) {
@@ -33,5 +36,5 @@ export default async function AccountWalletPage({
 
   const transactions = wallet.id ? await getWalletTransactions(wallet.id) : [];
 
-  return <WalletSection wallet={wallet} transactions={transactions} locale={locale} />;
+  return <WalletSection wallet={wallet} transactions={transactions} locale={locale} returnUrl={returnUrl} />;
 }

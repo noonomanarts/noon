@@ -9,9 +9,10 @@ interface WalletSectionProps {
   wallet: Wallet;
   transactions: WalletTransaction[];
   locale: 'en' | 'ar';
+  returnUrl?: string;
 }
 
-export function WalletSection({ wallet, transactions, locale }: WalletSectionProps) {
+export function WalletSection({ wallet, transactions, locale, returnUrl }: WalletSectionProps) {
   const [walletData, setWalletData] = useState(wallet);
   const [transactionsData, setTransactionsData] = useState(transactions);
   const [transactionsPage, setTransactionsPage] = useState(1);
@@ -545,6 +546,20 @@ export function WalletSection({ wallet, transactions, locale }: WalletSectionPro
       <h3 className="text-lg font-semibold mb-4">
         {isArabic ? 'المحفظة' : 'Wallet'}
       </h3>
+
+      {returnUrl && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-teal/30 bg-teal-50 px-4 py-3 dark:border-teal/40 dark:bg-teal-900/20">
+          <p className="text-sm font-medium text-teal-800 dark:text-teal-200">
+            {isArabic ? 'بعد شحن المحفظة، ارجع لإتمام الحجز.' : 'After topping up, return to complete your booking.'}
+          </p>
+          <a
+            href={returnUrl}
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
+          >
+            {isArabic ? 'العودة للحجز' : 'Return to Booking'} →
+          </a>
+        </div>
+      )}
 
       {message && (
         <div className="mb-4 p-3 rounded-lg bg-blue-50 text-blue-700">

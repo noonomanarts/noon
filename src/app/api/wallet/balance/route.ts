@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getUserById } from "@/lib/db/users";
-import { getWalletByUserId } from "@/lib/db/wallet";
+import { getWalletByUserId, createWallet } from "@/lib/db/wallet";
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,10 +24,10 @@ export async function GET(request: NextRequest) {
     // Allow admins to view any user's balance, regular users can only view their own
     const targetUserId = requestedUserId && user.role === "ADMIN" ? requestedUserId : user.id;
 
-    const wallet = await getWalletByUserId(targetUserId);
+    let wallet = await getWalletByUserId(targetUserId);
 
     if (!wallet) {
-      return NextResponse.json({ error: "Wallet not found" }, { status: 404 });
+      wallet = await createWallet(targetUserId, 'OMR');
     }
 
     return NextResponse.json(wallet);

@@ -163,8 +163,6 @@ export default function ClassBookingClient({
   const [wallet, setWallet] = useState<WalletPayload | null>(null);
   const [loadingWallet, setLoadingWallet] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [topupLoading, setTopupLoading] = useState(false);
-  const [topupAmount, setTopupAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [result, setResult] = useState<BookingResult | null>(null);
@@ -220,9 +218,6 @@ export default function ClassBookingClient({
     total: isArabic ? 'الإجمالي' : 'Total',
     submit: isArabic ? 'تأكيد ودفع الحجز' : 'Confirm & Pay Booking',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
-    topupTitle: isArabic ? 'شحن المحفظة' : 'Top Up Wallet',
-    topupAction: isArabic ? 'شحن الآن' : 'Top Up Now',
-    topupHint: isArabic ? 'الرصيد غير كافٍ. يمكنك شحن المحفظة وإكمال الحجز مباشرة.' : 'Insufficient balance. Top up and complete booking right away.',
     successTitle: isArabic ? 'تم تأكيد الحجز بنجاح' : 'Booking Confirmed Successfully',
     bookingNumber: isArabic ? 'رقم الحجز' : 'Booking Number',
     goOrders: isArabic ? 'عرض طلباتي' : 'View My Orders',
@@ -399,52 +394,6 @@ export default function ClassBookingClient({
     }
 
     return true;
-  };
-
-  const handleTopup = async () => {
-    setError(null);
-    setMessage(null);
-
-    const amount = Number(topupAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setError(isArabic ? 'مبلغ الشحن غير صحيح.' : 'Invalid top-up amount.');
-      return;
-    }
-
-    setTopupLoading(true);
-    try {
-      const response = await fetch('/api/wallet/topup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount,
-          gateway: 'SANDBOX_GATEWAY',
-          metadata: {
-            source: 'class_booking',
-            classId: classData.id,
-            sessionId: selectedSessionId,
-            locale,
-          },
-        }),
-      });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Failed to top up wallet');
-      }
-
-      const reference = payload?.payment?.reference as string | undefined;
-      if (!reference) {
-        throw new Error(isArabic ? 'مرجع الدفع غير متوفر.' : 'Payment reference is missing.');
-      }
-
-      const returnUrl = `/${locale}/classes/${slug}/book?session=${selectedSessionId}`;
-      window.location.href = `/${locale}/wallet/topup/sandbox?reference=${encodeURIComponent(reference)}&returnUrl=${encodeURIComponent(returnUrl)}`;
-    } catch (topupError) {
-      setError(topupError instanceof Error ? topupError.message : 'Failed to top up wallet');
-    } finally {
-      setTopupLoading(false);
-    }
   };
 
   const submitBooking = async () => {
@@ -777,38 +726,35 @@ export default function ClassBookingClient({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => void submitBooking()}
-            disabled={processing || loadingWallet || !selectedSession || !hasBookableSeats || !hasEnoughBalance}
-            className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {processing ? t.processing : t.submit}
-          </button>
-
-          {!hasEnoughBalance && hasBookableSeats && !loadingWallet && (
-            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/40 dark:bg-emerald-900/20">
-              <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">{t.topupTitle}</h3>
-              <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">{t.topupHint}</p>
-              <div className="mt-3 flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0.001"
-                  step="0.001"
-                  value={topupAmount}
-                  onChange={(event) => setTopupAmount(event.target.value)}
-                  className="min-w-0 flex-1 rounded-xl border border-emerald-400/60 bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
-                />
+          {hasEnoughBalance ? (
+            <button
+              type="button"
+              onClick={() => void submitBooking()}
+              disabled={processing || loadingWallet || !selectedSession || !hasBookableSeats}
+              className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {processing ? t.processing : t.submit}
+            </button>
+          ) : (
+            hasBookableSeats && !loadingWallet && (
+              <div className="mt-5 space-y-3">
+                <p className="text-center text-xs text-amber-700 dark:text-amber-400">
+                  {isArabic
+                    ? `رصيدك الحالي غير كافٍ. تحتاج ${formatAmountWithCurrency(totalAmount - (wallet?.balance ?? 0), classData.currency)} إضافية لإتمام الحجز.`
+                    : `Your balance is insufficient. You need ${formatAmountWithCurrency(totalAmount - (wallet?.balance ?? 0), classData.currency)} more to complete this booking.`}
+                </p>
                 <button
                   type="button"
-                  onClick={() => void handleTopup()}
-                  disabled={topupLoading}
-                  className="inline-flex shrink-0 rounded-xl border border-emerald-400/60 px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-500/10 disabled:opacity-60"
+                  onClick={() => {
+                    const returnUrl = `/${locale}/classes/${slug}/book?session=${selectedSessionId}`;
+                    window.location.href = `/${locale}/account/wallet?returnUrl=${encodeURIComponent(returnUrl)}`;
+                  }}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
                 >
-                  {topupLoading ? t.processing : t.topupAction}
+                  {isArabic ? 'شحن المحفظة وإتمام الحجز' : 'Top Up Wallet & Complete Booking'}
                 </button>
               </div>
-            </div>
+            )
           )}
         </aside>
       </div>
