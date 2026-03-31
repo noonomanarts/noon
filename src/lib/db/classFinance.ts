@@ -1203,3 +1203,99 @@ export async function closeClassSettlement(args: {
     client.release();
   }
 }
+
+/**
+ * Reprocess wallet credits for a closed settlement that may have been closed
+ * before the wallet-credit code was deployed. Safe to call repeatedly — it only
+ * credits wallets when the settlement row has NULL transaction IDs.
+ */
+export async function reprocessSettlementWalletCredits(args: {
+  classId: string;
+  adminUserId: string;
+}): Promise<{ trainerCredited: boolean; adminCredited: boolean; trainerAmount: number; adminAmount: number }> {
+  await ensureClassFinanceSchema();
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const settlementResult = await client.query(
+      `SELECT cs.*, c.trainer_id, c.currency, u.full_name AS trainer_name
+       FROM class_settlements cs
+       JOIN classes c ON c.id = cs.class_id
+       LEFT JOIN users u ON u.id = c.trainer_id
+       WHERE cs.class_id = $1
+       FOR UPDATE`,
+      [args.classId]
+    );
+
+    const row = settlementResult.rows[0];
+    if (!row) {
+      throw new Error('Settlement not found for this class');
+    }
+
+    if (String(row.status) !== 'CLOSED') {
+      throw new Error('Settlement is not closed yet');
+    }
+
+    const trainerId = row.trainer_id ? String(row.trainer_id) : null;
+    const currency = String(row.currency || 'OMR');
+    const trainerPayoutAmount = toMoney(row.trainer_payout_amount);
+    const noonFeeAmount = toMoney(row.noon_fee_amount);
+
+    let trainerCredited = false;
+    let adminCredited = false;
+    let trainerWalletTransactionId = row.trainer_wallet_transaction_id ? String(row.trainer_wallet_transaction_id) : null;
+    let adminShareWalletTransactionId = row.admin_share_wallet_transaction_id ? String(row.admin_share_wallet_transaction_id) : null;
+
+    if (!trainerWalletTransactionId && trainerId && trainerPayoutAmount > 0) {
+      const credit = await creditWallet({
+        db: client,
+        userId: trainerId,
+        amount: trainerPayoutAmount,
+        currency,
+        type: 'CLASS_SETTLEMENT_TRAINER',
+        reason: `Trainer payout for class ${args.classId} (reprocessed)`,
+      });
+      trainerWalletTransactionId = credit.transactionId;
+      trainerCredited = true;
+    }
+
+    if (!adminShareWalletTransactionId && noonFeeAmount > 0) {
+      const credit = await creditWallet({
+        db: client,
+        userId: args.adminUserId,
+        amount: noonFeeAmount,
+        currency,
+        type: 'CLASS_SETTLEMENT_NOON_SHARE',
+        reason: `Noon fee for class ${args.classId} (reprocessed)`,
+      });
+      adminShareWalletTransactionId = credit.transactionId;
+      adminCredited = true;
+    }
+
+    if (trainerCredited || adminCredited) {
+      await client.query(
+        `UPDATE class_settlements
+         SET trainer_wallet_transaction_id = COALESCE($1, trainer_wallet_transaction_id),
+             admin_share_wallet_transaction_id = COALESCE($2, admin_share_wallet_transaction_id),
+             updated_at = NOW()
+         WHERE class_id = $3`,
+        [trainerWalletTransactionId, adminShareWalletTransactionId, args.classId]
+      );
+    }
+
+    await client.query('COMMIT');
+    return {
+      trainerCredited,
+      adminCredited,
+      trainerAmount: trainerCredited ? trainerPayoutAmount : 0,
+      adminAmount: adminCredited ? noonFeeAmount : 0,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}

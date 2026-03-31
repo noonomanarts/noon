@@ -153,6 +153,7 @@ export default function ClassSettlementPanel({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [reprocessing, setReprocessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -222,6 +223,12 @@ export default function ClassSettlementPanel({
     negativeNoonFee: isArabic
       ? 'رسوم نون أصبحت سالبة. راجع تكاليف المواد أو الإيراد قبل الإغلاق.'
       : 'Noon fee is negative. Review material costs or revenue before closing.',
+    reprocessWallet: isArabic ? 'إعادة تحويل المستحقات للمحافظ' : 'Reprocess Wallet Credits',
+    reprocessHint: isArabic
+      ? 'إذا لم يتم تحويل المستحقات لمحفظة المدرب عند الإغلاق، اضغط هنا لإعادة التحويل.'
+      : 'If wallet credits were not transferred when this class was closed, click here to reprocess them.',
+    reprocessDone: isArabic ? 'تم تحويل المستحقات بنجاح.' : 'Wallet credits reprocessed successfully.',
+    reprocessNone: isArabic ? 'المستحقات سبق تحويلها بالكامل.' : 'All wallet credits were already processed.',
   };
 
   const formatMoney = (value: number, currency: string) => formatAmountWithCurrency(value, currency);
@@ -449,6 +456,48 @@ export default function ClassSettlementPanel({
       setError(requestError instanceof Error ? requestError.message : 'Failed to close class');
     } finally {
       setClosing(false);
+    }
+  };
+
+  const handleReprocessWallet = async () => {
+    setReprocessing(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(`/api/admin/classes/${classId}/settlement/reprocess-wallet`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        success?: boolean;
+        error?: string;
+        trainerCredited?: boolean;
+        adminCredited?: boolean;
+        trainerAmount?: number;
+        adminAmount?: number;
+      };
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || 'Failed to reprocess wallet credits');
+      }
+
+      if (payload.trainerCredited || payload.adminCredited) {
+        const parts: string[] = [];
+        if (payload.trainerCredited && payload.trainerAmount) {
+          parts.push(`Trainer: ${payload.trainerAmount.toFixed(3)} ${snapshot?.currency || 'OMR'}`);
+        }
+        if (payload.adminCredited && payload.adminAmount) {
+          parts.push(`Noon: ${payload.adminAmount.toFixed(3)} ${snapshot?.currency || 'OMR'}`);
+        }
+        setSuccess(`${t.reprocessDone} (${parts.join(' | ')})`);
+      } else {
+        setSuccess(t.reprocessNone);
+      }
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Failed to reprocess');
+    } finally {
+      setReprocessing(false);
     }
   };
 
@@ -973,6 +1022,20 @@ export default function ClassSettlementPanel({
                 >
                   <IoCheckmarkCircle className="h-4 w-4" />
                   {closing ? '...' : t.closingAction}
+                </button>
+              </div>
+            ) : null}
+
+            {!canEdit && (snapshot.settlement?.status === 'CLOSED' || classStatus === 'COMPLETED') ? (
+              <div className="mt-5 space-y-2">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.reprocessHint}</p>
+                <button
+                  type="button"
+                  onClick={() => void handleReprocessWallet()}
+                  disabled={reprocessing}
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:opacity-60 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/40"
+                >
+                  {reprocessing ? '...' : t.reprocessWallet}
                 </button>
               </div>
             ) : null}
