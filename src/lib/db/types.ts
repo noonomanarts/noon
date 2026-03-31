@@ -482,6 +482,9 @@ export interface ShopOrder {
   recipient_phone: string;
   notes: string | null;
   subtotal: number;
+  discount_amount: number;
+  promo_code_id: string | null;
+  promo_code: string | null;
   shipping_fee: number;
   total_amount: number;
   currency: string;

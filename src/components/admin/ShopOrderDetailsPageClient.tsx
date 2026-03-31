@@ -47,6 +47,9 @@ type AdminShopOrder = {
   recipient_phone: string;
   notes: string | null;
   subtotal: number;
+  discount_amount: number;
+  promo_code_id: string | null;
+  promo_code: string | null;
   shipping_fee: number;
   total_amount: number;
   currency: string;
@@ -111,8 +114,10 @@ export default function ShopOrderDetailsPageClient({
     deliveredAt: isArabic ? 'تاريخ التسليم' : 'Delivered at',
     cancelledAt: isArabic ? 'تاريخ الإلغاء' : 'Cancelled at',
     subtotal: isArabic ? 'الإجمالي الفرعي' : 'Subtotal',
+    discount: isArabic ? 'الخصم' : 'Discount',
     shipping: isArabic ? 'الشحن' : 'Shipping',
     total: isArabic ? 'الإجمالي' : 'Total',
+    promoCode: isArabic ? 'كود الخصم' : 'Promo Code',
     paymentMethod: isArabic ? 'طريقة الدفع' : 'Payment method',
     qty: isArabic ? 'الكمية' : 'Qty',
     unitPrice: isArabic ? 'سعر الوحدة' : 'Unit price',
@@ -322,8 +327,14 @@ export default function ShopOrderDetailsPageClient({
             <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">{t.payment}</p>
             <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.paymentMethod}: {order.payment_method}</p>
             <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.subtotal}: {formatAmountWithCurrency(order.subtotal, order.currency)}</p>
+            {order.discount_amount > 0 ? (
+              <p className="text-xs text-emerald-700 dark:text-emerald-300">{t.discount}: -{formatAmountWithCurrency(order.discount_amount, order.currency)}</p>
+            ) : null}
             <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.shipping}: {formatAmountWithCurrency(order.shipping_fee, order.currency)}</p>
             <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.total}: {formatAmountWithCurrency(order.total_amount, order.currency)}</p>
+            {order.promo_code ? (
+              <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.promoCode}: {order.promo_code}</p>
+            ) : null}
           </div>
         </div>
 

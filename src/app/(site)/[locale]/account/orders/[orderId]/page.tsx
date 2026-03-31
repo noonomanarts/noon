@@ -47,6 +47,10 @@ type ShopOrderDetails = {
   id: string;
   order_number: string;
   status: string;
+  subtotal: number;
+  discount_amount: number;
+  promo_code: string | null;
+  shipping_fee: number;
   total_amount: number;
   currency: string;
   payment_method: string | null;
@@ -169,6 +173,10 @@ export default async function AccountOrderDetailsPage({
     email: isArabic ? 'البريد الإلكتروني' : 'Email',
     address: isArabic ? 'العنوان' : 'Address',
     noNotes: isArabic ? 'لا توجد ملاحظات' : 'No notes',
+    subtotal: isArabic ? 'الإجمالي الفرعي' : 'Subtotal',
+    discount: isArabic ? 'الخصم' : 'Discount',
+    shipping: isArabic ? 'الشحن' : 'Shipping',
+    promoCode: isArabic ? 'كود الخصم' : 'Promo Code',
     paymentStatus: isArabic ? 'حالة الدفع' : 'Payment Status',
     paymentMethod: isArabic ? 'طريقة الدفع' : 'Payment Method',
     finalRecipe: isArabic ? 'الوصفة النهائية' : 'Final Recipe',
@@ -374,6 +382,14 @@ export default async function AccountOrderDetailsPage({
             <div className="rounded-2xl bg-[color:var(--muted)] p-4 text-sm">
               <p className="text-[color:var(--text-subtle)]">{t.total}</p>
               <p className="mt-1 text-lg font-semibold text-[color:var(--text)]">{formatAmount(shopOrder!.total_amount)} {shopOrder!.currency}</p>
+              <div className="mt-3 space-y-1 text-xs text-[color:var(--text-muted)]">
+                <p>{t.subtotal}: {formatAmount(shopOrder!.subtotal)} {shopOrder!.currency}</p>
+                {shopOrder!.discount_amount > 0 ? (
+                  <p>{t.discount}: -{formatAmount(shopOrder!.discount_amount)} {shopOrder!.currency}</p>
+                ) : null}
+                <p>{t.shipping}: {formatAmount(shopOrder!.shipping_fee)} {shopOrder!.currency}</p>
+                {shopOrder!.promo_code ? <p>{t.promoCode}: {shopOrder!.promo_code}</p> : null}
+              </div>
               <p className="mt-2 text-[color:var(--text-muted)]">{t.created}: {formatDateTime(locale, shopOrder!.created_at)}</p>
             </div>
 

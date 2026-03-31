@@ -20,6 +20,7 @@ import {
   FiCreditCard,
   FiPackage,
   FiMessageSquare,
+  FiTag,
 } from "react-icons/fi";
 
 const iconMap = {
@@ -38,6 +39,7 @@ const iconMap = {
   FiBell,
   FiPackage,
   FiMessageSquare,
+  FiTag,
 } as const;
 
 type MenuItem = {
@@ -68,7 +70,7 @@ type Props = {
     profile: string;
     accountSettings: string;
   };
-  onLogout: () => void;
+  onLogoutAction: () => void;
 };
 
 export default function MobileSidebar({
@@ -76,7 +78,7 @@ export default function MobileSidebar({
   user,
   locale,
   translations,
-  onLogout,
+  onLogoutAction,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const dir = locale === "ar" ? "rtl" : "ltr";
@@ -195,7 +197,7 @@ export default function MobileSidebar({
               logoutLabel={translations.logout}
               profileLabel={translations.profile}
               settingsLabel={translations.accountSettings}
-              onLogout={onLogout}
+              onLogout={onLogoutAction}
               locale={locale}
             />
           </div>

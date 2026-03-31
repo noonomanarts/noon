@@ -42,6 +42,8 @@ type CheckoutResult = {
     id: string;
     orderNumber: string;
     subtotal: number;
+    discountAmount: number;
+    promoCode: string | null;
     shippingFee: number;
     totalAmount: number;
     currency: string;
@@ -59,6 +61,14 @@ type DeliveryLocation = {
   lng: number;
 };
 
+type PromoValidationPayload = {
+  valid: true;
+  promoCode: string;
+  discountType: 'PERCENTAGE' | 'FIXED';
+  discountValue: number;
+  discountAmount: number;
+};
+
 const SHIPPING_FEE = 2;
 
 export default function CheckoutPageClient({ locale }: { locale: Locale }) {
@@ -72,6 +82,9 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const [topupAmount, setTopupAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<PromoValidationPayload | null>(null);
   const [unauthorized, setUnauthorized] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<DeliveryLocation | null>(null);
@@ -110,6 +123,12 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     walletBalance: isArabic ? 'رصيد المحفظة' : 'Wallet Balance',
     subtotal: isArabic ? 'الإجمالي الفرعي' : 'Subtotal',
     shipping: isArabic ? 'رسوم التوصيل' : 'Shipping Fee',
+    discount: isArabic ? 'الخصم' : 'Discount',
+    promoCode: isArabic ? 'كود الخصم' : 'Promo Code',
+    applyPromo: isArabic ? 'تطبيق' : 'Apply',
+    removePromo: isArabic ? 'إزالة' : 'Remove',
+    promoApplied: isArabic ? 'تم تطبيق كود الخصم' : 'Promo code applied',
+    promoPlaceholder: isArabic ? 'مثال: NOON20' : 'Example: NOON20',
     total: isArabic ? 'الإجمالي النهائي' : 'Total',
     payWallet: isArabic ? 'الدفع من المحفظة' : 'Pay with Wallet',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
@@ -177,7 +196,9 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   const subtotal = cart?.summary.subtotal ?? 0;
   const currency = cart?.summary.currency ?? wallet?.currency ?? 'OMR';
-  const total = Number((subtotal + SHIPPING_FEE).toFixed(3));
+  const discountAmount = appliedPromo?.discountAmount ?? 0;
+  const discountedSubtotal = Number(Math.max(0, subtotal - discountAmount).toFixed(3));
+  const total = Number((discountedSubtotal + SHIPPING_FEE).toFixed(3));
   const walletBalance = wallet?.balance ?? 0;
   const hasEnoughBalance = walletBalance >= total;
   const hasItems = (cart?.items.length ?? 0) > 0;
@@ -214,6 +235,63 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
       setMessage(null);
     }
   }, [isArabic, loadData, searchParams]);
+
+  useEffect(() => {
+    if (!cart || cart.items.length === 0) {
+      setAppliedPromo(null);
+      setPromoCodeInput('');
+    }
+  }, [cart]);
+
+  useEffect(() => {
+    setAppliedPromo(null);
+  }, [subtotal]);
+
+  const applyPromoCode = async () => {
+    setError(null);
+    setMessage(null);
+
+    const code = promoCodeInput.trim();
+    if (!code) {
+      setError(isArabic ? 'يرجى إدخال كود الخصم.' : 'Please enter a promo code.');
+      return;
+    }
+
+    setPromoLoading(true);
+    try {
+      const response = await fetch('/api/shop/promo-codes/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          subtotal,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as PromoValidationPayload & {
+        error?: string;
+      };
+
+      if (!response.ok || !payload.valid) {
+        throw new Error(payload.error || (isArabic ? 'كود الخصم غير صالح.' : 'Invalid promo code.'));
+      }
+
+      setAppliedPromo(payload);
+      setPromoCodeInput(payload.promoCode);
+      setMessage(`${t.promoApplied}: ${payload.promoCode}`);
+    } catch (promoError) {
+      setAppliedPromo(null);
+      setError(promoError instanceof Error ? promoError.message : 'Failed to apply promo code');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const removePromoCode = () => {
+    setAppliedPromo(null);
+    setPromoCodeInput('');
+    setMessage(null);
+  };
 
   const handleTopup = async () => {
     setMessage(null);
@@ -291,6 +369,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         body: JSON.stringify({
           ...form,
           location: selectedLocation,
+          promoCode: appliedPromo?.promoCode ?? null,
         }),
       });
 
@@ -554,6 +633,37 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
           <aside className="h-fit rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm lg:sticky lg:top-24">
             <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.orderSummary}</h2>
             <div className="mt-4 space-y-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 text-sm text-[color:var(--text)]">
+              <div className="space-y-2 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] p-3">
+                <label className="block text-xs font-medium text-[color:var(--text-muted)]">{t.promoCode}</label>
+                <div className="flex gap-2">
+                  <input
+                    value={promoCodeInput}
+                    onChange={(event) => setPromoCodeInput(event.target.value.toUpperCase())}
+                    placeholder={t.promoPlaceholder}
+                    className="min-w-0 flex-1 rounded-xl border border-solid border-[#b5ada4] bg-[color:var(--muted)] px-3 py-2 text-sm text-[color:var(--text)] focus:border-[color:var(--primary)] focus:outline-2 focus:outline-[color:var(--focus)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void applyPromoCode()}
+                    disabled={promoLoading}
+                    className="inline-flex shrink-0 rounded-xl border border-[color:var(--border)] px-3 py-2 text-xs font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--muted)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {promoLoading ? t.processing : t.applyPromo}
+                  </button>
+                </div>
+                {appliedPromo ? (
+                  <div className="flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-300">
+                    <span>{appliedPromo.promoCode}</span>
+                    <button
+                      type="button"
+                      onClick={removePromoCode}
+                      className="rounded-md border border-emerald-300/60 px-2 py-1 font-medium transition hover:bg-emerald-500/10"
+                    >
+                      {t.removePromo}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
               <div className="flex items-center justify-between">
                 <span>{t.walletBalance}</span>
                 <span className="font-semibold">
@@ -564,6 +674,12 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                 <span>{t.subtotal}</span>
                 <span>{formatAmountWithCurrency(subtotal, currency)}</span>
               </div>
+              {discountAmount > 0 ? (
+                <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-300">
+                  <span>{t.discount}</span>
+                  <span>-{formatAmountWithCurrency(discountAmount, currency)}</span>
+                </div>
+              ) : null}
               <div className="flex items-center justify-between">
                 <span>{t.shipping}</span>
                 <span>{formatAmountWithCurrency(SHIPPING_FEE, currency)}</span>

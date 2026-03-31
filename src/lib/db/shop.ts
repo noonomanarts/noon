@@ -104,6 +104,9 @@ async function ensureShopOrdersTables(): Promise<void> {
       recipient_phone VARCHAR(30) NOT NULL,
       notes TEXT,
       subtotal DECIMAL(10, 3) NOT NULL CHECK (subtotal >= 0),
+      discount_amount DECIMAL(10, 3) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+      promo_code_id UUID REFERENCES promo_codes(id) ON DELETE SET NULL,
+      promo_code VARCHAR(50),
       shipping_fee DECIMAL(10, 3) NOT NULL DEFAULT 2.000 CHECK (shipping_fee >= 0),
       total_amount DECIMAL(10, 3) NOT NULL CHECK (total_amount >= 0),
       currency VARCHAR(10) NOT NULL DEFAULT 'OMR',
@@ -126,6 +129,9 @@ async function ensureShopOrdersTables(): Promise<void> {
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivery_latitude DOUBLE PRECISION`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivery_longitude DOUBLE PRECISION`);
+  await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS promo_code_id UUID REFERENCES promo_codes(id) ON DELETE SET NULL`);
+  await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS promo_code VARCHAR(50)`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMP WITH TIME ZONE`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP WITH TIME ZONE`);
@@ -257,6 +263,9 @@ function mapShopOrder(row: Record<string, unknown>): ShopOrder {
     recipient_phone: row.recipient_phone as string,
     notes: (row.notes as string | null) ?? null,
     subtotal: Number(row.subtotal ?? 0),
+    discount_amount: Number(row.discount_amount ?? 0),
+    promo_code_id: (row.promo_code_id as string | null) ?? null,
+    promo_code: (row.promo_code as string | null) ?? null,
     shipping_fee: Number(row.shipping_fee ?? 0),
     total_amount: Number(row.total_amount ?? 0),
     currency: (row.currency as string) || 'OMR',

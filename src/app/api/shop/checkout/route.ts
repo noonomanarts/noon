@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { pool } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
 import { CART_COOKIE_NAME, emptyCart, parseCartCookie, serializeCartCookie } from '@/lib/cart';
+import { validatePromoCode } from '@/lib/db/promoCodes';
 
 const SHIPPING_FEE = 2;
 const DELIVERY_CITY = 'Muscat';
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
       recipientFullName?: string;
       recipientPhone?: string;
       notes?: string;
+      promoCode?: string;
       location?: {
         lat?: number;
         lng?: number;
@@ -83,6 +85,7 @@ export async function POST(request: NextRequest) {
     const recipientFullName = typeof body.recipientFullName === 'string' ? body.recipientFullName.trim() : '';
     const recipientPhone = typeof body.recipientPhone === 'string' ? body.recipientPhone.trim() : '';
     const notes = typeof body.notes === 'string' ? body.notes.trim() : '';
+    const promoCodeInput = typeof body.promoCode === 'string' ? body.promoCode.trim() : '';
     const location = parseMuscatLocation(body.location);
 
     if (!area || !streetAddress || !recipientFullName || !recipientPhone) {
@@ -121,6 +124,9 @@ export async function POST(request: NextRequest) {
           recipient_phone VARCHAR(30) NOT NULL,
           notes TEXT,
           subtotal DECIMAL(10, 3) NOT NULL CHECK (subtotal >= 0),
+          discount_amount DECIMAL(10, 3) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+          promo_code_id UUID REFERENCES promo_codes(id) ON DELETE SET NULL,
+          promo_code VARCHAR(50),
           shipping_fee DECIMAL(10, 3) NOT NULL DEFAULT 2.000 CHECK (shipping_fee >= 0),
           total_amount DECIMAL(10, 3) NOT NULL CHECK (total_amount >= 0),
           currency VARCHAR(10) NOT NULL DEFAULT 'OMR',
@@ -143,6 +149,9 @@ export async function POST(request: NextRequest) {
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancellation_reason TEXT`);
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivery_latitude DOUBLE PRECISION`);
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivery_longitude DOUBLE PRECISION`);
+      await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+      await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS promo_code_id UUID REFERENCES promo_codes(id) ON DELETE SET NULL`);
+      await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS promo_code VARCHAR(50)`);
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMP WITH TIME ZONE`);
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE`);
       await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP WITH TIME ZONE`);
@@ -255,7 +264,26 @@ export async function POST(request: NextRequest) {
 
       subtotal = Number(subtotal.toFixed(3));
       const shippingFee = SHIPPING_FEE;
-      const totalAmount = Number((subtotal + shippingFee).toFixed(3));
+
+      let discountAmount = 0;
+      let appliedPromo: { id: string; code: string } | null = null;
+
+      if (promoCodeInput) {
+        const promoValidation = await validatePromoCode(promoCodeInput, subtotal);
+        if (!promoValidation.valid) {
+          await client.query('ROLLBACK');
+          return NextResponse.json({ error: promoValidation.reason }, { status: 400 });
+        }
+
+        discountAmount = Number(promoValidation.discountAmount.toFixed(3));
+        appliedPromo = {
+          id: promoValidation.promo.id,
+          code: promoValidation.promo.code,
+        };
+      }
+
+      const discountedSubtotal = Number(Math.max(0, subtotal - discountAmount).toFixed(3));
+      const totalAmount = Number((discountedSubtotal + shippingFee).toFixed(3));
 
       const walletBalance = Number(walletRow.balance ?? 0);
       const walletAvailable = Number(walletRow.available_balance ?? walletRow.balance ?? 0);
@@ -293,11 +321,11 @@ export async function POST(request: NextRequest) {
         `INSERT INTO shop_orders (
           order_number, user_id, status, city, area, street_address, delivery_latitude, delivery_longitude, postal_code,
           recipient_full_name, recipient_phone, notes,
-          subtotal, shipping_fee, total_amount, currency, payment_method, wallet_transaction_id, paid_at
+          subtotal, discount_amount, promo_code_id, promo_code, shipping_fee, total_amount, currency, payment_method, wallet_transaction_id, paid_at
         ) VALUES (
           $1, $2, 'PAID', $3, $4, $5, $6, $7, $8,
           $9, $10, $11,
-          $12, $13, $14, $15, 'WALLET', $16, NOW()
+          $12, $13, $14, $15, $16, $17, $18, 'WALLET', $19, NOW()
         ) RETURNING id, order_number`,
         [
           orderNumber,
@@ -312,6 +340,9 @@ export async function POST(request: NextRequest) {
           recipientPhone,
           notes || null,
           subtotal,
+          discountAmount,
+          appliedPromo?.id ?? null,
+          appliedPromo?.code ?? null,
           shippingFee,
           totalAmount,
           walletRow.currency || 'OMR',
@@ -320,6 +351,25 @@ export async function POST(request: NextRequest) {
       );
 
       const orderId = orderInsert.rows[0].id as string;
+
+      if (appliedPromo) {
+        const usageResult = await client.query(
+          `UPDATE promo_codes
+           SET times_used = times_used + 1,
+               updated_at = NOW()
+           WHERE id = $1
+             AND is_active = TRUE
+             AND (starts_at IS NULL OR starts_at <= NOW())
+             AND (expires_at IS NULL OR expires_at >= NOW())
+             AND (max_uses IS NULL OR times_used < max_uses)`,
+          [appliedPromo.id]
+        );
+
+        if ((usageResult.rowCount ?? 0) === 0) {
+          await client.query('ROLLBACK');
+          return NextResponse.json({ error: 'Promo code usage limit reached' }, { status: 409 });
+        }
+      }
 
       for (const item of orderItems) {
         await client.query(
@@ -356,6 +406,8 @@ export async function POST(request: NextRequest) {
           id: orderId,
           orderNumber: orderInsert.rows[0].order_number as string,
           subtotal,
+          discountAmount,
+          promoCode: appliedPromo?.code ?? null,
           shippingFee,
           totalAmount,
           currency: String(walletRow.currency || 'OMR'),

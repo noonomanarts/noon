@@ -26,6 +26,7 @@ import {
   FiCreditCard,
   FiPackage,
   FiMessageSquare,
+  FiTag,
 } from "react-icons/fi";
 
 type AdminIconName =
@@ -43,7 +44,8 @@ type AdminIconName =
   | "FiSettings"
   | "FiBell"
   | "FiPackage"
-  | "FiMessageSquare";
+  | "FiMessageSquare"
+  | "FiTag";
 
 type AdminMenuItem = {
   iconName: AdminIconName;
@@ -116,6 +118,7 @@ export default async function AdminLayout({
     shopProducts: locale === "ar" ? "منتجات المتجر" : "Shop Products",
     shopDiscoverMore: locale === "ar" ? "روابط Discover more" : "Discover More Links",
     shopOrders: locale === "ar" ? "طلبات المتجر" : "Shop Orders",
+    promoCodes: locale === "ar" ? "أكواد الخصم" : "Promo Codes",
     recommendations: locale === "ar" ? "التوصيات" : "Recommendations",
     recipes: locale === "ar" ? "الوصفات" : "Recipes",
     pages: locale === "ar" ? "الصفحات" : "Pages",
@@ -187,6 +190,7 @@ export default async function AdminLayout({
             { iconName: "FiShoppingBag" as const, iconColor: "text-purple-600 dark:text-purple-400", label: t.shopProducts, href: `/${locale}/admin/shop/products` },
             { iconName: "FiFileText" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.shopDiscoverMore, href: `/${locale}/admin/shop/discover-more` },
             { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: t.shopOrders, href: `/${locale}/admin/shop/orders` },
+            { iconName: "FiTag" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.promoCodes, href: `/${locale}/admin/promo-codes` },
           ],
         },
         {
@@ -250,6 +254,7 @@ export default async function AdminLayout({
                             : item.iconName === "FiFileText" ? FiFileText
                             : item.iconName === "FiSettings" ? FiSettings
                             : item.iconName === "FiMessageSquare" ? FiMessageSquare
+                            : item.iconName === "FiTag" ? FiTag
                             : item.iconName === "FiPackage" ? FiPackage
                             : FiBell;
                           
@@ -315,7 +320,7 @@ export default async function AdminLayout({
                     profile: t.profile,
                     accountSettings: t.accountSettings,
                   }}
-                  onLogout={handleLogout}
+                  onLogoutAction={handleLogout}
                 />
                 <div className={locale === "ar" ? "text-right" : "text-left"}>
                   <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">{t.dashboard}</h1>
