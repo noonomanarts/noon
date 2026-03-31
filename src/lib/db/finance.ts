@@ -484,12 +484,14 @@ async function seedDefaultReasons() {
     INSERT INTO admin_finance_reasons (entry_type, name, description, sort_order, is_active, is_system)
     VALUES
       ('INCOME', 'Classes Revenue', 'Income from classes and workshops', 10, TRUE, TRUE),
+      ('INCOME', 'Net Profit', 'Net workshop profit retained by Noon', 15, TRUE, TRUE),
       ('INCOME', 'Events Revenue', 'Income from private events and bookings', 20, TRUE, TRUE),
       ('INCOME', 'Shop Sales', 'Income from product sales', 30, TRUE, TRUE),
       ('INCOME', 'Other Income', 'Other income sources', 999, TRUE, TRUE),
       ('EXPENSE', 'Salaries', 'Team and trainer payments', 10, TRUE, TRUE),
       ('EXPENSE', 'Rent & Utilities', 'Rent, electricity, internet and utilities', 20, TRUE, TRUE),
       ('EXPENSE', 'Supplies', 'Class and operations supplies', 30, TRUE, TRUE),
+      ('EXPENSE', 'Workshop Materials', 'Inventory materials consumed by workshop execution', 35, TRUE, TRUE),
       ('EXPENSE', 'Marketing', 'Marketing and advertising costs', 40, TRUE, TRUE),
       ('EXPENSE', 'Other Expense', 'Other expenses', 999, TRUE, TRUE)
     ON CONFLICT (entry_type, name) DO NOTHING

@@ -13,12 +13,15 @@ import {
   type ClassInventoryUsageItem,
   type InventoryCatalogItem,
 } from '@/lib/db/inventory';
+import { ensureAdminFinanceSchema } from './finance';
 import { pool, query } from './pool';
 
 type QueryResultRow = Record<string, unknown>;
 type Queryable = {
   query: (text: string, values?: unknown[]) => Promise<{ rows: QueryResultRow[]; rowCount?: number | null }>;
 };
+
+type AdminFinanceEntryType = 'INCOME' | 'EXPENSE';
 
 export type ClassExpenseItemInput = {
   id?: string;
@@ -745,6 +748,123 @@ async function creditWallet(params: {
   };
 }
 
+async function resolveAutoFinanceReason(params: {
+  db: Queryable;
+  type: AdminFinanceEntryType;
+  preferredNames: string[];
+}): Promise<{ reasonId: string | null; reasonName: string; category: string }> {
+  const normalizedNames = params.preferredNames.map((name) => name.trim()).filter((name) => name.length > 0);
+
+  if (normalizedNames.length > 0) {
+    const preferredResult = await params.db.query(
+      `SELECT id, name
+       FROM admin_finance_reasons
+       WHERE entry_type = $1
+         AND is_archived = FALSE
+         AND name = ANY($2::text[])
+       ORDER BY CASE WHEN is_active THEN 0 ELSE 1 END,
+                array_position($2::text[], name),
+                sort_order ASC,
+                name ASC
+       LIMIT 1`,
+      [params.type, normalizedNames]
+    );
+
+    const preferredRow = preferredResult.rows[0];
+    if (preferredRow) {
+      const reasonId = preferredRow.id ? String(preferredRow.id) : null;
+      const reasonName = String(preferredRow.name);
+      return {
+        reasonId,
+        reasonName,
+        category: reasonName,
+      };
+    }
+  }
+
+  const fallbackResult = await params.db.query(
+    `SELECT id, name
+     FROM admin_finance_reasons
+     WHERE entry_type = $1
+       AND is_archived = FALSE
+     ORDER BY CASE WHEN is_active THEN 0 ELSE 1 END, sort_order ASC, name ASC
+     LIMIT 1`,
+    [params.type]
+  );
+
+  const fallbackRow = fallbackResult.rows[0];
+  if (!fallbackRow) {
+    return {
+      reasonId: null,
+      reasonName: 'General',
+      category: 'General',
+    };
+  }
+
+  const reasonName = String(fallbackRow.name || 'General');
+  return {
+    reasonId: fallbackRow.id ? String(fallbackRow.id) : null,
+    reasonName,
+    category: reasonName,
+  };
+}
+
+async function insertAutoFinanceEntry(params: {
+  db: Queryable;
+  type: AdminFinanceEntryType;
+  title: string;
+  amount: number;
+  currency: string;
+  occurredAtIso: string;
+  createdByUserId: string;
+  reason: { reasonId: string | null; reasonName: string; category: string };
+  counterparty?: string | null;
+  notes?: string | null;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  if (params.amount <= 0) {
+    return;
+  }
+
+  await params.db.query(
+    `INSERT INTO admin_finance_entries (
+       entry_type,
+       title,
+       category,
+       reason_id,
+       reason_name,
+       amount,
+       currency,
+       occurred_at,
+       counterparty,
+       notes,
+       metadata,
+       created_by_user_id,
+       updated_by_user_id,
+       created_at,
+       updated_at
+     ) VALUES (
+       $1, $2, $3, $4, $5,
+       $6, $7, $8, $9, $10,
+       $11, $12, $12, NOW(), NOW()
+     )`,
+    [
+      params.type,
+      params.title,
+      params.reason.category,
+      params.reason.reasonId,
+      params.reason.reasonName,
+      params.amount,
+      params.currency,
+      params.occurredAtIso,
+      params.counterparty || null,
+      params.notes || null,
+      params.metadata ?? {},
+      params.createdByUserId,
+    ]
+  );
+}
+
 export async function saveClassSettlementDraft(args: {
   classId: string;
   adminUserId: string;
@@ -835,6 +955,7 @@ export async function closeClassSettlement(args: {
   notes?: unknown;
 }): Promise<ClassSettlementSnapshot> {
   await ensureClassFinanceSchema();
+  await ensureAdminFinanceSchema();
 
   const expenseItems = sanitizeExpenseItems(args.expenseItems);
   const inventoryUsageItems = sanitizeInventoryUsageItems(args.inventoryUsageItems);
@@ -941,6 +1062,8 @@ export async function closeClassSettlement(args: {
       throw new Error('Noon fee is negative. Review fixed and material costs before closing this workshop.');
     }
 
+    const settledAt = new Date().toISOString();
+
     const trainerCredit =
       snapshot.summary.trainerFeeAmount > 0
         ? await creditWallet({
@@ -964,6 +1087,88 @@ export async function closeClassSettlement(args: {
             reason: `Noon fee for class ${args.classId}`,
           })
         : { transactionId: null };
+
+    const [trainerSalaryReason, netProfitReason, inventoryMaterialsReason] = await Promise.all([
+      resolveAutoFinanceReason({
+        db: client,
+        type: 'EXPENSE',
+        preferredNames: ['Salaries', 'Other Expense'],
+      }),
+      resolveAutoFinanceReason({
+        db: client,
+        type: 'INCOME',
+        preferredNames: ['Net Profit', 'Classes Revenue', 'Other Income'],
+      }),
+      resolveAutoFinanceReason({
+        db: client,
+        type: 'EXPENSE',
+        preferredNames: ['Workshop Materials', 'Supplies', 'Other Expense'],
+      }),
+    ]);
+
+    await insertAutoFinanceEntry({
+      db: client,
+      type: 'EXPENSE',
+      title: `Trainer salary for workshop ${args.classId}`,
+      amount: snapshot.summary.trainerFeeAmount,
+      currency: snapshot.currency,
+      occurredAtIso: settledAt,
+      createdByUserId: args.adminUserId,
+      reason: trainerSalaryReason,
+      counterparty: snapshot.trainer.fullName,
+      notes: 'Auto-generated from workshop close settlement.',
+      metadata: {
+        source: 'CLASS_SETTLEMENT_CLOSE',
+        classId: args.classId,
+        component: 'TRAINER_FEE',
+        trainerUserId: snapshot.trainer.id,
+      },
+    });
+
+    await insertAutoFinanceEntry({
+      db: client,
+      type: 'INCOME',
+      title: `Noon net profit from workshop ${args.classId}`,
+      amount: snapshot.summary.noonFeeAmount,
+      currency: snapshot.currency,
+      occurredAtIso: settledAt,
+      createdByUserId: args.adminUserId,
+      reason: netProfitReason,
+      counterparty: 'Noon',
+      notes: 'Auto-generated from workshop close settlement.',
+      metadata: {
+        source: 'CLASS_SETTLEMENT_CLOSE',
+        classId: args.classId,
+        component: 'NOON_NET_PROFIT',
+      },
+    });
+
+    for (const usageItem of postedInventoryUsageItems) {
+      if (usageItem.status !== 'POSTED' || usageItem.totalCost <= 0) {
+        continue;
+      }
+
+      await insertAutoFinanceEntry({
+        db: client,
+        type: 'EXPENSE',
+        title: `Workshop material usage: ${usageItem.itemName}`,
+        amount: usageItem.totalCost,
+        currency: snapshot.currency,
+        occurredAtIso: settledAt,
+        createdByUserId: args.adminUserId,
+        reason: inventoryMaterialsReason,
+        notes: `Auto-generated from workshop close settlement (${usageItem.quantity.toFixed(3)} ${usageItem.itemUnit}).`,
+        metadata: {
+          source: 'CLASS_SETTLEMENT_CLOSE',
+          classId: args.classId,
+          component: 'INVENTORY_MATERIAL_USAGE',
+          inventoryUsageId: usageItem.id,
+          inventoryItemId: usageItem.inventoryItemId,
+          quantity: usageItem.quantity,
+          unitCost: usageItem.unitCost,
+        },
+      });
+    }
 
     await upsertSettlementRow({
       db: client,
