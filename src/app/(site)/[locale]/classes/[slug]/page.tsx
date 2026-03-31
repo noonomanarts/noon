@@ -112,7 +112,7 @@ export default async function ClassDetailPage({
   }
 
   const formatDate = (date: Date | string) =>
-    new Date(date).toLocaleDateString(isArabic ? "ar-OM" : "en-OM", {
+    new Date(date).toLocaleDateString(isArabic ? "ar-OM-u-nu-latn" : "en-OM", {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -121,7 +121,7 @@ export default async function ClassDetailPage({
     });
 
   const formatTime = (date: Date | string) =>
-    new Date(date).toLocaleTimeString(isArabic ? "ar-OM" : "en-OM", {
+    new Date(date).toLocaleTimeString(isArabic ? "ar-OM-u-nu-latn" : "en-OM", {
       hour: "2-digit",
       minute: "2-digit",
       timeZone: DISPLAY_TIMEZONE,
@@ -354,7 +354,7 @@ export default async function ClassDetailPage({
                         ))}
                       </div>
                       <p className="text-xs text-[color:var(--text-subtle)]">
-                        {new Date(review.createdAt).toLocaleDateString(isArabic ? "ar-OM" : "en-OM")}
+                        {new Date(review.createdAt).toLocaleDateString(isArabic ? "ar-OM-u-nu-latn" : "en-OM")}
                       </p>
                     </div>
                     {review.comment ? (

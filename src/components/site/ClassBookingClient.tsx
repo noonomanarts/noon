@@ -77,7 +77,7 @@ function buildSelfParticipant(user: CurrentUserLite): Participant {
   return {
     fullName: user.fullName.trim(),
     dateOfBirth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : '',
-    preferredLanguage: user.preferredLanguage === 'ARABIC' ? 'ar' : 'en',
+    preferredLanguage: user.preferredLanguage === 'ARABIC' ? 'ar-u-nu-latn' : 'en',
   };
 }
 
@@ -188,7 +188,7 @@ export default function ClassBookingClient({
   const isMomKid = classData.subCategory === 'MOM_AND_KID';
   const terms = getTerms(locale, isMomKid);
   const selectedSessionLabel = selectedSession
-    ? new Date(selectedSession.startTime).toLocaleString(isArabic ? 'ar-OM' : 'en-OM', {
+    ? new Date(selectedSession.startTime).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',

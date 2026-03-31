@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     const body = (await request.json().catch(() => ({}))) as RequestPayload;
 
     const purpose = body.purpose === 'register' ? 'REGISTER' : body.purpose === 'login' ? 'LOGIN' : null;
-    const locale = body.locale === 'ar' ? 'ar' : 'en';
+    const locale = body.locale === 'ar' ? 'ar-u-nu-latn' : 'en';
     const phoneNumber = typeof body.phoneNumber === 'string' ? body.phoneNumber.trim() : '';
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
 

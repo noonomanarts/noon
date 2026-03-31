@@ -119,7 +119,7 @@ export default function AdminEventDetailsPage({
     slotPending: isAr ? "بانتظار اعتماد الإدارة" : "Awaiting admin approval",
   };
 
-  const localeCode = isAr ? "ar-OM" : "en-OM";
+  const localeCode = isAr ? "ar-OM-u-nu-latn" : "en-OM";
   const formatDate = useMemo(
     () => (value: string | null) =>
       value

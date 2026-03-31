@@ -29,7 +29,7 @@ function toDateKey(rawDate: string) {
 }
 
 function formatDay(locale: Locale, rawDate: string) {
-  return new Date(rawDate).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Date(rawDate).toLocaleDateString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -38,7 +38,7 @@ function formatDay(locale: Locale, rawDate: string) {
 }
 
 function formatTime(locale: Locale, rawDate: string) {
-  return new Date(rawDate).toLocaleTimeString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Date(rawDate).toLocaleTimeString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     hour: 'numeric',
     minute: '2-digit',
     timeZone: DISPLAY_TIMEZONE,

@@ -149,7 +149,7 @@ export default function AdminEventsPage() {
 
   const formatDate = (date: string | null) => {
     if (!date) return t.notSet;
-    return new Date(date).toLocaleDateString(isAr ? "ar-OM" : "en-OM", {
+    return new Date(date).toLocaleDateString(isAr ? "ar-OM-u-nu-latn" : "en-OM", {
       year: "numeric",
       month: "short",
       day: "numeric",

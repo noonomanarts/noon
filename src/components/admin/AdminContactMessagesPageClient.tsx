@@ -114,7 +114,7 @@ export default function AdminContactMessagesPageClient({
                         <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-100">{msg.name}</td>
                         <td className="px-4 py-3 text-zinc-600 dark:text-zinc-300">{msg.subject}</td>
                         <td className="px-4 py-3 text-zinc-500 dark:text-zinc-400">
-                          {new Date(msg.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-GB', {
+                          {new Date(msg.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-GB', {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric',

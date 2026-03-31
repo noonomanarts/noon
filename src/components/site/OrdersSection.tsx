@@ -136,7 +136,7 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
               </div>
 
               <div className="mb-2 text-sm text-[color:var(--text-muted)]">
-                {isArabic ? 'تاريخ الإنشاء:' : 'Created:'} {new Date(order.created_at).toLocaleDateString(locale === 'ar' ? 'ar' : 'en')}
+                {isArabic ? 'تاريخ الإنشاء:' : 'Created:'} {new Date(order.created_at).toLocaleDateString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
               </div>
 
               {order.type === 'class' && 'total_amount' in order && order.total_amount !== null && order.total_amount !== undefined && (

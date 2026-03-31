@@ -102,7 +102,7 @@ export default function AdminClassSessionsPage({
 }) {
   const { locale, classId } = use(params);
   const isArabic = locale === 'ar';
-  const localeCode = isArabic ? 'ar-OM' : 'en-OM';
+  const localeCode = isArabic ? 'ar-OM-u-nu-latn' : 'en-OM';
 
   const [classData, setClassData] = useState<ClassDetails | null>(null);
   const [sessions, setSessions] = useState<SessionItem[]>([]);

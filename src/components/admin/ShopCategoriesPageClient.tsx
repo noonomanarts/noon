@@ -493,7 +493,7 @@ export default function ShopCategoriesPageClient({ locale }: { locale: Locale })
                         {isArabic ? category.description_ar || '-' : category.description_en || '-'}
                       </p>
                       <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                        {text.createdAt}: {new Date(category.created_at).toLocaleDateString(isArabic ? 'ar-OM' : 'en-US')} · {text.sortOrder}:{' '}
+                        {text.createdAt}: {new Date(category.created_at).toLocaleDateString(isArabic ? 'ar-OM-u-nu-latn' : 'en-US')} · {text.sortOrder}:{' '}
                         {category.sort_order}
                       </p>
                     </div>

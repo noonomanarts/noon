@@ -43,7 +43,7 @@ function formatAmount(value: number | null, currency: string) {
 function formatDateTime(locale: Locale, value: string | Date | null | undefined) {
   if (!value) return null;
 
-  return new Date(value).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Date(value).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

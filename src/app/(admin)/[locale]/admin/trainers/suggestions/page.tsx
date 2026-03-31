@@ -37,7 +37,7 @@ const REVIEW_STATUS_OPTIONS: SuggestionStatus[] = ['PENDING_REVIEW', 'IN_REVIEW'
 function toLocalDate(value: string, locale: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleString(locale === 'ar' ? 'ar' : 'en-GB', {
+  return date.toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB', {
     dateStyle: 'medium',
     timeStyle: 'short',
   });

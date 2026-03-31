@@ -136,7 +136,7 @@ function emptyPurchaseForm(): PurchaseFormState {
 
 export default function AdminInventoryPageClient({ locale }: { locale: Locale }) {
   const isArabic = locale === 'ar';
-  const localeCode = isArabic ? 'ar-OM' : 'en-OM';
+  const localeCode = isArabic ? 'ar-OM-u-nu-latn' : 'en-OM';
 
   const t = {
     title: isArabic ? 'إدارة المخزون والمحاسبة' : 'Inventory & Cost Accounting',

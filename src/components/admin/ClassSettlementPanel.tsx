@@ -144,7 +144,7 @@ export default function ClassSettlementPanel({
   onClosed?: () => Promise<void> | void;
 }) {
   const isArabic = locale === 'ar';
-  const localeCode = isArabic ? 'ar-OM' : 'en-OM';
+  const localeCode = isArabic ? 'ar-OM-u-nu-latn' : 'en-OM';
 
   const [snapshot, setSnapshot] = useState<SettlementSnapshot | null>(null);
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([]);

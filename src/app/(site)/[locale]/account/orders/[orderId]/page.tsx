@@ -75,7 +75,7 @@ type ShopOrderDetails = {
 
 function formatDateTime(locale: Locale, value: string | Date | null | undefined) {
   if (!value) return '-';
-  return new Date(value).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Date(value).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -86,7 +86,7 @@ function formatDateTime(locale: Locale, value: string | Date | null | undefined)
 
 function formatDate(locale: Locale, value: string | Date | null | undefined) {
   if (!value) return '-';
-  return new Date(value).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Date(value).toLocaleDateString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

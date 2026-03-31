@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     const body = (await request.json().catch(() => ({}))) as VerifyPayload;
 
     const purpose = body.purpose === 'register' ? 'REGISTER' : body.purpose === 'login' ? 'LOGIN' : null;
-    const locale = body.locale === 'ar' ? 'ar' : 'en';
+    const locale = body.locale === 'ar' ? 'ar-u-nu-latn' : 'en';
     const verificationId = typeof body.verificationId === 'string' ? body.verificationId.trim() : '';
     const code = typeof body.code === 'string' ? body.code.trim() : '';
     const phoneNumber = typeof body.phoneNumber === 'string' ? body.phoneNumber.trim() : '';

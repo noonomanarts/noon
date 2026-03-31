@@ -249,7 +249,7 @@ export default function AdminPaymentsPageClient({ locale }: AdminPaymentsPageCli
                         {payment.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300">{new Date(payment.created_at).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-US')}</td>
+                    <td className="px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300">{new Date(payment.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-US')}</td>
                     <td className="px-6 py-4">
                       {payment.status === 'PENDING' ? (
                         <div className="space-y-2">

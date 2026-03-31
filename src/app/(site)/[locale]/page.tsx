@@ -127,7 +127,7 @@ async function resolveUpcomingItems(
   try {
     const classes = await findManyClasses({ status: "PUBLISHED", limit: 48 });
     const noTrainerLabel = locale === "ar" ? "المدرب غير محدد" : "Trainer TBD";
-    const localeCode = locale === "ar" ? "ar-OM" : "en-OM";
+    const localeCode = locale === "ar" ? "ar-OM-u-nu-latn" : "en-OM";
 
     // Collect ALL upcoming sessions across all classes — each session becomes its own card
     const sessionCards: (UpcomingCard & { sessionStart: Date })[] = [];

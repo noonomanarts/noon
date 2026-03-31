@@ -18,7 +18,7 @@ type AvailabilityResponse = {
 };
 
 function formatDay(locale: Locale, value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Date(`${value}T00:00:00`).toLocaleDateString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -26,14 +26,14 @@ function formatDay(locale: Locale, value: string) {
 }
 
 function formatSlot(locale: Locale, value: string) {
-  return new Date(`2000-01-01T${value}:00+04:00`).toLocaleTimeString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Date(`2000-01-01T${value}:00+04:00`).toLocaleTimeString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     hour: 'numeric',
     minute: '2-digit',
   });
 }
 
 function formatMonth(locale: Locale, value: string) {
-  return new Date(`${value}-01T00:00:00`).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+  return new Date(`${value}-01T00:00:00`).toLocaleDateString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     month: 'long',
     year: 'numeric',
   });
@@ -205,7 +205,7 @@ export default function PublicEventAvailabilityPicker({
   const weekDayHeaders = useMemo(() => {
     return Array.from({ length: 7 }).map((_, index) =>
       new Date(`2025-01-${String(5 + index).padStart(2, '0')}T00:00:00`).toLocaleDateString(
-        locale === 'ar' ? 'ar-OM' : 'en-OM',
+        locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM',
         { weekday: 'short' }
       )
     );

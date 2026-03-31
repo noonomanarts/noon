@@ -190,7 +190,7 @@ export default async function CookingClassesPage({
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
-    return d.toLocaleDateString(isArabic ? "ar-OM" : "en-OM", {
+    return d.toLocaleDateString(isArabic ? "ar-OM-u-nu-latn" : "en-OM", {
       month: "short",
       day: "numeric",
       timeZone: DISPLAY_TIMEZONE,
@@ -199,7 +199,7 @@ export default async function CookingClassesPage({
 
   const formatTime = (date: Date | string) => {
     const d = new Date(date);
-    return d.toLocaleTimeString(isArabic ? "ar-OM" : "en-OM", {
+    return d.toLocaleTimeString(isArabic ? "ar-OM-u-nu-latn" : "en-OM", {
       hour: "2-digit",
       minute: "2-digit",
       timeZone: DISPLAY_TIMEZONE,
