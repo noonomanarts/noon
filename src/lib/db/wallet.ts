@@ -199,6 +199,99 @@ export async function addLoyaltyStamp(userId: string): Promise<void> {
   );
 }
 
+/**
+ * Add bonus points to user's loyalty card (1 OMR spent = 1 point).
+ * Creates a loyalty card if one does not exist yet.
+ */
+export async function addBonusPoints(userId: string, points: number): Promise<void> {
+  if (points <= 0) return;
+  const roundedPoints = Math.floor(points);
+  if (roundedPoints <= 0) return;
+
+  let card = await getLoyaltyCardByUserId(userId);
+  if (!card) {
+    card = await createLoyaltyCard(userId);
+  }
+
+  await pool.query(
+    'UPDATE loyalty_cards SET points = points + $1, updated_at = NOW() WHERE user_id = $2',
+    [roundedPoints, userId]
+  );
+}
+
+/**
+ * Convert loyalty points to wallet credit.
+ * Returns the amount credited and points consumed.
+ */
+export async function convertPointsToCredit(
+  userId: string,
+  pointsToConvert: number,
+  ratePerPoint: number
+): Promise<{ pointsUsed: number; amountCredited: number }> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Lock loyalty card
+    const cardResult = await client.query(
+      'SELECT * FROM loyalty_cards WHERE user_id = $1 FOR UPDATE',
+      [userId]
+    );
+    const card = cardResult.rows[0];
+    if (!card || Number(card.points) < pointsToConvert) {
+      throw new Error('Insufficient points');
+    }
+
+    const amountCredited = Number((pointsToConvert * ratePerPoint).toFixed(3));
+    if (amountCredited <= 0) {
+      throw new Error('Conversion amount too small');
+    }
+
+    // Deduct points
+    await client.query(
+      'UPDATE loyalty_cards SET points = points - $1, updated_at = NOW() WHERE user_id = $2',
+      [pointsToConvert, userId]
+    );
+
+    // Credit wallet (purchase balance only, not withdrawable)
+    const walletResult = await client.query(
+      'SELECT id, balance FROM wallets WHERE user_id = $1 FOR UPDATE',
+      [userId]
+    );
+    let walletId: string;
+    if (walletResult.rows.length === 0) {
+      const newWallet = await client.query(
+        `INSERT INTO wallets (user_id, balance, available_balance, currency)
+         VALUES ($1, $2, 0, 'OMR') RETURNING id`,
+        [userId, amountCredited]
+      );
+      walletId = newWallet.rows[0].id as string;
+    } else {
+      walletId = walletResult.rows[0].id as string;
+      const newBalance = Number((Number(walletResult.rows[0].balance) + amountCredited).toFixed(3));
+      await client.query(
+        'UPDATE wallets SET balance = $1, updated_at = NOW() WHERE id = $2',
+        [newBalance, walletId]
+      );
+    }
+
+    // Record wallet transaction
+    await client.query(
+      `INSERT INTO wallet_transactions (wallet_id, amount, type, reason, status)
+       VALUES ($1, $2, 'POINTS_CONVERSION', $3, 'COMPLETED')`,
+      [walletId, amountCredited, `Converted ${pointsToConvert} bonus points to wallet credit`]
+    );
+
+    await client.query('COMMIT');
+    return { pointsUsed: pointsToConvert, amountCredited };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 // Transfer functions
 export async function transferWalletFunds(
   fromUserId: string,

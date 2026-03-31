@@ -30,6 +30,12 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
   const [message, setMessage] = useState('');
   const [cancelingTransactionId, setCancelingTransactionId] = useState<string | null>(null);
 
+  // Bonus points state
+  const [bonusPoints, setBonusPoints] = useState(0);
+  const [convertAmount, setConvertAmount] = useState('');
+  const [convertLoading, setConvertLoading] = useState(false);
+  const [conversionRate, setConversionRate] = useState(0.05);
+
   const isArabic = locale === 'ar';
   const transactionsPerPage = 8;
   const blockedBalance = walletData.blocked_balance ?? 0;
@@ -72,6 +78,30 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
     setWalletData(wallet);
     setTransactionsData(transactions);
   }, [wallet, transactions]);
+
+  // Fetch bonus points and conversion rate on mount
+  useEffect(() => {
+    const fetchPoints = async () => {
+      try {
+        const res = await fetch('/api/wallet/points');
+        if (res.ok) {
+          const data = await res.json() as { points?: number };
+          setBonusPoints(data.points ?? 0);
+        }
+      } catch { /* ignore */ }
+    };
+    const fetchRate = async () => {
+      try {
+        const res = await fetch('/api/admin/settings/loyalty-rate');
+        if (res.ok) {
+          const data = await res.json() as { rate?: number };
+          if (data.rate) setConversionRate(data.rate);
+        }
+      } catch { /* ignore */ }
+    };
+    void fetchPoints();
+    void fetchRate();
+  }, []);
 
   const refreshWalletBalance = useCallback(async () => {
     try {
@@ -359,6 +389,42 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
     }
   };
 
+  const handleConvertPoints = async () => {
+    const pts = Math.floor(Number(convertAmount) || 0);
+    if (pts <= 0 || pts > bonusPoints) {
+      setMessage(isArabic ? 'يرجى إدخال عدد نقاط صحيح' : 'Please enter a valid number of points');
+      return;
+    }
+
+    setConvertLoading(true);
+    try {
+      const response = await fetch('/api/wallet/points/convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ points: pts }),
+      });
+
+      if (response.ok) {
+        const data = await response.json() as { pointsUsed?: number; amountCredited?: number };
+        setBonusPoints((prev) => prev - (data.pointsUsed ?? pts));
+        setConvertAmount('');
+        setMessage(
+          isArabic
+            ? `تم تحويل ${data.pointsUsed ?? pts} نقطة إلى ${(data.amountCredited ?? 0).toFixed(3)} ريال عماني بنجاح`
+            : `Successfully converted ${data.pointsUsed ?? pts} points to ${(data.amountCredited ?? 0).toFixed(3)} OMR`
+        );
+        void refreshWalletBalance();
+      } else {
+        const data = await response.json() as { error?: string };
+        setMessage(data.error || (isArabic ? 'فشل في تحويل النقاط' : 'Failed to convert points'));
+      }
+    } catch {
+      setMessage(isArabic ? 'خطأ في الاتصال' : 'Connection error');
+    } finally {
+      setConvertLoading(false);
+    }
+  };
+
   return (
     <>
       {/* Deposit Modal */}
@@ -566,6 +632,57 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
           {message}
         </div>
       )}
+
+      {/* Bonus Points */}
+      <div className="rounded-lg bg-gradient-to-r from-purple-50 to-indigo-50 p-4 mb-4 border border-purple-200/60 dark:from-purple-900/20 dark:to-indigo-900/20 dark:border-purple-800/40">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <div className="text-sm font-medium text-purple-700 dark:text-purple-300">
+              {isArabic ? 'نقاط المكافآت' : 'Bonus Points'}
+            </div>
+            <div className="text-2xl font-bold text-purple-800 dark:text-purple-200">
+              {bonusPoints.toLocaleString()}
+              <span className="ml-1 text-sm font-normal text-purple-600 dark:text-purple-400">
+                {isArabic ? 'نقطة' : 'pts'}
+              </span>
+            </div>
+            <div className="text-xs text-purple-600/80 dark:text-purple-400/80 mt-0.5">
+              {isArabic
+                ? `1 نقطة = ${conversionRate} ريال عماني`
+                : `1 point = ${conversionRate} OMR`}
+            </div>
+          </div>
+        </div>
+        {bonusPoints > 0 && (
+          <div className="flex items-center gap-2 mt-3">
+            <input
+              type="number"
+              min={1}
+              max={bonusPoints}
+              value={convertAmount}
+              onChange={(e) => setConvertAmount(e.target.value)}
+              placeholder={isArabic ? 'عدد النقاط' : 'Points to convert'}
+              className="flex-1 rounded-lg border border-purple-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 dark:border-purple-700 dark:bg-purple-900/30 dark:text-purple-100"
+            />
+            <button
+              onClick={() => void handleConvertPoints()}
+              disabled={convertLoading || !convertAmount || Number(convertAmount) <= 0 || Number(convertAmount) > bonusPoints}
+              className="shrink-0 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {convertLoading
+                ? (isArabic ? 'جاري...' : 'Converting...')
+                : (isArabic ? 'تحويل إلى رصيد' : 'Convert to Credit')}
+            </button>
+          </div>
+        )}
+        {convertAmount && Number(convertAmount) > 0 && Number(convertAmount) <= bonusPoints && (
+          <p className="mt-2 text-xs text-purple-600 dark:text-purple-400">
+            {isArabic
+              ? `سيتم إضافة ${(Number(convertAmount) * conversionRate).toFixed(3)} ريال عماني إلى رصيد محفظتك`
+              : `${(Number(convertAmount) * conversionRate).toFixed(3)} OMR will be added to your wallet balance`}
+          </p>
+        )}
+      </div>
 
       {/* Balance */}
       <div className="noon-soft-teal rounded-lg p-4 mb-4 border border-teal/20 dark:border-teal/30">

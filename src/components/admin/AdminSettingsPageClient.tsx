@@ -12,11 +12,12 @@ import {
   FooterAdminSettings,
   FooterAdminSocialIcon,
   GeneralAdminSettings,
+  LoyaltyAdminSettings,
   WhatsAppAdminSettings,
   WhatsAppFloatingButtonSettings,
 } from '@/lib/adminSettings';
 
-type TabId = 'general' | 'class-finance' | 'footer' | 'whatsapp' | 'whatsapp-floating-button' | 'backup';
+type TabId = 'general' | 'class-finance' | 'loyalty' | 'footer' | 'whatsapp' | 'whatsapp-floating-button' | 'backup';
 
 const NOON_HEADER_COLORS = [
   { key: 'coral', hex: '#f77d6b', labelEn: 'Coral', labelAr: 'كورال' },
@@ -113,6 +114,7 @@ export default function AdminSettingsPageClient({
   initialClassFinance,
   initialWhatsAppFloatingButton,
   initialFooter,
+  initialLoyalty,
 }: {
   locale: Locale;
   initialGeneral: GeneralAdminSettings;
@@ -120,6 +122,7 @@ export default function AdminSettingsPageClient({
   initialClassFinance: ClassFinanceAdminSettings;
   initialWhatsAppFloatingButton: WhatsAppFloatingButtonSettings;
   initialFooter: FooterAdminSettings;
+  initialLoyalty: LoyaltyAdminSettings;
 }) {
   const isArabic = locale === 'ar';
   const [activeTab, setActiveTab] = useState<TabId>('general');
@@ -130,6 +133,7 @@ export default function AdminSettingsPageClient({
   const [whatsapp, setWhatsapp] = useState<WhatsAppAdminSettings>(initialWhatsApp);
   const [classFinance, setClassFinance] = useState<ClassFinanceAdminSettings>(initialClassFinance);
   const [footer, setFooter] = useState<FooterAdminSettings>(initialFooter);
+  const [loyalty, setLoyalty] = useState<LoyaltyAdminSettings>(initialLoyalty);
   const [whatsappFloatingButton, setWhatsAppFloatingButton] = useState<WhatsAppFloatingButtonSettings>(
     initialWhatsAppFloatingButton
   );
@@ -144,6 +148,7 @@ export default function AdminSettingsPageClient({
       : 'Centralized control for general configuration, class finance rules, and backup operations.',
     tabGeneral: isArabic ? 'الإعدادات العامة' : 'General Settings',
     tabClassFinance: isArabic ? 'مالية الكلاسات' : 'Class Finance',
+    tabLoyalty: isArabic ? 'نقاط المكافآت' : 'Bonus Points',
     tabFooter: isArabic ? 'إعدادات الفوتر' : 'Footer Settings',
     tabWhatsapp: isArabic ? 'إعدادات واتساب' : 'WhatsApp Settings',
     tabWhatsappFloatingButton: isArabic ? 'زر واتساب العائم' : 'Floating WhatsApp Button',
@@ -431,6 +436,36 @@ export default function AdminSettingsPageClient({
     }
   };
 
+  const handleSaveLoyalty = async () => {
+    setSaving(true);
+    setError(null);
+    setInfo(null);
+
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ loyalty }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        loyalty?: LoyaltyAdminSettings;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.loyalty) {
+        throw new Error(payload.error || t.loadError);
+      }
+
+      setLoyalty(payload.loyalty);
+      setInfo(t.saved);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : t.loadError);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveFooter = async () => {
     setSaving(true);
     setError(null);
@@ -580,6 +615,7 @@ export default function AdminSettingsPageClient({
             {[
               ['general', t.tabGeneral],
               ['class-finance', t.tabClassFinance],
+              ['loyalty', t.tabLoyalty],
               ['footer', t.tabFooter],
               ['whatsapp', t.tabWhatsapp],
               ['whatsapp-floating-button', t.tabWhatsappFloatingButton],
@@ -813,6 +849,43 @@ export default function AdminSettingsPageClient({
                 </div>
               </section>
               <div className="flex justify-end"><button type="button" onClick={() => void handleSaveClassFinance()} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60">{saving ? t.saving : t.save}</button></div>
+            </div>
+          ) : activeTab === 'loyalty' ? (
+            <div className="space-y-6">
+              <section className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  <FiDollarSign className="size-4 text-[color:var(--noon-teal)]" />
+                  <span>{isArabic ? 'إعدادات نقاط المكافآت' : 'Bonus Points Settings'}</span>
+                </div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                  {isArabic
+                    ? 'كل 1 ريال عماني يصرفه العميل في الورش = 1 نقطة. النقاط يمكن تحويلها إلى رصيد محفظة.'
+                    : 'Every 1 OMR a customer spends on workshops = 1 point. Points can be converted to wallet credit.'}
+                </p>
+
+                <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">
+                      {isArabic ? 'سعر تحويل النقطة (ريال عماني لكل نقطة)' : 'Point Conversion Rate (OMR per point)'}
+                    </span>
+                    <input
+                      type="number"
+                      min={0.001}
+                      max={1}
+                      step="0.001"
+                      value={loyalty.pointConversionRate}
+                      onChange={(e) => setLoyalty((prev) => ({ ...prev, pointConversionRate: Number(e.target.value || 0) }))}
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </label>
+                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    {isArabic
+                      ? `حالياً: 1 نقطة = ${loyalty.pointConversionRate} ريال عماني. مثال: 100 نقطة = ${(100 * loyalty.pointConversionRate).toFixed(3)} ريال عماني.`
+                      : `Currently: 1 point = ${loyalty.pointConversionRate} OMR. Example: 100 points = ${(100 * loyalty.pointConversionRate).toFixed(3)} OMR.`}
+                  </p>
+                </div>
+              </section>
+              <div className="flex justify-end"><button type="button" onClick={() => void handleSaveLoyalty()} disabled={saving} className="inline-flex items-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60">{saving ? t.saving : t.save}</button></div>
             </div>
           ) : activeTab === 'footer' ? (
             <div className="space-y-6">

@@ -108,6 +108,14 @@ export type ClassFinanceAdminSettings = {
   defaultTrainerShareTiers: TrainerParticipantShareTier[];
 };
 
+export type LoyaltyAdminSettings = {
+  pointConversionRate: number; // OMR per point (default 0.05)
+};
+
+export const defaultLoyaltyAdminSettings: LoyaltyAdminSettings = {
+  pointConversionRate: 0.05,
+};
+
 export const defaultGeneralAdminSettings: GeneralAdminSettings = {
   siteName: 'Noon',
   supportEmail: 'support@noonomanarts.com',

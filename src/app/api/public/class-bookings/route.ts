@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { pool } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
+import { addBonusPoints } from '@/lib/db/wallet';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -317,6 +318,9 @@ export async function POST(request: NextRequest) {
     );
 
     await client.query('COMMIT');
+
+    // Award bonus points: 1 OMR = 1 point (fire-and-forget, non-blocking)
+    void addBonusPoints(user.id, totalAmount).catch(() => { /* ignore points failure */ });
 
     return NextResponse.json({
       success: true,

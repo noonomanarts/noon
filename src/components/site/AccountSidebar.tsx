@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ComponentType } from 'react';
-import { FiAward, FiBarChart2, FiBell, FiCreditCard, FiSettings, FiShoppingBag, FiUser } from 'react-icons/fi';
+import { FiBarChart2, FiBell, FiCreditCard, FiSettings, FiShoppingBag, FiUser } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 import LogoutButton from '@/components/site/LogoutButton';
 
@@ -37,7 +37,6 @@ export function AccountSidebar({ locale, role }: AccountSidebarProps) {
       : []),
     { key: 'orders', label: isArabic ? 'طلباتي' : 'Orders', href: `/${locale}/account/orders`, icon: FiShoppingBag },
     { key: 'wallet', label: isArabic ? 'المحفظة' : 'Wallet', href: `/${locale}/account/wallet`, icon: FiCreditCard },
-    { key: 'loyalty', label: isArabic ? 'الولاء' : 'Loyalty', href: `/${locale}/account/loyalty`, icon: FiAward },
     { key: 'notifications', label: isArabic ? 'الإشعارات' : 'Notifications', href: `/${locale}/account/notifications`, icon: FiBell },
     { key: 'settings', label: isArabic ? 'الإعدادات' : 'Settings', href: `/${locale}/account/settings`, icon: FiSettings },
   ];

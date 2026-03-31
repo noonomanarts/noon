@@ -4,6 +4,7 @@ import {
   defaultClassFinanceAdminSettings,
   defaultFooterAdminSettings,
   defaultGeneralAdminSettings,
+  defaultLoyaltyAdminSettings,
   defaultWhatsAppFloatingButtonSettings,
   defaultWhatsAppAdminSettings,
   type ClassFinanceAdminSettings,
@@ -11,6 +12,7 @@ import {
   type FooterAdminSettings,
   getAdminSettingsByKey,
   type GeneralAdminSettings,
+  type LoyaltyAdminSettings,
   sanitizeFooterAdminSettings,
   type WhatsAppFloatingButtonIcon,
   type WhatsAppFloatingButtonSettings,
@@ -175,12 +177,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const [savedGeneral, savedWhatsApp, savedClassFinance, savedWhatsAppFloatingButton, savedFooter] = await Promise.all([
+    const [savedGeneral, savedWhatsApp, savedClassFinance, savedWhatsAppFloatingButton, savedFooter, savedLoyalty] = await Promise.all([
       getAdminSettingsByKey<GeneralAdminSettings>('general'),
       getAdminSettingsByKey<WhatsAppAdminSettings>('whatsapp'),
       getAdminSettingsByKey<ClassFinanceAdminSettings>('class-finance'),
       getAdminSettingsByKey<WhatsAppFloatingButtonSettings>('whatsapp-floating-button'),
       getAdminSettingsByKey<FooterAdminSettings>('footer'),
+      getAdminSettingsByKey<LoyaltyAdminSettings>('loyalty'),
     ]);
 
     const general = sanitizeGeneralSettings(savedGeneral ?? defaultGeneralAdminSettings);
@@ -190,8 +193,11 @@ export async function GET() {
       savedWhatsAppFloatingButton ?? defaultWhatsAppFloatingButtonSettings
     );
     const footer = sanitizeFooterAdminSettings(savedFooter ?? defaultFooterAdminSettings);
+    const loyalty: LoyaltyAdminSettings = {
+      pointConversionRate: Math.max(0.001, Math.min(1, Number(savedLoyalty?.pointConversionRate ?? defaultLoyaltyAdminSettings.pointConversionRate) || 0.05)),
+    };
 
-    return NextResponse.json({ general, whatsapp, classFinance, whatsappFloatingButton, footer });
+    return NextResponse.json({ general, whatsapp, classFinance, whatsappFloatingButton, footer, loyalty });
   } catch (error) {
     console.error('Failed to load admin settings:', error);
     return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 });
@@ -211,14 +217,16 @@ export async function PUT(request: Request) {
       classFinance?: Partial<ClassFinanceAdminSettings>;
       whatsappFloatingButton?: Partial<WhatsAppFloatingButtonSettings>;
       footer?: Partial<FooterAdminSettings>;
+      loyalty?: Partial<LoyaltyAdminSettings>;
     };
 
-    const [currentGeneral, currentWhatsApp, currentClassFinance, currentWhatsAppFloatingButton, currentFooter] = await Promise.all([
+    const [currentGeneral, currentWhatsApp, currentClassFinance, currentWhatsAppFloatingButton, currentFooter, currentLoyalty] = await Promise.all([
       getAdminSettingsByKey<GeneralAdminSettings>('general'),
       getAdminSettingsByKey<WhatsAppAdminSettings>('whatsapp'),
       getAdminSettingsByKey<ClassFinanceAdminSettings>('class-finance'),
       getAdminSettingsByKey<WhatsAppFloatingButtonSettings>('whatsapp-floating-button'),
       getAdminSettingsByKey<FooterAdminSettings>('footer'),
+      getAdminSettingsByKey<LoyaltyAdminSettings>('loyalty'),
     ]);
 
     const mergedGeneralInput = body.general
@@ -244,6 +252,15 @@ export async function PUT(request: Request) {
     const classFinance = sanitizeClassFinanceSettings(mergedClassFinanceInput);
     const whatsappFloatingButton = sanitizeWhatsAppFloatingButtonSettings(mergedWhatsAppFloatingButtonInput);
     const footer = sanitizeFooterAdminSettings(mergedFooterInput);
+    const loyalty: LoyaltyAdminSettings = {
+      pointConversionRate: Math.max(
+        0.001,
+        Math.min(
+          1,
+          Number(body.loyalty?.pointConversionRate ?? currentLoyalty?.pointConversionRate ?? defaultLoyaltyAdminSettings.pointConversionRate) || 0.05
+        )
+      ),
+    };
 
     await Promise.all([
       upsertAdminSettings({
@@ -271,9 +288,14 @@ export async function PUT(request: Request) {
         value: footer,
         updatedByUserId: admin.id,
       }),
+      upsertAdminSettings({
+        key: 'loyalty',
+        value: loyalty,
+        updatedByUserId: admin.id,
+      }),
     ]);
 
-    return NextResponse.json({ success: true, general, whatsapp, classFinance, whatsappFloatingButton, footer });
+    return NextResponse.json({ success: true, general, whatsapp, classFinance, whatsappFloatingButton, footer, loyalty });
   } catch (error) {
     console.error('Failed to update admin settings:', error);
     return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 });
