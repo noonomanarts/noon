@@ -49,6 +49,7 @@ services:
       CHROME_BIN: /usr/bin/chromium-browser
       PUPPETEER_SKIP_DOWNLOAD: "true"
       WWEBJS_SEND_LOG_LEVEL: ${WWEBJS_SEND_LOG_LEVEL:-info}
+      WWEBJS_READY_WAIT_MS: ${WWEBJS_READY_WAIT_MS:-45000}
       
       # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-noonomanarts}

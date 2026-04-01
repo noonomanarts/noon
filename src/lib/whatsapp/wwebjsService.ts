@@ -88,6 +88,14 @@ function now() {
 
 const SEND_RETRY_DELAYS_MS = [250, 700];
 
+const WWEBJS_READY_WAIT_MS = (() => {
+  const raw = Number(process.env.WWEBJS_READY_WAIT_MS || '45000');
+  if (!Number.isFinite(raw) || raw < 1000) {
+    return 45000;
+  }
+  return Math.floor(raw);
+})();
+
 const WHATSAPP_SEND_LOG_LEVEL = (process.env.WWEBJS_SEND_LOG_LEVEL || 'warn').trim().toLowerCase();
 const LOG_LEVEL_SCORE: Record<'silent' | 'error' | 'warn' | 'info', number> = {
   silent: 0,
@@ -616,6 +624,10 @@ function getSessionTelemetry(session: ManagedSession) {
   };
 }
 
+function shouldForceRestartSession(session: ManagedSession): boolean {
+  return !session.client || session.status === 'error' || session.status === 'disconnected' || session.status === 'auth_failure';
+}
+
 async function sendMessageWithRecovery(
   session: ManagedSession,
   chatId: string,
@@ -795,7 +807,7 @@ export async function sendWhatsAppTextViaManagedSession(input: {
 
   if (!session.client) {
     await initializeSession(resolvedSessionId, true);
-    await waitForSessionReady(session, 6000);
+    await waitForSessionReady(session, WWEBJS_READY_WAIT_MS);
     await syncSessionStatusFromClient(session);
   }
 
@@ -813,8 +825,12 @@ export async function sendWhatsAppTextViaManagedSession(input: {
   }
 
   if (!isSessionReadyForSend(session)) {
-    await initializeSession(resolvedSessionId, true);
-    await waitForSessionReady(session, 6000);
+    // In containers, Chromium + WhatsApp web bootstrap can take noticeably longer.
+    const becameReady = await waitForSessionReady(session, WWEBJS_READY_WAIT_MS);
+    if (!becameReady && shouldForceRestartSession(session)) {
+      await initializeSession(resolvedSessionId, true);
+      await waitForSessionReady(session, WWEBJS_READY_WAIT_MS);
+    }
     await syncSessionStatusFromClient(session);
   }
 
