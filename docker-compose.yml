@@ -48,6 +48,7 @@ services:
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
       CHROME_BIN: /usr/bin/chromium-browser
       PUPPETEER_SKIP_DOWNLOAD: "true"
+      WWEBJS_SEND_LOG_LEVEL: ${WWEBJS_SEND_LOG_LEVEL:-info}
       
       # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-noonomanarts}

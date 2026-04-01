@@ -46,6 +46,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV CHROME_BIN=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV WWEBJS_SEND_LOG_LEVEL=info
 
 # Runtime dependencies for puppeteer/chromium used by whatsapp-web.js.
 RUN apk add --no-cache \
