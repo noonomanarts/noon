@@ -344,11 +344,24 @@ async function syncSessionStatusFromClient(session: ManagedSession): Promise<voi
     const state = await session.client.getState();
     const normalized = String(state || '').toUpperCase();
 
-    if (normalized === 'CONNECTED' || normalized === 'OPENING') {
-      if (session.status !== 'ready') {
+    if (normalized === 'CONNECTED') {
+      if (session.client.info?.wid && session.status !== 'ready') {
         patchSessionState(session, {
           status: 'ready',
           lastError: null,
+        });
+      } else if (!session.client.info?.wid && session.status !== 'initializing') {
+        patchSessionState(session, {
+          status: 'initializing',
+        });
+      }
+      return;
+    }
+
+    if (normalized === 'OPENING') {
+      if (session.status !== 'initializing') {
+        patchSessionState(session, {
+          status: 'initializing',
         });
       }
       return;
@@ -361,7 +374,7 @@ async function syncSessionStatusFromClient(session: ManagedSession): Promise<voi
       return;
     }
 
-    if (session.status === 'authenticated') {
+    if (session.status === 'authenticated' && session.client.info?.wid) {
       patchSessionState(session, {
         status: 'ready',
         lastError: null,
@@ -427,7 +440,9 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
 
   if (session.initializingPromise) {
     await session.initializingPromise;
-    return;
+    if (!forceRestart) {
+      return;
+    }
   }
 
   if (forceRestart) {
@@ -482,8 +497,8 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
 
       client.on('authenticated', () => {
         patchSessionState(session, {
-          // Some deployments never emit `ready` reliably after successful auth.
-          status: 'ready',
+          // Keep authenticated until WID is available for reliable sends.
+          status: 'authenticated',
           qrCodeDataUrl: null,
           lastError: null,
         });
@@ -568,7 +583,22 @@ async function ensureConfiguredSessionsBootstrapped(): Promise<void> {
 }
 
 function isSessionReadyForSend(session: ManagedSession): boolean {
-  return Boolean(session.client && (session.status === 'ready' || session.status === 'authenticated'));
+  return Boolean(
+    session.client?.info?.wid && (session.status === 'ready' || session.status === 'authenticated')
+  );
+}
+
+async function waitForSessionReady(session: ManagedSession, timeoutMs = 6000): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    await syncSessionStatusFromClient(session);
+    if (isSessionReadyForSend(session)) {
+      return true;
+    }
+    await waitMs(400);
+  }
+
+  return isSessionReadyForSend(session);
 }
 
 function isGetChatUndefinedError(error: unknown): boolean {
@@ -633,7 +663,10 @@ async function sendMessageWithRecovery(
       await syncSessionStatusFromClient(session);
       if (!session.client || !isSessionReadyForSend(session)) {
         await initializeSession(session.sessionId, true);
-        await syncSessionStatusFromClient(session);
+        const recovered = await waitForSessionReady(session);
+        if (!recovered) {
+          await syncSessionStatusFromClient(session);
+        }
       }
 
       if (!session.client || !isSessionReadyForSend(session)) {
@@ -761,6 +794,12 @@ export async function sendWhatsAppTextViaManagedSession(input: {
   });
 
   if (!session.client) {
+    await initializeSession(resolvedSessionId, true);
+    await waitForSessionReady(session, 6000);
+    await syncSessionStatusFromClient(session);
+  }
+
+  if (!session.client) {
     logWhatsAppService('warn', 'Send aborted: client not initialized.', {
       chatId,
       ...getSessionTelemetry(session),
@@ -771,6 +810,12 @@ export async function sendWhatsAppTextViaManagedSession(input: {
       body: 'WhatsApp client is not initialized for this session.',
       diagnostics: getDiagnostics(0),
     };
+  }
+
+  if (!isSessionReadyForSend(session)) {
+    await initializeSession(resolvedSessionId, true);
+    await waitForSessionReady(session, 6000);
+    await syncSessionStatusFromClient(session);
   }
 
   if (!isSessionReadyForSend(session)) {
