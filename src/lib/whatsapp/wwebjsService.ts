@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import QRCode from 'qrcode';
@@ -117,7 +118,91 @@ function clearChromiumSingletonLocks(sessionId: string): void {
 
   const singletonFiles = ['SingletonLock', 'SingletonCookie', 'SingletonSocket'];
 
+  const removeSingletonLocksRecursively = (rootPath: string) => {
+    if (!fs.existsSync(rootPath)) return;
+
+    const stack = [rootPath];
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (!current) continue;
+
+      let entries: fs.Dirent[] = [];
+      try {
+        entries = fs.readdirSync(current, { withFileTypes: true });
+      } catch {
+        continue;
+      }
+
+      for (const entry of entries) {
+        const fullPath = path.join(current, entry.name);
+        if (entry.isDirectory()) {
+          stack.push(fullPath);
+          continue;
+        }
+
+        if (singletonFiles.includes(entry.name)) {
+          try {
+            fs.rmSync(fullPath, { force: true });
+          } catch {
+            // Ignore cleanup errors; re-initialize will still fail with explicit message if lock persists.
+          }
+        }
+      }
+    }
+  };
+
+  const terminateLingeringChromiumProcesses = () => {
+    try {
+      const psOutput = execSync('ps -eo pid=,args=', { encoding: 'utf8' });
+      const profileHint = path.join('.wwebjs_auth', `session-${sessionId}`);
+
+      const candidates = psOutput
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => {
+          const match = line.match(/^(\d+)\s+(.*)$/);
+          if (!match) return null;
+          return { pid: Number(match[1]), args: match[2] };
+        })
+        .filter((item): item is { pid: number; args: string } => Boolean(item))
+        .filter((item) => {
+          const args = item.args.toLowerCase();
+          const isChromiumProcess =
+            args.includes('chromium') || args.includes('chrome') || args.includes('google-chrome');
+          const isWhatsAppProfile =
+            item.args.includes(profileHint) || item.args.includes('.wwebjs_auth');
+          return isChromiumProcess && isWhatsAppProfile && item.pid !== process.pid;
+        });
+
+      for (const proc of candidates) {
+        try {
+          process.kill(proc.pid, 'SIGTERM');
+        } catch {
+          // Ignore kill failures for already-dead processes.
+        }
+      }
+
+      if (candidates.length > 0) {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 300);
+      }
+
+      for (const proc of candidates) {
+        try {
+          process.kill(proc.pid, 'SIGKILL');
+        } catch {
+          // Ignore kill failures if process already exited.
+        }
+      }
+    } catch {
+      // If ps is unavailable, continue with lock-file cleanup only.
+    }
+  };
+
+  terminateLingeringChromiumProcesses();
+
   for (const profilePath of profileCandidates) {
+    removeSingletonLocksRecursively(profilePath);
     for (const lockName of singletonFiles) {
       const lockPath = path.join(profilePath, lockName);
       try {
