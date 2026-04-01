@@ -73,8 +73,9 @@ export async function PUT(request: NextRequest, props: Params) {
     });
   } catch (error) {
     console.error('Error updating class:', error);
+    const message = error instanceof Error ? error.message : 'Failed to update class';
     return NextResponse.json(
-      { error: 'Failed to update class' },
+      { error: message },
       { status: 500 }
     );
   }

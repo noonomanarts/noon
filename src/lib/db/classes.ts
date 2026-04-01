@@ -8,6 +8,21 @@ import { ClassCategory } from "./types";
 import { ensureClassFinanceSchema } from "./classFinance";
 import { ensureRecipeManagementSchema } from "./recipeManagement";
 
+let classMinimumAgeSchemaReady: Promise<void> | null = null;
+
+async function ensureClassMinimumAgeSchema(): Promise<void> {
+  if (classMinimumAgeSchemaReady) {
+    return classMinimumAgeSchemaReady;
+  }
+
+  classMinimumAgeSchemaReady = (async () => {
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS minimum_age INTEGER DEFAULT NULL`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS show_minimum_age BOOLEAN NOT NULL DEFAULT FALSE`);
+  })();
+
+  return classMinimumAgeSchemaReady;
+}
+
 // Extended ClassPublic with trainer info
 export interface ClassWithTrainer extends ClassPublic {
   trainer: {
@@ -28,6 +43,7 @@ export async function findManyClasses(options: {
   limit?: number;
 }): Promise<ClassWithTrainer[]> {
   await ensureClassFinanceSchema();
+  await ensureClassMinimumAgeSchema();
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -117,6 +133,7 @@ export async function findManyClassesPaginated(options: {
   take?: number;
 }): Promise<{ classes: Record<string, unknown>[]; total: number }> {
   await ensureClassFinanceSchema();
+  await ensureClassMinimumAgeSchema();
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -217,6 +234,7 @@ export async function findUniqueClass(
   include?: { trainer?: boolean; sessions?: boolean; reviews?: boolean }
 ): Promise<Record<string, unknown> | null> {
   await ensureClassFinanceSchema();
+  await ensureClassMinimumAgeSchema();
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -353,6 +371,7 @@ export async function createClass(data: {
   expenseSharePercent?: number;
 }): Promise<Record<string, unknown>> {
   await ensureClassFinanceSchema();
+  await ensureClassMinimumAgeSchema();
   const id = generateUUID();
   const now = new Date();
 
@@ -461,6 +480,7 @@ export async function updateClass(
   }>
 ): Promise<Record<string, unknown> | null> {
   await ensureClassFinanceSchema();
+  await ensureClassMinimumAgeSchema();
   const updates: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -696,6 +716,7 @@ export async function findClassBySlug(slug: string): Promise<{
   minimumAge: number | null;
   showMinimumAge: boolean;
 } | null> {
+  await ensureClassMinimumAgeSchema();
   const result = await query(
     `SELECT * FROM classes WHERE slug = $1`,
     [slug]

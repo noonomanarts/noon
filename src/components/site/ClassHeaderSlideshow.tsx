@@ -12,6 +12,14 @@ type ClassHeaderSlideshowProps = {
   className?: string;
 };
 
+function normalizeImageSrc(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^(https?:\/\/|data:|blob:)/i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith("/")) return trimmed;
+  return `/${trimmed}`;
+}
+
 export default function ClassHeaderSlideshow({
   images,
   alt,
@@ -19,7 +27,9 @@ export default function ClassHeaderSlideshow({
   indicatorColor = "#cb8578",
   className,
 }: ClassHeaderSlideshowProps) {
-  const preparedImages = images.map((item) => item.trim()).filter((item) => item.length > 0);
+  const preparedImages = Array.from(
+    new Set(images.map((item) => normalizeImageSrc(item)).filter((item) => item.length > 0))
+  );
   const [selectedIndex, setSelectedIndex] = useState(0);
   const autoplayTimerRef = useRef<number | null>(null);
   const displayIndex =
@@ -79,7 +89,9 @@ export default function ClassHeaderSlideshow({
                   src={src}
                   alt={alt}
                   fill
-                  priority={index === 0}
+                  priority={index < 2}
+                  loading={index < 2 ? "eager" : "lazy"}
+                  unoptimized
                   sizes="(max-width: 640px) 90vw, (max-width: 1024px) 40rem, 50rem"
                   className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                 />
