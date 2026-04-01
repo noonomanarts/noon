@@ -5,6 +5,7 @@ import { GiChefToque } from "react-icons/gi";
 import { HiPaintBrush, HiClock, HiUsers, HiStar, HiSparkles, HiShieldCheck } from "react-icons/hi2";
 import { MdCalendarMonth, MdAccessTime, MdPerson } from "react-icons/md";
 
+import ClassHeaderSlideshow from "@/components/site/ClassHeaderSlideshow";
 import { findClassBySlug, findClassSessions, findClassReviews } from "@/lib/db/classes";
 import { findTrainerById } from "@/lib/db/trainers";
 import { ClassCategory } from "@/lib/db/types";
@@ -89,6 +90,13 @@ export default async function ClassDetailPage({
       : "General";
 
   const nextSession = sessions[0] ?? null;
+  const classImages = Array.from(
+    new Set(
+      [classData.image, ...(classData.images || [])]
+        .map((item) => item?.trim())
+        .filter((item): item is string => Boolean(item))
+    )
+  );
   const learningHighlights = description
     .split(/[\n\.!؟،؛]+/)
     .map((line) => line.trim())
@@ -149,24 +157,31 @@ export default async function ClassDetailPage({
       <section className="mx-auto mt-5 w-full max-w-6xl px-4">
         <div className="overflow-hidden rounded-[2rem] border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm">
           <div className="grid lg:grid-cols-2">
-            <div className="relative order-1 aspect-[4/3] min-h-[16rem] sm:min-h-[22rem] lg:order-2 lg:aspect-auto lg:min-h-[28rem]">
-              {classData.image ? (
-                <Image src={classData.image} alt={title} fill priority className="object-cover" />
-              ) : (
-                <div className="flex h-full items-center justify-center bg-[color:var(--muted)]">
-                  <Icon className="h-28 w-28 text-[color:var(--text-subtle)]" />
-                </div>
-              )}
+            <div className="order-1 flex flex-col items-center gap-4 p-4 sm:p-6 lg:order-2 lg:justify-center">
+              <div className="w-full max-w-[28rem]">
+                {classImages.length > 0 ? (
+                  <ClassHeaderSlideshow
+                    images={classImages}
+                    alt={title}
+                    className="mx-auto"
+                    indicatorColor={isCooking ? "#cb8578" : "#7c5fb7"}
+                  />
+                ) : (
+                  <div className="relative mx-auto aspect-[3/4] w-full overflow-hidden rounded-[2.25rem] border border-[color:var(--border)] bg-[color:var(--muted)]">
+                    <div className="flex h-full items-center justify-center">
+                      <Icon className="h-28 w-28 text-[color:var(--text-subtle)]" />
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {nextSession ? (
-                <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-white/30 bg-black/45 p-3 text-white backdrop-blur sm:p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/80">
+                <div className="w-full max-w-[28rem] rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-3 text-[color:var(--text)] sm:p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[color:var(--text-muted)]">
                     {t.dateAndTime}
                   </p>
-                  <p className="mt-1 text-sm font-semibold sm:text-base">
-                    {formatDate(nextSession.startTime)}
-                  </p>
-                  <p className="mt-1 inline-flex items-center gap-1.5 text-base font-semibold text-white sm:text-xl">
+                  <p className="mt-1 text-sm font-semibold sm:text-base">{formatDate(nextSession.startTime)}</p>
+                  <p className="mt-1 inline-flex items-center gap-1.5 text-base font-semibold sm:text-lg">
                     <MdAccessTime className="h-4 w-4" />
                     {formatTime(nextSession.startTime)}
                   </p>

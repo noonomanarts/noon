@@ -686,6 +686,7 @@ export async function findClassBySlug(slug: string): Promise<{
   category: string;
   subCategory: string | null;
   image: string | null;
+  images: string[];
   trainerId: string | null;
   price: number;
   currency: string;
@@ -713,6 +714,7 @@ export async function findClassBySlug(slug: string): Promise<{
     category: row.category,
     subCategory: row.sub_category,
     image: row.image,
+    images: row.images || [],
     trainerId: row.trainer_id,
     price: parseFloat(row.price || 0),
     currency: row.currency,
