@@ -47,8 +47,23 @@ const defaultSettings: WhatsAppWwebjsSettings = {
   primarySessionId: 'default',
 };
 
-const managedSessions = new Map<string, ManagedSession>();
-let bootstrapPromise: Promise<void> | null = null;
+type WhatsAppWwebjsGlobalState = {
+  __NOON_WWEBJS_MANAGED_SESSIONS__?: Map<string, ManagedSession>;
+  __NOON_WWEBJS_BOOTSTRAP_PROMISE__?: Promise<void> | null;
+};
+
+const globalState = globalThis as typeof globalThis & WhatsAppWwebjsGlobalState;
+const managedSessions =
+  globalState.__NOON_WWEBJS_MANAGED_SESSIONS__ ??
+  (globalState.__NOON_WWEBJS_MANAGED_SESSIONS__ = new Map<string, ManagedSession>());
+
+function getBootstrapPromise(): Promise<void> | null {
+  return globalState.__NOON_WWEBJS_BOOTSTRAP_PROMISE__ ?? null;
+}
+
+function setBootstrapPromise(value: Promise<void> | null): void {
+  globalState.__NOON_WWEBJS_BOOTSTRAP_PROMISE__ = value;
+}
 
 function now() {
   return new Date();
@@ -82,6 +97,38 @@ function sanitizeSessionId(value: string): string {
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-_]/g, '')
     .slice(0, 64);
+}
+
+function resolveAuthDataPath(): string {
+  return path.join(process.cwd(), '.wwebjs_auth');
+}
+
+function isChromiumProfileLockError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return /profile appears to be in use|process_singleton_posix|chromium has locked the profile/i.test(message);
+}
+
+function clearChromiumSingletonLocks(sessionId: string): void {
+  const authDataPath = resolveAuthDataPath();
+  const profileCandidates = [
+    path.join(authDataPath, `session-${sessionId}`),
+    path.join(authDataPath, 'session'),
+  ];
+
+  const singletonFiles = ['SingletonLock', 'SingletonCookie', 'SingletonSocket'];
+
+  for (const profilePath of profileCandidates) {
+    for (const lockName of singletonFiles) {
+      const lockPath = path.join(profilePath, lockName);
+      try {
+        if (fs.existsSync(lockPath)) {
+          fs.rmSync(lockPath, { force: true });
+        }
+      } catch {
+        // Ignore lock cleanup errors; retry will still surface original init error if unresolved.
+      }
+    }
+  }
 }
 
 function normalizePhoneToChatId(phone: string): string | null {
@@ -198,78 +245,92 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
 
     const chromeExecutablePath = resolveChromeExecutablePath();
 
-    const client = new Client({
-      authStrategy: new LocalAuth({
-        clientId: sessionId,
-        dataPath: path.join(process.cwd(), '.wwebjs_auth'),
-      }),
-      puppeteer: {
-        headless: true,
-        executablePath: chromeExecutablePath,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      },
-    });
+    let lastInitError: unknown = null;
 
-    client.on('qr', (qr) => {
-      void QRCode.toDataURL(qr)
-        .then((dataUrl: string) => {
-          patchSessionState(session, {
-            status: 'qr',
-            qrCodeDataUrl: dataUrl,
-            lastError: null,
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const client = new Client({
+        authStrategy: new LocalAuth({
+          clientId: sessionId,
+          dataPath: resolveAuthDataPath(),
+        }),
+        puppeteer: {
+          headless: true,
+          executablePath: chromeExecutablePath,
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        },
+      });
+
+      client.on('qr', (qr) => {
+        void QRCode.toDataURL(qr)
+          .then((dataUrl: string) => {
+            patchSessionState(session, {
+              status: 'qr',
+              qrCodeDataUrl: dataUrl,
+              lastError: null,
+            });
+          })
+          .catch((error: unknown) => {
+            patchSessionState(session, {
+              status: 'error',
+              qrCodeDataUrl: null,
+              lastError: error instanceof Error ? error.message : 'Failed to generate QR code.',
+            });
           });
-        })
-        .catch((error: unknown) => {
-          patchSessionState(session, {
-            status: 'error',
-            qrCodeDataUrl: null,
-            lastError: error instanceof Error ? error.message : 'Failed to generate QR code.',
-          });
+      });
+
+      client.on('authenticated', () => {
+        patchSessionState(session, {
+          status: 'authenticated',
+          qrCodeDataUrl: null,
+          lastError: null,
         });
-    });
-
-    client.on('authenticated', () => {
-      patchSessionState(session, {
-        status: 'authenticated',
-        qrCodeDataUrl: null,
-        lastError: null,
       });
-    });
 
-    client.on('ready', () => {
-      patchSessionState(session, {
-        status: 'ready',
-        qrCodeDataUrl: null,
-        lastError: null,
+      client.on('ready', () => {
+        patchSessionState(session, {
+          status: 'ready',
+          qrCodeDataUrl: null,
+          lastError: null,
+        });
       });
-    });
 
-    client.on('auth_failure', (message) => {
-      patchSessionState(session, {
-        status: 'auth_failure',
-        lastError: message || 'Authentication failure.',
+      client.on('auth_failure', (message) => {
+        patchSessionState(session, {
+          status: 'auth_failure',
+          lastError: message || 'Authentication failure.',
+        });
       });
-    });
 
-    client.on('disconnected', (reason) => {
-      patchSessionState(session, {
-        status: 'disconnected',
-        lastError: reason || null,
+      client.on('disconnected', (reason) => {
+        patchSessionState(session, {
+          status: 'disconnected',
+          lastError: reason || null,
+        });
       });
-    });
 
-    session.client = client;
+      session.client = client;
 
-    try {
-      await client.initialize();
-    } catch (error) {
-      const baseMessage = error instanceof Error ? error.message : 'Failed to initialize WhatsApp session.';
-      const withPath = `${baseMessage} (chromeExecutablePath=${chromeExecutablePath || 'not-found'})`;
-      patchSessionState(session, {
-        status: 'error',
-        lastError: withPath,
-      });
+      try {
+        await client.initialize();
+        return;
+      } catch (error) {
+        lastInitError = error;
+        await destroySessionClient(session);
+
+        if (attempt === 0 && isChromiumProfileLockError(error)) {
+          clearChromiumSingletonLocks(sessionId);
+          continue;
+        }
+      }
     }
+
+    const baseMessage =
+      lastInitError instanceof Error ? lastInitError.message : 'Failed to initialize WhatsApp session.';
+    const withPath = `${baseMessage} (chromeExecutablePath=${chromeExecutablePath || 'not-found'})`;
+    patchSessionState(session, {
+      status: 'error',
+      lastError: withPath,
+    });
   })();
 
   session.initializingPromise = initPromise;
@@ -282,20 +343,23 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
 }
 
 async function ensureConfiguredSessionsBootstrapped(): Promise<void> {
-  if (bootstrapPromise) {
-    await bootstrapPromise;
+  const existingBootstrapPromise = getBootstrapPromise();
+  if (existingBootstrapPromise) {
+    await existingBootstrapPromise;
     return;
   }
 
-  bootstrapPromise = (async () => {
+  const nextBootstrapPromise = (async () => {
     const settings = await readSettings();
     await Promise.allSettled(settings.sessions.map((sessionId) => initializeSession(sessionId)));
   })();
 
+  setBootstrapPromise(nextBootstrapPromise);
+
   try {
-    await bootstrapPromise;
+    await nextBootstrapPromise;
   } finally {
-    bootstrapPromise = null;
+    setBootstrapPromise(null);
   }
 }
 
