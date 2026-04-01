@@ -179,16 +179,20 @@ function findChrome(): string | undefined {
 const CHROMIUM_ARGS = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
-  '--disable-dev-shm-usage', // write to /tmp instead of shared memory
+  '--disable-dev-shm-usage',
   '--disable-gpu',
+  '--disable-software-rasterizer',
   '--disable-extensions',
   '--disable-background-networking',
   '--disable-default-apps',
   '--disable-translate',
   '--disable-sync',
+  '--disable-features=TranslateUI,BlinkGenPropertyTrees,dbus',
   '--no-first-run',
   '--metrics-recording-only',
   '--mute-audio',
+  '--font-render-hinting=none',
+  '--headless=new',
 ];
 
 function authDataPath(): string {
@@ -383,7 +387,8 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
           headless: true,
           executablePath: chrome,
           args: CHROMIUM_ARGS,
-          timeout: 60_000,
+          timeout: 90_000,
+          protocolTimeout: 120_000,
         },
       });
 

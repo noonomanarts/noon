@@ -58,7 +58,19 @@ RUN apk add --no-cache \
     ttf-freefont \
     font-noto-emoji \
     udev \
-    dbus
+    dbus \
+    mesa-gbm \
+    mesa-gl \
+    libxcomposite \
+    libxdamage \
+    libxrandr \
+    libxshmfence \
+    libxext \
+    libx11 \
+    libxcb
+
+# Prevent dbus errors in headless Chromium
+ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
