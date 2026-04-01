@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
 
@@ -85,15 +84,14 @@ export default function ClassHeaderSlideshow({
           {preparedImages.map((src, index) => (
             <div key={`${src}-${index}`} className="relative min-w-0 flex-[0_0_100%]">
               <div className="relative aspect-[3/4] w-full bg-white/20">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={src}
                   alt={alt}
-                  fill
-                  priority={index < 2}
-                  loading={index < 2 ? "eager" : "lazy"}
-                  unoptimized
-                  sizes="(max-width: 640px) 90vw, (max-width: 1024px) 40rem, 50rem"
-                  className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                  loading="eager"
+                  decoding="async"
+                  draggable={false}
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                 />
               </div>
             </div>
