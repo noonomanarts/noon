@@ -7,6 +7,10 @@ import QRCode from 'qrcode';
 import { Client, LocalAuth } from 'whatsapp-web.js';
 import { getAdminSettingsByKey, upsertAdminSettings } from '@/lib/db/adminSettings';
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
 const WHATSAPP_WWEBJS_SETTINGS_KEY = 'whatsapp_wwebjs';
 
 export type WhatsAppSessionStatus =
@@ -57,12 +61,18 @@ type ManagedSession = {
   lastError: string | null;
   updatedAt: Date;
   initializingPromise: Promise<void> | null;
+  /** Resolves when the `ready` event fires after initialize(). */
+  readyPromise: Promise<void> | null;
 };
 
 const defaultSettings: WhatsAppWwebjsSettings = {
   sessions: ['default'],
   primarySessionId: 'default',
 };
+
+// ---------------------------------------------------------------------------
+// Global singleton state (survives HMR in dev + stays in production)
+// ---------------------------------------------------------------------------
 
 type WhatsAppWwebjsGlobalState = {
   __NOON_WWEBJS_MANAGED_SESSIONS__?: Map<string, ManagedSession>;
@@ -82,18 +92,20 @@ function setBootstrapPromise(value: Promise<void> | null): void {
   globalState.__NOON_WWEBJS_BOOTSTRAP_PROMISE__ = value;
 }
 
-function now() {
-  return new Date();
-}
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
 
-const SEND_RETRY_DELAYS_MS = [250, 700];
+/** Retry delays between send attempts. 4 entries = 5 total attempts. */
+const SEND_RETRY_DELAYS_MS = [2000, 4000, 6000, 8000];
 
-const WWEBJS_READY_WAIT_MS = (() => {
-  const raw = Number(process.env.WWEBJS_READY_WAIT_MS || '45000');
-  if (!Number.isFinite(raw) || raw < 1000) {
-    return 45000;
-  }
-  return Math.floor(raw);
+/**
+ * How long to wait for the `ready` event after client.initialize().
+ * In Docker with Alpine + Chromium this routinely takes 20-60 s.
+ */
+const READY_TIMEOUT_MS = (() => {
+  const raw = Number(process.env.WWEBJS_READY_TIMEOUT_MS || '90000');
+  return Number.isFinite(raw) && raw >= 5000 ? Math.floor(raw) : 90000;
 })();
 
 const WHATSAPP_SEND_LOG_LEVEL = (process.env.WWEBJS_SEND_LOG_LEVEL || 'warn').trim().toLowerCase();
@@ -103,6 +115,14 @@ const LOG_LEVEL_SCORE: Record<'silent' | 'error' | 'warn' | 'info', number> = {
   warn: 2,
   info: 3,
 };
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function now() {
+  return new Date();
+}
 
 function waitMs(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -147,6 +167,10 @@ function logWhatsAppService(
   console.info(line);
 }
 
+// ---------------------------------------------------------------------------
+// Chrome / Puppeteer helpers
+// ---------------------------------------------------------------------------
+
 function resolveChromeExecutablePath(): string | undefined {
   const candidates = [
     process.env.PUPPETEER_EXECUTABLE_PATH,
@@ -166,15 +190,6 @@ function resolveChromeExecutablePath(): string | undefined {
   }
 
   return undefined;
-}
-
-function sanitizeSessionId(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-_]/g, '')
-    .slice(0, 64);
 }
 
 function resolveAuthDataPath(): string {
@@ -221,7 +236,7 @@ function clearChromiumSingletonLocks(sessionId: string): void {
           try {
             fs.rmSync(fullPath, { force: true });
           } catch {
-            // Ignore cleanup errors; re-initialize will still fail with explicit message if lock persists.
+            // best-effort
           }
         }
       }
@@ -256,7 +271,7 @@ function clearChromiumSingletonLocks(sessionId: string): void {
         try {
           process.kill(proc.pid, 'SIGTERM');
         } catch {
-          // Ignore kill failures for already-dead processes.
+          // already dead
         }
       }
 
@@ -268,11 +283,11 @@ function clearChromiumSingletonLocks(sessionId: string): void {
         try {
           process.kill(proc.pid, 'SIGKILL');
         } catch {
-          // Ignore kill failures if process already exited.
+          // already dead
         }
       }
     } catch {
-      // If ps is unavailable, continue with lock-file cleanup only.
+      // ps unavailable — continue with lock cleanup only
     }
   };
 
@@ -287,11 +302,15 @@ function clearChromiumSingletonLocks(sessionId: string): void {
           fs.rmSync(lockPath, { force: true });
         }
       } catch {
-        // Ignore lock cleanup errors; retry will still surface original init error if unresolved.
+        // best-effort
       }
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Phone number normalization
+// ---------------------------------------------------------------------------
 
 function normalizePhoneToChatId(phone: string): string | null {
   let digits = phone.replace(/\D/g, '');
@@ -309,6 +328,23 @@ function normalizePhoneToChatId(phone: string): string | null {
   return `${digits}@c.us`;
 }
 
+// ---------------------------------------------------------------------------
+// Session ID helpers
+// ---------------------------------------------------------------------------
+
+function sanitizeSessionId(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-_]/g, '')
+    .slice(0, 64);
+}
+
+// ---------------------------------------------------------------------------
+// Managed session map
+// ---------------------------------------------------------------------------
+
 function getOrCreateManagedSession(sessionId: string): ManagedSession {
   const existing = managedSessions.get(sessionId);
   if (existing) {
@@ -323,6 +359,7 @@ function getOrCreateManagedSession(sessionId: string): ManagedSession {
     lastError: null,
     updatedAt: now(),
     initializingPromise: null,
+    readyPromise: null,
   };
 
   managedSessions.set(sessionId, created);
@@ -345,66 +382,9 @@ function patchSessionState(session: ManagedSession, patch: Partial<ManagedSessio
   session.updatedAt = now();
 }
 
-async function syncSessionStatusFromClient(session: ManagedSession): Promise<void> {
-  if (!session.client) return;
-
-  try {
-    const state = await session.client.getState();
-    const normalized = String(state || '').toUpperCase();
-
-    if (normalized === 'CONNECTED') {
-      if (session.client.info?.wid && session.status !== 'ready') {
-        patchSessionState(session, {
-          status: 'ready',
-          lastError: null,
-        });
-      } else if (!session.client.info?.wid && session.status !== 'initializing') {
-        patchSessionState(session, {
-          status: 'initializing',
-        });
-      }
-      return;
-    }
-
-    if (normalized === 'OPENING') {
-      if (session.status !== 'initializing') {
-        patchSessionState(session, {
-          status: 'initializing',
-        });
-      }
-      return;
-    }
-
-    if (normalized === 'UNPAIRED' || normalized === 'UNPAIRED_IDLE' || normalized === 'CONFLICT') {
-      patchSessionState(session, {
-        status: 'disconnected',
-      });
-      return;
-    }
-
-    if (session.status === 'authenticated' && session.client.info?.wid) {
-      patchSessionState(session, {
-        status: 'ready',
-        lastError: null,
-      });
-      return;
-    }
-
-    if (session.client.info?.wid && session.status !== 'ready') {
-      patchSessionState(session, {
-        status: 'ready',
-        lastError: null,
-      });
-    }
-  } catch {
-    if (session.client.info?.wid && session.status !== 'ready') {
-      patchSessionState(session, {
-        status: 'ready',
-        lastError: null,
-      });
-    }
-  }
-}
+// ---------------------------------------------------------------------------
+// Settings persistence
+// ---------------------------------------------------------------------------
 
 async function readSettings(): Promise<WhatsAppWwebjsSettings> {
   const saved = await getAdminSettingsByKey<Partial<WhatsAppWwebjsSettings>>(WHATSAPP_WWEBJS_SETTINGS_KEY);
@@ -417,10 +397,7 @@ async function readSettings(): Promise<WhatsAppWwebjsSettings> {
   const primaryCandidate = sanitizeSessionId(saved?.primarySessionId ?? defaultSettings.primarySessionId);
   const primarySessionId = uniqSessions.includes(primaryCandidate) ? primaryCandidate : uniqSessions[0];
 
-  return {
-    sessions: uniqSessions,
-    primarySessionId,
-  };
+  return { sessions: uniqSessions, primarySessionId };
 }
 
 async function saveSettings(settings: WhatsAppWwebjsSettings): Promise<void> {
@@ -430,6 +407,10 @@ async function saveSettings(settings: WhatsAppWwebjsSettings): Promise<void> {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Client lifecycle
+// ---------------------------------------------------------------------------
+
 async function destroySessionClient(session: ManagedSession): Promise<void> {
   const client = session.client;
   if (!client) return;
@@ -437,20 +418,28 @@ async function destroySessionClient(session: ManagedSession): Promise<void> {
   try {
     await client.destroy();
   } catch {
-    // Ignore teardown errors and continue rebuilding the client.
+    // Ignore teardown errors.
   }
 
   session.client = null;
+  session.readyPromise = null;
 }
 
+/**
+ * Core initialization.
+ *
+ * Key design: the function awaits **both** `client.initialize()` **and** the
+ * `ready` event (with a generous timeout). This guarantees the session is
+ * truly operational before the promise resolves — which is the root cause of
+ * the Docker "authenticated but hasWid=false" failures.
+ */
 async function initializeSession(sessionId: string, forceRestart = false): Promise<void> {
   const session = getOrCreateManagedSession(sessionId);
 
+  // If another caller is already initializing, piggy-back on that.
   if (session.initializingPromise) {
     await session.initializingPromise;
-    if (!forceRestart) {
-      return;
-    }
+    if (!forceRestart) return;
   }
 
   if (forceRestart) {
@@ -469,10 +458,18 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
     });
 
     const chromeExecutablePath = resolveChromeExecutablePath();
-
     let lastInitError: unknown = null;
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
+      // ── Build readyPromise BEFORE client events can fire ──────────
+      let resolveReady!: () => void;
+      let rejectReady!: (err: Error) => void;
+      const readyPromise = new Promise<void>((res, rej) => {
+        resolveReady = res;
+        rejectReady = rej;
+      });
+      session.readyPromise = readyPromise;
+
       const client = new Client({
         authStrategy: new LocalAuth({
           clientId: sessionId,
@@ -481,10 +478,21 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
         puppeteer: {
           headless: true,
           executablePath: chromeExecutablePath,
-          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-extensions',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-accelerated-2d-canvas',
+          ],
         },
       });
 
+      // ── Event listeners ──────────────────────────────────────────
       client.on('qr', (qr) => {
         void QRCode.toDataURL(qr)
           .then((dataUrl: string) => {
@@ -505,10 +513,12 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
 
       client.on('authenticated', () => {
         patchSessionState(session, {
-          // Keep authenticated until WID is available for reliable sends.
           status: 'authenticated',
           qrCodeDataUrl: null,
           lastError: null,
+        });
+        logWhatsAppService('info', 'Session authenticated, waiting for ready event.', {
+          sessionId,
         });
       });
 
@@ -518,6 +528,11 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
           qrCodeDataUrl: null,
           lastError: null,
         });
+        logWhatsAppService('info', 'Session ready (wid available).', {
+          sessionId,
+          hasWid: Boolean(client.info?.wid),
+        });
+        resolveReady();
       });
 
       client.on('auth_failure', (message) => {
@@ -525,6 +540,7 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
           status: 'auth_failure',
           lastError: message || 'Authentication failure.',
         });
+        rejectReady(new Error(message || 'Authentication failure.'));
       });
 
       client.on('disconnected', (reason) => {
@@ -532,14 +548,50 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
           status: 'disconnected',
           lastError: reason || null,
         });
+        rejectReady(new Error(reason || 'Disconnected.'));
       });
 
       session.client = client;
 
       try {
+        // ── Start Chromium + WhatsApp Web ────────────────────────────
         await client.initialize();
-        await syncSessionStatusFromClient(session);
-        return;
+
+        logWhatsAppService('info', 'client.initialize() resolved, waiting for ready event.', {
+          sessionId,
+          status: session.status,
+          hasWid: Boolean(client.info?.wid),
+        });
+
+        // ── Wait for the `ready` event with a timeout ────────────────
+        // This is THE critical fix: in Docker, `ready` fires 10-60 s
+        // AFTER initialize() resolves.
+        const readyOrTimeout = await Promise.race([
+          readyPromise.then(() => 'ready' as const),
+          waitMs(READY_TIMEOUT_MS).then(() => 'timeout' as const),
+        ]);
+
+        if (readyOrTimeout === 'timeout') {
+          // Check if the client is actually functional despite no event
+          if (client.info?.wid) {
+            patchSessionState(session, { status: 'ready', lastError: null });
+            logWhatsAppService('warn', 'Ready event timed out but WID is available — treating as ready.', {
+              sessionId,
+            });
+          } else if (session.status === 'qr') {
+            // User needs to scan QR — that's not an error, just waiting.
+            logWhatsAppService('info', 'Waiting for QR scan.', { sessionId });
+          } else {
+            logWhatsAppService('warn', 'Ready event timed out.', {
+              sessionId,
+              status: session.status,
+              hasWid: false,
+              timeoutMs: READY_TIMEOUT_MS,
+            });
+          }
+        }
+
+        return; // Success path
       } catch (error) {
         lastInitError = error;
         await destroySessionClient(session);
@@ -569,6 +621,10 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
   }
 }
 
+// ---------------------------------------------------------------------------
+// Bootstrap (called lazily on first API hit)
+// ---------------------------------------------------------------------------
+
 async function ensureConfiguredSessionsBootstrapped(): Promise<void> {
   const existingBootstrapPromise = getBootstrapPromise();
   if (existingBootstrapPromise) {
@@ -578,7 +634,7 @@ async function ensureConfiguredSessionsBootstrapped(): Promise<void> {
 
   const nextBootstrapPromise = (async () => {
     const settings = await readSettings();
-    await Promise.allSettled(settings.sessions.map((sessionId) => initializeSession(sessionId)));
+    await Promise.allSettled(settings.sessions.map((sid) => initializeSession(sid)));
   })();
 
   setBootstrapPromise(nextBootstrapPromise);
@@ -590,23 +646,12 @@ async function ensureConfiguredSessionsBootstrapped(): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Readiness helpers
+// ---------------------------------------------------------------------------
+
 function isSessionReadyForSend(session: ManagedSession): boolean {
-  return Boolean(
-    session.client?.info?.wid && (session.status === 'ready' || session.status === 'authenticated')
-  );
-}
-
-async function waitForSessionReady(session: ManagedSession, timeoutMs = 6000): Promise<boolean> {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    await syncSessionStatusFromClient(session);
-    if (isSessionReadyForSend(session)) {
-      return true;
-    }
-    await waitMs(400);
-  }
-
-  return isSessionReadyForSend(session);
+  return Boolean(session.client && session.status === 'ready');
 }
 
 function isGetChatUndefinedError(error: unknown): boolean {
@@ -624,9 +669,41 @@ function getSessionTelemetry(session: ManagedSession) {
   };
 }
 
-function shouldForceRestartSession(session: ManagedSession): boolean {
-  return !session.client || session.status === 'error' || session.status === 'disconnected' || session.status === 'auth_failure';
+/**
+ * Wait for the session to reach `ready` state.
+ * First waits for any in-flight readyPromise, then polls.
+ */
+async function waitUntilReady(session: ManagedSession, timeoutMs: number): Promise<boolean> {
+  if (isSessionReadyForSend(session)) return true;
+
+  // If a readyPromise exists (from initializeSession), race against timeout.
+  if (session.readyPromise) {
+    const result = await Promise.race([
+      session.readyPromise.then(() => 'ready' as const).catch(() => 'failed' as const),
+      waitMs(timeoutMs).then(() => 'timeout' as const),
+    ]);
+    if (result === 'ready' || isSessionReadyForSend(session)) return true;
+    if (result === 'timeout') return false;
+  }
+
+  // Fallback: poll status
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (isSessionReadyForSend(session)) return true;
+    // Also check wid directly in case event was missed
+    if (session.client?.info?.wid) {
+      patchSessionState(session, { status: 'ready', lastError: null });
+      return true;
+    }
+    await waitMs(500);
+  }
+
+  return isSessionReadyForSend(session);
 }
+
+// ---------------------------------------------------------------------------
+// Send with recovery
+// ---------------------------------------------------------------------------
 
 async function sendMessageWithRecovery(
   session: ManagedSession,
@@ -667,22 +744,11 @@ async function sendMessageWithRecovery(
         throw error;
       }
 
-      if (isGetChatError) {
-        // The internal web context can desync and throw getChat undefined.
-        await initializeSession(session.sessionId, true);
-      }
-
-      await syncSessionStatusFromClient(session);
-      if (!session.client || !isSessionReadyForSend(session)) {
-        await initializeSession(session.sessionId, true);
-        const recovered = await waitForSessionReady(session);
-        if (!recovered) {
-          await syncSessionStatusFromClient(session);
-        }
-      }
-
-      if (!session.client || !isSessionReadyForSend(session)) {
-        throw new Error('Sender session became unavailable during retry recovery.');
+      // Recover: force-restart and wait for ready
+      await initializeSession(session.sessionId, true);
+      const ok = await waitUntilReady(session, READY_TIMEOUT_MS);
+      if (!ok) {
+        throw new Error('Sender session could not recover after restart.');
       }
 
       await waitMs(SEND_RETRY_DELAYS_MS[attempt - 1]);
@@ -692,6 +758,10 @@ async function sendMessageWithRecovery(
   throw new Error('Unexpected send flow termination.');
 }
 
+// ---------------------------------------------------------------------------
+// Public API: sessions management
+// ---------------------------------------------------------------------------
+
 export async function listWhatsAppSessions(): Promise<{
   sessions: WhatsAppSessionSnapshot[];
   primarySessionId: string;
@@ -699,12 +769,6 @@ export async function listWhatsAppSessions(): Promise<{
   await ensureConfiguredSessionsBootstrapped();
 
   const settings = await readSettings();
-  await Promise.allSettled(
-    settings.sessions.map(async (sessionId) => {
-      const session = getOrCreateManagedSession(sessionId);
-      await syncSessionStatusFromClient(session);
-    })
-  );
 
   const sessions = settings.sessions.map((sessionId) => {
     const session = getOrCreateManagedSession(sessionId);
@@ -721,10 +785,7 @@ export async function listWhatsAppSessions(): Promise<{
     } satisfies WhatsAppSessionSnapshot;
   });
 
-  return {
-    sessions,
-    primarySessionId: settings.primarySessionId,
-  };
+  return { sessions, primarySessionId: settings.primarySessionId };
 }
 
 export async function addWhatsAppSession(rawSessionId: string): Promise<void> {
@@ -756,10 +817,7 @@ export async function setPrimaryWhatsAppSession(rawSessionId: string): Promise<v
     throw new Error('The selected session does not exist.');
   }
 
-  await saveSettings({
-    ...settings,
-    primarySessionId: sessionId,
-  });
+  await saveSettings({ ...settings, primarySessionId: sessionId });
 }
 
 export async function restartWhatsAppSession(rawSessionId: string): Promise<void> {
@@ -770,6 +828,10 @@ export async function restartWhatsAppSession(rawSessionId: string): Promise<void
 
   await initializeSession(sessionId, true);
 }
+
+// ---------------------------------------------------------------------------
+// Public API: send message
+// ---------------------------------------------------------------------------
 
 export async function sendWhatsAppTextViaManagedSession(input: {
   phoneNumber: string;
@@ -796,21 +858,36 @@ export async function sendWhatsAppTextViaManagedSession(input: {
     return { ok: false, status: 404, body: `Session "${resolvedSessionId}" does not exist.` };
   }
 
+  // ── Ensure session is initialized and READY ───────────────────────
   await initializeSession(resolvedSessionId);
 
   const session = getOrCreateManagedSession(resolvedSessionId);
-  await syncSessionStatusFromClient(session);
   const getDiagnostics = (attempts?: number): WhatsAppSendDiagnostics => ({
     ...getSessionTelemetry(session),
     attempts,
   });
 
-  if (!session.client) {
-    await initializeSession(resolvedSessionId, true);
-    await waitForSessionReady(session, WWEBJS_READY_WAIT_MS);
-    await syncSessionStatusFromClient(session);
+  // If not ready yet (bootstrap still completing), wait patiently.
+  if (!isSessionReadyForSend(session)) {
+    logWhatsAppService('info', 'Session not ready yet, waiting...', {
+      chatId,
+      ...getSessionTelemetry(session),
+    });
+
+    const becameReady = await waitUntilReady(session, READY_TIMEOUT_MS);
+
+    if (!becameReady) {
+      // One more attempt: force restart
+      logWhatsAppService('info', 'Force-restarting session after wait timeout.', {
+        chatId,
+        ...getSessionTelemetry(session),
+      });
+      await initializeSession(resolvedSessionId, true);
+      await waitUntilReady(session, READY_TIMEOUT_MS);
+    }
   }
 
+  // ── Final gate ─────────────────────────────────────────────────────
   if (!session.client) {
     logWhatsAppService('warn', 'Send aborted: client not initialized.', {
       chatId,
@@ -822,16 +899,6 @@ export async function sendWhatsAppTextViaManagedSession(input: {
       body: 'WhatsApp client is not initialized for this session.',
       diagnostics: getDiagnostics(0),
     };
-  }
-
-  if (!isSessionReadyForSend(session)) {
-    // In containers, Chromium + WhatsApp web bootstrap can take noticeably longer.
-    const becameReady = await waitForSessionReady(session, WWEBJS_READY_WAIT_MS);
-    if (!becameReady && shouldForceRestartSession(session)) {
-      await initializeSession(resolvedSessionId, true);
-      await waitForSessionReady(session, WWEBJS_READY_WAIT_MS);
-    }
-    await syncSessionStatusFromClient(session);
   }
 
   if (!isSessionReadyForSend(session)) {
@@ -852,6 +919,7 @@ export async function sendWhatsAppTextViaManagedSession(input: {
     };
   }
 
+  // ── Send ───────────────────────────────────────────────────────────
   try {
     logWhatsAppService('info', 'Send requested.', {
       chatId,
@@ -860,10 +928,7 @@ export async function sendWhatsAppTextViaManagedSession(input: {
     });
 
     const attempts = await sendMessageWithRecovery(session, chatId, messageText);
-    patchSessionState(session, {
-      status: 'ready',
-      lastError: null,
-    });
+    patchSessionState(session, { status: 'ready', lastError: null });
 
     logWhatsAppService('info', 'Send completed.', {
       chatId,
@@ -878,10 +943,7 @@ export async function sendWhatsAppTextViaManagedSession(input: {
     };
   } catch (error) {
     const message = safeErrorMessage(error) || 'Failed to send message.';
-    patchSessionState(session, {
-      status: 'error',
-      lastError: message,
-    });
+    patchSessionState(session, { status: 'error', lastError: message });
 
     logWhatsAppService('error', 'Send failed permanently.', {
       chatId,
