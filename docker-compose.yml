@@ -45,6 +45,9 @@ services:
       # Application Configuration
       NODE_ENV: production
       PORT: 3000
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
+      CHROME_BIN: /usr/bin/chromium-browser
+      PUPPETEER_SKIP_DOWNLOAD: "true"
       
       # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-noonomanarts}
@@ -72,6 +75,8 @@ services:
     volumes:
       # Persist uploads (images, files, etc.)
       - uploads-data:/app/public/uploads
+      # Persist WhatsApp linked-device sessions
+      - whatsapp-auth-data:/app/.wwebjs_auth
       # Persist application data
       - app-data:/app/data
       # Persist logs
@@ -115,3 +120,6 @@ volumes:
   backups-data:
     driver: local
     name: dna-backups-data
+  whatsapp-auth-data:
+    driver: local
+    name: noon-whatsapp-auth-data

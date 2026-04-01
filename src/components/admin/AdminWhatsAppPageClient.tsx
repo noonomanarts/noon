@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { FiMessageSquare, FiSend } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
@@ -37,9 +38,7 @@ export default function AdminWhatsAppPageClient({
 
   const t = {
     title: isArabic ? 'إرسال رسائل واتساب' : 'WhatsApp Broadcast',
-    subtitle: isArabic
-      ? 'أرسل رسائل نصية إلى العملاء والمستخدمين عبر WAHA بناءً على الإعدادات المحفوظة.'
-      : 'Send text messages to customers and users via WAHA using saved settings.',
+    manageSessions: isArabic ? 'إدارة السشنات' : 'Manage Sessions',
     recipients: isArabic ? 'المستلمون' : 'Recipients',
     roleFilter: isArabic ? 'تصفية حسب الدور' : 'Role Filter',
     all: isArabic ? 'الكل' : 'All',
@@ -120,6 +119,15 @@ export default function AdminWhatsAppPageClient({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
+      </div>
+
+      <div>
+        <Link
+          href={`/${locale}/admin/whatsapp/sessions`}
+          className="inline-flex items-center rounded-xl border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+        >
+          {t.manageSessions}
+        </Link>
       </div>
 
       {error ? (

@@ -43,6 +43,18 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV CHROME_BIN=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+
+# Runtime dependencies for puppeteer/chromium used by whatsapp-web.js.
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -60,8 +72,8 @@ COPY --from=builder /app/scripts ./scripts
 RUN chmod +x /app/scripts/*.sh
 
 # Create directories for persistent data and Next.js cache (will be mounted as volumes)
-RUN mkdir -p /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache \
-    && chown -R nextjs:nodejs /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache /app/scripts /app/database
+RUN mkdir -p /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache /app/.wwebjs_auth \
+    && chown -R nextjs:nodejs /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache /app/.wwebjs_auth /app/scripts /app/database
 
 USER nextjs
 

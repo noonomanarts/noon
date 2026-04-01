@@ -3,6 +3,8 @@ import { getUserByEmail, getUserByPhoneNormalized } from '@/lib/db/users';
 import { issueWhatsAppVerificationCode, type WhatsAppVerificationPurpose } from '@/lib/db/whatsappAuth';
 import { sendWhatsAppText } from '@/lib/whatsappClient';
 
+export const runtime = 'nodejs';
+
 type RequestPayload = {
   purpose?: 'login' | 'register';
   phoneNumber?: string;
@@ -19,7 +21,7 @@ export async function POST(request: Request) {
     const body = (await request.json().catch(() => ({}))) as RequestPayload;
 
     const purpose = body.purpose === 'register' ? 'REGISTER' : body.purpose === 'login' ? 'LOGIN' : null;
-    const locale = body.locale === 'ar' ? 'ar-u-nu-latn' : 'en';
+    const isArabic = body.locale === 'ar';
     const phoneNumber = typeof body.phoneNumber === 'string' ? body.phoneNumber.trim() : '';
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
 
@@ -33,7 +35,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              locale === 'ar'
+              isArabic
                 ? 'لا يوجد حساب مفعل بهذا الرقم.'
                 : 'No active account found with this phone number.',
           },
@@ -48,7 +50,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              locale === 'ar'
+              isArabic
                 ? 'رقم الهاتف مسجل بالفعل. استخدم تسجيل الدخول.'
                 : 'Phone number is already registered. Please login instead.',
           },
@@ -61,7 +63,7 @@ export async function POST(request: Request) {
         if (existingByEmail) {
           return NextResponse.json(
             {
-              error: locale === 'ar' ? 'البريد الإلكتروني مسجل بالفعل.' : 'Email is already registered.',
+              error: isArabic ? 'البريد الإلكتروني مسجل بالفعل.' : 'Email is already registered.',
             },
             { status: 409 }
           );
@@ -78,7 +80,7 @@ export async function POST(request: Request) {
     });
 
     const codeMessage =
-      locale === 'ar'
+      isArabic
         ? `رمز التحقق الخاص بك في Noon هو: ${issued.code}\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أي شخص.`
         : `Your Noon verification code is: ${issued.code}\nValid for 10 minutes. Do not share this code with anyone.`;
 

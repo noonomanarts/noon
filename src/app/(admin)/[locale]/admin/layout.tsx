@@ -126,6 +126,7 @@ export default async function AdminLayout({
     settings: locale === "ar" ? "الإعدادات" : "Settings",
     notifications: locale === "ar" ? "الإشعارات" : "Notifications",
     whatsapp: locale === "ar" ? "واتساب" : "WhatsApp",
+    whatsappSessions: locale === "ar" ? "سشنات واتساب" : "WhatsApp Sessions",
     logout: locale === "ar" ? "تسجيل خروج" : "Logout",
     profile: locale === "ar" ? "الملف الشخصي" : "Profile",
     accountSettings: locale === "ar" ? "إعدادات الحساب" : "Account Settings",
@@ -207,6 +208,7 @@ export default async function AdminLayout({
           items: [
             { iconName: "FiSettings" as const, iconColor: "text-slate-600 dark:text-slate-300", label: t.settings, href: `/${locale}/admin/settings` },
             { iconName: "FiMessageSquare" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.whatsapp, href: `/${locale}/admin/whatsapp` },
+            { iconName: "FiMessageSquare" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.whatsappSessions, href: `/${locale}/admin/whatsapp/sessions` },
             { iconName: "FiBell" as const, iconColor: "text-pink-600 dark:text-pink-400", label: t.notifications, href: `/${locale}/admin/notifications` },
           ],
         },
