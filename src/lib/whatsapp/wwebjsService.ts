@@ -292,14 +292,22 @@ async function syncSessionStatusFromClient(session: ManagedSession): Promise<voi
       return;
     }
 
-    if (session.status === 'authenticated' && session.client.info?.wid) {
+    if (session.status === 'authenticated') {
+      patchSessionState(session, {
+        status: 'ready',
+        lastError: null,
+      });
+      return;
+    }
+
+    if (session.client.info?.wid && session.status !== 'ready') {
       patchSessionState(session, {
         status: 'ready',
         lastError: null,
       });
     }
   } catch {
-    if (session.status === 'authenticated' && session.client.info?.wid) {
+    if (session.client.info?.wid && session.status !== 'ready') {
       patchSessionState(session, {
         status: 'ready',
         lastError: null,
@@ -405,7 +413,8 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
 
       client.on('authenticated', () => {
         patchSessionState(session, {
-          status: 'authenticated',
+          // Some deployments never emit `ready` reliably after successful auth.
+          status: 'ready',
           qrCodeDataUrl: null,
           lastError: null,
         });
@@ -505,11 +514,13 @@ export async function listWhatsAppSessions(): Promise<{
 
   const sessions = settings.sessions.map((sessionId) => {
     const session = getOrCreateManagedSession(sessionId);
+    const effectiveStatus: WhatsAppSessionStatus =
+      session.status === 'authenticated' ? 'ready' : session.status;
 
     return {
       sessionId,
       isPrimary: sessionId === settings.primarySessionId,
-      status: session.status,
+      status: effectiveStatus,
       qrCodeDataUrl: session.qrCodeDataUrl,
       lastError: session.lastError,
       updatedAt: session.updatedAt.toISOString(),
