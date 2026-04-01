@@ -7,9 +7,9 @@ import QRCode from 'qrcode';
 import { Client, LocalAuth } from 'whatsapp-web.js';
 import { getAdminSettingsByKey, upsertAdminSettings } from '@/lib/db/adminSettings';
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 // Types
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
 const WHATSAPP_WWEBJS_SETTINGS_KEY = 'whatsapp_wwebjs';
 
@@ -60,9 +60,19 @@ type ManagedSession = {
   qrCodeDataUrl: string | null;
   lastError: string | null;
   updatedAt: Date;
+  /** Non-null while initializeSession() is running. */
   initializingPromise: Promise<void> | null;
-  /** Resolves when the `ready` event fires after initialize(). */
-  readyPromise: Promise<void> | null;
+  /** Resolves when the wwebjs `ready` event fires after client.initialize(). */
+  readyDeferred: PromiseDeferred | null;
+  /** Timer handle for auto-reconnect delays. */
+  reconnectTimer: ReturnType<typeof setTimeout> | null;
+};
+
+type PromiseDeferred = {
+  promise: Promise<void>;
+  resolve: () => void;
+  reject: (err: Error) => void;
+  settled: boolean;
 };
 
 const defaultSettings: WhatsAppWwebjsSettings = {
@@ -70,892 +80,640 @@ const defaultSettings: WhatsAppWwebjsSettings = {
   primarySessionId: 'default',
 };
 
-// ---------------------------------------------------------------------------
-// Global singleton state (survives HMR in dev + stays in production)
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+// Global singleton state
+// ═══════════════════════════════════════════════════════════════════════════
 
-type WhatsAppWwebjsGlobalState = {
-  __NOON_WWEBJS_MANAGED_SESSIONS__?: Map<string, ManagedSession>;
-  __NOON_WWEBJS_BOOTSTRAP_PROMISE__?: Promise<void> | null;
+type GlobalState = {
+  __NOON_WWEBJS_SESSIONS__?: Map<string, ManagedSession>;
+  __NOON_WWEBJS_BOOTSTRAP__?: Promise<void> | null;
 };
 
-const globalState = globalThis as typeof globalThis & WhatsAppWwebjsGlobalState;
-const managedSessions =
-  globalState.__NOON_WWEBJS_MANAGED_SESSIONS__ ??
-  (globalState.__NOON_WWEBJS_MANAGED_SESSIONS__ = new Map<string, ManagedSession>());
+const g = globalThis as typeof globalThis & GlobalState;
+const sessions = g.__NOON_WWEBJS_SESSIONS__ ?? (g.__NOON_WWEBJS_SESSIONS__ = new Map());
 
 function getBootstrapPromise(): Promise<void> | null {
-  return globalState.__NOON_WWEBJS_BOOTSTRAP_PROMISE__ ?? null;
+  return g.__NOON_WWEBJS_BOOTSTRAP__ ?? null;
+}
+function setBootstrapPromise(v: Promise<void> | null): void {
+  g.__NOON_WWEBJS_BOOTSTRAP__ = v;
 }
 
-function setBootstrapPromise(value: Promise<void> | null): void {
-  globalState.__NOON_WWEBJS_BOOTSTRAP_PROMISE__ = value;
+// ═══════════════════════════════════════════════════════════════════════════
+// Configuration (all tunable via env vars)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Delays between send retries. length+1 = total attempts. */
+const SEND_RETRY_DELAYS = [2_000, 4_000, 8_000];
+
+/** Max time to wait for the `ready` event after client.initialize(). */
+const READY_TIMEOUT = envInt('WWEBJS_READY_TIMEOUT_MS', 120_000, 10_000);
+
+/** Delay before auto-reconnecting a disconnected session. */
+const RECONNECT_DELAY = envInt('WWEBJS_RECONNECT_DELAY_MS', 5_000, 1_000);
+
+/** Max auto-reconnect attempts before giving up (0 = unlimited). */
+const MAX_RECONNECT_ATTEMPTS = envInt('WWEBJS_MAX_RECONNECT', 10, 0);
+
+const LOG_LEVEL = (process.env.WWEBJS_SEND_LOG_LEVEL || 'info').trim().toLowerCase();
+const LOG_SCORES: Record<string, number> = { silent: 0, error: 1, warn: 2, info: 3 };
+
+function envInt(key: string, fallback: number, min: number): number {
+  const raw = Number(process.env[key]);
+  return Number.isFinite(raw) && raw >= min ? Math.floor(raw) : fallback;
 }
 
-// ---------------------------------------------------------------------------
-// Configuration
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+// Logging
+// ═══════════════════════════════════════════════════════════════════════════
 
-/** Retry delays between send attempts. 4 entries = 5 total attempts. */
-const SEND_RETRY_DELAYS_MS = [2000, 4000, 6000, 8000];
+function log(level: 'info' | 'warn' | 'error', msg: string, meta?: Record<string, unknown>): void {
+  const cfgScore = LOG_SCORES[LOG_LEVEL] ?? 2;
+  if ((LOG_SCORES[level] ?? 2) > cfgScore) return;
+  const line = `[wwebjs] ${msg}${meta ? ' ' + JSON.stringify(meta) : ''}`;
+  if (level === 'error') console.error(line);
+  else if (level === 'warn') console.warn(line);
+  else console.info(line);
+}
 
-/**
- * How long to wait for the `ready` event after client.initialize().
- * In Docker with Alpine + Chromium this routinely takes 20-60 s.
- */
-const READY_TIMEOUT_MS = (() => {
-  const raw = Number(process.env.WWEBJS_READY_TIMEOUT_MS || '90000');
-  return Number.isFinite(raw) && raw >= 5000 ? Math.floor(raw) : 90000;
-})();
-
-const WHATSAPP_SEND_LOG_LEVEL = (process.env.WWEBJS_SEND_LOG_LEVEL || 'warn').trim().toLowerCase();
-const LOG_LEVEL_SCORE: Record<'silent' | 'error' | 'warn' | 'info', number> = {
-  silent: 0,
-  error: 1,
-  warn: 2,
-  info: 3,
-};
-
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 // Helpers
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
-function now() {
-  return new Date();
+const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+function safeMsg(e: unknown): string {
+  return e instanceof Error ? e.message : String(e ?? 'Unknown error');
 }
 
-function waitMs(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
+function makeDeferred(): PromiseDeferred {
+  let resolve!: () => void;
+  let reject!: (err: Error) => void;
+  let settled = false;
+  const promise = new Promise<void>((res, rej) => {
+    resolve = () => { if (!settled) { settled = true; res(); } };
+    reject = (err: Error) => { if (!settled) { settled = true; rej(err); } };
   });
+  return { promise, resolve, reject, get settled() { return settled; } };
 }
 
-function safeErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error ?? 'Unknown error');
-}
+// ═══════════════════════════════════════════════════════════════════════════
+// Chrome / Puppeteer
+// ═══════════════════════════════════════════════════════════════════════════
 
-function logWhatsAppService(
-  level: 'info' | 'warn' | 'error',
-  message: string,
-  metadata?: Record<string, unknown>
-): void {
-  const configured =
-    WHATSAPP_SEND_LOG_LEVEL === 'silent' ||
-    WHATSAPP_SEND_LOG_LEVEL === 'error' ||
-    WHATSAPP_SEND_LOG_LEVEL === 'warn' ||
-    WHATSAPP_SEND_LOG_LEVEL === 'info'
-      ? WHATSAPP_SEND_LOG_LEVEL
-      : 'warn';
-
-  if (LOG_LEVEL_SCORE[level] > LOG_LEVEL_SCORE[configured]) {
-    return;
-  }
-
-  const suffix = metadata ? ` ${JSON.stringify(metadata)}` : '';
-  const line = `[wwebjs] ${message}${suffix}`;
-
-  if (level === 'error') {
-    console.error(line);
-    return;
-  }
-
-  if (level === 'warn') {
-    console.warn(line);
-    return;
-  }
-
-  console.info(line);
-}
-
-// ---------------------------------------------------------------------------
-// Chrome / Puppeteer helpers
-// ---------------------------------------------------------------------------
-
-function resolveChromeExecutablePath(): string | undefined {
+function findChrome(): string | undefined {
   const candidates = [
     process.env.PUPPETEER_EXECUTABLE_PATH,
     process.env.CHROME_BIN,
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-    '/opt/google/chrome/google-chrome',
     '/usr/bin/chromium-browser',
     '/usr/bin/chromium',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
+    '/opt/google/chrome/google-chrome',
     '/snap/bin/chromium',
-  ].filter((value): value is string => Boolean(value && value.trim()));
-
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  return undefined;
+  ].filter(Boolean) as string[];
+  return candidates.find((c) => fs.existsSync(c));
 }
 
-function resolveAuthDataPath(): string {
+/** Puppeteer args optimised for Docker / Alpine containers. */
+const CHROMIUM_ARGS = [
+  '--no-sandbox',
+  '--disable-setuid-sandbox',
+  '--disable-dev-shm-usage', // write to /tmp instead of shared memory
+  '--disable-gpu',
+  '--disable-extensions',
+  '--disable-background-networking',
+  '--disable-default-apps',
+  '--disable-translate',
+  '--disable-sync',
+  '--no-first-run',
+  '--metrics-recording-only',
+  '--mute-audio',
+];
+
+function authDataPath(): string {
   return path.join(process.cwd(), '.wwebjs_auth');
 }
 
-function isChromiumProfileLockError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error ?? '');
-  return /profile appears to be in use|process_singleton_posix|chromium has locked the profile/i.test(message);
+function isLockError(e: unknown): boolean {
+  const m = e instanceof Error ? e.message : String(e ?? '');
+  return /profile appears to be in use|process_singleton_posix|chromium has locked/i.test(m);
 }
 
-function clearChromiumSingletonLocks(sessionId: string): void {
-  const authDataPath = resolveAuthDataPath();
-  const profileCandidates = [
-    path.join(authDataPath, `session-${sessionId}`),
-    path.join(authDataPath, 'session'),
-  ];
+function clearLocks(sessionId: string): void {
+  const base = authDataPath();
+  const dirs = [path.join(base, `session-${sessionId}`), path.join(base, 'session')];
+  const lockNames = ['SingletonLock', 'SingletonCookie', 'SingletonSocket'];
 
-  const singletonFiles = ['SingletonLock', 'SingletonCookie', 'SingletonSocket'];
+  // Kill lingering chromium processes for this session
+  try {
+    const ps = execSync('ps -eo pid=,args=', { encoding: 'utf8' });
+    const hint = path.join('.wwebjs_auth', `session-${sessionId}`);
+    ps.split('\n')
+      .map((l) => l.trim().match(/^(\d+)\s+(.*)$/))
+      .filter((m): m is RegExpMatchArray => Boolean(m))
+      .filter(([, , args]) => {
+        const a = args.toLowerCase();
+        return (a.includes('chromium') || a.includes('chrome')) &&
+          (args.includes(hint) || args.includes('.wwebjs_auth'));
+      })
+      .forEach(([, pid]) => {
+        try { process.kill(Number(pid), 'SIGKILL'); } catch { /* */ }
+      });
+  } catch { /* ps not available */ }
 
-  const removeSingletonLocksRecursively = (rootPath: string) => {
-    if (!fs.existsSync(rootPath)) return;
-
-    const stack = [rootPath];
-    while (stack.length > 0) {
-      const current = stack.pop();
-      if (!current) continue;
-
-      let entries: fs.Dirent[] = [];
+  for (const dir of dirs) {
+    if (!fs.existsSync(dir)) continue;
+    const stack = [dir];
+    while (stack.length) {
+      const cur = stack.pop()!;
       try {
-        entries = fs.readdirSync(current, { withFileTypes: true });
-      } catch {
-        continue;
-      }
-
-      for (const entry of entries) {
-        const fullPath = path.join(current, entry.name);
-        if (entry.isDirectory()) {
-          stack.push(fullPath);
-          continue;
+        for (const e of fs.readdirSync(cur, { withFileTypes: true })) {
+          const full = path.join(cur, e.name);
+          if (e.isDirectory()) stack.push(full);
+          else if (lockNames.includes(e.name)) try { fs.rmSync(full, { force: true }); } catch { /* */ }
         }
-
-        if (singletonFiles.includes(entry.name)) {
-          try {
-            fs.rmSync(fullPath, { force: true });
-          } catch {
-            // best-effort
-          }
-        }
-      }
-    }
-  };
-
-  const terminateLingeringChromiumProcesses = () => {
-    try {
-      const psOutput = execSync('ps -eo pid=,args=', { encoding: 'utf8' });
-      const profileHint = path.join('.wwebjs_auth', `session-${sessionId}`);
-
-      const candidates = psOutput
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .map((line) => {
-          const match = line.match(/^(\d+)\s+(.*)$/);
-          if (!match) return null;
-          return { pid: Number(match[1]), args: match[2] };
-        })
-        .filter((item): item is { pid: number; args: string } => Boolean(item))
-        .filter((item) => {
-          const args = item.args.toLowerCase();
-          const isChromiumProcess =
-            args.includes('chromium') || args.includes('chrome') || args.includes('google-chrome');
-          const isWhatsAppProfile =
-            item.args.includes(profileHint) || item.args.includes('.wwebjs_auth');
-          return isChromiumProcess && isWhatsAppProfile && item.pid !== process.pid;
-        });
-
-      for (const proc of candidates) {
-        try {
-          process.kill(proc.pid, 'SIGTERM');
-        } catch {
-          // already dead
-        }
-      }
-
-      if (candidates.length > 0) {
-        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 300);
-      }
-
-      for (const proc of candidates) {
-        try {
-          process.kill(proc.pid, 'SIGKILL');
-        } catch {
-          // already dead
-        }
-      }
-    } catch {
-      // ps unavailable — continue with lock cleanup only
-    }
-  };
-
-  terminateLingeringChromiumProcesses();
-
-  for (const profilePath of profileCandidates) {
-    removeSingletonLocksRecursively(profilePath);
-    for (const lockName of singletonFiles) {
-      const lockPath = path.join(profilePath, lockName);
-      try {
-        if (fs.existsSync(lockPath)) {
-          fs.rmSync(lockPath, { force: true });
-        }
-      } catch {
-        // best-effort
-      }
+      } catch { /* */ }
     }
   }
 }
 
-// ---------------------------------------------------------------------------
-// Phone number normalization
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+// Phone normalisation
+// ═══════════════════════════════════════════════════════════════════════════
 
-function normalizePhoneToChatId(phone: string): string | null {
-  let digits = phone.replace(/\D/g, '');
-  if (!digits) return null;
-
-  if (digits.startsWith('00')) {
-    digits = digits.slice(2);
-  }
-
-  if (digits.length === 8) {
-    digits = `968${digits}`;
-  }
-
-  if (digits.length < 8) return null;
-  return `${digits}@c.us`;
+function phoneToChatId(phone: string): string | null {
+  let d = phone.replace(/\D/g, '');
+  if (!d) return null;
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.length === 8) d = `968${d}`;
+  return d.length >= 8 ? `${d}@c.us` : null;
 }
 
-// ---------------------------------------------------------------------------
-// Session ID helpers
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+// Session management
+// ═══════════════════════════════════════════════════════════════════════════
 
-function sanitizeSessionId(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-_]/g, '')
-    .slice(0, 64);
+function sanitize(id: string): string {
+  return id.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-_]/g, '').slice(0, 64);
 }
 
-// ---------------------------------------------------------------------------
-// Managed session map
-// ---------------------------------------------------------------------------
-
-function getOrCreateManagedSession(sessionId: string): ManagedSession {
-  const existing = managedSessions.get(sessionId);
-  if (existing) {
-    return existing;
-  }
-
-  const created: ManagedSession = {
-    sessionId,
+function getSession(id: string): ManagedSession {
+  const existing = sessions.get(id);
+  if (existing) return existing;
+  const s: ManagedSession = {
+    sessionId: id,
     client: null,
     status: 'not_initialized',
     qrCodeDataUrl: null,
     lastError: null,
-    updatedAt: now(),
+    updatedAt: new Date(),
     initializingPromise: null,
-    readyPromise: null,
+    readyDeferred: null,
+    reconnectTimer: null,
   };
-
-  managedSessions.set(sessionId, created);
-  return created;
+  sessions.set(id, s);
+  return s;
 }
 
-function patchSessionState(session: ManagedSession, patch: Partial<ManagedSession>) {
-  if (typeof patch.status !== 'undefined') {
-    session.status = patch.status;
-  }
-
-  if (typeof patch.qrCodeDataUrl !== 'undefined') {
-    session.qrCodeDataUrl = patch.qrCodeDataUrl;
-  }
-
-  if (typeof patch.lastError !== 'undefined') {
-    session.lastError = patch.lastError;
-  }
-
-  session.updatedAt = now();
+function patch(s: ManagedSession, p: Partial<Pick<ManagedSession, 'status' | 'qrCodeDataUrl' | 'lastError'>>) {
+  if (p.status !== undefined) s.status = p.status;
+  if (p.qrCodeDataUrl !== undefined) s.qrCodeDataUrl = p.qrCodeDataUrl;
+  if (p.lastError !== undefined) s.lastError = p.lastError;
+  s.updatedAt = new Date();
 }
 
-// ---------------------------------------------------------------------------
+function telemetry(s: ManagedSession) {
+  return {
+    sessionId: s.sessionId,
+    status: s.status,
+    hasClient: Boolean(s.client),
+    hasWid: Boolean(s.client?.info?.wid),
+    updatedAt: s.updatedAt.toISOString(),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // Settings persistence
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
 async function readSettings(): Promise<WhatsAppWwebjsSettings> {
-  const saved = await getAdminSettingsByKey<Partial<WhatsAppWwebjsSettings>>(WHATSAPP_WWEBJS_SETTINGS_KEY);
-  const rawSessions = Array.isArray(saved?.sessions) ? saved?.sessions : defaultSettings.sessions;
-  const sessions = rawSessions
-    .map((value) => sanitizeSessionId(String(value)))
+  const raw = await getAdminSettingsByKey<Partial<WhatsAppWwebjsSettings>>(WHATSAPP_WWEBJS_SETTINGS_KEY);
+  const list = (Array.isArray(raw?.sessions) ? raw.sessions : defaultSettings.sessions)
+    .map((v) => sanitize(String(v)))
     .filter(Boolean);
-
-  const uniqSessions = Array.from(new Set(sessions.length > 0 ? sessions : defaultSettings.sessions));
-  const primaryCandidate = sanitizeSessionId(saved?.primarySessionId ?? defaultSettings.primarySessionId);
-  const primarySessionId = uniqSessions.includes(primaryCandidate) ? primaryCandidate : uniqSessions[0];
-
-  return { sessions: uniqSessions, primarySessionId };
+  const uniq = [...new Set(list.length ? list : defaultSettings.sessions)];
+  const primary = sanitize(raw?.primarySessionId ?? defaultSettings.primarySessionId);
+  return { sessions: uniq, primarySessionId: uniq.includes(primary) ? primary : uniq[0] };
 }
 
-async function saveSettings(settings: WhatsAppWwebjsSettings): Promise<void> {
-  await upsertAdminSettings<WhatsAppWwebjsSettings>({
-    key: WHATSAPP_WWEBJS_SETTINGS_KEY,
-    value: settings,
-  });
+async function saveSettings(s: WhatsAppWwebjsSettings): Promise<void> {
+  await upsertAdminSettings<WhatsAppWwebjsSettings>({ key: WHATSAPP_WWEBJS_SETTINGS_KEY, value: s });
 }
 
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 // Client lifecycle
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
 
-async function destroySessionClient(session: ManagedSession): Promise<void> {
-  const client = session.client;
-  if (!client) return;
-
-  try {
-    await client.destroy();
-  } catch {
-    // Ignore teardown errors.
+async function destroyClient(s: ManagedSession): Promise<void> {
+  if (s.reconnectTimer) { clearTimeout(s.reconnectTimer); s.reconnectTimer = null; }
+  const c = s.client;
+  if (!c) return;
+  s.client = null;
+  if (s.readyDeferred && !s.readyDeferred.settled) {
+    s.readyDeferred.reject(new Error('Client destroyed.'));
   }
-
-  session.client = null;
-  session.readyPromise = null;
+  s.readyDeferred = null;
+  try { await c.destroy(); } catch { /* ignore */ }
 }
 
 /**
- * Core initialization.
- *
- * Key design: the function awaits **both** `client.initialize()` **and** the
- * `ready` event (with a generous timeout). This guarantees the session is
- * truly operational before the promise resolves — which is the root cause of
- * the Docker "authenticated but hasWid=false" failures.
+ * Schedule an automatic reconnect after the session disconnects.
  */
-async function initializeSession(sessionId: string, forceRestart = false): Promise<void> {
-  const session = getOrCreateManagedSession(sessionId);
-
-  // If another caller is already initializing, piggy-back on that.
-  if (session.initializingPromise) {
-    await session.initializingPromise;
-    if (!forceRestart) return;
-  }
-
-  if (forceRestart) {
-    await destroySessionClient(session);
-  }
-
-  if (session.client && !forceRestart) {
+function scheduleReconnect(s: ManagedSession, attemptNum: number): void {
+  if (s.reconnectTimer) return; // already scheduled
+  if (MAX_RECONNECT_ATTEMPTS > 0 && attemptNum >= MAX_RECONNECT_ATTEMPTS) {
+    log('error', 'Max auto-reconnect attempts reached.', { sessionId: s.sessionId, attempts: attemptNum });
     return;
   }
 
-  const initPromise = (async () => {
-    patchSessionState(session, {
-      status: 'initializing',
-      qrCodeDataUrl: null,
-      lastError: null,
+  const delay = RECONNECT_DELAY * Math.min(attemptNum + 1, 5); // progressive backoff capped at 5x
+  log('info', `Auto-reconnect scheduled in ${delay}ms.`, { sessionId: s.sessionId, attempt: attemptNum + 1 });
+
+  s.reconnectTimer = setTimeout(() => {
+    s.reconnectTimer = null;
+    initializeSession(s.sessionId, true).catch((err) => {
+      log('error', 'Auto-reconnect failed.', { sessionId: s.sessionId, error: safeMsg(err) });
+      scheduleReconnect(s, attemptNum + 1);
     });
+  }, delay);
+}
 
-    const chromeExecutablePath = resolveChromeExecutablePath();
-    let lastInitError: unknown = null;
+/**
+ * Initialize a WhatsApp session.
+ *
+ * Critical design: we wait for the `ready` event (with timeout) BEFORE
+ * resolving. This prevents the "authenticated but hasWid=false" failures
+ * that occur in Docker where `ready` fires 10-60s after initialize().
+ */
+async function initializeSession(sessionId: string, forceRestart = false): Promise<void> {
+  const s = getSession(sessionId);
 
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      // ── Build readyPromise BEFORE client events can fire ──────────
-      let resolveReady!: () => void;
-      let rejectReady!: (err: Error) => void;
-      const readyPromise = new Promise<void>((res, rej) => {
-        resolveReady = res;
-        rejectReady = rej;
-      });
-      session.readyPromise = readyPromise;
+  if (s.initializingPromise) {
+    await s.initializingPromise;
+    if (!forceRestart) return;
+  }
+
+  if (forceRestart) await destroyClient(s);
+  if (s.client && !forceRestart) return;
+
+  const work = (async () => {
+    patch(s, { status: 'initializing', qrCodeDataUrl: null, lastError: null });
+    const chrome = findChrome();
+    let lastErr: unknown = null;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      // ── Deferred for `ready` event ──────────────────────────────
+      const deferred = makeDeferred();
+      s.readyDeferred = deferred;
 
       const client = new Client({
-        authStrategy: new LocalAuth({
-          clientId: sessionId,
-          dataPath: resolveAuthDataPath(),
-        }),
+        authStrategy: new LocalAuth({ clientId: sessionId, dataPath: authDataPath() }),
         puppeteer: {
           headless: true,
-          executablePath: chromeExecutablePath,
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--disable-extensions',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-accelerated-2d-canvas',
-          ],
+          executablePath: chrome,
+          args: CHROMIUM_ARGS,
+          timeout: 60_000,
         },
       });
 
-      // ── Event listeners ──────────────────────────────────────────
+      // ── Events ──────────────────────────────────────────────────
       client.on('qr', (qr) => {
         void QRCode.toDataURL(qr)
-          .then((dataUrl: string) => {
-            patchSessionState(session, {
-              status: 'qr',
-              qrCodeDataUrl: dataUrl,
-              lastError: null,
-            });
-          })
-          .catch((error: unknown) => {
-            patchSessionState(session, {
-              status: 'error',
-              qrCodeDataUrl: null,
-              lastError: error instanceof Error ? error.message : 'Failed to generate QR code.',
-            });
-          });
+          .then((url: string) => patch(s, { status: 'qr', qrCodeDataUrl: url, lastError: null }))
+          .catch((e: unknown) => patch(s, {
+            status: 'error',
+            qrCodeDataUrl: null,
+            lastError: e instanceof Error ? e.message : 'QR generation failed.',
+          }));
       });
 
       client.on('authenticated', () => {
-        patchSessionState(session, {
-          status: 'authenticated',
-          qrCodeDataUrl: null,
-          lastError: null,
-        });
-        logWhatsAppService('info', 'Session authenticated, waiting for ready event.', {
-          sessionId,
-        });
+        patch(s, { status: 'authenticated', qrCodeDataUrl: null, lastError: null });
+        log('info', 'Authenticated, waiting for ready…', { sessionId });
       });
 
       client.on('ready', () => {
-        patchSessionState(session, {
-          status: 'ready',
-          qrCodeDataUrl: null,
-          lastError: null,
-        });
-        logWhatsAppService('info', 'Session ready (wid available).', {
-          sessionId,
-          hasWid: Boolean(client.info?.wid),
-        });
-        resolveReady();
+        patch(s, { status: 'ready', qrCodeDataUrl: null, lastError: null });
+        log('info', 'Session READY.', { sessionId, wid: String(client.info?.wid ?? 'unknown') });
+        deferred.resolve();
       });
 
       client.on('auth_failure', (message) => {
-        patchSessionState(session, {
-          status: 'auth_failure',
-          lastError: message || 'Authentication failure.',
-        });
-        rejectReady(new Error(message || 'Authentication failure.'));
+        patch(s, { status: 'auth_failure', lastError: message || 'Auth failure.' });
+        deferred.reject(new Error(message || 'Auth failure.'));
       });
 
       client.on('disconnected', (reason) => {
-        patchSessionState(session, {
-          status: 'disconnected',
-          lastError: reason || null,
-        });
-        rejectReady(new Error(reason || 'Disconnected.'));
+        log('warn', 'Session disconnected.', { sessionId, reason });
+        patch(s, { status: 'disconnected', lastError: reason || null });
+        deferred.reject(new Error(reason || 'Disconnected.'));
+        // Auto-reconnect
+        scheduleReconnect(s, 0);
       });
 
-      session.client = client;
+      // Track state changes for debugging
+      client.on('change_state', (state) => {
+        log('info', 'State changed.', { sessionId, state: String(state) });
+      });
+
+      s.client = client;
 
       try {
-        // ── Start Chromium + WhatsApp Web ────────────────────────────
+        // ── Launch Chromium & load WhatsApp Web ────────────────────
+        log('info', 'Calling client.initialize()…', { sessionId, chrome, attempt });
         await client.initialize();
-
-        logWhatsAppService('info', 'client.initialize() resolved, waiting for ready event.', {
+        log('info', 'client.initialize() resolved.', {
           sessionId,
-          status: session.status,
+          status: s.status,
           hasWid: Boolean(client.info?.wid),
         });
 
-        // ── Wait for the `ready` event with a timeout ────────────────
-        // This is THE critical fix: in Docker, `ready` fires 10-60 s
-        // AFTER initialize() resolves.
-        const readyOrTimeout = await Promise.race([
-          readyPromise.then(() => 'ready' as const),
-          waitMs(READY_TIMEOUT_MS).then(() => 'timeout' as const),
-        ]);
+        // ── Wait for `ready` event ─────────────────────────────────
+        // In Docker, this takes 10-90 seconds after initialize() resolves.
+        if (s.status !== 'ready') {
+          const outcome = await Promise.race([
+            deferred.promise.then(() => 'ready' as const),
+            wait(READY_TIMEOUT).then(() => 'timeout' as const),
+          ]).catch(() => 'error' as const);
 
-        if (readyOrTimeout === 'timeout') {
-          // Check if the client is actually functional despite no event
-          if (client.info?.wid) {
-            patchSessionState(session, { status: 'ready', lastError: null });
-            logWhatsAppService('warn', 'Ready event timed out but WID is available — treating as ready.', {
-              sessionId,
-            });
-          } else if (session.status === 'qr') {
-            // User needs to scan QR — that's not an error, just waiting.
-            logWhatsAppService('info', 'Waiting for QR scan.', { sessionId });
-          } else {
-            logWhatsAppService('warn', 'Ready event timed out.', {
-              sessionId,
-              status: session.status,
-              hasWid: false,
-              timeoutMs: READY_TIMEOUT_MS,
-            });
+          if (outcome === 'timeout') {
+            // Fallback: check if WID is actually available (event missed)
+            if (client.info?.wid) {
+              patch(s, { status: 'ready', lastError: null });
+              log('warn', 'Ready timeout but WID found — marked ready.', { sessionId });
+            } else if (s.status === 'qr') {
+              log('info', 'Timeout: waiting for QR scan.', { sessionId });
+            } else {
+              log('warn', 'Ready timeout. Session may not be usable.', {
+                sessionId, status: s.status, timeout: READY_TIMEOUT,
+              });
+            }
+          } else if (outcome === 'error') {
+            log('warn', 'Ready promise rejected.', { sessionId, status: s.status });
           }
         }
 
-        return; // Success path
-      } catch (error) {
-        lastInitError = error;
-        await destroySessionClient(session);
-
-        if (attempt === 0 && isChromiumProfileLockError(error)) {
-          clearChromiumSingletonLocks(sessionId);
+        return; // success
+      } catch (err) {
+        lastErr = err;
+        await destroyClient(s);
+        if (attempt === 0 && isLockError(err)) {
+          clearLocks(sessionId);
           continue;
         }
       }
     }
 
-    const baseMessage =
-      lastInitError instanceof Error ? lastInitError.message : 'Failed to initialize WhatsApp session.';
-    const withPath = `${baseMessage} (chromeExecutablePath=${chromeExecutablePath || 'not-found'})`;
-    patchSessionState(session, {
-      status: 'error',
-      lastError: withPath,
-    });
+    const msg = lastErr instanceof Error ? lastErr.message : 'Failed to initialize.';
+    patch(s, { status: 'error', lastError: `${msg} (chrome=${chrome || 'not-found'})` });
   })();
 
-  session.initializingPromise = initPromise;
-
-  try {
-    await initPromise;
-  } finally {
-    session.initializingPromise = null;
-  }
+  s.initializingPromise = work;
+  try { await work; } finally { s.initializingPromise = null; }
 }
 
-// ---------------------------------------------------------------------------
-// Bootstrap (called lazily on first API hit)
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+// Bootstrap
+// ═══════════════════════════════════════════════════════════════════════════
 
-async function ensureConfiguredSessionsBootstrapped(): Promise<void> {
-  const existingBootstrapPromise = getBootstrapPromise();
-  if (existingBootstrapPromise) {
-    await existingBootstrapPromise;
-    return;
-  }
+async function bootstrap(): Promise<void> {
+  const existing = getBootstrapPromise();
+  if (existing) { await existing; return; }
 
-  const nextBootstrapPromise = (async () => {
-    const settings = await readSettings();
-    await Promise.allSettled(settings.sessions.map((sid) => initializeSession(sid)));
+  const p = (async () => {
+    const cfg = await readSettings();
+    await Promise.allSettled(cfg.sessions.map((id) => initializeSession(id)));
   })();
-
-  setBootstrapPromise(nextBootstrapPromise);
-
-  try {
-    await nextBootstrapPromise;
-  } finally {
-    setBootstrapPromise(null);
-  }
+  setBootstrapPromise(p);
+  try { await p; } finally { setBootstrapPromise(null); }
 }
 
-// ---------------------------------------------------------------------------
-// Readiness helpers
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+// Readiness gate — the sender calls this to get a ready session
+// ═══════════════════════════════════════════════════════════════════════════
 
-function isSessionReadyForSend(session: ManagedSession): boolean {
-  return Boolean(session.client && session.status === 'ready');
-}
-
-function isGetChatUndefinedError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error ?? '');
-  return /Cannot read properties of undefined \(reading 'getChat'\)/i.test(message);
-}
-
-function getSessionTelemetry(session: ManagedSession) {
-  return {
-    sessionId: session.sessionId,
-    status: session.status,
-    hasClient: Boolean(session.client),
-    hasWid: Boolean(session.client?.info?.wid),
-    updatedAt: session.updatedAt.toISOString(),
-  };
+function isReady(s: ManagedSession): boolean {
+  return Boolean(s.client && s.status === 'ready');
 }
 
 /**
- * Wait for the session to reach `ready` state.
- * First waits for any in-flight readyPromise, then polls.
+ * Wait for a session to become ready.
+ * Leverages the readyDeferred + polling with WID fallback.
  */
-async function waitUntilReady(session: ManagedSession, timeoutMs: number): Promise<boolean> {
-  if (isSessionReadyForSend(session)) return true;
+async function ensureReady(s: ManagedSession, timeout: number): Promise<boolean> {
+  if (isReady(s)) return true;
 
-  // If a readyPromise exists (from initializeSession), race against timeout.
-  if (session.readyPromise) {
-    const result = await Promise.race([
-      session.readyPromise.then(() => 'ready' as const).catch(() => 'failed' as const),
-      waitMs(timeoutMs).then(() => 'timeout' as const),
+  // 1. Wait for the ready deferred if it exists
+  if (s.readyDeferred && !s.readyDeferred.settled) {
+    const r = await Promise.race([
+      s.readyDeferred.promise.then(() => true).catch(() => false),
+      wait(timeout).then(() => null),
     ]);
-    if (result === 'ready' || isSessionReadyForSend(session)) return true;
-    if (result === 'timeout') return false;
+    if (r === true || isReady(s)) return true;
+    if (r === null) {
+      // Timeout — check WID fallback
+      if (s.client?.info?.wid) {
+        patch(s, { status: 'ready', lastError: null });
+        return true;
+      }
+      return false;
+    }
   }
 
-  // Fallback: poll status
+  // 2. Poll (covers edge cases where deferred is already settled/rejected)
   const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    if (isSessionReadyForSend(session)) return true;
-    // Also check wid directly in case event was missed
-    if (session.client?.info?.wid) {
-      patchSessionState(session, { status: 'ready', lastError: null });
+  while (Date.now() - start < timeout) {
+    if (isReady(s)) return true;
+    if (s.client?.info?.wid) {
+      patch(s, { status: 'ready', lastError: null });
       return true;
     }
-    await waitMs(500);
+    await wait(500);
   }
 
-  return isSessionReadyForSend(session);
+  return isReady(s);
 }
 
-// ---------------------------------------------------------------------------
-// Send with recovery
-// ---------------------------------------------------------------------------
+/**
+ * Obtain a session that is guaranteed ready for sending, or throw.
+ * This is the ONLY entry point the send function uses.
+ */
+async function getReadySession(sessionId: string): Promise<ManagedSession> {
+  await initializeSession(sessionId);
+  const s = getSession(sessionId);
 
-async function sendMessageWithRecovery(
-  session: ManagedSession,
-  chatId: string,
-  messageText: string
-): Promise<number> {
-  if (!session.client) {
-    throw new Error('WhatsApp client is not initialized for this session.');
+  // Fast path
+  if (isReady(s)) return s;
+
+  // Wait for ready
+  log('info', 'Waiting for session to become ready…', telemetry(s));
+  let ready = await ensureReady(s, READY_TIMEOUT);
+
+  if (!ready) {
+    // Force-restart once
+    log('info', 'Force-restarting session.', telemetry(s));
+    await initializeSession(sessionId, true);
+    ready = await ensureReady(s, READY_TIMEOUT);
   }
 
-  const maxAttempts = SEND_RETRY_DELAYS_MS.length + 1;
+  if (!ready) {
+    throw new Error(`Session "${sessionId}" could not reach ready state (status=${s.status}).`);
+  }
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+  return s;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Send with recovery
+// ═══════════════════════════════════════════════════════════════════════════
+
+function isGetChatError(e: unknown): boolean {
+  return /Cannot read properties of undefined \(reading 'getChat'\)/i.test(safeMsg(e));
+}
+
+async function sendWithRecovery(
+  session: ManagedSession,
+  chatId: string,
+  text: string,
+): Promise<number> {
+  if (!session.client) throw new Error('Client not initialized.');
+
+  const maxAttempts = SEND_RETRY_DELAYS.length + 1;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      await session.client.sendMessage(chatId, messageText);
-      if (attempt > 1) {
-        logWhatsAppService('info', 'Send recovered after retry.', {
-          attempt,
-          ...getSessionTelemetry(session),
-        });
-      }
+      await session.client.sendMessage(chatId, text);
+      if (attempt > 1) log('info', 'Send recovered.', { attempt, ...telemetry(session) });
       return attempt;
-    } catch (error) {
-      const message = safeErrorMessage(error);
-      const isGetChatError = isGetChatUndefinedError(error);
+    } catch (err) {
       const canRetry = attempt < maxAttempts;
-
-      logWhatsAppService(canRetry ? 'warn' : 'error', 'Send attempt failed.', {
-        attempt,
-        maxAttempts,
-        chatId,
-        error: message,
-        isGetChatError,
-        ...getSessionTelemetry(session),
+      log(canRetry ? 'warn' : 'error', 'Send attempt failed.', {
+        attempt, maxAttempts, chatId, error: safeMsg(err),
+        isGetChatError: isGetChatError(err), ...telemetry(session),
       });
 
-      if (!canRetry) {
-        throw error;
-      }
+      if (!canRetry) throw err;
 
-      // Recover: force-restart and wait for ready
+      // Recover: restart + wait ready
       await initializeSession(session.sessionId, true);
-      const ok = await waitUntilReady(session, READY_TIMEOUT_MS);
-      if (!ok) {
-        throw new Error('Sender session could not recover after restart.');
-      }
+      const ok = await ensureReady(session, READY_TIMEOUT);
+      if (!ok) throw new Error('Could not recover session after send failure.');
 
-      await waitMs(SEND_RETRY_DELAYS_MS[attempt - 1]);
+      await wait(SEND_RETRY_DELAYS[attempt - 1]);
     }
   }
 
-  throw new Error('Unexpected send flow termination.');
+  throw new Error('Unexpected termination.');
 }
 
-// ---------------------------------------------------------------------------
-// Public API: sessions management
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+// Public API — Session management
+// ═══════════════════════════════════════════════════════════════════════════
 
 export async function listWhatsAppSessions(): Promise<{
   sessions: WhatsAppSessionSnapshot[];
   primarySessionId: string;
 }> {
-  await ensureConfiguredSessionsBootstrapped();
-
-  const settings = await readSettings();
-
-  const sessions = settings.sessions.map((sessionId) => {
-    const session = getOrCreateManagedSession(sessionId);
-    const effectiveStatus: WhatsAppSessionStatus =
-      session.status === 'authenticated' ? 'ready' : session.status;
-
+  await bootstrap();
+  const cfg = await readSettings();
+  const list = cfg.sessions.map((id) => {
+    const s = getSession(id);
     return {
-      sessionId,
-      isPrimary: sessionId === settings.primarySessionId,
-      status: effectiveStatus,
-      qrCodeDataUrl: session.qrCodeDataUrl,
-      lastError: session.lastError,
-      updatedAt: session.updatedAt.toISOString(),
+      sessionId: id,
+      isPrimary: id === cfg.primarySessionId,
+      status: (s.status === 'authenticated' ? 'ready' : s.status) as WhatsAppSessionStatus,
+      qrCodeDataUrl: s.qrCodeDataUrl,
+      lastError: s.lastError,
+      updatedAt: s.updatedAt.toISOString(),
     } satisfies WhatsAppSessionSnapshot;
   });
-
-  return { sessions, primarySessionId: settings.primarySessionId };
+  return { sessions: list, primarySessionId: cfg.primarySessionId };
 }
 
-export async function addWhatsAppSession(rawSessionId: string): Promise<void> {
-  const sessionId = sanitizeSessionId(rawSessionId);
-  if (!sessionId) {
-    throw new Error('Session ID is required and can only contain letters, numbers, dash, and underscore.');
+export async function addWhatsAppSession(rawId: string): Promise<void> {
+  const id = sanitize(rawId);
+  if (!id) throw new Error('Invalid session ID.');
+  const cfg = await readSettings();
+  if (!cfg.sessions.includes(id)) {
+    await saveSettings({ ...cfg, sessions: [...cfg.sessions, id] });
   }
-
-  const settings = await readSettings();
-  if (!settings.sessions.includes(sessionId)) {
-    const updatedSettings: WhatsAppWwebjsSettings = {
-      ...settings,
-      sessions: [...settings.sessions, sessionId],
-    };
-    await saveSettings(updatedSettings);
-  }
-
-  await initializeSession(sessionId);
+  await initializeSession(id);
 }
 
-export async function setPrimaryWhatsAppSession(rawSessionId: string): Promise<void> {
-  const sessionId = sanitizeSessionId(rawSessionId);
-  if (!sessionId) {
-    throw new Error('A valid session ID is required.');
-  }
-
-  const settings = await readSettings();
-  if (!settings.sessions.includes(sessionId)) {
-    throw new Error('The selected session does not exist.');
-  }
-
-  await saveSettings({ ...settings, primarySessionId: sessionId });
+export async function setPrimaryWhatsAppSession(rawId: string): Promise<void> {
+  const id = sanitize(rawId);
+  if (!id) throw new Error('Invalid session ID.');
+  const cfg = await readSettings();
+  if (!cfg.sessions.includes(id)) throw new Error('Session does not exist.');
+  await saveSettings({ ...cfg, primarySessionId: id });
 }
 
-export async function restartWhatsAppSession(rawSessionId: string): Promise<void> {
-  const sessionId = sanitizeSessionId(rawSessionId);
-  if (!sessionId) {
-    throw new Error('A valid session ID is required.');
-  }
-
-  await initializeSession(sessionId, true);
+export async function restartWhatsAppSession(rawId: string): Promise<void> {
+  const id = sanitize(rawId);
+  if (!id) throw new Error('Invalid session ID.');
+  await initializeSession(id, true);
 }
 
-// ---------------------------------------------------------------------------
-// Public API: send message
-// ---------------------------------------------------------------------------
+// ═══════════════════════════════════════════════════════════════════════════
+// Public API — Send message
+// ═══════════════════════════════════════════════════════════════════════════
 
 export async function sendWhatsAppTextViaManagedSession(input: {
   phoneNumber: string;
   text: string;
   sessionId?: string;
 }): Promise<WhatsAppSendResult> {
-  const messageText = input.text.trim();
-  if (!messageText) {
-    return { ok: false, status: 400, body: 'Message text is required.' };
-  }
+  const text = input.text.trim();
+  if (!text) return { ok: false, status: 400, body: 'Message text is required.' };
 
-  const chatId = normalizePhoneToChatId(input.phoneNumber);
-  if (!chatId) {
-    return { ok: false, status: 400, body: 'Invalid phone number.' };
-  }
+  const chatId = phoneToChatId(input.phoneNumber);
+  if (!chatId) return { ok: false, status: 400, body: 'Invalid phone number.' };
 
-  const settings = await readSettings();
-  const resolvedSessionId = sanitizeSessionId(input.sessionId || settings.primarySessionId);
-  if (!resolvedSessionId) {
-    return { ok: false, status: 400, body: 'No WhatsApp sender session is configured.' };
-  }
+  const cfg = await readSettings();
+  const sid = sanitize(input.sessionId || cfg.primarySessionId);
+  if (!sid) return { ok: false, status: 400, body: 'No session configured.' };
+  if (!cfg.sessions.includes(sid)) return { ok: false, status: 404, body: `Session "${sid}" not found.` };
 
-  if (!settings.sessions.includes(resolvedSessionId)) {
-    return { ok: false, status: 404, body: `Session "${resolvedSessionId}" does not exist.` };
-  }
+  const diag = (attempts?: number): WhatsAppSendDiagnostics => {
+    const s = getSession(sid);
+    return { ...telemetry(s), attempts };
+  };
 
-  // ── Ensure session is initialized and READY ───────────────────────
-  await initializeSession(resolvedSessionId);
-
-  const session = getOrCreateManagedSession(resolvedSessionId);
-  const getDiagnostics = (attempts?: number): WhatsAppSendDiagnostics => ({
-    ...getSessionTelemetry(session),
-    attempts,
-  });
-
-  // If not ready yet (bootstrap still completing), wait patiently.
-  if (!isSessionReadyForSend(session)) {
-    logWhatsAppService('info', 'Session not ready yet, waiting...', {
-      chatId,
-      ...getSessionTelemetry(session),
-    });
-
-    const becameReady = await waitUntilReady(session, READY_TIMEOUT_MS);
-
-    if (!becameReady) {
-      // One more attempt: force restart
-      logWhatsAppService('info', 'Force-restarting session after wait timeout.', {
-        chatId,
-        ...getSessionTelemetry(session),
-      });
-      await initializeSession(resolvedSessionId, true);
-      await waitUntilReady(session, READY_TIMEOUT_MS);
-    }
-  }
-
-  // ── Final gate ─────────────────────────────────────────────────────
-  if (!session.client) {
-    logWhatsAppService('warn', 'Send aborted: client not initialized.', {
-      chatId,
-      ...getSessionTelemetry(session),
-    });
-    return {
-      ok: false,
-      status: 503,
-      body: 'WhatsApp client is not initialized for this session.',
-      diagnostics: getDiagnostics(0),
-    };
-  }
-
-  if (!isSessionReadyForSend(session)) {
-    logWhatsAppService('warn', 'Send aborted: session not ready.', {
-      chatId,
-      ...getSessionTelemetry(session),
-    });
-    const statusHint =
-      session.status === 'qr'
-        ? 'Scan the QR code in admin WhatsApp sessions page first.'
-        : `Current session status is ${session.status}.`;
-
-    return {
-      ok: false,
-      status: 503,
-      body: `Sender session is not ready. ${statusHint}`,
-      diagnostics: getDiagnostics(0),
-    };
+  // ── Get a ready session ────────────────────────────────────────────
+  let session: ManagedSession;
+  try {
+    session = await getReadySession(sid);
+  } catch (err) {
+    const s = getSession(sid);
+    const hint = s.status === 'qr'
+      ? 'Scan the QR code in admin WhatsApp sessions page first.'
+      : `Current status: ${s.status}. ${safeMsg(err)}`;
+    log('warn', 'Send aborted: session not ready.', { chatId, ...telemetry(s) });
+    return { ok: false, status: 503, body: `Sender session not ready. ${hint}`, diagnostics: diag(0) };
   }
 
   // ── Send ───────────────────────────────────────────────────────────
   try {
-    logWhatsAppService('info', 'Send requested.', {
-      chatId,
-      textLength: messageText.length,
-      ...getSessionTelemetry(session),
-    });
-
-    const attempts = await sendMessageWithRecovery(session, chatId, messageText);
-    patchSessionState(session, { status: 'ready', lastError: null });
-
-    logWhatsAppService('info', 'Send completed.', {
-      chatId,
-      ...getSessionTelemetry(session),
-    });
-
-    return {
-      ok: true,
-      status: 200,
-      body: 'Message sent successfully.',
-      diagnostics: getDiagnostics(attempts),
-    };
-  } catch (error) {
-    const message = safeErrorMessage(error) || 'Failed to send message.';
-    patchSessionState(session, { status: 'error', lastError: message });
-
-    logWhatsAppService('error', 'Send failed permanently.', {
-      chatId,
-      error: message,
-      ...getSessionTelemetry(session),
-    });
-
-    return {
-      ok: false,
-      status: 502,
-      body: message,
-      diagnostics: getDiagnostics(SEND_RETRY_DELAYS_MS.length + 1),
-    };
+    log('info', 'Sending…', { chatId, textLen: text.length, ...telemetry(session) });
+    const attempts = await sendWithRecovery(session, chatId, text);
+    patch(session, { status: 'ready', lastError: null });
+    log('info', 'Sent.', { chatId, attempts, ...telemetry(session) });
+    return { ok: true, status: 200, body: 'Message sent.', diagnostics: diag(attempts) };
+  } catch (err) {
+    const msg = safeMsg(err);
+    patch(session, { status: 'error', lastError: msg });
+    log('error', 'Send failed.', { chatId, error: msg, ...telemetry(session) });
+    return { ok: false, status: 502, body: msg, diagnostics: diag(SEND_RETRY_DELAYS.length + 1) };
   }
 }
