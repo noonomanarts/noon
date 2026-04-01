@@ -40,6 +40,8 @@ type DynamicHomeStats = {
   yearsValue: number | null;
 };
 
+const DISPLAY_TIMEZONE = "Asia/Muscat";
+
 const heroSlides = [
   "/images/slides/1.jpg",
   "/images/slides/2.jpg",
@@ -144,9 +146,11 @@ async function resolveUpcomingItems(
           const datetimeText = `${dt.toLocaleDateString(localeCode, {
             month: "short",
             day: "numeric",
+            timeZone: DISPLAY_TIMEZONE,
           })} · ${dt.toLocaleTimeString(localeCode, {
             hour: "2-digit",
             minute: "2-digit",
+            timeZone: DISPLAY_TIMEZONE,
           })}`;
 
           sessionCards.push({
