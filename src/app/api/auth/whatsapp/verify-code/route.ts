@@ -71,7 +71,8 @@ export async function POST(request: Request) {
     const body = (await request.json().catch(() => ({}))) as VerifyPayload;
 
     const purpose = body.purpose === 'register' ? 'REGISTER' : body.purpose === 'login' ? 'LOGIN' : null;
-    const locale = body.locale === 'ar' ? 'ar-u-nu-latn' : 'en';
+    const isArabic = body.locale === 'ar';
+    const locale: 'en' | 'ar' = isArabic ? 'ar' : 'en';
     const verificationId = typeof body.verificationId === 'string' ? body.verificationId.trim() : '';
     const code = typeof body.code === 'string' ? body.code.trim() : '';
     const phoneNumber = typeof body.phoneNumber === 'string' ? body.phoneNumber.trim() : '';
@@ -100,7 +101,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              locale === 'ar'
+              isArabic
                 ? 'لا يوجد حساب مفعل بهذا الرقم.'
                 : 'No active account found with this phone number.',
           },
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
       if (!firstName || !lastName || !email || !password || !dateOfBirth) {
         return NextResponse.json(
           {
-            error: locale === 'ar' ? 'بيانات التسجيل غير مكتملة.' : 'Registration data is incomplete.',
+            error: isArabic ? 'بيانات التسجيل غير مكتملة.' : 'Registration data is incomplete.',
           },
           { status: 400 }
         );
@@ -135,7 +136,7 @@ export async function POST(request: Request) {
       if (password.length < 8) {
         return NextResponse.json(
           {
-            error: locale === 'ar' ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.' : 'Password must be at least 8 characters.',
+            error: isArabic ? 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.' : 'Password must be at least 8 characters.',
           },
           { status: 400 }
         );
@@ -144,7 +145,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              locale === 'ar'
+              isArabic
                 ? 'كلمة المرور يجب أن تحتوي على أحرف إنجليزية فقط (A-Z, a-z, 0-9 والرموز الإنجليزية).'
                 : 'Password must contain English characters only (A-Z, a-z, 0-9, and English symbols).',
           },
@@ -156,7 +157,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              locale === 'ar'
+              isArabic
                 ? 'يجب الموافقة على الشروط والأحكام لإكمال التسجيل.'
                 : 'You must accept the Terms & Conditions to register.',
           },
@@ -167,7 +168,7 @@ export async function POST(request: Request) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return NextResponse.json(
-          { error: locale === 'ar' ? 'البريد الإلكتروني غير صحيح.' : 'Invalid email address.' },
+          { error: isArabic ? 'البريد الإلكتروني غير صحيح.' : 'Invalid email address.' },
           { status: 400 }
         );
       }
@@ -175,7 +176,7 @@ export async function POST(request: Request) {
       const existingByEmail = await getUserByEmail(email);
       if (existingByEmail) {
         return NextResponse.json(
-          { error: locale === 'ar' ? 'البريد الإلكتروني مسجل بالفعل.' : 'Email is already registered.' },
+          { error: isArabic ? 'البريد الإلكتروني مسجل بالفعل.' : 'Email is already registered.' },
           { status: 409 }
         );
       }
@@ -185,7 +186,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              locale === 'ar'
+              isArabic
                 ? 'رقم الهاتف مسجل بالفعل. استخدم تسجيل الدخول.'
                 : 'Phone number is already registered. Please login instead.',
           },
@@ -208,7 +209,7 @@ export async function POST(request: Request) {
       if (!newUser) {
         return NextResponse.json(
           {
-            error: locale === 'ar' ? 'تعذر إنشاء الحساب. حاول مرة أخرى.' : 'Failed to create account. Please try again.',
+            error: isArabic ? 'تعذر إنشاء الحساب. حاول مرة أخرى.' : 'Failed to create account. Please try again.',
           },
           { status: 500 }
         );

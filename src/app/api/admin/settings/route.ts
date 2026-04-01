@@ -47,7 +47,7 @@ function sanitizeGeneralSettings(input: Partial<GeneralAdminSettings>): GeneralA
     siteName: (input.siteName ?? defaultGeneralAdminSettings.siteName).trim().slice(0, 120),
     supportEmail: (input.supportEmail ?? defaultGeneralAdminSettings.supportEmail).trim().slice(0, 180),
     supportPhone: (input.supportPhone ?? defaultGeneralAdminSettings.supportPhone).trim().slice(0, 40),
-    defaultLocale: input.defaultLocale === 'ar' ? 'ar-u-nu-latn' : 'en',
+    defaultLocale: input.defaultLocale === 'ar' ? 'ar' : 'en',
     timezone: (input.timezone ?? defaultGeneralAdminSettings.timezone).trim().slice(0, 80),
     currency: (input.currency ?? defaultGeneralAdminSettings.currency).trim().slice(0, 10).toUpperCase(),
     headerColor: sanitizeHexColor(input.headerColor, defaultGeneralAdminSettings.headerColor),
