@@ -268,6 +268,46 @@ function patchSessionState(session: ManagedSession, patch: Partial<ManagedSessio
   session.updatedAt = now();
 }
 
+async function syncSessionStatusFromClient(session: ManagedSession): Promise<void> {
+  if (!session.client) return;
+
+  try {
+    const state = await session.client.getState();
+    const normalized = String(state || '').toUpperCase();
+
+    if (normalized === 'CONNECTED' || normalized === 'OPENING') {
+      if (session.status !== 'ready') {
+        patchSessionState(session, {
+          status: 'ready',
+          lastError: null,
+        });
+      }
+      return;
+    }
+
+    if (normalized === 'UNPAIRED' || normalized === 'UNPAIRED_IDLE' || normalized === 'CONFLICT') {
+      patchSessionState(session, {
+        status: 'disconnected',
+      });
+      return;
+    }
+
+    if (session.status === 'authenticated' && session.client.info?.wid) {
+      patchSessionState(session, {
+        status: 'ready',
+        lastError: null,
+      });
+    }
+  } catch {
+    if (session.status === 'authenticated' && session.client.info?.wid) {
+      patchSessionState(session, {
+        status: 'ready',
+        lastError: null,
+      });
+    }
+  }
+}
+
 async function readSettings(): Promise<WhatsAppWwebjsSettings> {
   const saved = await getAdminSettingsByKey<Partial<WhatsAppWwebjsSettings>>(WHATSAPP_WWEBJS_SETTINGS_KEY);
   const rawSessions = Array.isArray(saved?.sessions) ? saved?.sessions : defaultSettings.sessions;
@@ -397,6 +437,7 @@ async function initializeSession(sessionId: string, forceRestart = false): Promi
 
       try {
         await client.initialize();
+        await syncSessionStatusFromClient(session);
         return;
       } catch (error) {
         lastInitError = error;
@@ -455,6 +496,12 @@ export async function listWhatsAppSessions(): Promise<{
   await ensureConfiguredSessionsBootstrapped();
 
   const settings = await readSettings();
+  await Promise.allSettled(
+    settings.sessions.map(async (sessionId) => {
+      const session = getOrCreateManagedSession(sessionId);
+      await syncSessionStatusFromClient(session);
+    })
+  );
 
   const sessions = settings.sessions.map((sessionId) => {
     const session = getOrCreateManagedSession(sessionId);
@@ -547,11 +594,12 @@ export async function sendWhatsAppTextViaManagedSession(input: {
   await initializeSession(resolvedSessionId);
 
   const session = getOrCreateManagedSession(resolvedSessionId);
+  await syncSessionStatusFromClient(session);
   if (!session.client) {
     return { ok: false, status: 503, body: 'WhatsApp client is not initialized for this session.' };
   }
 
-  if (session.status !== 'ready') {
+  if (session.status !== 'ready' && session.status !== 'authenticated') {
     const statusHint =
       session.status === 'qr'
         ? 'Scan the QR code in admin WhatsApp sessions page first.'
