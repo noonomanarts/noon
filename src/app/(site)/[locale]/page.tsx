@@ -548,7 +548,7 @@ export default async function HomePage({
           </div>
         ) : (
           <div className="rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center text-sm font-medium text-[color:var(--text-muted)] sm:p-10">
-            {isArabic ? "در حال حاضر کلاسی وجود ندارد." : "No classes are available right now."}
+            {isArabic ? "لا توجد فصول متاحة حالياً." : "No classes are available right now."}
           </div>
         )}
 
