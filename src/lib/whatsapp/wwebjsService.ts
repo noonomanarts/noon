@@ -568,11 +568,7 @@ async function ensureConfiguredSessionsBootstrapped(): Promise<void> {
 }
 
 function isSessionReadyForSend(session: ManagedSession): boolean {
-  return Boolean(
-    session.client &&
-      (session.status === 'ready' || session.status === 'authenticated') &&
-      session.client.info?.wid
-  );
+  return Boolean(session.client && (session.status === 'ready' || session.status === 'authenticated'));
 }
 
 function isGetChatUndefinedError(error: unknown): boolean {
