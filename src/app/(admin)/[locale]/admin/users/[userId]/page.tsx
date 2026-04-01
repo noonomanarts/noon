@@ -27,7 +27,7 @@ function mapRoleToForm(role: User["role"]): FormRole {
 }
 
 function mapLanguageToForm(lang: User["preferredLanguage"]): "en" | "ar" {
-  return lang === "ARABIC" ? "ar-u-nu-latn" : "en";
+  return lang === "ARABIC" ? "ar" : "en";
 }
 
 export default function EditUserPage({
