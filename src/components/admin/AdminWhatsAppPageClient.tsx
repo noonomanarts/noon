@@ -18,6 +18,14 @@ type SendResult = {
   name: string;
   success: boolean;
   error?: string;
+  diagnostics?: {
+    sessionId: string;
+    status: string;
+    hasClient: boolean;
+    hasWid: boolean;
+    updatedAt: string;
+    attempts?: number;
+  } | null;
 };
 
 export default function AdminWhatsAppPageClient({
@@ -247,6 +255,9 @@ export default function AdminWhatsAppPageClient({
                 className={`text-sm ${item.success ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}
               >
                 {item.name}: {item.success ? 'OK' : item.error || 'Failed'}
+                {!item.success && item.diagnostics
+                  ? ` (session=${item.diagnostics.sessionId}, status=${item.diagnostics.status}, attempts=${item.diagnostics.attempts ?? 0})`
+                  : ''}
               </p>
             ))}
           </div>

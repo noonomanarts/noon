@@ -28,6 +28,22 @@ export type WhatsAppSessionSnapshot = {
   updatedAt: string;
 };
 
+type WhatsAppSendDiagnostics = {
+  sessionId: string;
+  status: WhatsAppSessionStatus;
+  hasClient: boolean;
+  hasWid: boolean;
+  updatedAt: string;
+  attempts?: number;
+};
+
+type WhatsAppSendResult = {
+  ok: boolean;
+  status: number;
+  body: string;
+  diagnostics?: WhatsAppSendDiagnostics;
+};
+
 type WhatsAppWwebjsSettings = {
   sessions: string[];
   primarySessionId: string;
@@ -68,6 +84,59 @@ function setBootstrapPromise(value: Promise<void> | null): void {
 
 function now() {
   return new Date();
+}
+
+const SEND_RETRY_DELAYS_MS = [250, 700];
+
+const WHATSAPP_SEND_LOG_LEVEL = (process.env.WWEBJS_SEND_LOG_LEVEL || 'warn').trim().toLowerCase();
+const LOG_LEVEL_SCORE: Record<'silent' | 'error' | 'warn' | 'info', number> = {
+  silent: 0,
+  error: 1,
+  warn: 2,
+  info: 3,
+};
+
+function waitMs(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function safeErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error ?? 'Unknown error');
+}
+
+function logWhatsAppService(
+  level: 'info' | 'warn' | 'error',
+  message: string,
+  metadata?: Record<string, unknown>
+): void {
+  const configured =
+    WHATSAPP_SEND_LOG_LEVEL === 'silent' ||
+    WHATSAPP_SEND_LOG_LEVEL === 'error' ||
+    WHATSAPP_SEND_LOG_LEVEL === 'warn' ||
+    WHATSAPP_SEND_LOG_LEVEL === 'info'
+      ? WHATSAPP_SEND_LOG_LEVEL
+      : 'warn';
+
+  if (LOG_LEVEL_SCORE[level] > LOG_LEVEL_SCORE[configured]) {
+    return;
+  }
+
+  const suffix = metadata ? ` ${JSON.stringify(metadata)}` : '';
+  const line = `[wwebjs] ${message}${suffix}`;
+
+  if (level === 'error') {
+    console.error(line);
+    return;
+  }
+
+  if (level === 'warn') {
+    console.warn(line);
+    return;
+  }
+
+  console.info(line);
 }
 
 function resolveChromeExecutablePath(): string | undefined {
@@ -498,6 +567,90 @@ async function ensureConfiguredSessionsBootstrapped(): Promise<void> {
   }
 }
 
+function isSessionReadyForSend(session: ManagedSession): boolean {
+  return Boolean(
+    session.client &&
+      (session.status === 'ready' || session.status === 'authenticated') &&
+      session.client.info?.wid
+  );
+}
+
+function isGetChatUndefinedError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return /Cannot read properties of undefined \(reading 'getChat'\)/i.test(message);
+}
+
+function getSessionTelemetry(session: ManagedSession) {
+  return {
+    sessionId: session.sessionId,
+    status: session.status,
+    hasClient: Boolean(session.client),
+    hasWid: Boolean(session.client?.info?.wid),
+    updatedAt: session.updatedAt.toISOString(),
+  };
+}
+
+async function sendMessageWithRecovery(
+  session: ManagedSession,
+  chatId: string,
+  messageText: string
+): Promise<number> {
+  if (!session.client) {
+    throw new Error('WhatsApp client is not initialized for this session.');
+  }
+
+  const maxAttempts = SEND_RETRY_DELAYS_MS.length + 1;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await session.client.sendMessage(chatId, messageText);
+      if (attempt > 1) {
+        logWhatsAppService('info', 'Send recovered after retry.', {
+          attempt,
+          ...getSessionTelemetry(session),
+        });
+      }
+      return attempt;
+    } catch (error) {
+      const message = safeErrorMessage(error);
+      const isGetChatError = isGetChatUndefinedError(error);
+      const canRetry = attempt < maxAttempts;
+
+      logWhatsAppService(canRetry ? 'warn' : 'error', 'Send attempt failed.', {
+        attempt,
+        maxAttempts,
+        chatId,
+        error: message,
+        isGetChatError,
+        ...getSessionTelemetry(session),
+      });
+
+      if (!canRetry) {
+        throw error;
+      }
+
+      if (isGetChatError) {
+        // The internal web context can desync and throw getChat undefined.
+        await initializeSession(session.sessionId, true);
+      }
+
+      await syncSessionStatusFromClient(session);
+      if (!session.client || !isSessionReadyForSend(session)) {
+        await initializeSession(session.sessionId, true);
+        await syncSessionStatusFromClient(session);
+      }
+
+      if (!session.client || !isSessionReadyForSend(session)) {
+        throw new Error('Sender session became unavailable during retry recovery.');
+      }
+
+      await waitMs(SEND_RETRY_DELAYS_MS[attempt - 1]);
+    }
+  }
+
+  throw new Error('Unexpected send flow termination.');
+}
+
 export async function listWhatsAppSessions(): Promise<{
   sessions: WhatsAppSessionSnapshot[];
   primarySessionId: string;
@@ -581,7 +734,7 @@ export async function sendWhatsAppTextViaManagedSession(input: {
   phoneNumber: string;
   text: string;
   sessionId?: string;
-}): Promise<{ ok: boolean; status: number; body: string }> {
+}): Promise<WhatsAppSendResult> {
   const messageText = input.text.trim();
   if (!messageText) {
     return { ok: false, status: 400, body: 'Message text is required.' };
@@ -606,42 +759,84 @@ export async function sendWhatsAppTextViaManagedSession(input: {
 
   const session = getOrCreateManagedSession(resolvedSessionId);
   await syncSessionStatusFromClient(session);
+  const getDiagnostics = (attempts?: number): WhatsAppSendDiagnostics => ({
+    ...getSessionTelemetry(session),
+    attempts,
+  });
+
   if (!session.client) {
-    return { ok: false, status: 503, body: 'WhatsApp client is not initialized for this session.' };
+    logWhatsAppService('warn', 'Send aborted: client not initialized.', {
+      chatId,
+      ...getSessionTelemetry(session),
+    });
+    return {
+      ok: false,
+      status: 503,
+      body: 'WhatsApp client is not initialized for this session.',
+      diagnostics: getDiagnostics(0),
+    };
   }
 
-  if (session.status !== 'ready' && session.status !== 'authenticated') {
+  if (!isSessionReadyForSend(session)) {
+    logWhatsAppService('warn', 'Send aborted: session not ready.', {
+      chatId,
+      ...getSessionTelemetry(session),
+    });
     const statusHint =
       session.status === 'qr'
         ? 'Scan the QR code in admin WhatsApp sessions page first.'
         : `Current session status is ${session.status}.`;
 
-    return { ok: false, status: 503, body: `Sender session is not ready. ${statusHint}` };
+    return {
+      ok: false,
+      status: 503,
+      body: `Sender session is not ready. ${statusHint}`,
+      diagnostics: getDiagnostics(0),
+    };
   }
 
   try {
-    await session.client.sendMessage(chatId, messageText);
+    logWhatsAppService('info', 'Send requested.', {
+      chatId,
+      textLength: messageText.length,
+      ...getSessionTelemetry(session),
+    });
+
+    const attempts = await sendMessageWithRecovery(session, chatId, messageText);
     patchSessionState(session, {
       status: 'ready',
       lastError: null,
+    });
+
+    logWhatsAppService('info', 'Send completed.', {
+      chatId,
+      ...getSessionTelemetry(session),
     });
 
     return {
       ok: true,
       status: 200,
       body: 'Message sent successfully.',
+      diagnostics: getDiagnostics(attempts),
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to send message.';
+    const message = safeErrorMessage(error) || 'Failed to send message.';
     patchSessionState(session, {
       status: 'error',
       lastError: message,
+    });
+
+    logWhatsAppService('error', 'Send failed permanently.', {
+      chatId,
+      error: message,
+      ...getSessionTelemetry(session),
     });
 
     return {
       ok: false,
       status: 502,
       body: message,
+      diagnostics: getDiagnostics(SEND_RETRY_DELAYS_MS.length + 1),
     };
   }
 }

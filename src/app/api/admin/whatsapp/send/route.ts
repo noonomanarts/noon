@@ -10,6 +10,15 @@ type SendPayload = {
   text?: string;
 };
 
+type SendDiagnostics = {
+  sessionId: string;
+  status: string;
+  hasClient: boolean;
+  hasWid: boolean;
+  updatedAt: string;
+  attempts?: number;
+};
+
 export async function POST(request: Request) {
   try {
     const admin = await requireAdminUser();
@@ -59,6 +68,7 @@ export async function POST(request: Request) {
               name: recipient.full_name,
               success: false,
               error: `WhatsApp ${response.status}: ${response.body.slice(0, 300)}`,
+              diagnostics: response.diagnostics ?? null,
             };
           }
 
@@ -66,6 +76,7 @@ export async function POST(request: Request) {
             userId: recipient.id,
             name: recipient.full_name,
             success: true,
+            diagnostics: response.diagnostics ?? null,
           };
         } catch (error) {
           return {
@@ -73,6 +84,7 @@ export async function POST(request: Request) {
             name: recipient.full_name,
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
+            diagnostics: null as SendDiagnostics | null,
           };
         }
       })

@@ -20,7 +20,19 @@ export async function sendWhatsAppText(input: {
   phoneNumber: string;
   text: string;
   session?: string;
-}): Promise<{ ok: boolean; status: number; body: string }> {
+}): Promise<{
+  ok: boolean;
+  status: number;
+  body: string;
+  diagnostics?: {
+    sessionId: string;
+    status: string;
+    hasClient: boolean;
+    hasWid: boolean;
+    updatedAt: string;
+    attempts?: number;
+  };
+}> {
   return sendWhatsAppTextViaManagedSession({
     phoneNumber: input.phoneNumber,
     text: input.text,
