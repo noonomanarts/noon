@@ -70,8 +70,8 @@ export default function AdminPhotographerTasksClient({
     title: isRTL ? "مهام المصور" : "Photographer Tasks",
     subtitle: isRTL ? `إدارة المهام المخصصة لـ ${photographerName}` : `Manage tasks assigned to ${photographerName}`,
     noPhotographer: isRTL
-      ? 'لا يوجد مستخدم بدور "مصور". أنشئ مستخدمًا بدور PHOTOGRAPHER أولاً.'
-      : 'No user with the "Photographer" role found. Create a user with the PHOTOGRAPHER role first.',
+      ? 'لا يوجد مستخدم بدور "مدير السوشيال ميديا". أنشئ مستخدمًا بدور Social Media Admin أولاً.'
+      : 'No user with the "Social Media Admin" role found. Create a user with the SOCIAL_MEDIA_ADMIN role first.',
     addTask: isRTL ? "إضافة مهمة" : "Add Task",
     editTask: isRTL ? "تعديل مهمة" : "Edit Task",
     all: isRTL ? "الكل" : "All",

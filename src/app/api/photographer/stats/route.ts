@@ -9,7 +9,7 @@ export async function GET() {
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== 'PHOTOGRAPHER') {
+  if (!user || user.role !== 'SOCIAL_MEDIA_ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

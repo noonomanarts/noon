@@ -3,7 +3,7 @@
  */
 
 // Enums (types)
-export type UserRole = 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN' | 'PHOTOGRAPHER';
+export type UserRole = 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type PreferredLanguage = 'ENGLISH' | 'ARABIC';
@@ -54,7 +54,6 @@ export const UserRole = {
   CUSTOMER: 'CUSTOMER' as const,
   EMPLOYEE: 'EMPLOYEE' as const,
   SOCIAL_MEDIA_ADMIN: 'SOCIAL_MEDIA_ADMIN' as const,
-  PHOTOGRAPHER: 'PHOTOGRAPHER' as const,
 };
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';

@@ -37,7 +37,7 @@ export async function PATCH(
     // Notify photographer when class is published
     if (nextStatus === 'PUBLISHED') {
       createNotification({
-        recipientRole: 'PHOTOGRAPHER',
+        recipientRole: 'SOCIAL_MEDIA_ADMIN',
         type: 'PHOTOGRAPHER_CLASS_PUBLISHED',
         title: 'New Class Published',
         message: `A new class "${updatedClass.title}" has been published and may need photography coverage.`,

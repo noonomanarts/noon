@@ -12,7 +12,7 @@ import { pool } from '@/lib/db/pool';
 
 async function getPhotographerUserId(): Promise<string | null> {
   const result = await pool.query(
-    `SELECT id FROM users WHERE role = 'PHOTOGRAPHER' AND status = 'ACTIVE' LIMIT 1`
+    `SELECT id FROM users WHERE role = 'SOCIAL_MEDIA_ADMIN' AND status = 'ACTIVE' LIMIT 1`
   );
   return result.rows[0]?.id ?? null;
 }
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
   const photographerId = await getPhotographerUserId();
   if (!photographerId) {
-    return NextResponse.json({ error: 'No photographer user found. Create a user with PHOTOGRAPHER role first.' }, { status: 400 });
+    return NextResponse.json({ error: 'No photographer user found. Create a user with SOCIAL_MEDIA_ADMIN role first.' }, { status: 400 });
   }
 
   const task = await createPhotographerTask({

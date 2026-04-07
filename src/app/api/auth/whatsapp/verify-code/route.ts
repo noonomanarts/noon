@@ -234,10 +234,8 @@ export async function POST(request: Request) {
     const redirectTo = userRole === 'ADMIN'
       ? '/admin'
       : userRole === 'SOCIAL_MEDIA_ADMIN'
-        ? '/admin/calendar'
-        : userRole === 'PHOTOGRAPHER'
-          ? '/photographer'
-          : '/account';
+        ? '/photographer'
+        : '/account';
 
     return NextResponse.json({ success: true, redirectTo });
   } catch (error) {

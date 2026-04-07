@@ -18,7 +18,7 @@ export default async function PhotographerSchedulePage({
   if (!sessionId) redirect(`/${locale}/login`);
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "PHOTOGRAPHER") redirect(`/${locale}/account`);
+  if (!user || user.role !== "SOCIAL_MEDIA_ADMIN") redirect(`/${locale}/account`);
 
   const now = new Date();
   const threeMonths = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);

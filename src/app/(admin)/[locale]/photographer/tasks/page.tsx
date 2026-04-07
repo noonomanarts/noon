@@ -18,7 +18,7 @@ export default async function PhotographerTasksPage({
   if (!sessionId) redirect(`/${locale}/login`);
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "PHOTOGRAPHER") redirect(`/${locale}/account`);
+  if (!user || user.role !== "SOCIAL_MEDIA_ADMIN") redirect(`/${locale}/account`);
 
   const result = await listPhotographerTasks(user.id, { limit: 100 });
 

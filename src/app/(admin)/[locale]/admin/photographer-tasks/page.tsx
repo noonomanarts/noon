@@ -23,7 +23,7 @@ export default async function AdminPhotographerTasksPage({
 
   // Find photographer user
   const photographerResult = await pool.query(
-    `SELECT id, full_name, email, profile_image FROM users WHERE role = 'PHOTOGRAPHER' AND status = 'ACTIVE' LIMIT 1`
+    `SELECT id, full_name, email, profile_image FROM users WHERE role = 'SOCIAL_MEDIA_ADMIN' AND status = 'ACTIVE' LIMIT 1`
   );
   const photographer = photographerResult.rows[0] ?? null;
 

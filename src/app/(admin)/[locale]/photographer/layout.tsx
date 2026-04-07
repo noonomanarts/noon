@@ -48,7 +48,7 @@ export default async function PhotographerLayout({
   }
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "PHOTOGRAPHER") {
+  if (!user || user.role !== "SOCIAL_MEDIA_ADMIN") {
     redirect(`/${locale}/account`);
   }
 

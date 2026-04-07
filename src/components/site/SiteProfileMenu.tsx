@@ -11,7 +11,7 @@ import LogoutButton from '@/components/site/LogoutButton';
 interface SiteProfileMenuProps {
   locale: Locale;
   fullName: string;
-  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN' | 'PHOTOGRAPHER';
+  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
   profileImage?: string | null;
   tone?: 'light' | 'dark';
   menuClassName?: string;
@@ -35,13 +35,10 @@ export default function SiteProfileMenu({
   const dashboardHref = role === 'ADMIN'
     ? `/${locale}/admin`
     : role === 'SOCIAL_MEDIA_ADMIN'
-      ? `/${locale}/admin/calendar`
+      ? `/${locale}/photographer`
       : role === 'TRAINER'
         ? `/${locale}/account/trainer`
-        : role === 'PHOTOGRAPHER'
-          ? `/${locale}/photographer`
-          : null;
-
+        : null;
   const t = {
     account: isArabic ? 'ملفي الشخصي' : 'My Account',
     settings: isArabic ? 'الإعدادات' : 'Settings',

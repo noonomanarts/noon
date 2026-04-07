@@ -18,7 +18,7 @@ export default async function PhotographerDashboardPage({
   if (!sessionId) redirect(`/${locale}/login`);
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "PHOTOGRAPHER") redirect(`/${locale}/account`);
+  if (!user || user.role !== "SOCIAL_MEDIA_ADMIN") redirect(`/${locale}/account`);
 
   const now = new Date();
   const weekEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);

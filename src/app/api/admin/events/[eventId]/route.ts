@@ -224,7 +224,7 @@ export async function PUT(request: NextRequest, props: Params) {
           ? 'Private Class'
           : 'Birthday Party';
       createNotification({
-        recipientRole: 'PHOTOGRAPHER',
+        recipientRole: 'SOCIAL_MEDIA_ADMIN',
         type: 'PHOTOGRAPHER_EVENT_CONFIRMED',
         title: 'Event Confirmed',
         message: `${eventLabel} for "${updatedEvent.fullName}" (${updatedEvent.companyOrGroupName || 'N/A'}) has been confirmed on ${selectedDate}.`,

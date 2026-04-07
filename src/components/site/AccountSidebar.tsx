@@ -16,7 +16,7 @@ type NavItem = {
 
 interface AccountSidebarProps {
   locale: Locale;
-  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN' | 'PHOTOGRAPHER';
+  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
 }
 
 export function AccountSidebar({ locale, role }: AccountSidebarProps) {
@@ -35,7 +35,7 @@ export function AccountSidebar({ locale, role }: AccountSidebarProps) {
           },
         ]
       : []),
-    ...(role === 'PHOTOGRAPHER'
+    ...(role === 'SOCIAL_MEDIA_ADMIN'
       ? [
           {
             key: 'photographer-dashboard',

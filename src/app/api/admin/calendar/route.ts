@@ -227,7 +227,7 @@ export async function POST(request: NextRequest) {
     if (type === 'APPOINTMENT' || type === 'SCHEDULER') {
       const dateStr = new Date(startDateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       createNotification({
-        recipientRole: 'PHOTOGRAPHER',
+        recipientRole: 'SOCIAL_MEDIA_ADMIN',
         type: 'PHOTOGRAPHER_MEETING_SCHEDULED',
         title: 'New Meeting Scheduled',
         message: `Meeting "${title}" scheduled for ${dateStr}.`,
