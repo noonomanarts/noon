@@ -1,6 +1,7 @@
 import { pool } from './pool';
 import { emitAdminEvent, emitUserEvent } from '@/lib/realtime/adminEvents';
 import { notifyRole, notifyUser } from '@/lib/notificationService';
+import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import type { Wallet, WalletTransaction, LoyaltyCard, WalletTopupPayment, WalletTopupPaymentStatus } from './types';
 
 let walletDecisionColumnsCache: boolean | null = null;
@@ -255,10 +256,11 @@ export async function convertPointsToCredit(
 
     // Credit wallet (purchase balance only, not withdrawable)
     const walletResult = await client.query(
-      'SELECT id, balance FROM wallets WHERE user_id = $1 FOR UPDATE',
+      'SELECT id, balance, currency FROM wallets WHERE user_id = $1 FOR UPDATE',
       [userId]
     );
     let walletId: string;
+    let walletCurrency = 'OMR';
     if (walletResult.rows.length === 0) {
       const newWallet = await client.query(
         `INSERT INTO wallets (user_id, balance, available_balance, currency)
@@ -266,8 +268,10 @@ export async function convertPointsToCredit(
         [userId, amountCredited]
       );
       walletId = newWallet.rows[0].id as string;
+      walletCurrency = 'OMR';
     } else {
       walletId = walletResult.rows[0].id as string;
+      walletCurrency = String(walletResult.rows[0].currency || 'OMR');
       const newBalance = Number((Number(walletResult.rows[0].balance) + amountCredited).toFixed(3));
       await client.query(
         'UPDATE wallets SET balance = $1, updated_at = NOW() WHERE id = $2',
@@ -283,6 +287,16 @@ export async function convertPointsToCredit(
     );
 
     await client.query('COMMIT');
+
+    void sendUserTransactionWhatsApp({
+      userId,
+      key: 'wallet_points_conversion',
+      vars: {
+        amount: amountCredited,
+        currency: walletCurrency,
+      },
+    });
+
     return { pointsUsed: pointsToConvert, amountCredited };
   } catch (err) {
     await client.query('ROLLBACK');
@@ -401,6 +415,26 @@ export async function transferWalletFunds(
       message: 'You received a wallet transfer.',
       data: { amount, currency: receiverWallet.rows[0].currency },
     });
+
+    void sendUserTransactionWhatsApp({
+      userId: fromUserId,
+      key: 'wallet_transfer_sent',
+      vars: {
+        amount,
+        currency: senderWallet.rows[0].currency,
+        balance: senderNewBalance,
+      },
+    });
+
+    void sendUserTransactionWhatsApp({
+      userId: toUserId,
+      key: 'wallet_transfer_received',
+      vars: {
+        amount,
+        currency: receiverWallet.rows[0].currency,
+        balance: receiverBalance + amount,
+      },
+    });
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -442,6 +476,16 @@ export async function depositToWallet(userId: string, amount: number, reason?: s
     title: 'Deposit Successful',
     message: 'Your wallet deposit was completed successfully.',
     data: { amount, currency: wallet.currency },
+  });
+
+  void sendUserTransactionWhatsApp({
+    userId,
+    key: 'wallet_deposit',
+    vars: {
+      amount,
+      currency: wallet.currency,
+      balance: newBalance,
+    },
   });
 }
 
@@ -527,6 +571,16 @@ export async function requestWalletWithdrawal(userId: string, amount: number, re
       title: 'Withdrawal Request Submitted',
       message: 'Your withdrawal request has been submitted and is pending admin review.',
       data: { walletId: wallet.id },
+    });
+
+    void sendUserTransactionWhatsApp({
+      userId: wallet.user_id,
+      key: 'withdrawal_request_submitted',
+      vars: {
+        amount,
+        currency: wallet.currency,
+        availableBalance: newAvailableBalance,
+      },
     });
 
     return {
@@ -738,6 +792,16 @@ export async function cancelWithdrawalRequestByUser(userId: string, transactionI
       message: 'Your withdrawal request was cancelled and held funds were restored.',
       data: { transactionId },
     });
+
+    void sendUserTransactionWhatsApp({
+      userId: wallet.user_id,
+      key: 'withdrawal_request_cancelled',
+      vars: {
+        amount,
+        currency: wallet.currency,
+        balance: newBalance,
+      },
+    });
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -839,6 +903,15 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
       title: 'Withdrawal Approved',
       message: 'Your withdrawal request was approved by admin.',
       data: { transactionId },
+    });
+
+    void sendUserTransactionWhatsApp({
+      userId: wallet.user_id,
+      key: 'withdrawal_request_approved',
+      vars: {
+        amount,
+        currency: wallet.currency,
+      },
     });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -946,6 +1019,16 @@ export async function rejectWithdrawalRequest(transactionId: string, adminReason
       message: 'Your withdrawal request was rejected and held funds were released.',
       data: { transactionId },
     });
+
+    void sendUserTransactionWhatsApp({
+      userId: wallet.user_id,
+      key: 'withdrawal_request_rejected',
+      vars: {
+        amount,
+        currency: wallet.currency,
+        balance: newBalance,
+      },
+    });
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -987,6 +1070,16 @@ export async function adminAddWalletCredit(userId: string, amount: number, reaso
     data: { amount, currency: wallet.currency },
   });
 
+  void sendUserTransactionWhatsApp({
+    userId: wallet.user_id,
+    key: 'wallet_admin_credit',
+    vars: {
+      amount,
+      currency: wallet.currency,
+      balance: newBalance,
+    },
+  });
+
   return {
     wallet: { ...wallet, balance: newBalance, available_balance: newAvailableBalance },
     transaction
@@ -1025,6 +1118,16 @@ export async function adminDeductWalletCredit(userId: string, amount: number, re
     title: 'Wallet Deduction',
     message: 'An admin deducted credit from your wallet.',
     data: { amount, currency: wallet.currency },
+  });
+
+  void sendUserTransactionWhatsApp({
+    userId: wallet.user_id,
+    key: 'wallet_admin_deduct',
+    vars: {
+      amount,
+      currency: wallet.currency,
+      balance: newBalance,
+    },
   });
 
   return {
@@ -1264,6 +1367,13 @@ export async function updateWalletTopupPaymentStatus(data: {
   await ensureWalletTopupPaymentsTable();
 
   const client = await pool.connect();
+  let topupWhatsappPayload: {
+    userId: string;
+    reference: string;
+    amount: number;
+    currency: string;
+    balance: number;
+  } | null = null;
 
   try {
     await client.query('BEGIN');
@@ -1374,9 +1484,30 @@ export async function updateWalletTopupPaymentStatus(data: {
       } catch (eventError) {
         console.error('Failed to emit user wallet event after top-up payment:', eventError);
       }
+
+      topupWhatsappPayload = {
+        userId: wallet.user_id,
+        reference: updatedPayment.reference,
+        amount: paymentAmount,
+        currency: String(wallet.currency || updatedPayment.currency || 'OMR'),
+        balance: newBalance,
+      };
     }
 
     await client.query('COMMIT');
+
+    if (topupWhatsappPayload) {
+      void sendUserTransactionWhatsApp({
+        userId: topupWhatsappPayload.userId,
+        key: 'wallet_topup_paid',
+        vars: {
+          reference: topupWhatsappPayload.reference,
+          amount: topupWhatsappPayload.amount,
+          currency: topupWhatsappPayload.currency,
+          balance: topupWhatsappPayload.balance,
+        },
+      });
+    }
 
     return {
       ...updatedPayment,

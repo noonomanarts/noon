@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { pool } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
+import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 
 class ApiError extends Error {
   status: number;
@@ -135,6 +136,17 @@ export async function POST(request: NextRequest, props: Params) {
     await client.query('COMMIT');
 
     const updatedBooking = updatedBookingResult.rows[0];
+
+    void sendUserTransactionWhatsApp({
+      userId: user.id,
+      key: 'event_booking_paid',
+      vars: {
+        bookingNumber: String(updatedBooking.booking_number),
+        amount: totalAmount,
+        currency,
+        balance: newBalance,
+      },
+    });
 
     return NextResponse.json({
       success: true,

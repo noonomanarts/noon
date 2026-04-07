@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { pool } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
 import { addBonusPoints } from '@/lib/db/wallet';
+import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -329,6 +330,17 @@ export async function POST(request: NextRequest) {
 
     // Award bonus points: 1 OMR = 1 point (fire-and-forget, non-blocking)
     void addBonusPoints(user.id, totalAmount).catch(() => { /* ignore points failure */ });
+
+    void sendUserTransactionWhatsApp({
+      userId: user.id,
+      key: 'class_booking_paid',
+      vars: {
+        amount: totalAmount,
+        currency: (wallet.currency as string) || 'OMR',
+        balance: newBalance,
+        classTitle: (classRow.title_ar as string | null) || (classRow.title as string),
+      },
+    });
 
     return NextResponse.json({
       success: true,

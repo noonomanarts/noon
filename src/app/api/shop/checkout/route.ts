@@ -4,6 +4,7 @@ import { pool } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
 import { CART_COOKIE_NAME, emptyCart, parseCartCookie, serializeCartCookie } from '@/lib/cart';
 import { validatePromoCode } from '@/lib/db/promoCodes';
+import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 
 const SHIPPING_FEE = 2;
 const DELIVERY_CITY = 'Muscat';
@@ -399,6 +400,17 @@ export async function POST(request: NextRequest) {
       }
 
       await client.query('COMMIT');
+
+      void sendUserTransactionWhatsApp({
+        userId: user.id,
+        key: 'shop_purchase_paid',
+        vars: {
+          orderNumber: String(orderInsert.rows[0].order_number),
+          amount: totalAmount,
+          currency: String(walletRow.currency || 'OMR'),
+          balance: newBalance,
+        },
+      });
 
       const response = NextResponse.json({
         success: true,

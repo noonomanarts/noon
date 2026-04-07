@@ -10,7 +10,9 @@ export {
   defaultLoyaltyAdminSettings,
   defaultWhatsAppAdminSettings,
   defaultWhatsAppFloatingButtonSettings,
+  defaultWhatsAppTransactionTemplatesSettings,
   sanitizeFooterAdminSettings,
+  sanitizeWhatsAppTransactionTemplatesSettings,
   type ClassFinanceAdminSettings,
   type ClassFinanceCategorySettings,
   type FooterAdminLink,
@@ -23,6 +25,9 @@ export {
   type WhatsAppAdminSettings,
   type WhatsAppFloatingButtonIcon,
   type WhatsAppFloatingButtonSettings,
+  type WhatsAppTransactionTemplateItem,
+  type WhatsAppTransactionTemplateKey,
+  type WhatsAppTransactionTemplatesSettings,
 } from '@/lib/adminSettings';
 
 let adminSettingsTableReady = false;

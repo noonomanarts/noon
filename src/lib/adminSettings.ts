@@ -386,3 +386,134 @@ export function sanitizeFooterAdminSettings(input: Partial<FooterAdminSettings> 
     ),
   };
 }
+
+export type WhatsAppTransactionTemplateKey =
+  | 'class_booking_paid'
+  | 'event_booking_paid'
+  | 'wallet_topup_paid'
+  | 'wallet_deposit'
+  | 'wallet_points_conversion'
+  | 'wallet_transfer_sent'
+  | 'wallet_transfer_received'
+  | 'withdrawal_request_submitted'
+  | 'withdrawal_request_cancelled'
+  | 'withdrawal_request_approved'
+  | 'withdrawal_request_rejected'
+  | 'wallet_admin_credit'
+  | 'wallet_admin_deduct'
+  | 'shop_purchase_paid';
+
+export type WhatsAppTransactionTemplateItem = {
+  enabled: boolean;
+  en: string;
+  ar: string;
+};
+
+export type WhatsAppTransactionTemplatesSettings = {
+  enabled: boolean;
+  templates: Record<WhatsAppTransactionTemplateKey, WhatsAppTransactionTemplateItem>;
+};
+
+export const defaultWhatsAppTransactionTemplatesSettings: WhatsAppTransactionTemplatesSettings = {
+  enabled: true,
+  templates: {
+    class_booking_paid: {
+      enabled: true,
+      en: 'Hi {{name}}, your class booking is confirmed. Paid {{amount}} {{currency}} for {{classTitle}}. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تم تأكيد حجزك للكلاس. تم دفع {{amount}} {{currency}} لـ {{classTitle}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    event_booking_paid: {
+      enabled: true,
+      en: 'Hi {{name}}, your event booking {{bookingNumber}} is paid successfully. Amount: {{amount}} {{currency}}. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تم دفع حجز الفعالية {{bookingNumber}} بنجاح. المبلغ: {{amount}} {{currency}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    wallet_topup_paid: {
+      enabled: true,
+      en: 'Hi {{name}}, your wallet top-up {{reference}} was successful. Added: {{amount}} {{currency}}. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تمت عملية شحن المحفظة {{reference}} بنجاح. تمت إضافة: {{amount}} {{currency}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    wallet_deposit: {
+      enabled: true,
+      en: 'Hi {{name}}, a wallet deposit was added. Amount: {{amount}} {{currency}}. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تمت إضافة إيداع للمحفظة. المبلغ: {{amount}} {{currency}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    wallet_points_conversion: {
+      enabled: true,
+      en: 'Hi {{name}}, your points were converted to wallet credit. Added: {{amount}} {{currency}}. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تم تحويل نقاطك إلى رصيد في المحفظة. تمت إضافة: {{amount}} {{currency}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    wallet_transfer_sent: {
+      enabled: true,
+      en: 'Hi {{name}}, you sent {{amount}} {{currency}} from your wallet. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، قمت بتحويل {{amount}} {{currency}} من محفظتك. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    wallet_transfer_received: {
+      enabled: true,
+      en: 'Hi {{name}}, you received {{amount}} {{currency}} in your wallet. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، استلمت {{amount}} {{currency}} في محفظتك. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    withdrawal_request_submitted: {
+      enabled: true,
+      en: 'Hi {{name}}, your withdrawal request was submitted. Amount: {{amount}} {{currency}}. Available balance: {{availableBalance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تم إرسال طلب السحب الخاص بك. المبلغ: {{amount}} {{currency}}. الرصيد المتاح: {{availableBalance}} {{currency}}.',
+    },
+    withdrawal_request_cancelled: {
+      enabled: true,
+      en: 'Hi {{name}}, your withdrawal request was cancelled and funds were restored. Amount: {{amount}} {{currency}}. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تم إلغاء طلب السحب وإرجاع المبلغ. المبلغ: {{amount}} {{currency}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    withdrawal_request_approved: {
+      enabled: true,
+      en: 'Hi {{name}}, your withdrawal request was approved. Amount: {{amount}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تمت الموافقة على طلب السحب الخاص بك. المبلغ: {{amount}} {{currency}}.',
+    },
+    withdrawal_request_rejected: {
+      enabled: true,
+      en: 'Hi {{name}}, your withdrawal request was rejected and funds were released. Amount: {{amount}} {{currency}}. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تم رفض طلب السحب وتم تحرير المبلغ. المبلغ: {{amount}} {{currency}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    wallet_admin_credit: {
+      enabled: true,
+      en: 'Hi {{name}}, admin added credit to your wallet. Amount: {{amount}} {{currency}}. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تمت إضافة رصيد إلى محفظتك من الإدارة. المبلغ: {{amount}} {{currency}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    wallet_admin_deduct: {
+      enabled: true,
+      en: 'Hi {{name}}, admin deducted credit from your wallet. Amount: {{amount}} {{currency}}. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تم خصم رصيد من محفظتك من الإدارة. المبلغ: {{amount}} {{currency}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    shop_purchase_paid: {
+      enabled: true,
+      en: 'Hi {{name}}, your shop order {{orderNumber}} was paid successfully. Amount: {{amount}} {{currency}}. Wallet balance: {{balance}} {{currency}}.',
+      ar: 'مرحباً {{name}}، تم دفع طلب المتجر {{orderNumber}} بنجاح. المبلغ: {{amount}} {{currency}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+  },
+};
+
+export function sanitizeWhatsAppTransactionTemplatesSettings(
+  input: Partial<WhatsAppTransactionTemplatesSettings> | null | undefined
+): WhatsAppTransactionTemplatesSettings {
+  const source = input ?? {};
+  const sourceTemplates = (source.templates ?? {}) as Partial<
+    Record<WhatsAppTransactionTemplateKey, Partial<WhatsAppTransactionTemplateItem>>
+  >;
+
+  const templates = Object.entries(defaultWhatsAppTransactionTemplatesSettings.templates).reduce(
+    (acc, [key, fallback]) => {
+      const typedKey = key as WhatsAppTransactionTemplateKey;
+      const raw = sourceTemplates[typedKey] ?? {};
+      acc[typedKey] = {
+        enabled: typeof raw.enabled === 'boolean' ? raw.enabled : fallback.enabled,
+        en: sanitizeTextValue(raw.en, fallback.en, 1500),
+        ar: sanitizeTextValue(raw.ar, fallback.ar, 1500),
+      };
+      return acc;
+    },
+    {} as Record<WhatsAppTransactionTemplateKey, WhatsAppTransactionTemplateItem>
+  );
+
+  return {
+    enabled: typeof source.enabled === 'boolean' ? source.enabled : defaultWhatsAppTransactionTemplatesSettings.enabled,
+    templates,
+  };
+}
