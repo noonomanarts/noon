@@ -16,6 +16,7 @@ import {
   IoSparklesOutline,
   IoStar,
   IoTimeOutline,
+  IoWalletOutline,
   IoWarningOutline,
 } from 'react-icons/io5';
 import ClassSettlementPanel from '@/components/admin/ClassSettlementPanel';
@@ -158,6 +159,7 @@ export default function AdminClassDetailsPage({
     sessions: isArabic ? 'إدارة الجلسات' : 'Manage sessions',
     calendar: isArabic ? 'عرض التقويم' : 'Open calendar',
     publicPage: isArabic ? 'الصفحة العامة' : 'Public page',
+    enrollmentWallet: isArabic ? 'تسجيل + المحفظة' : 'Enrollment + Wallet',
     publish: isArabic ? 'نشر الصف' : 'Publish class',
     moveToDraft: isArabic ? 'إرجاع إلى مسودة' : 'Move to draft',
     loading: isArabic ? 'جاري تحميل تفاصيل الصف...' : 'Loading class details...',
@@ -352,6 +354,13 @@ export default function AdminClassDetailsPage({
                 <IoCheckmarkCircle className="h-4 w-4" />
                 {classData.status === 'PUBLISHED' ? t.moveToDraft : t.publish}
               </button>
+              <Link
+                href={`/${locale}/admin/classes/${classId}/enrollment-wallet`}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[color:var(--noon-teal)]/35 bg-white px-4 py-3 text-sm font-semibold text-[color:var(--noon-teal-strong)] transition hover:bg-[color:var(--noon-teal)]/5 dark:border-[color:var(--noon-teal)]/40 dark:bg-zinc-950"
+              >
+                <IoWalletOutline className="h-4 w-4" />
+                {t.enrollmentWallet}
+              </Link>
             </div>
           </div>
         </div>
