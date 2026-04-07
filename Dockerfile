@@ -41,6 +41,9 @@ RUN pnpm build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# Install PostgreSQL client tools (pg_dump, psql) for backup/restore
+RUN apk add --no-cache postgresql16-client
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
