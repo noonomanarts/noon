@@ -347,7 +347,7 @@ export async function createClass(data: {
   descriptionAr?: string;
   category: ClassCategory;
   subCategory: ClassSubCategory;
-  trainerId: string;
+  trainerId: string | null;
   price: number;
   seatsTotal: number;
   durationMinutes: number;

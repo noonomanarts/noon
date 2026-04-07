@@ -372,6 +372,80 @@ export default function EditClassPage() {
     return data.url;
   };
 
+  const handleSaveAsDraft = async () => {
+    if (!formData.title.trim()) {
+      showNotification('error', isRTL ? 'العنوان بالإنجليزية مطلوب للحفظ كمسودة' : 'English title is required to save as draft');
+      return;
+    }
+
+    setSaving(true);
+    setUploading(true);
+
+    try {
+      let mainImageUrl = formData.image;
+      const allGalleryImages = [...formData.images];
+
+      if (formData.imageFile) {
+        mainImageUrl = await uploadImage(formData.imageFile);
+      }
+
+      if (formData.imageFiles.length > 0) {
+        for (const file of formData.imageFiles) {
+          const url = await uploadImage(file);
+          allGalleryImages.push(url);
+        }
+      }
+
+      setUploading(false);
+
+      const payload = {
+        title: formData.title,
+        titleAr: formData.titleAr || '',
+        description: formData.description || '',
+        descriptionAr: formData.descriptionAr || '',
+        category: formData.category || null,
+        subCategory: formData.subCategory || null,
+        image: mainImageUrl || null,
+        images: allGalleryImages,
+        trainerId: formData.trainerId || null,
+        price: formData.price ? parseFloat(formData.price) : 0,
+        currency: formData.currency,
+        seatsTotal: formData.seatsTotal ? parseInt(formData.seatsTotal) : 12,
+        durationMinutes: formData.durationMinutes ? parseInt(formData.durationMinutes) : 120,
+        startDateTime: formData.startDateTime ? new Date(formData.startDateTime).toISOString() : null,
+        endDateTime: formData.endDateTime ? new Date(formData.endDateTime).toISOString() : null,
+        status: 'DRAFT',
+        metaTitle: formData.metaTitle || formData.title,
+        metaDescription: formData.metaDescription || formData.description || '',
+        minimumAge: formData.minimumAge ? parseInt(formData.minimumAge) : null,
+        showMinimumAge: formData.showMinimumAge,
+      };
+
+      const res = await fetch(`/api/admin/classes/${classId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to save draft');
+      }
+
+      showNotification('success', isRTL ? 'تم حفظ المسودة بنجاح!' : 'Draft saved successfully!');
+      setTimeout(() => {
+        router.push(`/${locale}/admin/classes`);
+      }, 1500);
+    } catch (error: unknown) {
+      console.error('Error saving draft:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save draft';
+      showNotification('error', errorMessage);
+    } finally {
+      setSaving(false);
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -1178,6 +1252,21 @@ export default function EditClassPage() {
             className="rounded-lg border border-zinc-300 px-5 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:border-zinc-400 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700 transition-all duration-200"
           >
             {isRTL ? 'إلغاء' : 'Cancel'}
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={handleSaveAsDraft}
+            className="rounded-lg border-2 border-amber-500 bg-amber-50 px-5 py-2.5 text-sm font-medium text-amber-700 hover:bg-amber-100 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-600 dark:hover:bg-amber-950/50 transition-all duration-200"
+          >
+            {saving ? (
+              <span className="flex items-center gap-2">
+                <span className="animate-spin rounded-full h-4 w-4 border-2 border-amber-400/30 border-t-amber-500" />
+                {isRTL ? 'جاري الحفظ...' : 'Saving...'}
+              </span>
+            ) : (
+              isRTL ? 'حفظ كمسودة' : 'Save as Draft'
+            )}
           </button>
           <button
             type="submit"

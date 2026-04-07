@@ -90,32 +90,45 @@ export async function POST(request: NextRequest) {
       endDateTime,
     } = body;
 
-    if (!title || !description || !category || !subCategory || !trainerId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
+    const isDraft = status === 'DRAFT';
 
-    if (typeof price !== 'number' || price < 0) {
-      return NextResponse.json(
-        { error: 'Invalid price' },
-        { status: 400 }
-      );
-    }
+    // For non-draft classes, require all fields
+    if (!isDraft) {
+      if (!title || !description || !category || !subCategory || !trainerId) {
+        return NextResponse.json(
+          { error: 'Missing required fields' },
+          { status: 400 }
+        );
+      }
 
-    if (!Number.isInteger(seatsTotal) || seatsTotal < 1) {
-      return NextResponse.json(
-        { error: 'Invalid seats total' },
-        { status: 400 }
-      );
-    }
+      if (typeof price !== 'number' || price < 0) {
+        return NextResponse.json(
+          { error: 'Invalid price' },
+          { status: 400 }
+        );
+      }
 
-    if (!Number.isInteger(durationMinutes) || durationMinutes < 1) {
-      return NextResponse.json(
-        { error: 'Invalid duration' },
-        { status: 400 }
-      );
+      if (!Number.isInteger(seatsTotal) || seatsTotal < 1) {
+        return NextResponse.json(
+          { error: 'Invalid seats total' },
+          { status: 400 }
+        );
+      }
+
+      if (!Number.isInteger(durationMinutes) || durationMinutes < 1) {
+        return NextResponse.json(
+          { error: 'Invalid duration' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // For draft, require at least a title for identification
+      if (!title?.trim()) {
+        return NextResponse.json(
+          { error: 'Title is required even for drafts' },
+          { status: 400 }
+        );
+      }
     }
 
     const validCategories = ['COOKING', 'ARTS_CRAFTS'];
@@ -131,14 +144,14 @@ export async function POST(request: NextRequest) {
     ];
     const validStatuses = ['DRAFT', 'PUBLISHED', 'CANCELLED', 'COMPLETED'];
 
-    if (!validCategories.includes(category)) {
+    if (category && !validCategories.includes(category)) {
       return NextResponse.json(
         { error: 'Invalid category' },
         { status: 400 }
       );
     }
 
-    if (!validSubCategories.includes(subCategory)) {
+    if (subCategory && !validSubCategories.includes(subCategory)) {
       return NextResponse.json(
         { error: 'Invalid sub-category' },
         { status: 400 }
@@ -159,44 +172,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // For drafts, use defaults for required DB fields when not provided
+    const resolvedCategory = category || 'COOKING';
+    const resolvedSubCategory = subCategory || 'MIXED';
+    const resolvedTrainerId = trainerId || null;
+    const resolvedPrice = typeof price === 'number' ? price : 0;
+    const resolvedSeatsTotal = Number.isInteger(seatsTotal) && seatsTotal > 0 ? seatsTotal : 12;
+    const resolvedDurationMinutes = Number.isInteger(durationMinutes) && durationMinutes > 0 ? durationMinutes : 120;
+
     // Generate slug from title
     const slug = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
 
-    // Check if slug already exists
-    const existingClass = await findUniqueClass({ slug });
-
+    // Check if slug already exists, append random suffix if needed
+    let finalSlug = slug;
+    const existingClass = await findUniqueClass({ slug: finalSlug });
     if (existingClass) {
-      return NextResponse.json(
-        { error: 'A class with this title already exists' },
-        { status: 400 }
-      );
+      finalSlug = `${slug}-${Date.now().toString(36)}`;
     }
 
-    // Verify trainer exists
-    const isTrainer = await verifyTrainer(trainerId);
-
-    if (!isTrainer) {
-      return NextResponse.json(
-        { error: 'Invalid trainer ID' },
-        { status: 400 }
-      );
+    // For drafts, skip trainer verification if no trainer selected
+    if (!isDraft || resolvedTrainerId) {
+      if (resolvedTrainerId) {
+        const isTrainer = await verifyTrainer(resolvedTrainerId);
+        if (!isTrainer) {
+          return NextResponse.json(
+            { error: 'Invalid trainer ID' },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     const newClass = await createClass({
-      slug,
+      slug: finalSlug,
       title,
-      titleAr,
-      description,
-      descriptionAr,
-      category,
-      subCategory,
-      trainerId,
-      price,
-      seatsTotal,
-      durationMinutes,
+      titleAr: titleAr || '',
+      description: description || '',
+      descriptionAr: descriptionAr || '',
+      category: resolvedCategory,
+      subCategory: resolvedSubCategory,
+      trainerId: resolvedTrainerId,
+      price: resolvedPrice,
+      seatsTotal: resolvedSeatsTotal,
+      durationMinutes: resolvedDurationMinutes,
       image,
       images: images || [],
       status: status || 'DRAFT',
