@@ -101,7 +101,7 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
   return (
     <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
       <h3 className="mb-4 text-lg font-semibold text-[color:var(--text)]">
-        {isArabic ? 'طلباتي من المتجر' : 'My Orders'}
+        {isArabic ? 'طلباتي' : 'My Orders'}
       </h3>
 
       {allOrders.length === 0 ? (
@@ -121,7 +121,7 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
                     {order.type === 'class' ? (
                       isArabic ? 'حجز ورشة' : 'Class Booking'
                     ) : order.type === 'shop' ? (
-                      isArabic ? 'طلب متجر' : 'Shop Order'
+                      isArabic ? 'طلباتي من المتجر' : 'Shop Order'
                     ) : (
                       isArabic ? 'حدث جماعي' : 'Group Event'
                     )}

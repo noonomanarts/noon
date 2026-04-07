@@ -230,7 +230,7 @@ export default function ClassBookingClient({
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
     successTitle: isArabic ? 'تم تأكيد الحجز بنجاح' : 'Booking Confirmed Successfully',
     bookingNumber: isArabic ? 'رقم الحجز' : 'Booking Number',
-    goOrders: isArabic ? 'عرض طلباتي من المتجر' : 'View My Orders',
+    goOrders: isArabic ? 'عرض طلباتي' : 'View My Orders',
     goClass: isArabic ? 'العودة للدورة' : 'Back to Class',
     required: isArabic ? 'يرجى إكمال بيانات كل مشارك.' : 'Please complete each participant entry.',
     invalidDob: isArabic ? 'تاريخ الميلاد غير صالح.' : 'Invalid date of birth.',
