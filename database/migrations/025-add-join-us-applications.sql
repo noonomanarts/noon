@@ -57,6 +57,16 @@ CREATE INDEX IF NOT EXISTS idx_join_us_applications_form_type ON join_us_applica
 CREATE INDEX IF NOT EXISTS idx_join_us_applications_status ON join_us_applications(status);
 CREATE INDEX IF NOT EXISTS idx_join_us_applications_created_at ON join_us_applications(created_at DESC);
 
+-- Ensure admin_settings exists on fresh databases
+CREATE TABLE IF NOT EXISTS admin_settings (
+  key VARCHAR(80) PRIMARY KEY,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_settings_updated_at ON admin_settings(updated_at DESC);
+
 -- Admin setting for controlling form visibility
 -- Key: 'join_us_forms', value: { trainer: { enabled: true }, social_media: { enabled: false } }
 INSERT INTO admin_settings (key, value)
