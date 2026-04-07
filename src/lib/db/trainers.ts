@@ -75,7 +75,7 @@ export type TrainerWorkshopSuggestionAdminPublic = TrainerWorkshopSuggestionPubl
 
 export type TrainerWorkshopFeedbackPublic = {
   id: string;
-  sessionId: string;
+  classId: string;
   customerName: string;
   rating: number;
   comment: string | null;
@@ -83,7 +83,6 @@ export type TrainerWorkshopFeedbackPublic = {
 };
 
 export type TrainerDashboardWorkshopPublic = {
-  sessionId: string;
   classId: string;
   classSlug: string;
   classTitle: string;
@@ -509,6 +508,9 @@ export interface TrainerClassPublic {
   price: number;
   currency: string;
   durationMinutes: number;
+  seatsTotal: number;
+  seatsBooked: number;
+  startDateTime: Date | null;
   status: string;
   createdAt: Date;
   publishedAt: Date | null;
@@ -556,6 +558,9 @@ export async function findTrainerClasses(
     price: parseFloat(row.price),
     currency: row.currency,
     durationMinutes: row.duration_minutes,
+    seatsTotal: Number(row.seats_total || 0),
+    seatsBooked: Number(row.seats_booked || 0),
+    startDateTime: row.start_date_time ? new Date(row.start_date_time) : null,
     status: row.status,
     createdAt: row.created_at,
     publishedAt: row.published_at,
@@ -1087,7 +1092,7 @@ export async function updateTrainerWorkshopSuggestionByAdmin(args: {
 
 export async function updateTrainerWorkshopSubmission(args: {
   trainerId: string;
-  sessionId: string;
+  classId: string;
   submission: TrainerSessionSubmissionInput;
 }): Promise<TrainerDashboardWorkshopPublic | null> {
   await ensureTrainerProfilesFinanceSchema();
@@ -1105,7 +1110,7 @@ export async function updateTrainerWorkshopSubmission(args: {
       : Boolean(recipePdf || groceryList || workshopBrief || trainerPhotos.length > 0 || highlightedIngredients.length > 0);
 
   const result = await query(
-    `UPDATE class_sessions cs
+    `UPDATE classes c
      SET recipe_submitted = $3,
          recipe_pdf = $4,
          grocery_list = $5,
@@ -1114,13 +1119,10 @@ export async function updateTrainerWorkshopSubmission(args: {
          photos = $7::text[],
          highlighted_ingredients = $8::jsonb,
          updated_at = NOW()
-     FROM classes c
-     WHERE cs.class_id = c.id
-       AND cs.id = $1
+     WHERE c.id = $1
        AND c.trainer_id = $2
      RETURNING
-       cs.id AS session_id,
-       cs.class_id,
+       c.id AS class_id,
        c.slug AS class_slug,
        c.title AS class_title,
        c.title_ar AS class_title_ar,
@@ -1128,25 +1130,25 @@ export async function updateTrainerWorkshopSubmission(args: {
        c.category AS class_category,
        c.price AS class_price,
        c.currency,
-       cs.start_date_time,
-       cs.end_date_time,
-       COALESCE(cs.seats_total, c.seats_total) AS seats_total_effective,
-       COALESCE(cs.seats_booked, 0) AS seats_booked,
-       cs.recipe_submitted,
-       cs.recipe_pdf,
-       cs.grocery_list,
-       cs.workshop_brief,
-       cs.trainer_photos,
-       cs.highlighted_ingredients,
-       cs.final_recipe_title,
-       cs.final_recipe_pdf,
-       cs.final_recipe_brief,
-       cs.final_recipe_visible_to_customers,
-       cs.final_recipe_published_at,
-       cs.admin_workshop_notes,
-       cs.admin_workshop_notes_photo`,
+       c.start_date_time,
+       c.end_date_time,
+       c.seats_total AS seats_total_effective,
+       COALESCE(c.seats_booked, 0) AS seats_booked,
+       c.recipe_submitted,
+       c.recipe_pdf,
+       c.grocery_list,
+       c.workshop_brief,
+       c.trainer_photos,
+       c.highlighted_ingredients,
+       c.final_recipe_title,
+       c.final_recipe_pdf,
+       c.final_recipe_brief,
+       c.final_recipe_visible_to_customers,
+       c.final_recipe_published_at,
+       c.admin_workshop_notes,
+       c.admin_workshop_notes_photo`,
     [
-      args.sessionId,
+      args.classId,
       args.trainerId,
       recipeSubmitted,
       recipePdf,
@@ -1164,7 +1166,6 @@ export async function updateTrainerWorkshopSubmission(args: {
   const seatsBooked = Math.max(0, Number(row.seats_booked || 0));
 
   return {
-    sessionId: String(row.session_id),
     classId: String(row.class_id),
     classSlug: String(row.class_slug),
     classTitle: String(row.class_title),
@@ -1210,7 +1211,6 @@ function mapDashboardWorkshopRow(row: Record<string, unknown>): TrainerDashboard
   const seatsBooked = Math.max(0, Number(row.seats_booked || 0));
 
   return {
-    sessionId: String(row.session_id),
     classId: String(row.class_id),
     classSlug: String(row.class_slug),
     classTitle: String(row.class_title),
@@ -1259,8 +1259,7 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
   const [ongoingResult, previousResult, suggestions, earningsResult, monthlyResult] = await Promise.all([
     query(
       `SELECT
-        cs.id AS session_id,
-        cs.class_id,
+        c.id AS class_id,
         c.slug AS class_slug,
         c.title AS class_title,
         c.title_ar AS class_title_ar,
@@ -1268,35 +1267,34 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
         c.category AS class_category,
         c.price AS class_price,
         c.currency,
-        cs.start_date_time,
-        cs.end_date_time,
-        COALESCE(cs.seats_total, c.seats_total) AS seats_total_effective,
-        COALESCE(cs.seats_booked, 0) AS seats_booked,
-        cs.recipe_submitted,
-        cs.recipe_pdf,
-        cs.grocery_list,
-        cs.workshop_brief,
-        cs.trainer_photos,
-        cs.highlighted_ingredients,
-        cs.final_recipe_title,
-        cs.final_recipe_pdf,
-        cs.final_recipe_brief,
-        cs.final_recipe_visible_to_customers,
-        cs.final_recipe_published_at,
-        cs.admin_workshop_notes,
-        cs.admin_workshop_notes_photo,
+        c.start_date_time,
+        c.end_date_time,
+        c.seats_total AS seats_total_effective,
+        COALESCE(c.seats_booked, 0) AS seats_booked,
+        c.recipe_submitted,
+        c.recipe_pdf,
+        c.grocery_list,
+        c.workshop_brief,
+        c.trainer_photos,
+        c.highlighted_ingredients,
+        c.final_recipe_title,
+        c.final_recipe_pdf,
+        c.final_recipe_brief,
+        c.final_recipe_visible_to_customers,
+        c.final_recipe_published_at,
+        c.admin_workshop_notes,
+        c.admin_workshop_notes_photo,
         COALESCE(booking_stats.bookings_count, 0) AS bookings_count,
         COALESCE(booking_stats.participants_count, 0) AS participants_count,
         COALESCE(review_stats.feedback_count, 0) AS feedback_count,
         review_stats.average_rating
-      FROM class_sessions cs
-      INNER JOIN classes c ON c.id = cs.class_id
+      FROM classes c
       LEFT JOIN LATERAL (
         SELECT
           COUNT(*)::int AS bookings_count,
           COALESCE(SUM(b.number_of_participants), 0)::int AS participants_count
         FROM bookings b
-        WHERE b.session_id = cs.id
+        WHERE b.class_id = c.id
           AND b.status <> 'CANCELLED'
       ) AS booking_stats ON TRUE
       LEFT JOIN LATERAL (
@@ -1304,20 +1302,19 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
           COUNT(*)::int AS feedback_count,
           ROUND(AVG(r.rating)::numeric, 2)::float8 AS average_rating
         FROM reviews r
-        WHERE r.session_id = cs.id
+        WHERE r.class_id = c.id
           AND r.is_visible = true
       ) AS review_stats ON TRUE
       WHERE c.trainer_id = $1
-        AND cs.is_cancelled = false
-        AND cs.start_date_time >= NOW()
-      ORDER BY cs.start_date_time ASC
+        AND c.status = 'PUBLISHED'
+        AND c.start_date_time >= NOW()
+      ORDER BY c.start_date_time ASC
       LIMIT 300`,
       [trainerId]
     ),
     query(
       `SELECT
-        cs.id AS session_id,
-        cs.class_id,
+        c.id AS class_id,
         c.slug AS class_slug,
         c.title AS class_title,
         c.title_ar AS class_title_ar,
@@ -1325,35 +1322,34 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
         c.category AS class_category,
         c.price AS class_price,
         c.currency,
-        cs.start_date_time,
-        cs.end_date_time,
-        COALESCE(cs.seats_total, c.seats_total) AS seats_total_effective,
-        COALESCE(cs.seats_booked, 0) AS seats_booked,
-        cs.recipe_submitted,
-        cs.recipe_pdf,
-        cs.grocery_list,
-        cs.workshop_brief,
-        cs.trainer_photos,
-        cs.highlighted_ingredients,
-        cs.final_recipe_title,
-        cs.final_recipe_pdf,
-        cs.final_recipe_brief,
-        cs.final_recipe_visible_to_customers,
-        cs.final_recipe_published_at,
-        cs.admin_workshop_notes,
-        cs.admin_workshop_notes_photo,
+        c.start_date_time,
+        c.end_date_time,
+        c.seats_total AS seats_total_effective,
+        COALESCE(c.seats_booked, 0) AS seats_booked,
+        c.recipe_submitted,
+        c.recipe_pdf,
+        c.grocery_list,
+        c.workshop_brief,
+        c.trainer_photos,
+        c.highlighted_ingredients,
+        c.final_recipe_title,
+        c.final_recipe_pdf,
+        c.final_recipe_brief,
+        c.final_recipe_visible_to_customers,
+        c.final_recipe_published_at,
+        c.admin_workshop_notes,
+        c.admin_workshop_notes_photo,
         COALESCE(booking_stats.bookings_count, 0) AS bookings_count,
         COALESCE(booking_stats.participants_count, 0) AS participants_count,
         COALESCE(review_stats.feedback_count, 0) AS feedback_count,
         review_stats.average_rating
-      FROM class_sessions cs
-      INNER JOIN classes c ON c.id = cs.class_id
+      FROM classes c
       LEFT JOIN LATERAL (
         SELECT
           COUNT(*)::int AS bookings_count,
           COALESCE(SUM(b.number_of_participants), 0)::int AS participants_count
         FROM bookings b
-        WHERE b.session_id = cs.id
+        WHERE b.class_id = c.id
           AND b.status <> 'CANCELLED'
       ) AS booking_stats ON TRUE
       LEFT JOIN LATERAL (
@@ -1361,13 +1357,12 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
           COUNT(*)::int AS feedback_count,
           ROUND(AVG(r.rating)::numeric, 2)::float8 AS average_rating
         FROM reviews r
-        WHERE r.session_id = cs.id
+        WHERE r.class_id = c.id
           AND r.is_visible = true
       ) AS review_stats ON TRUE
       WHERE c.trainer_id = $1
-        AND cs.is_cancelled = false
-        AND cs.start_date_time < NOW()
-      ORDER BY cs.start_date_time DESC
+        AND c.start_date_time < NOW()
+      ORDER BY c.start_date_time DESC
       LIMIT 300`,
       [trainerId]
     ),
@@ -1415,46 +1410,46 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
   const ongoingWorkshops = ongoingResult.rows.map((row) => mapDashboardWorkshopRow(row));
   const previousWorkshops = previousResult.rows.map((row) => mapDashboardWorkshopRow(row));
 
-  const previousSessionIds = previousWorkshops.map((item) => item.sessionId);
-  const feedbackBySession = new Map<string, TrainerWorkshopFeedbackPublic[]>();
+  const previousClassIds = previousWorkshops.map((item) => item.classId);
+  const feedbackByClass = new Map<string, TrainerWorkshopFeedbackPublic[]>();
 
-  if (previousSessionIds.length > 0) {
+  if (previousClassIds.length > 0) {
     const feedbackResult = await query(
       `SELECT
          r.id,
-         r.session_id,
+         r.class_id,
          r.rating,
          r.comment,
          r.created_at,
          COALESCE(u.full_name, 'Customer') AS customer_name
        FROM reviews r
        LEFT JOIN users u ON u.id = r.user_id
-       WHERE r.session_id = ANY($1::uuid[])
+       WHERE r.class_id = ANY($1::uuid[])
          AND r.is_visible = true
        ORDER BY r.created_at DESC
        LIMIT 1500`,
-      [previousSessionIds]
+      [previousClassIds]
     );
 
     for (const row of feedbackResult.rows) {
-      const sessionId = String(row.session_id);
+      const classId = String(row.class_id);
       const item: TrainerWorkshopFeedbackPublic = {
         id: String(row.id),
-        sessionId,
+        classId,
         customerName: String(row.customer_name || "Customer"),
         rating: toPercent(row.rating),
         comment: sanitizeText(row.comment, 2000),
         createdAt: new Date(String(row.created_at)).toISOString(),
       };
 
-      const existing = feedbackBySession.get(sessionId) ?? [];
+      const existing = feedbackByClass.get(classId) ?? [];
       existing.push(item);
-      feedbackBySession.set(sessionId, existing);
+      feedbackByClass.set(classId, existing);
     }
   }
 
   for (const workshop of previousWorkshops) {
-    workshop.feedback = feedbackBySession.get(workshop.sessionId) ?? [];
+    workshop.feedback = feedbackByClass.get(workshop.classId) ?? [];
   }
 
   const earningsByWorkshop: TrainerWorkshopEarningPublic[] = earningsResult.rows.map((row) => ({

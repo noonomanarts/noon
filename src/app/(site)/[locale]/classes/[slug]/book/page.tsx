@@ -1,23 +1,20 @@
 import { redirect, notFound } from 'next/navigation';
 import { isLocale, type Locale } from '@/lib/locale';
-import { findClassBySlug, findClassSessions } from '@/lib/db/classes';
+import { findClassBySlug } from '@/lib/db/classes';
 import { getCurrentUser } from '@/lib/session';
 import ClassBookingClient from '@/components/site/ClassBookingClient';
 
 export default async function ClassBookingPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string; slug: string }>;
-  searchParams: Promise<{ session?: string }>;
 }) {
   const { locale: rawLocale, slug } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'en';
-  const resolvedSearchParams = await searchParams;
 
   const user = await getCurrentUser();
   if (!user) {
-    const nextPath = `/${locale}/classes/${slug}/book${resolvedSearchParams.session ? `?session=${encodeURIComponent(resolvedSearchParams.session)}` : ''}`;
+    const nextPath = `/${locale}/classes/${slug}/book`;
     redirect(`/${locale}/login?next=${encodeURIComponent(nextPath)}`);
   }
 
@@ -26,19 +23,16 @@ export default async function ClassBookingPage({
     notFound();
   }
 
-  const sessions = await findClassSessions(classData.id, {
-    upcomingOnly: true,
-    includeCancelled: false,
-    limit: 24,
-  });
-  const hasBookableSession = sessions.some((session) => session.seatsAvailable > 0);
+  const seatsAvailable = classData.seatsTotal - (classData.seatsBooked ?? 0);
+  const hasStartDateTime = !!classData.startDateTime;
+  const isUpcoming = classData.startDateTime ? new Date(classData.startDateTime).getTime() > Date.now() : false;
 
-  if (sessions.length === 0) {
+  if (!hasStartDateTime || !isUpcoming) {
     return (
       <div className="route-sharp mx-auto w-full max-w-5xl px-4 py-12">
         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
           <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">
-            {locale === 'ar' ? 'لا توجد جلسات قادمة حالياً' : 'No upcoming sessions right now'}
+            {locale === 'ar' ? 'لا توجد مواعيد قادمة حالياً' : 'No upcoming dates right now'}
           </h1>
           <p className="mt-2 text-sm text-[color:var(--text-muted)]">
             {locale === 'ar'
@@ -50,17 +44,17 @@ export default async function ClassBookingPage({
     );
   }
 
-  if (!hasBookableSession) {
+  if (seatsAvailable <= 0) {
     return (
       <div className="route-sharp mx-auto w-full max-w-5xl px-4 py-12">
         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
           <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">
-            {locale === 'ar' ? 'كل الجلسات القادمة ممتلئة حالياً' : 'All upcoming sessions are currently full'}
+            {locale === 'ar' ? 'المقاعد ممتلئة حالياً' : 'All seats are currently full'}
           </h1>
           <p className="mt-2 text-sm text-[color:var(--text-muted)]">
             {locale === 'ar'
-              ? 'يرجى اختيار دورة أخرى أو المحاولة لاحقاً عند إضافة جلسات جديدة.'
-              : 'Please choose another class or try again later when new sessions are added.'}
+              ? 'يرجى اختيار دورة أخرى أو المحاولة لاحقاً.'
+              : 'Please choose another class or try again later.'}
           </p>
         </div>
       </div>
@@ -80,16 +74,11 @@ export default async function ClassBookingPage({
           currency: classData.currency,
           subCategory: classData.subCategory,
           minimumAge: classData.minimumAge,
+          startDateTime: classData.startDateTime ? classData.startDateTime.toISOString() : null,
+          endDateTime: classData.endDateTime ? classData.endDateTime.toISOString() : null,
+          seatsTotal: classData.seatsTotal,
+          seatsBooked: classData.seatsBooked ?? 0,
         }}
-        sessions={sessions.map((session) => ({
-          id: session.id,
-          startTime: session.startTime.toISOString(),
-          endTime: session.endTime ? session.endTime.toISOString() : null,
-          seatsTotal: session.seatsTotal,
-          seatsBooked: session.seatsBooked,
-          seatsAvailable: session.seatsAvailable,
-        }))}
-        initialSessionId={resolvedSearchParams.session}
         currentUser={{
           fullName: user.fullName,
           email: user.email,

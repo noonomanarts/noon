@@ -157,14 +157,14 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
   const [ongoingWorkshops, setOngoingWorkshops] = useState(dashboard.ongoingWorkshops);
   const [previousWorkshops] = useState(dashboard.previousWorkshops);
   const [suggestedWorkshops, setSuggestedWorkshops] = useState(dashboard.suggestedWorkshops);
-  const [submittingSessionId, setSubmittingSessionId] = useState<string | null>(null);
+  const [submittingClassId, setSubmittingClassId] = useState<string | null>(null);
   const [savingSuggestion, setSavingSuggestion] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [submissionDrafts, setSubmissionDrafts] = useState<Record<string, SubmissionDraft>>(() => {
     const initial: Record<string, SubmissionDraft> = {};
     for (const workshop of dashboard.ongoingWorkshops) {
-      initial[workshop.sessionId] = workshopToDraft(workshop);
+      initial[workshop.classId] = workshopToDraft(workshop);
     }
     return initial;
   });
@@ -191,11 +191,11 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
     };
   }, [dashboard.summary, ongoingWorkshops.length, suggestedWorkshops.length]);
 
-  const onDraftChange = (sessionId: string, patch: Partial<SubmissionDraft>) => {
+  const onDraftChange = (classId: string, patch: Partial<SubmissionDraft>) => {
     setSubmissionDrafts((prev) => ({
       ...prev,
-      [sessionId]: {
-        ...(prev[sessionId] || {
+      [classId]: {
+        ...(prev[classId] || {
           recipePdf: '',
           groceryList: '',
           workshopBrief: '',
@@ -207,12 +207,12 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
     }));
   };
 
-  const saveWorkshopSubmission = async (sessionId: string) => {
-    const draft = submissionDrafts[sessionId];
+  const saveWorkshopSubmission = async (classId: string) => {
+    const draft = submissionDrafts[classId];
     if (!draft) return;
 
     try {
-      setSubmittingSessionId(sessionId);
+      setSubmittingClassId(classId);
       setMessage(null);
 
       const photos = draft.photosText
@@ -230,7 +230,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
         && highlightedIngredients.length > 0
       );
 
-      const response = await fetch(`/api/account/trainer/workshops/${sessionId}/submission`, {
+      const response = await fetch(`/api/account/trainer/workshops/${classId}/submission`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -254,7 +254,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
 
       setOngoingWorkshops((prev) =>
         prev.map((workshop) =>
-          workshop.sessionId === sessionId
+          workshop.classId === classId
             ? {
                 ...workshop,
                 submission: payload.workshop!.submission,
@@ -275,7 +275,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
         text: error instanceof Error ? error.message : 'Failed to save workshop submission.',
       });
     } finally {
-      setSubmittingSessionId(null);
+      setSubmittingClassId(null);
     }
   };
 
@@ -601,7 +601,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
         ) : (
           <div className="space-y-4">
             {ongoingWorkshops.map((workshop) => {
-              const draft = submissionDrafts[workshop.sessionId] || workshopToDraft(workshop);
+              const draft = submissionDrafts[workshop.classId] || workshopToDraft(workshop);
               const isDraftReadyToSubmit = Boolean(
                 draft.recipePdf.trim()
                 && draft.groceryList.trim()
@@ -615,7 +615,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
               );
 
               return (
-                <div key={workshop.sessionId} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+                <div key={workshop.classId} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <Link
@@ -641,7 +641,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                       <input
                         type="url"
                         value={draft.recipePdf}
-                        onChange={(e) => onDraftChange(workshop.sessionId, { recipePdf: e.target.value })}
+                        onChange={(e) => onDraftChange(workshop.classId, { recipePdf: e.target.value })}
                         className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                       />
                     </label>
@@ -652,7 +652,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                       <textarea
                         rows={4}
                         value={draft.groceryList}
-                        onChange={(e) => onDraftChange(workshop.sessionId, { groceryList: e.target.value })}
+                        onChange={(e) => onDraftChange(workshop.classId, { groceryList: e.target.value })}
                         className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                       />
                     </label>
@@ -663,7 +663,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                       <textarea
                         rows={4}
                         value={draft.workshopBrief}
-                        onChange={(e) => onDraftChange(workshop.sessionId, { workshopBrief: e.target.value })}
+                        onChange={(e) => onDraftChange(workshop.classId, { workshopBrief: e.target.value })}
                         className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                       />
                     </label>
@@ -674,7 +674,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                       <textarea
                         rows={4}
                         value={draft.photosText}
-                        onChange={(e) => onDraftChange(workshop.sessionId, { photosText: e.target.value })}
+                        onChange={(e) => onDraftChange(workshop.classId, { photosText: e.target.value })}
                         className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                       />
                     </label>
@@ -687,7 +687,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                       <textarea
                         rows={4}
                         value={draft.ingredientsText}
-                        onChange={(e) => onDraftChange(workshop.sessionId, { ingredientsText: e.target.value })}
+                        onChange={(e) => onDraftChange(workshop.classId, { ingredientsText: e.target.value })}
                         className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                       />
                     </label>
@@ -696,11 +696,11 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                   <div className="mt-4 flex justify-end">
                     <button
                       type="button"
-                      onClick={() => void saveWorkshopSubmission(workshop.sessionId)}
-                      disabled={submittingSessionId === workshop.sessionId}
+                      onClick={() => void saveWorkshopSubmission(workshop.classId)}
+                      disabled={submittingClassId === workshop.classId}
                       className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {submittingSessionId === workshop.sessionId
+                      {submittingClassId === workshop.classId
                         ? isArabic
                           ? 'جارٍ الحفظ...'
                           : 'Saving...'
@@ -742,7 +742,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
 
               return (
                 <article
-                  key={workshop.sessionId}
+                  key={workshop.classId}
                   className="rounded-2xl border border-zinc-200 bg-white/85 p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/70"
                 >
                   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">

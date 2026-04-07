@@ -3,7 +3,7 @@ import Link from "next/link";
 import { FiArrowRight, FiCalendar, FiClock, FiUsers } from "react-icons/fi";
 import { HiPaintBrush } from "react-icons/hi2";
 
-import { findClassSessions, findManyClasses } from "@/lib/db/classes";
+import { findManyClasses } from "@/lib/db/classes";
 import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { formatDurationClock } from "@/lib/formatDuration";
@@ -28,15 +28,11 @@ export default async function ArtsCraftsClassesPage({
     status: "PUBLISHED",
   });
 
-  const classesWithSessions = await Promise.all(
-    classes.map(async (cls) => {
-      const sessions = await findClassSessions(cls.id, {
-        upcomingOnly: true,
-        limit: 3,
-      });
-      return { ...cls, sessions };
-    })
-  );
+  const classesWithDates = classes.map((cls) => ({
+    ...cls,
+    startDateTime: cls.startDateTime ?? null,
+    seatsAvailable: Math.max(0, (cls.seatsTotal ?? 0) - (cls.seatsBooked ?? 0)),
+  }));
 
   const t = {
     title: isArabic ? "دروس الفنون والحرف" : "Arts & Crafts Classes",
@@ -49,7 +45,7 @@ export default async function ArtsCraftsClassesPage({
       ? "لا توجد دروس فنون وحرف منشورة حالياً."
       : "No published arts & crafts classes right now.",
     duration: isArabic ? "المدة" : "Duration",
-    noUpcomingSessions: isArabic ? "لا توجد مواعيد قادمة حالياً." : "No upcoming sessions yet.",
+    noSchedule: isArabic ? "الموعد سيُعلن قريباً" : "Schedule coming soon",
     backToClasses: isArabic ? "العودة إلى الدورات" : "Back to classes",
   };
 
@@ -87,14 +83,14 @@ export default async function ArtsCraftsClassesPage({
       />
 
       <section className="mx-auto mt-4 w-full max-w-6xl px-4">
-        {classesWithSessions.length === 0 ? (
+        {classesWithDates.length === 0 ? (
           <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-12 text-center shadow-sm">
             <HiPaintBrush className="mx-auto mb-4 h-16 w-16 text-[color:var(--text-subtle)]" />
             <p className="text-base text-[color:var(--text-muted)]">{t.noClasses}</p>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {classesWithSessions.map((cls) => (
+            {classesWithDates.map((cls) => (
               <article
                 key={cls.id}
                 className="group overflow-hidden rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
@@ -138,29 +134,24 @@ export default async function ArtsCraftsClassesPage({
                     ) : null}
                     <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--muted)] px-2.5 py-1">
                       <FiUsers className="size-3.5" />
-                      {cls.sessions.reduce((sum, s) => sum + s.seatsAvailable, 0)} {t.available}
+                      {cls.seatsAvailable} {t.available}
                     </span>
                   </div>
 
-                  {cls.sessions.length > 0 ? (
+                  {cls.startDateTime ? (
                     <div className="space-y-2">
-                      {cls.sessions.slice(0, 2).map((session) => (
-                        <div
-                          key={session.id}
-                          className="flex items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2"
-                        >
-                          <p className="inline-flex items-center gap-2 text-xs font-medium text-[color:var(--text)]">
-                            <FiCalendar className="size-3.5 text-[color:var(--primary)]" />
-                            {formatDate(session.startTime)} · {formatTime(session.startTime)}
-                          </p>
-                          <p className="text-xs text-[color:var(--text-muted)]">
-                            {session.seatsAvailable} {t.available}
-                          </p>
-                        </div>
-                      ))}
+                      <div className="flex items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2">
+                        <p className="inline-flex items-center gap-2 text-xs font-medium text-[color:var(--text)]">
+                          <FiCalendar className="size-3.5 text-[color:var(--primary)]" />
+                          {formatDate(cls.startDateTime)} · {formatTime(cls.startDateTime)}
+                        </p>
+                        <p className="text-xs text-[color:var(--text-muted)]">
+                          {cls.seatsAvailable} {t.available}
+                        </p>
+                      </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-[color:var(--text-subtle)]">{t.noUpcomingSessions}</p>
+                    <p className="text-xs text-[color:var(--text-subtle)]">{t.noSchedule}</p>
                   )}
 
                   <Link

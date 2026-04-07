@@ -4,7 +4,7 @@ import { FiArrowRight, FiBookOpen, FiCalendar, FiUser } from "react-icons/fi";
 import { GiChefToque } from "react-icons/gi";
 import { HiOutlineBanknotes } from "react-icons/hi2";
 
-import { findClassSessions, findManyClasses } from "@/lib/db/classes";
+import { findManyClasses } from "@/lib/db/classes";
 import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { isLocale, type Locale } from "@/lib/locale";
@@ -26,11 +26,8 @@ type ClassWithSessions = {
   currency: string;
   durationMinutes: number | null;
   trainer: { id: string; fullName: string; profileImage: string | null } | null;
-  sessions: {
-    id: string;
-    startTime: Date;
-    seatsAvailable: number;
-  }[];
+  startDateTime: Date | null;
+  seatsAvailable: number;
 };
 
 function ClassCard({
@@ -50,9 +47,8 @@ function ClassCard({
 }) {
   const title = locale === "ar" && cls.titleAr ? cls.titleAr : cls.title;
   const trainerName = cls.trainer?.fullName ?? null;
-  const nextSession = cls.sessions[0];
-  const datetimeText = nextSession
-    ? `${formatDate(nextSession.startTime)} · ${formatTime(nextSession.startTime)}`
+  const datetimeText = cls.startDateTime
+    ? `${formatDate(cls.startDateTime)} · ${formatTime(cls.startDateTime)}`
     : t.noUpcomingSessions;
   const priceText = formatAmountWithCurrency(cls.price, cls.currency);
 
@@ -140,29 +136,22 @@ export default async function CookingClassesPage({
     status: "PUBLISHED",
   });
 
-  const classesWithSessions: ClassWithSessions[] = await Promise.all(
-    classes.map(async (cls) => {
-      const sessions = await findClassSessions(cls.id as string, {
-        upcomingOnly: true,
-        limit: 3,
-      });
-      return {
-        id: cls.id as string,
-        slug: cls.slug as string,
-        title: cls.title as string,
-        titleAr: cls.titleAr as string | null,
-        description: cls.description as string | null,
-        descriptionAr: cls.descriptionAr as string | null,
-        subCategory: cls.subCategory as string | null,
-        image: cls.image as string | null,
-        price: cls.price as number,
-        currency: cls.currency as string,
-        durationMinutes: cls.durationMinutes as number | null,
-        trainer: cls.trainer ? { id: cls.trainer.id, fullName: cls.trainer.fullName, profileImage: cls.trainer.profileImage } : null,
-        sessions,
-      };
-    })
-  );
+  const classesWithSessions: ClassWithSessions[] = classes.map((cls) => ({
+    id: cls.id as string,
+    slug: cls.slug as string,
+    title: cls.title as string,
+    titleAr: cls.titleAr as string | null,
+    description: cls.description as string | null,
+    descriptionAr: cls.descriptionAr as string | null,
+    subCategory: cls.subCategory as string | null,
+    image: cls.image as string | null,
+    price: cls.price as number,
+    currency: cls.currency as string,
+    durationMinutes: cls.durationMinutes as number | null,
+    trainer: cls.trainer ? { id: cls.trainer.id, fullName: cls.trainer.fullName, profileImage: cls.trainer.profileImage } : null,
+    startDateTime: cls.startDateTime ?? null,
+    seatsAvailable: cls.seatsTotal - (cls.seatsBooked ?? 0),
+  }));
 
   const t: Record<string, string> = {
     title: isArabic ? "دروس الطبخ" : "Cooking Classes",

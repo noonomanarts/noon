@@ -98,7 +98,6 @@ async function insertBookingWithRetry(args: {
   };
   userId: string;
   classId: string;
-  sessionId: string;
   participants: ParticipantPayload[];
   numberOfParticipants: number;
   totalAmount: number;
@@ -109,19 +108,18 @@ async function insertBookingWithRetry(args: {
     try {
       const result = await args.client.query(
         `INSERT INTO bookings (
-           booking_number, user_id, class_id, session_id, participants, number_of_participants,
+           booking_number, user_id, class_id, participants, number_of_participants,
            total_amount, currency, status, payment_method, payment_status, paid_at,
            terms_accepted, terms_accepted_at, special_requests, created_at, updated_at
          ) VALUES (
-           $1, $2, $3, $4, $5::jsonb, $6, $7, $8, 'CONFIRMED', 'WALLET', 'PAID', NOW(),
-           TRUE, NOW(), $9, NOW(), NOW()
+           $1, $2, $3, $4::jsonb, $5, $6, $7, 'CONFIRMED', 'WALLET', 'PAID', NOW(),
+           TRUE, NOW(), $8, NOW(), NOW()
          )
          RETURNING id, booking_number, total_amount, currency, number_of_participants`,
         [
           generateBookingNumber(),
           args.userId,
           args.classId,
-          args.sessionId,
           JSON.stringify(args.participants),
           args.numberOfParticipants,
           args.totalAmount,
@@ -166,14 +164,13 @@ export async function POST(request: NextRequest) {
   }
 
   const classId = parseSafeString(body.classId, 64);
-  const sessionIdInput = parseSafeString(body.sessionId, 64);
   const numberOfParticipants = normalizeParticipantCount(body.numberOfParticipants);
   const termsAccepted = body.termsAccepted === true;
   const specialRequests = parseSafeString(body.specialRequests, 3000);
   const participants = parseParticipants(body.participants);
 
-  if (!UUID_PATTERN.test(classId) || !UUID_PATTERN.test(sessionIdInput)) {
-    return NextResponse.json({ error: 'Invalid class/session identifier' }, { status: 400 });
+  if (!UUID_PATTERN.test(classId)) {
+    return NextResponse.json({ error: 'Invalid class identifier' }, { status: 400 });
   }
 
   if (!Number.isInteger(numberOfParticipants) || numberOfParticipants < 1 || numberOfParticipants > 10) {
@@ -193,38 +190,33 @@ export async function POST(request: NextRequest) {
   try {
     await client.query('BEGIN');
 
-    const classSessionResult = await client.query(
-            `SELECT c.id AS class_id, c.title, c.title_ar, c.price, c.currency, c.seats_total AS class_seats_total, c.status AS class_status,
-              c.sub_category,
-              c.minimum_age,
-              s.id AS session_id, s.start_date_time, s.seats_total AS session_seats_total, s.seats_booked, s.is_cancelled
+    const classResult = await client.query(
+      `SELECT c.id, c.title, c.title_ar, c.price, c.currency, c.seats_total, c.seats_booked,
+              c.status, c.sub_category, c.minimum_age, c.start_date_time
        FROM classes c
-       JOIN class_sessions s ON s.class_id = c.id
-       WHERE c.id = $1 AND s.id = $2
-       FOR UPDATE OF s`,
-      [classId, sessionIdInput]
+       WHERE c.id = $1
+       FOR UPDATE`,
+      [classId]
     );
 
-    const classSession = classSessionResult.rows[0];
-    if (!classSession) {
-      throw new ApiError('Class session not found', 404);
+    const classRow = classResult.rows[0];
+    if (!classRow) {
+      throw new ApiError('Class not found', 404);
     }
 
-    if (classSession.class_status !== 'PUBLISHED') {
+    if (classRow.status !== 'PUBLISHED') {
       throw new ApiError('Class is not available for booking', 409);
     }
 
-    if (classSession.is_cancelled) {
-      throw new ApiError('Selected session is cancelled', 409);
-    }
-
-    const sessionStart = new Date(classSession.start_date_time as string);
-    if (sessionStart.getTime() < Date.now()) {
-      throw new ApiError('Selected session has already started', 409);
+    if (classRow.start_date_time) {
+      const classStart = new Date(classRow.start_date_time as string);
+      if (classStart.getTime() < Date.now()) {
+        throw new ApiError('This class has already started', 409);
+      }
     }
 
     // Enforce minimum age restriction
-    const minimumAge = classSession.minimum_age != null ? Number(classSession.minimum_age) : null;
+    const minimumAge = classRow.minimum_age != null ? Number(classRow.minimum_age) : null;
     if (minimumAge != null && minimumAge > 0) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -239,7 +231,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (String(classSession.sub_category || '') === 'MOM_AND_KID') {
+    if (String(classRow.sub_category || '') === 'MOM_AND_KID') {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const ages = participants.map((participant) => calculateAgeFromDateString(participant.dateOfBirth, today));
@@ -253,20 +245,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const sessionSeatsTotal =
-      classSession.session_seats_total !== null
-        ? Number(classSession.session_seats_total)
-        : Number(classSession.class_seats_total);
-    const sessionSeatsBooked = Number(classSession.seats_booked ?? 0);
+    const seatsTotal = Number(classRow.seats_total);
+    const seatsBooked = Number(classRow.seats_booked ?? 0);
 
-    if (!Number.isFinite(sessionSeatsTotal) || sessionSeatsTotal <= 0) {
-      throw new ApiError('Selected session cannot be booked right now', 409);
+    if (!Number.isFinite(seatsTotal) || seatsTotal <= 0) {
+      throw new ApiError('This class cannot be booked right now', 409);
     }
 
-    const seatsAvailable = Math.max(0, sessionSeatsTotal - sessionSeatsBooked);
+    const seatsAvailable = Math.max(0, seatsTotal - seatsBooked);
 
     if (numberOfParticipants > seatsAvailable) {
-      throw new ApiError('Not enough seats available in this session', 409);
+      throw new ApiError('Not enough seats available', 409);
     }
 
     let walletResult = await client.query(
@@ -289,8 +278,8 @@ export async function POST(request: NextRequest) {
     const wallet = walletResult.rows[0];
     const walletBalance = Number(wallet.balance ?? 0);
     const walletAvailable = Number(wallet.available_balance ?? wallet.balance ?? 0);
-    const unitPrice = Number(classSession.price ?? 0);
-    const bookingCurrency = (classSession.currency as string) || 'OMR';
+    const unitPrice = Number(classRow.price ?? 0);
+    const bookingCurrency = (classRow.currency as string) || 'OMR';
     const totalAmount = Number((unitPrice * numberOfParticipants).toFixed(3));
 
     if ((wallet.currency as string) !== bookingCurrency) {
@@ -322,7 +311,6 @@ export async function POST(request: NextRequest) {
       client,
       userId: user.id,
       classId,
-      sessionId: sessionIdInput,
       participants,
       numberOfParticipants,
       totalAmount,
@@ -331,10 +319,10 @@ export async function POST(request: NextRequest) {
     });
 
     await client.query(
-      `UPDATE class_sessions
+      `UPDATE classes
        SET seats_booked = seats_booked + $1, updated_at = NOW()
        WHERE id = $2`,
-      [numberOfParticipants, sessionIdInput]
+      [numberOfParticipants, classId]
     );
 
     await client.query('COMMIT');
@@ -350,7 +338,7 @@ export async function POST(request: NextRequest) {
         totalAmount: Number(booking.total_amount ?? totalAmount),
         currency: (booking.currency as string) || 'OMR',
         numberOfParticipants: Number(booking.number_of_participants ?? numberOfParticipants),
-        classTitle: (classSession.title_ar as string | null) || (classSession.title as string),
+        classTitle: (classRow.title_ar as string | null) || (classRow.title as string),
       },
       wallet: {
         balance: newBalance,

@@ -8,7 +8,6 @@ import {
   GiPalette,
 } from 'react-icons/gi';
 import { 
-  IoCalendar,
   IoCheckmarkCircle,
   IoEye,
   IoAdd,
@@ -16,6 +15,7 @@ import {
   IoPencil,
   IoCheckmark,
   IoWarning,
+  IoCopy,
 } from 'react-icons/io5';
 import { 
   MdSearch,
@@ -41,9 +41,8 @@ interface ClassItem {
   price: number;
   currency: string;
   status: string;
-  trainer: Trainer;
+  trainer: Trainer | null;
   _count: {
-    sessions: number;
     bookings: number;
   };
 }
@@ -118,7 +117,7 @@ export default function AdminClassesPage() {
     if (searchQuery) {
       filtered = filtered.filter(c => 
         c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.trainer.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.trainer?.fullName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.slug.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
@@ -180,6 +179,24 @@ export default function AdminClassesPage() {
     } catch (error) {
       console.error('Failed to update status:', error);
       alert('Failed to update status');
+    }
+  }
+
+  async function duplicateClass(classId: string) {
+    try {
+      const response = await fetch(`/api/admin/classes/${classId}/duplicate`, {
+        method: 'POST',
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Failed to duplicate class');
+      }
+
+      await fetchClasses();
+    } catch (error) {
+      console.error('Failed to duplicate class:', error);
+      alert(error instanceof Error ? error.message : 'Failed to duplicate class');
     }
   }
 
@@ -343,9 +360,6 @@ export default function AdminClassesPage() {
                     Price
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                    Sessions
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                     Bookings
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
@@ -359,7 +373,7 @@ export default function AdminClassesPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {filteredClasses.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-12 text-center">
+                    <td colSpan={7} className="px-4 py-12 text-center">
                       <div className="inline-flex flex-col items-center">
                         <div className="rounded-full bg-zinc-100 p-4 dark:bg-zinc-800">
                           <BiSolidBookAlt className="h-8 w-8 text-zinc-400" />
@@ -417,18 +431,12 @@ export default function AdminClassesPage() {
                         </div>
                       </td>
                       <td className="px-4 py-4 text-sm text-zinc-700 dark:text-zinc-300">
-                        {classItem.trainer.fullName}
+                        {classItem.trainer?.fullName || '—'}
                       </td>
                       <td className="px-4 py-4">
                         <div className="text-sm font-semibold text-zinc-900 dark:text-white">
                           {classItem.price} {classItem.currency}
                         </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                          <IoCalendar className="h-3 w-3" />
-                          {classItem._count.sessions}
-                        </span>
                       </td>
                       <td className="px-4 py-4">
                         <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
@@ -470,14 +478,14 @@ export default function AdminClassesPage() {
                             <IoPencil className="h-4 w-4" />
                             Edit
                           </Link>
-                          <Link
-                            href={`/${locale}/admin/classes/${classItem.id}/sessions`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:bg-purple-900/30"
-                            title="Manage Sessions"
+                          <button
+                            onClick={() => void duplicateClass(classItem.id)}
+                            className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/30"
+                            title="Duplicate Class"
                           >
-                            <IoCalendar className="h-4 w-4" />
-                            Sessions
-                          </Link>
+                            <IoCopy className="h-4 w-4" />
+                            Duplicate
+                          </button>
                           <button
                             onClick={() => handleDelete(classItem.id, classItem.title)}
                             className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"

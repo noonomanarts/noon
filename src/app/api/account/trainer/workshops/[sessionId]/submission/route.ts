@@ -43,7 +43,7 @@ export async function PATCH(
 
     const workshop = await updateTrainerWorkshopSubmission({
       trainerId: auth.user.id,
-      sessionId,
+      classId: sessionId,
       submission: {
         recipeSubmitted: typeof body.recipeSubmitted === 'boolean' ? body.recipeSubmitted : undefined,
         recipePdf: typeof body.recipePdf === 'string' ? body.recipePdf : null,

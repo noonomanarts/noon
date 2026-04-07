@@ -4,19 +4,9 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Locale } from '@/lib/locale';
-import ClassSessionPicker from '@/components/site/ClassSessionPicker';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 const DISPLAY_TIMEZONE = 'Asia/Muscat';
-
-type SessionItem = {
-  id: string;
-  startTime: string;
-  endTime: string | null;
-  seatsTotal: number | null;
-  seatsBooked: number;
-  seatsAvailable: number;
-};
 
 type Participant = {
   fullName: string;
@@ -135,8 +125,6 @@ export default function ClassBookingClient({
   locale,
   slug,
   classData,
-  sessions,
-  initialSessionId,
   currentUser,
 }: {
   locale: Locale;
@@ -149,25 +137,21 @@ export default function ClassBookingClient({
     currency: string;
     subCategory: string | null;
     minimumAge?: number | null;
+    startDateTime: string | null;
+    endDateTime: string | null;
+    seatsTotal: number;
+    seatsBooked: number;
   };
-  sessions: SessionItem[];
-  initialSessionId?: string;
   currentUser: CurrentUserLite;
 }) {
   const isArabic = locale === 'ar';
   const searchParams = useSearchParams();
   const selfDefaultParticipant = useMemo(() => buildSelfParticipant(currentUser), [currentUser]);
-  const defaultSessionId =
-    (initialSessionId && sessions.some((session) => session.id === initialSessionId) ? initialSessionId : null) ??
-    sessions.find((session) => session.seatsAvailable > 0)?.id ??
-    sessions[0]?.id ??
-    '';
   const [bookingFor, setBookingFor] = useState<RegistrationType>('self');
   const [otherCount, setOtherCount] = useState(1);
   const [otherParticipants, setOtherParticipants] = useState<Participant[]>([emptyParticipant()]);
   const [savedList, setSavedList] = useState<SavedParticipant[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
-  const [selectedSessionId, setSelectedSessionId] = useState<string>(defaultSessionId);
   const [specialRequests, setSpecialRequests] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [wallet, setWallet] = useState<WalletPayload | null>(null);
@@ -177,8 +161,7 @@ export default function ClassBookingClient({
   const [message, setMessage] = useState<string | null>(null);
   const [result, setResult] = useState<BookingResult | null>(null);
 
-  const selectedSession = sessions.find((session) => session.id === selectedSessionId) ?? sessions[0] ?? null;
-  const seatsAvailable = selectedSession?.seatsAvailable ?? 0;
+  const seatsAvailable = Math.max(0, classData.seatsTotal - classData.seatsBooked);
   const hasBookableSeats = seatsAvailable > 0;
 
   const selfIncluded = bookingFor === 'self' || bookingFor === 'both';
@@ -197,8 +180,8 @@ export default function ClassBookingClient({
   const hasEnoughBalance = (wallet?.balance ?? 0) >= totalAmount;
   const isMomKid = classData.subCategory === 'MOM_AND_KID';
   const terms = getTerms(locale, isMomKid);
-  const selectedSessionLabel = selectedSession
-    ? new Date(selectedSession.startTime).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
+  const classDateLabel = classData.startDateTime
+    ? new Date(classData.startDateTime).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
@@ -211,7 +194,7 @@ export default function ClassBookingClient({
   const t = {
     title: isArabic ? 'إتمام حجز الدورة' : 'Complete Class Booking',
     subtitle: isArabic ? 'حدد المشاركين وأكد الشروط ثم ادفع من المحفظة.' : 'Set participants, accept terms, then pay with wallet.',
-    session: isArabic ? 'موعد الجلسة' : 'Session',
+    classDate: isArabic ? 'موعد الدورة' : 'Class Date',
     bookingFor: isArabic ? 'نوع التسجيل' : 'Registration Type',
     self: isArabic ? 'أنا أحضر هذه الدورة' : 'I am attending this class',
     other: isArabic ? 'أسجل نيابة عن شخص آخر' : 'I am registering on behalf of someone else',
@@ -235,9 +218,9 @@ export default function ClassBookingClient({
     required: isArabic ? 'يرجى إكمال بيانات كل مشارك.' : 'Please complete each participant entry.',
     invalidDob: isArabic ? 'تاريخ الميلاد غير صالح.' : 'Invalid date of birth.',
     termsRequired: isArabic ? 'يجب الموافقة على الشروط قبل الدفع.' : 'You must accept terms before payment.',
-    seatsError: isArabic ? 'عدد المشاركين أكبر من المقاعد المتاحة في هذه الجلسة.' : 'Participants exceed available seats for this session.',
+    seatsError: isArabic ? 'عدد المشاركين أكبر من المقاعد المتاحة.' : 'Participants exceed available seats.',
     soldOut: isArabic ? 'المقاعد مكتملة' : 'Sold out',
-    noSeats: isArabic ? 'هذه الجلسة ممتلئة حالياً. اختر جلسة أخرى.' : 'This session is currently full. Please choose another session.',
+    noSeats: isArabic ? 'المقاعد ممتلئة حالياً.' : 'This class is currently full.',
     insufficient: isArabic ? 'رصيد المحفظة المستخدم داخل الموقع غير كافٍ لإتمام الدفع.' : 'Your website wallet balance is insufficient for this payment.',
     yourDetails: isArabic ? 'بياناتك (تلقائية)' : 'Your Details (auto-filled)',
     selectSaved: isArabic ? 'اختر مشارك محفوظ...' : 'Select saved participant...',
@@ -307,7 +290,6 @@ export default function ClassBookingClient({
 
   /* Clamp otherCount when seats change */
   useEffect(() => {
-    if (!selectedSession) return;
     if (maxOthersAllowed === 0 && otherCount !== 1) {
       setOtherCount(1);
       return;
@@ -315,7 +297,7 @@ export default function ClassBookingClient({
     if (otherCount > maxOthersAllowed) {
       setOtherCount(Math.max(1, maxOthersAllowed));
     }
-  }, [maxOthersAllowed, otherCount, selectedSession]);
+  }, [maxOthersAllowed, otherCount]);
 
   useEffect(() => {
     const topupStatus = searchParams.get('topup');
@@ -362,15 +344,11 @@ export default function ClassBookingClient({
   };
 
   const validateParticipants = (): boolean => {
-    if (!selectedSession) {
-      setError(t.seatsError);
-      return false;
-    }
-    if (selectedSession.seatsAvailable <= 0) {
+    if (seatsAvailable <= 0) {
       setError(t.noSeats);
       return false;
     }
-    if (totalParticipants > selectedSession.seatsAvailable) {
+    if (totalParticipants > seatsAvailable) {
       setError(t.seatsError);
       return false;
     }
@@ -429,7 +407,7 @@ export default function ClassBookingClient({
     setError(null);
     setMessage(null);
 
-    if (!validateParticipants() || !selectedSession) {
+    if (!validateParticipants()) {
       return;
     }
 
@@ -440,7 +418,6 @@ export default function ClassBookingClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           classId: classData.id,
-          sessionId: selectedSession.id,
           numberOfParticipants: totalParticipants,
           participants: allParticipants,
           termsAccepted,
@@ -533,12 +510,6 @@ export default function ClassBookingClient({
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
         <section className="space-y-6">
-          <ClassSessionPicker
-            locale={locale}
-            sessions={sessions}
-            selectedSessionId={selectedSessionId}
-            onSelect={setSelectedSessionId}
-          />
 
           {/* ── Registration Type ── */}
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
@@ -739,8 +710,8 @@ export default function ClassBookingClient({
           </h2>
           <div className="mt-4 space-y-2 text-sm text-[color:var(--text)]">
             <div className="flex items-center justify-between">
-              <span>{t.session}</span>
-              <span className="max-w-[180px] text-right font-semibold">{selectedSessionLabel ?? '-'}</span>
+              <span>{t.classDate}</span>
+              <span className="max-w-[180px] text-right font-semibold">{classDateLabel ?? '-'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>{t.participantsCount}</span>
@@ -764,7 +735,7 @@ export default function ClassBookingClient({
             <button
               type="button"
               onClick={() => void submitBooking()}
-              disabled={processing || loadingWallet || !selectedSession || !hasBookableSeats}
+              disabled={processing || loadingWallet || !hasBookableSeats}
               className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {processing ? t.processing : t.submit}
@@ -780,7 +751,7 @@ export default function ClassBookingClient({
                 <button
                   type="button"
                   onClick={() => {
-                    const returnUrl = `/${locale}/classes/${slug}/book?session=${selectedSessionId}`;
+                    const returnUrl = `/${locale}/classes/${slug}/book`;
                     window.location.href = `/${locale}/account/wallet?returnUrl=${encodeURIComponent(returnUrl)}`;
                   }}
                   className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"

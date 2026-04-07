@@ -57,6 +57,9 @@ type ClassDetails = {
   currency: string;
   seatsTotal: number;
   seatsAvailable: number;
+  seatsBooked: number;
+  startDateTime?: string | null;
+  endDateTime?: string | null;
   durationMinutes: number;
   status: ClassStatus;
   trainerSharePercent: number;
@@ -72,30 +75,7 @@ type ClassDetails = {
   reviews?: ReviewItem[];
   _count?: {
     bookings: number;
-    sessions: number;
   };
-};
-
-type SessionItem = {
-  id: string;
-  classId: string;
-  startTime: string;
-  endTime: string | null;
-  seatsTotal: number | null;
-  seatsBooked: number;
-  seatsAvailable: number;
-  isCancelled: boolean;
-  bookings?: Array<{
-    id: string;
-    status: string;
-    numberOfParticipants: number;
-  }>;
-  calendarEvent?: {
-    id: string;
-    type: string;
-    startDateTime: string;
-    endDateTime: string;
-  } | null;
 };
 
 function formatSubCategory(value: string, isArabic: boolean) {
@@ -163,7 +143,6 @@ export default function AdminClassDetailsPage({
   const localeCode = isArabic ? 'ar-OM-u-nu-latn' : 'en-OM';
 
   const [classData, setClassData] = useState<ClassDetails | null>(null);
-  const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [secondaryError, setSecondaryError] = useState<string | null>(null);
@@ -236,10 +215,7 @@ export default function AdminClassDetailsPage({
     setSecondaryError(null);
 
     try {
-      const [classResponse, sessionsResponse] = await Promise.all([
-        fetch(`/api/admin/classes/${classId}`, { cache: 'no-store' }),
-        fetch(`/api/admin/classes/${classId}/sessions`, { cache: 'no-store' }),
-      ]);
+      const classResponse = await fetch(`/api/admin/classes/${classId}`, { cache: 'no-store' });
 
       const classPayload = (await classResponse.json().catch(() => ({}))) as ClassDetails & { error?: string };
       if (!classResponse.ok) {
@@ -247,20 +223,9 @@ export default function AdminClassDetailsPage({
       }
 
       setClassData(classPayload);
-
-      const sessionsPayload = (await sessionsResponse.json().catch(() => [])) as SessionItem[] | { error?: string };
-      if (!sessionsResponse.ok || !Array.isArray(sessionsPayload)) {
-        setSessions([]);
-        setSecondaryError(
-          !Array.isArray(sessionsPayload) && sessionsPayload.error ? sessionsPayload.error : t.sessionsLoadError
-        );
-      } else {
-        setSessions(sessionsPayload);
-      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : t.notFound);
       setClassData(null);
-      setSessions([]);
     } finally {
       setLoading(false);
     }
@@ -270,22 +235,12 @@ export default function AdminClassDetailsPage({
     void loadData();
   }, [classId]);
 
-  const orderedSessions = useMemo(
-    () => [...sessions].sort((left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime()),
-    [sessions]
-  );
-
   const reviewAverage = useMemo(() => {
     if (!classData?.reviews?.length) return null;
     const ratings = classData.reviews.map((review) => review.rating).filter((rating): rating is number => typeof rating === 'number');
     if (ratings.length === 0) return null;
     return ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
   }, [classData?.reviews]);
-
-  const now = Date.now();
-  const upcomingSessions = orderedSessions.filter((session) => !session.isCancelled && new Date(session.startTime).getTime() >= now);
-  const pastSessions = orderedSessions.filter((session) => new Date(session.startTime).getTime() < now);
-  const featuredSession = upcomingSessions[0] ?? orderedSessions[orderedSessions.length - 1] ?? null;
 
   const formatMoney = (amount: number, currency: string) => formatAmountWithCurrency(amount, currency);
 
@@ -342,7 +297,7 @@ export default function AdminClassDetailsPage({
   const displayTitle = isArabic && classData.titleAr ? classData.titleAr : classData.title;
   const reviewCount = classData.reviews?.length ?? 0;
   const bookingsCount = classData._count?.bookings ?? 0;
-  const sessionsCount = classData._count?.sessions ?? orderedSessions.length;
+  const isUpcoming = classData.startDateTime ? new Date(classData.startDateTime).getTime() >= Date.now() : false;
 
   return (
     <div className="space-y-6">
@@ -370,13 +325,6 @@ export default function AdminClassDetailsPage({
               >
                 <IoCreateOutline className="h-4 w-4" />
                 {t.edit}
-              </Link>
-              <Link
-                href={`/${locale}/admin/classes/${classId}/sessions`}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <IoCalendarOutline className="h-4 w-4" />
-                {t.sessions}
               </Link>
               <div className="grid grid-cols-2 gap-3">
                 <Link
@@ -431,17 +379,21 @@ export default function AdminClassDetailsPage({
         </div>
         <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{t.totalSessions}</span>
+            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{isArabic ? 'التاريخ' : 'Date'}</span>
             <IoCalendarOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />
           </div>
-          <p className="mt-4 text-3xl font-bold text-zinc-900 dark:text-zinc-100">{sessionsCount}</p>
+          <p className="mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">
+            {classData.startDateTime ? formatDateTime(classData.startDateTime, localeCode) : '—'}
+          </p>
         </div>
         <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{t.upcomingSessions}</span>
+            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{t.seats}</span>
             <IoTimeOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />
           </div>
-          <p className="mt-4 text-3xl font-bold text-zinc-900 dark:text-zinc-100">{upcomingSessions.length}</p>
+          <p className="mt-4 text-3xl font-bold text-zinc-900 dark:text-zinc-100">
+            {classData.seatsBooked ?? 0} / {classData.seatsTotal}
+          </p>
         </div>
         <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center justify-between">
@@ -517,89 +469,44 @@ export default function AdminClassDetailsPage({
           </section>
 
           <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{t.schedule}</h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t.publishingHint}</p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--noon-teal)]/10 text-[color:var(--noon-teal)]">
+                <IoCalendarOutline className="h-5 w-5" />
               </div>
-              <Link
-                href={`/${locale}/admin/classes/${classId}/sessions`}
-                className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <IoCalendarOutline className="h-4 w-4" />
-                {t.sessions}
-              </Link>
+              <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{t.schedule}</h2>
             </div>
 
-            {featuredSession ? (
+            {classData.startDateTime ? (
               <div className="mt-5 rounded-3xl border border-[color:var(--noon-teal)]/20 bg-[color:var(--noon-teal)]/5 p-5 dark:bg-[color:var(--noon-teal)]/10">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--noon-teal-strong)]">
-                  {upcomingSessions.length > 0 ? t.nextSession : t.latestSession}
+                  {isUpcoming ? (isArabic ? 'قادم' : 'Upcoming') : (isArabic ? 'منتهي' : 'Past')}
                 </p>
                 <p className="mt-3 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-                  {formatDateTime(featuredSession.startTime, localeCode)}
+                  {formatDateTime(classData.startDateTime, localeCode)}
                 </p>
+                {classData.endDateTime ? (
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    {isArabic ? 'ينتهي: ' : 'Ends: '}{formatDateTime(classData.endDateTime, localeCode)}
+                  </p>
+                ) : null}
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <div className="rounded-2xl bg-white/80 p-4 dark:bg-zinc-950/60">
-                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.sessionCapacity}</p>
-                    <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{featuredSession.seatsTotal ?? classData.seatsTotal}</p>
+                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.seats}</p>
+                    <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{classData.seatsTotal}</p>
                   </div>
                   <div className="rounded-2xl bg-white/80 p-4 dark:bg-zinc-950/60">
-                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.sessionBookings}</p>
-                    <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{featuredSession.seatsBooked}</p>
+                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{isArabic ? 'محجوز' : 'Booked'}</p>
+                    <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{classData.seatsBooked ?? 0}</p>
                   </div>
                   <div className="rounded-2xl bg-white/80 p-4 dark:bg-zinc-950/60">
-                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.calendarStatus}</p>
-                    <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">
-                      {featuredSession.calendarEvent ? t.linked : t.notLinked}
-                    </p>
+                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.availability}</p>
+                    <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{classData.seatsTotal - (classData.seatsBooked ?? 0)}</p>
                   </div>
                 </div>
               </div>
-            ) : null}
-
-            {orderedSessions.length === 0 ? (
-              <div className="mt-5 rounded-2xl border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                {t.noSessions}
-              </div>
             ) : (
-              <div className="mt-5 space-y-3">
-                {orderedSessions.slice(0, 6).map((session) => {
-                  const sessionCapacity = session.seatsTotal ?? classData.seatsTotal;
-                  const occupancy = sessionCapacity > 0 ? Math.round((session.seatsBooked / sessionCapacity) * 100) : 0;
-
-                  return (
-                    <div
-                      key={session.id}
-                      className="rounded-2xl border border-zinc-200 p-4 transition hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700"
-                    >
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                          <p className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                            {formatDateTime(session.startTime, localeCode)}
-                          </p>
-                          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                            {formatDateTime(session.endTime, localeCode)}
-                          </p>
-                        </div>
-                        <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[420px]">
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.sessionBookings}</p>
-                            <p className="mt-1 font-semibold text-zinc-900 dark:text-zinc-100">{session.seatsBooked}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.availability}</p>
-                            <p className="mt-1 font-semibold text-zinc-900 dark:text-zinc-100">{session.seatsAvailable}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.occupancy}</p>
-                            <p className="mt-1 font-semibold text-zinc-900 dark:text-zinc-100">{occupancy}%</p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="mt-5 rounded-2xl border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                {isArabic ? 'لم يتم تحديد تاريخ ووقت بعد.' : 'No date and time set yet.'}
               </div>
             )}
           </section>
@@ -753,7 +660,7 @@ export default function AdminClassDetailsPage({
               </div>
             </div>
 
-            {classData.status === 'PUBLISHED' && upcomingSessions.length === 0 ? (
+            {classData.status === 'PUBLISHED' && !classData.startDateTime ? (
               <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
                 <div className="flex items-start gap-2">
                   <IoWarningOutline className="mt-0.5 h-4 w-4 shrink-0" />

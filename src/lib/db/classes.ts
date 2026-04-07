@@ -1,12 +1,11 @@
 /**
- * Database queries for classes and sessions
+ * Database queries for classes
  */
 import { query } from "./pool";
 import { generateUUID } from "./uuid";
 import type { ClassCategory as ClassCategoryType, ClassSubCategory, ClassStatus, ClassPublic } from "./types";
 import { ClassCategory } from "./types";
 import { ensureClassFinanceSchema } from "./classFinance";
-import { ensureRecipeManagementSchema } from "./recipeManagement";
 
 let classMinimumAgeSchemaReady: Promise<void> | null = null;
 
@@ -102,6 +101,9 @@ export async function findManyClasses(options: {
     trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
     noonSharePercent: parseFloat(row.noon_share_percent || 0),
     expenseSharePercent: parseFloat(row.expense_share_percent || 0),
+    startDateTime: row.start_date_time || null,
+    endDateTime: row.end_date_time || null,
+    seatsBooked: row.seats_booked ?? 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
@@ -213,6 +215,9 @@ export async function findManyClassesPaginated(options: {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
+    startDateTime: row.start_date_time || null,
+    endDateTime: row.end_date_time || null,
+    seatsBooked: row.seats_booked ?? 0,
     closedAt: row.closed_at,
     closedByUserId: row.closed_by_user_id,
     trainer: row.u_trainer_id ? {
@@ -231,7 +236,7 @@ export async function findManyClassesPaginated(options: {
  */
 export async function findUniqueClass(
   where: { slug?: string; id?: string; status?: ClassStatus },
-  include?: { trainer?: boolean; sessions?: boolean; reviews?: boolean }
+  include?: { trainer?: boolean; reviews?: boolean }
 ): Promise<Record<string, unknown> | null> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
@@ -297,6 +302,9 @@ export async function findUniqueClass(
     closedByUserId: row.closed_by_user_id,
     minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
     showMinimumAge: Boolean(row.show_minimum_age),
+    startDateTime: row.start_date_time || null,
+    endDateTime: row.end_date_time || null,
+    seatsBooked: row.seats_booked ?? 0,
   };
 
   if (include?.trainer) {
@@ -306,23 +314,6 @@ export async function findUniqueClass(
       profileImage: row.trainer_profile_image,
       email: row.trainer_email,
     } : null;
-  }
-
-  if (include?.sessions) {
-    const sessionsResult = await query(
-      `SELECT * FROM class_sessions WHERE class_id = $1 ORDER BY start_date_time ASC`,
-      [row.id]
-    );
-    classData.sessions = sessionsResult.rows.map(s => ({
-      id: s.id,
-      classId: s.class_id,
-      startDateTime: s.start_date_time,
-      endDateTime: s.end_date_time,
-      seatsTotal: s.seats_total,
-      seatsBooked: s.seats_booked,
-      isCancelled: s.is_cancelled,
-      cancellationReason: s.cancellation_reason,
-    }));
   }
 
   if (include?.reviews) {
@@ -369,6 +360,8 @@ export async function createClass(data: {
   trainerSharePercent?: number;
   noonSharePercent?: number;
   expenseSharePercent?: number;
+  startDateTime?: Date | string | null;
+  endDateTime?: Date | string | null;
 }): Promise<Record<string, unknown>> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
@@ -381,8 +374,9 @@ export async function createClass(data: {
       trainer_id, price, currency, seats_total, seats_available, duration_minutes,
       image, images, status, meta_title, meta_description,
       trainer_share_percent, noon_share_percent, expense_share_percent,
+      start_date_time, end_date_time,
       created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
     RETURNING *`,
     [
       id,
@@ -407,6 +401,8 @@ export async function createClass(data: {
       data.trainerSharePercent ?? 0,
       data.noonSharePercent ?? 0,
       data.expenseSharePercent ?? 0,
+      data.startDateTime ? new Date(data.startDateTime as string) : null,
+      data.endDateTime ? new Date(data.endDateTime as string) : null,
       now,
       now,
     ]
@@ -443,6 +439,9 @@ export async function createClass(data: {
     closedByUserId: row.closed_by_user_id,
     minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
     showMinimumAge: Boolean(row.show_minimum_age),
+    startDateTime: row.start_date_time || null,
+    endDateTime: row.end_date_time || null,
+    seatsBooked: row.seats_booked ?? 0,
   };
 }
 
@@ -477,6 +476,9 @@ export async function updateClass(
     closedByUserId: string | null;
     minimumAge: number | null;
     showMinimumAge: boolean;
+    startDateTime: Date | string | null;
+    endDateTime: Date | string | null;
+    seatsBooked: number;
   }>
 ): Promise<Record<string, unknown> | null> {
   await ensureClassFinanceSchema();
@@ -511,6 +513,9 @@ export async function updateClass(
     closedByUserId: 'closed_by_user_id',
     minimumAge: 'minimum_age',
     showMinimumAge: 'show_minimum_age',
+    startDateTime: 'start_date_time',
+    endDateTime: 'end_date_time',
+    seatsBooked: 'seats_booked',
   };
 
   for (const [key, dbField] of Object.entries(fieldMap)) {
@@ -566,6 +571,9 @@ export async function updateClass(
     closedByUserId: row.closed_by_user_id,
     minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
     showMinimumAge: Boolean(row.show_minimum_age),
+    startDateTime: row.start_date_time || null,
+    endDateTime: row.end_date_time || null,
+    seatsBooked: row.seats_booked ?? 0,
   };
 }
 
@@ -589,111 +597,6 @@ export async function countClassBookings(classId: string): Promise<number> {
 }
 
 /**
- * Find sessions for a class
- */
-export async function findClassSessions(
-  classId: string,
-  options?: {
-    upcomingOnly?: boolean;
-    includeCancelled?: boolean;
-    limit?: number;
-  }
-): Promise<{
-  id: string;
-  classId: string;
-  startTime: Date;
-  endTime: Date | null;
-  seatsTotal: number | null;
-  seatsBooked: number;
-  seatsAvailable: number;
-  isCancelled: boolean;
-}[]> {
-  const conditions = [`class_id = $1`];
-  const values: unknown[] = [classId];
-  let paramIndex = 2;
-
-  if (options?.upcomingOnly) {
-    conditions.push(`start_date_time >= $${paramIndex++}`);
-    values.push(new Date());
-  }
-
-  if (!options?.includeCancelled) {
-    conditions.push(`is_cancelled = false`);
-  }
-
-  let sql = `
-    SELECT * FROM class_sessions
-    WHERE ${conditions.join(' AND ')}
-    ORDER BY start_date_time ASC
-  `;
-
-  if (options?.limit) {
-    sql += ` LIMIT $${paramIndex++}`;
-    values.push(options.limit);
-  }
-
-  const result = await query(sql, values);
-
-  return result.rows.map(s => ({
-    id: s.id,
-    classId: s.class_id,
-    startTime: s.start_date_time,
-    endTime: s.end_date_time,
-    seatsTotal: s.seats_total,
-    seatsBooked: s.seats_booked || 0,
-    seatsAvailable: (s.seats_total || 0) - (s.seats_booked || 0),
-    isCancelled: s.is_cancelled,
-  }));
-}
-
-/**
- * Create a class session
- */
-export async function createClassSession(data: {
-  classId: string;
-  startDateTime: Date;
-  endDateTime: Date;
-  seatsTotal?: number;
-}): Promise<Record<string, unknown>> {
-  const id = generateUUID();
-  const now = new Date();
-
-  const result = await query(
-    `INSERT INTO class_sessions (
-      id, class_id, start_date_time, end_date_time, seats_total, seats_booked,
-      is_cancelled, recipe_submitted, photos, created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-    RETURNING *`,
-    [
-      id,
-      data.classId,
-      data.startDateTime,
-      data.endDateTime,
-      data.seatsTotal || null,
-      0,
-      false,
-      false,
-      [],
-      now,
-      now,
-    ]
-  );
-
-  const s = result.rows[0];
-  return {
-    id: s.id,
-    classId: s.class_id,
-    startDateTime: s.start_date_time,
-    endDateTime: s.end_date_time,
-    seatsTotal: s.seats_total,
-    seatsBooked: s.seats_booked,
-    isCancelled: s.is_cancelled,
-    createdAt: s.created_at,
-    updatedAt: s.updated_at,
-  };
-}
-
-/**
  * Find class by slug (simplified for site pages)
  */
 export async function findClassBySlug(slug: string): Promise<{
@@ -711,10 +614,13 @@ export async function findClassBySlug(slug: string): Promise<{
   price: number;
   currency: string;
   seatsTotal: number;
+  seatsBooked: number;
   durationMinutes: number;
   status: string;
   minimumAge: number | null;
   showMinimumAge: boolean;
+  startDateTime: Date | null;
+  endDateTime: Date | null;
 } | null> {
   await ensureClassMinimumAgeSchema();
   const result = await query(
@@ -740,10 +646,13 @@ export async function findClassBySlug(slug: string): Promise<{
     price: parseFloat(row.price || 0),
     currency: row.currency,
     seatsTotal: row.seats_total,
+    seatsBooked: row.seats_booked ?? 0,
     durationMinutes: row.duration_minutes,
     status: row.status,
     minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
     showMinimumAge: Boolean(row.show_minimum_age),
+    startDateTime: row.start_date_time || null,
+    endDateTime: row.end_date_time || null,
   };
 }
 
@@ -779,25 +688,23 @@ export async function findClassReviews(classId: string): Promise<{
  * Get bookings by user ID
  */
 export async function getBookingsByUserId(userId: string) {
-  await ensureRecipeManagementSchema();
   const result = await query(
     `SELECT
       b.*,
       c.title,
       c.title_ar,
-      cs.start_date_time,
-      cs.end_date_time,
+      c.start_date_time,
+      c.end_date_time,
       CASE
-        WHEN cs.final_recipe_visible_to_customers = true THEN COALESCE(cs.final_recipe_pdf, cs.recipe_pdf)
+        WHEN c.final_recipe_visible_to_customers = true THEN COALESCE(c.final_recipe_pdf, c.recipe_pdf)
         ELSE NULL
       END AS customer_recipe_pdf,
       CASE
-        WHEN cs.final_recipe_visible_to_customers = true THEN cs.final_recipe_title
+        WHEN c.final_recipe_visible_to_customers = true THEN c.final_recipe_title
         ELSE NULL
       END AS customer_recipe_title
      FROM bookings b
      LEFT JOIN classes c ON b.class_id = c.id
-     LEFT JOIN class_sessions cs ON b.session_id = cs.id
      WHERE b.user_id = $1
      ORDER BY b.created_at DESC`,
     [userId]
@@ -810,30 +717,28 @@ export async function getBookingsByUserId(userId: string) {
 }
 
 export async function getBookingByIdForUser(userId: string, bookingId: string) {
-  await ensureRecipeManagementSchema();
   const result = await query(
     `SELECT
       b.*,
       c.title,
       c.title_ar,
       c.slug,
-      cs.start_date_time,
-      cs.end_date_time,
+      c.start_date_time,
+      c.end_date_time,
       CASE
-        WHEN cs.final_recipe_visible_to_customers = true THEN COALESCE(cs.final_recipe_pdf, cs.recipe_pdf)
+        WHEN c.final_recipe_visible_to_customers = true THEN COALESCE(c.final_recipe_pdf, c.recipe_pdf)
         ELSE NULL
       END AS customer_recipe_pdf,
       CASE
-        WHEN cs.final_recipe_visible_to_customers = true THEN cs.final_recipe_title
+        WHEN c.final_recipe_visible_to_customers = true THEN c.final_recipe_title
         ELSE NULL
       END AS customer_recipe_title,
       CASE
-        WHEN cs.final_recipe_visible_to_customers = true THEN cs.final_recipe_brief
+        WHEN c.final_recipe_visible_to_customers = true THEN c.final_recipe_brief
         ELSE NULL
       END AS customer_recipe_brief
      FROM bookings b
      LEFT JOIN classes c ON b.class_id = c.id
-     LEFT JOIN class_sessions cs ON b.session_id = cs.id
      WHERE b.user_id = $1 AND b.id = $2
      LIMIT 1`,
     [userId, bookingId]

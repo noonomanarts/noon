@@ -7,7 +7,6 @@ import { MdEmail, MdPhone } from "react-icons/md";
 import { GiChefToque } from "react-icons/gi";
 import { HiSparkles } from "react-icons/hi2";
 import { findTrainerById, findTrainerClasses, getTrainerProfile } from "@/lib/db/trainers";
-import { findClassSessions } from "@/lib/db/classes";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { formatDurationClock } from "@/lib/formatDuration";
 
@@ -201,18 +200,15 @@ export default async function TrainerProfilePage({
   const trainerProfile = await getTrainerProfile(trainerId);
   const classes = await findTrainerClasses(trainerId, { publishedOnly: true });
 
-  const classesWithSessions = await Promise.all(
-    classes.map(async (cls) => {
-      const sessions = await findClassSessions(cls.id as string, {
-        upcomingOnly: true,
-        limit: 3,
-      });
-      return { ...cls, sessions };
-    })
-  );
-
-  const upcomingClasses = classesWithSessions.filter((item) => item.sessions.length > 0);
-  const previousClasses = classesWithSessions.filter((item) => item.sessions.length === 0);
+  const now = new Date();
+  const upcomingClasses = classes.filter((cls) => {
+    if (!cls.startDateTime) return false;
+    return new Date(cls.startDateTime) > now;
+  });
+  const previousClasses = classes.filter((cls) => {
+    if (!cls.startDateTime) return true;
+    return new Date(cls.startDateTime) <= now;
+  });
 
   const t = {
     trainer: locale === "ar" ? "المدرب" : "Trainer",
@@ -287,7 +283,9 @@ export default async function TrainerProfilePage({
       scheduledAt: course.dateTime,
     })),
     ...upcomingClasses.map((cls) => {
-      const nextSession = cls.sessions[0] ?? null;
+      const startDt = cls.startDateTime ? new Date(cls.startDateTime).toISOString() : null;
+      const seatsTotal = cls.seatsTotal ?? null;
+      const seatsBooked = cls.seatsBooked ?? 0;
       return {
         kind: "class" as const,
         id: cls.id,
@@ -297,10 +295,10 @@ export default async function TrainerProfilePage({
         imageUrl: cls.image,
         price: cls.price,
         currency: cls.currency,
-        scheduledAt: nextSession ? new Date(nextSession.startTime).toISOString() : null,
-        seatsTotal: nextSession?.seatsTotal ?? null,
-        seatsBooked: nextSession?.seatsBooked ?? 0,
-        seatsAvailable: nextSession?.seatsAvailable ?? 0,
+        scheduledAt: startDt,
+        seatsTotal,
+        seatsBooked: Number(seatsBooked),
+        seatsAvailable: Math.max(0, (seatsTotal ?? 0) - Number(seatsBooked)),
       };
     }),
   ].sort((left, right) => getSortTime(left.scheduledAt) - getSortTime(right.scheduledAt));

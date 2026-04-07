@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, props: Params) {
   try {
     const classData = await findUniqueClass(
       { id: params.classId },
-      { trainer: true, sessions: true, reviews: true }
+      { trainer: true, reviews: true }
     );
 
     if (!classData) {
@@ -22,8 +22,7 @@ export async function GET(request: NextRequest, props: Params) {
     // Get counts
     const countsResult = await query(
       `SELECT 
-        (SELECT COUNT(*)::int FROM bookings WHERE class_id = $1) as bookings_count,
-        (SELECT COUNT(*)::int FROM class_sessions WHERE class_id = $1) as sessions_count`,
+        (SELECT COUNT(*)::int FROM bookings WHERE class_id = $1) as bookings_count`,
       [params.classId]
     );
 
@@ -31,7 +30,6 @@ export async function GET(request: NextRequest, props: Params) {
       ...classData,
       _count: {
         bookings: countsResult.rows[0]?.bookings_count ?? 0,
-        sessions: countsResult.rows[0]?.sessions_count ?? 0,
       },
     });
   } catch (error) {

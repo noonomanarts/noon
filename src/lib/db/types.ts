@@ -204,6 +204,9 @@ export interface ClassPublic {
   currency: string;
   seatsTotal: number;
   seatsAvailable: number;
+  seatsBooked: number;
+  startDateTime: Date | null;
+  endDateTime: Date | null;
   durationMinutes: number;
   status: ClassStatus;
   metaTitle: string | null;

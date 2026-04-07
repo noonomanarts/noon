@@ -25,40 +25,22 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    // For each class, get sessions and counts
+    // For each class, get counts
     const classesWithDetails = await Promise.all(
       classes.map(async (cls) => {
-        // Get upcoming sessions
-        const sessionsResult = await query(
-          `SELECT * FROM class_sessions 
-           WHERE class_id = $1 AND start_date_time >= $2 AND is_cancelled = false
-           ORDER BY start_date_time ASC LIMIT 5`,
-          [cls.id, new Date()]
-        );
-
         // Get counts
         const countsResult = await query(
           `SELECT 
             (SELECT COUNT(*)::int FROM bookings WHERE class_id = $1) as bookings_count,
-            (SELECT COUNT(*)::int FROM reviews WHERE class_id = $1) as reviews_count,
-            (SELECT COUNT(*)::int FROM class_sessions WHERE class_id = $1) as sessions_count`,
+            (SELECT COUNT(*)::int FROM reviews WHERE class_id = $1) as reviews_count`,
           [cls.id]
         );
 
         return {
           ...cls,
-          sessions: sessionsResult.rows.map(s => ({
-            id: s.id,
-            startDateTime: s.start_date_time,
-            endDateTime: s.end_date_time,
-            seatsTotal: s.seats_total,
-            seatsBooked: s.seats_booked,
-            isCancelled: s.is_cancelled,
-          })),
           _count: {
             bookings: countsResult.rows[0]?.bookings_count ?? 0,
             reviews: countsResult.rows[0]?.reviews_count ?? 0,
-            sessions: countsResult.rows[0]?.sessions_count ?? 0,
           },
         };
       })
@@ -104,6 +86,8 @@ export async function POST(request: NextRequest) {
       metaTitle,
       metaDescription,
       currency,
+      startDateTime,
+      endDateTime,
     } = body;
 
     if (!title || !description || !category || !subCategory || !trainerId) {
@@ -222,7 +206,46 @@ export async function POST(request: NextRequest) {
       trainerSharePercent: 0,
       noonSharePercent: 0,
       expenseSharePercent: 0,
+      startDateTime: startDateTime || null,
+      endDateTime: endDateTime || null,
     });
+
+    // Create calendar event if date/time is set
+    if (startDateTime) {
+      try {
+        const { createCalendarEvent } = await import('@/lib/db/events');
+        const start = new Date(startDateTime);
+        const end = endDateTime
+          ? new Date(endDateTime)
+          : new Date(start.getTime() + durationMinutes * 60000);
+
+        await createCalendarEvent({
+          type: 'CLASS',
+          startDateTime: start,
+          endDateTime: end,
+          title,
+          description,
+          classId: newClass.id as string,
+        });
+
+        // If cooking class, add 3-hour cleaning block
+        if (category === 'COOKING') {
+          const cleaningStart = new Date(end);
+          const cleaningEnd = new Date(cleaningStart.getTime() + 3 * 60 * 60000);
+          await createCalendarEvent({
+            type: 'CLEANING',
+            startDateTime: cleaningStart,
+            endDateTime: cleaningEnd,
+            title: 'Cleaning - ' + title,
+            classId: newClass.id as string,
+            isBlocked: true,
+            blockReason: 'Post-cooking class cleaning',
+          });
+        }
+      } catch (calError) {
+        console.error('Error creating calendar event for class:', calError);
+      }
+    }
 
     // Get trainer info
     const trainerResult = await query(

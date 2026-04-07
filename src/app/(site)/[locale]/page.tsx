@@ -6,7 +6,7 @@ import { getHomeContent } from "@/lib/homeContent";
 import AnimatedCounter from "@/components/site/AnimatedCounter";
 import PartnersCarousel from "@/components/site/PartnersCarousel";
 import { resolveHeaderColor } from "@/lib/headerBranding";
-import { findClassSessions, findManyClasses } from "@/lib/db/classes";
+import { findManyClasses } from "@/lib/db/classes";
 import { countUsersByRole } from "@/lib/db/users";
 import { countEventBookings } from "@/lib/db/events";
 import { query } from "@/lib/db/pool";
@@ -130,49 +130,44 @@ async function resolveUpcomingItems(
     const classes = await findManyClasses({ status: "PUBLISHED", limit: 48 });
     const noTrainerLabel = locale === "ar" ? "المدرب غير محدد" : "Trainer TBD";
     const localeCode = locale === "ar" ? "ar-OM-u-nu-latn" : "en-OM";
+    const now = new Date();
 
-    // Collect ALL upcoming sessions across all classes — each session becomes its own card
-    const sessionCards: (UpcomingCard & { sessionStart: Date })[] = [];
+    // Collect upcoming classes — each class with a future startDateTime becomes a card
+    const upcomingCards: (UpcomingCard & { classStart: Date })[] = [];
 
-    await Promise.all(
-      classes.map(async (classItem) => {
-        const sessions = await findClassSessions(classItem.id, {
-          upcomingOnly: true,
-          includeCancelled: false,
-        });
+    for (const classItem of classes) {
+      if (!classItem.startDateTime) continue;
+      const dt = new Date(classItem.startDateTime);
+      if (dt <= now) continue;
 
-        for (const session of sessions) {
-          const dt = new Date(session.startTime);
-          const datetimeText = `${dt.toLocaleDateString(localeCode, {
-            month: "short",
-            day: "numeric",
-            timeZone: DISPLAY_TIMEZONE,
-          })} · ${dt.toLocaleTimeString(localeCode, {
-            hour: "2-digit",
-            minute: "2-digit",
-            timeZone: DISPLAY_TIMEZONE,
-          })}`;
+      const datetimeText = `${dt.toLocaleDateString(localeCode, {
+        month: "short",
+        day: "numeric",
+        timeZone: DISPLAY_TIMEZONE,
+      })} · ${dt.toLocaleTimeString(localeCode, {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: DISPLAY_TIMEZONE,
+      })}`;
 
-          sessionCards.push({
-            id: `${classItem.id}_${session.id}`,
-            title: locale === "ar" && classItem.titleAr ? classItem.titleAr : classItem.title,
-            datetimeText,
-            priceText: formatAmountWithCurrency(classItem.price, classItem.currency),
-            trainerName: classItem.trainer?.fullName?.trim() || noTrainerLabel,
-            imageSrc: classItem.image || "/og-image.png",
-            slug: String(classItem.slug),
-            href: `/${locale}/classes/${classItem.slug}`,
-            sessionStart: dt,
-          });
-        }
-      })
-    );
+      upcomingCards.push({
+        id: classItem.id,
+        title: locale === "ar" && classItem.titleAr ? classItem.titleAr : classItem.title,
+        datetimeText,
+        priceText: formatAmountWithCurrency(classItem.price, classItem.currency),
+        trainerName: classItem.trainer?.fullName?.trim() || noTrainerLabel,
+        imageSrc: classItem.image || "/og-image.png",
+        slug: String(classItem.slug),
+        href: `/${locale}/classes/${classItem.slug}`,
+        classStart: dt,
+      });
+    }
 
-    // Sort by nearest session first, take 3
-    const nearest = sessionCards
-      .sort((a, b) => a.sessionStart.getTime() - b.sessionStart.getTime())
+    // Sort by nearest class first, take 3
+    const nearest = upcomingCards
+      .sort((a, b) => a.classStart.getTime() - b.classStart.getTime())
       .slice(0, 3)
-      .map(({ sessionStart: _sessionStart, ...item }) => item);
+      .map(({ classStart: _classStart, ...item }) => item);
 
     if (nearest.length > 0) {
       return nearest;
@@ -200,13 +195,13 @@ function parseCounterValue(value: string): { numeric: number; suffix: string } {
 
 async function resolveDynamicHomeStats(): Promise<DynamicHomeStats> {
   try {
-    const [roles, eventBookingsCount, classSessionsResult, firstActivityResult] = await Promise.all([
+    const [roles, eventBookingsCount, classCountResult, firstActivityResult] = await Promise.all([
       countUsersByRole(),
       countEventBookings(),
       query<{ count: number }>(
         `SELECT COUNT(*)::int AS count
-         FROM class_sessions
-         WHERE is_cancelled = FALSE`
+         FROM classes
+         WHERE status = 'PUBLISHED'`
       ),
       query<{ first_activity: Date | string | null }>(
         `SELECT LEAST(
@@ -217,7 +212,7 @@ async function resolveDynamicHomeStats(): Promise<DynamicHomeStats> {
     ]);
 
     const studentsDelta = Math.max(0, Number(roles.CUSTOMER ?? 0));
-    const classesDelta = Math.max(0, Number(classSessionsResult.rows[0]?.count ?? 0));
+    const classesDelta = Math.max(0, Number(classCountResult.rows[0]?.count ?? 0));
     const eventsDelta = Math.max(0, Number(eventBookingsCount ?? 0));
 
     const firstActivityRaw = firstActivityResult.rows[0]?.first_activity ?? null;

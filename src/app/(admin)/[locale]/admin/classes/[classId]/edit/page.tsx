@@ -55,6 +55,8 @@ interface FormData {
   currency: string;
   seatsTotal: string;
   durationMinutes: string;
+  startDateTime: string;
+  endDateTime: string;
   status: ClassStatus;
   metaTitle: string;
   metaDescription: string;
@@ -107,6 +109,8 @@ export default function EditClassPage() {
     currency: 'AED',
     seatsTotal: '',
     durationMinutes: '',
+    startDateTime: '',
+    endDateTime: '',
     status: 'DRAFT',
     metaTitle: '',
     metaDescription: '',
@@ -159,6 +163,8 @@ export default function EditClassPage() {
         currency: data.currency || 'AED',
         seatsTotal: data.seatsTotal?.toString() || '',
         durationMinutes: data.durationMinutes?.toString() || '',
+        startDateTime: data.startDateTime ? new Date(data.startDateTime).toISOString().slice(0, 16) : '',
+        endDateTime: data.endDateTime ? new Date(data.endDateTime).toISOString().slice(0, 16) : '',
         status: data.status || 'DRAFT',
         metaTitle: data.metaTitle || '',
         metaDescription: data.metaDescription || '',
@@ -342,6 +348,7 @@ export default function EditClassPage() {
     else if (parseInt(formData.seatsTotal) < 1) newErrors.seatsTotal = 'Must have at least 1 seat';
     if (!formData.durationMinutes) newErrors.durationMinutes = 'Duration is required';
     else if (parseInt(formData.durationMinutes) < 1) newErrors.durationMinutes = 'Duration must be positive';
+    if (!formData.startDateTime) newErrors.startDateTime = 'Start date & time is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -409,6 +416,8 @@ export default function EditClassPage() {
         currency: formData.currency,
         seatsTotal: parseInt(formData.seatsTotal),
         durationMinutes: parseInt(formData.durationMinutes),
+        startDateTime: formData.startDateTime ? new Date(formData.startDateTime).toISOString() : null,
+        endDateTime: formData.endDateTime ? new Date(formData.endDateTime).toISOString() : null,
         status: formData.status,
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description,
@@ -827,6 +836,43 @@ export default function EditClassPage() {
                   {errors.seatsTotal}
                 </p>
               )}
+            </div>
+
+            {/* Start Date & Time */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {isRTL ? 'تاريخ ووقت البدء' : 'Start Date & Time'}
+                <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="datetime-local"
+                name="startDateTime"
+                value={formData.startDateTime}
+                onChange={handleInputChange}
+                className={`${inputBase} ${
+                  errors.startDateTime ? 'border-red-500 dark:border-red-400' : ''
+                }`}
+              />
+              {errors.startDateTime && (
+                <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
+                  <IoAlertCircle />
+                  {errors.startDateTime}
+                </p>
+              )}
+            </div>
+
+            {/* End Date & Time */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {isRTL ? 'تاريخ ووقت الانتهاء' : 'End Date & Time'}
+              </label>
+              <input
+                type="datetime-local"
+                name="endDateTime"
+                value={formData.endDateTime}
+                onChange={handleInputChange}
+                className={inputBase}
+              />
             </div>
 
             {/* Duration */}

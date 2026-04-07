@@ -45,8 +45,7 @@ export type ClassParticipantRow = {
   customerId: string;
   customerName: string;
   customerEmail: string | null;
-  sessionId: string;
-  sessionStartTime: string;
+  classStartTime: string;
   bookingStatus: string;
   paymentStatus: string;
   totalAmount: number;
@@ -386,18 +385,17 @@ async function getParticipantRows(classId: string, db: Queryable): Promise<Class
             b.payment_status,
             b.total_amount,
             b.participants,
-            b.session_id,
-            cs.start_date_time,
+            c.start_date_time,
             u.id AS customer_id,
             u.full_name AS customer_name,
             u.email AS customer_email
      FROM bookings b
-     INNER JOIN class_sessions cs ON cs.id = b.session_id
+     INNER JOIN classes c ON c.id = b.class_id
      INNER JOIN users u ON u.id = b.user_id
      WHERE b.class_id = $1
        AND b.payment_status = 'PAID'
        AND b.status IN ('CONFIRMED', 'COMPLETED')
-     ORDER BY cs.start_date_time ASC, b.created_at ASC`,
+     ORDER BY c.start_date_time ASC, b.created_at ASC`,
     [classId]
   );
 
@@ -410,8 +408,7 @@ async function getParticipantRows(classId: string, db: Queryable): Promise<Class
     const customerId = String(row.customer_id);
     const customerName = String(row.customer_name);
     const customerEmail = row.customer_email ? String(row.customer_email) : null;
-    const sessionId = String(row.session_id);
-    const sessionStartTime = String(row.start_date_time);
+    const classStartTime = String(row.start_date_time);
     const bookingStatus = String(row.booking_status);
     const paymentStatus = String(row.payment_status);
     const totalAmount = toMoney(row.total_amount);
@@ -423,8 +420,7 @@ async function getParticipantRows(classId: string, db: Queryable): Promise<Class
         customerId,
         customerName,
         customerEmail,
-        sessionId,
-        sessionStartTime,
+        classStartTime,
         bookingStatus,
         paymentStatus,
         totalAmount,
@@ -444,8 +440,7 @@ async function getParticipantRows(classId: string, db: Queryable): Promise<Class
         customerId,
         customerName,
         customerEmail,
-        sessionId,
-        sessionStartTime,
+        classStartTime,
         bookingStatus,
         paymentStatus,
         totalAmount,

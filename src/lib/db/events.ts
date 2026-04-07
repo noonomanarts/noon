@@ -525,6 +525,7 @@ export async function createCalendarEvent(data: {
   title: string;
   description?: string;
   classSessionId?: string;
+  classId?: string;
   eventBookingId?: string;
   isBlocked?: boolean;
   blockReason?: string;
@@ -548,15 +549,15 @@ export async function createCalendarEvent(data: {
   const result = await query(
     `INSERT INTO calendar_events (
       id, type, start_date_time, end_date_time, title, description,
-      class_session_id, event_booking_id, is_blocked, block_reason,
+      class_session_id, class_id, event_booking_id, is_blocked, block_reason,
       internal_notes, visible_to_trainers, visible_trainer_ids,
       appointment_contact_name, appointment_contact_phone,
       notifications_enabled, reminder_minutes_before, notify_at_start,
       reminder_sent_at, start_notification_sent_at,
       color, created_at, updated_at
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
-      $14, $15, $16, $17, $18, $19, $20, $21, $22, $23
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+      $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
     )
     RETURNING *`,
     [
@@ -567,6 +568,7 @@ export async function createCalendarEvent(data: {
       data.title,
       data.description || null,
       data.classSessionId || null,
+      data.classId || null,
       data.eventBookingId || null,
       data.isBlocked || false,
       data.blockReason || null,

@@ -164,11 +164,11 @@ function parseExternalSessions(data: unknown): ExternalSession[] {
         qrCodeDataUrl: toQrDataUrl(
           row.qr ?? row.qrcode ?? row.qrCode ?? row.qr_code ?? row.qrCodeDataUrl
         ),
-        previewType: toQrDataUrl(
+        previewType: (toQrDataUrl(
           row.qr ?? row.qrcode ?? row.qrCode ?? row.qr_code ?? row.qrCodeDataUrl
         )
           ? 'qr'
-          : null,
+          : null) as ExternalSession['previewType'],
         lastError:
           typeof row.lastError === 'string'
             ? row.lastError

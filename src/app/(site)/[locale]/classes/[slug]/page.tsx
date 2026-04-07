@@ -6,7 +6,7 @@ import { HiPaintBrush, HiClock, HiUsers, HiStar, HiSparkles, HiShieldCheck } fro
 import { MdCalendarMonth, MdAccessTime, MdPerson } from "react-icons/md";
 
 import ClassHeaderSlideshow from "@/components/site/ClassHeaderSlideshow";
-import { findClassBySlug, findClassSessions, findClassReviews } from "@/lib/db/classes";
+import { findClassBySlug, findClassReviews } from "@/lib/db/classes";
 import { findTrainerById } from "@/lib/db/trainers";
 import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
@@ -29,11 +29,12 @@ export default async function ClassDetailPage({
     notFound();
   }
 
-  const [sessions, reviews, trainer] = await Promise.all([
-    findClassSessions(classData.id, { upcomingOnly: true, limit: 10 }),
+  const [reviews, trainer] = await Promise.all([
     findClassReviews(classData.id),
     classData.trainerId ? findTrainerById(classData.trainerId) : Promise.resolve(null),
   ]);
+
+  const seatsAvailable = Math.max(0, (classData.seatsTotal ?? 0) - (classData.seatsBooked ?? 0));
 
   const isCooking = classData.category === ClassCategory.COOKING;
   const Icon = isCooking ? GiChefToque : HiPaintBrush;
@@ -52,8 +53,8 @@ export default async function ClassDetailPage({
     seatsAvailable: isArabic ? "مقاعد متاحة" : "seats available",
     totalSeats: isArabic ? "إجمالي المقاعد" : "Total seats",
     averageRating: isArabic ? "متوسط التقييم" : "Average rating",
-    noUpcomingSessions:
-      isArabic ? "لا توجد جلسات متاحة حالياً" : "No upcoming sessions available",
+    noSchedule:
+      isArabic ? "الموعد سيُعلن قريباً" : "Schedule coming soon",
     classOverview: isArabic ? "نظرة عامة" : "Class Overview",
     bookingCardTitle: isArabic ? "الحجز" : "Booking",
     whatYouWillLearn: isArabic ? "ماذا ستتعلم" : "What you will learn",
@@ -66,11 +67,11 @@ export default async function ClassDetailPage({
     perPerson: isArabic ? "للشخص" : "per person",
     bookingHint:
       isArabic
-        ? "اختر الجلسة المناسبة من القائمة ثم أكمل الحجز خلال ثوانٍ."
-        : "Pick a suitable session from the list and complete booking in seconds.",
+        ? "أكمل حجزك خلال ثوانٍ."
+        : "Complete your booking in seconds.",
     byVerifiedAttendees: isArabic ? "تقييمات من الحضور" : "Feedback from attendees",
     bookNow: isArabic ? "احجز الآن" : "Book Now",
-    upcomingSessions: isArabic ? "الجلسات القادمة" : "Upcoming Sessions",
+    schedule: isArabic ? "الموعد" : "Schedule",
     minimumAge: isArabic ? "الحد الأدنى للعمر" : "Minimum Age",
     yearsOld: isArabic ? "سنة فأكثر" : "years & above",
   };
@@ -89,7 +90,7 @@ export default async function ClassDetailPage({
       ? "متنوع"
       : "General";
 
-  const nextSession = sessions[0] ?? null;
+
   const classImages = Array.from(
     new Set(
       [classData.image, ...(classData.images || [])]
@@ -175,18 +176,6 @@ export default async function ClassDetailPage({
                 )}
               </div>
 
-              {nextSession ? (
-                <div className="w-full max-w-[28rem] rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-3 text-[color:var(--text)] sm:p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[color:var(--text-muted)]">
-                    {t.dateAndTime}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold sm:text-base">{formatDate(nextSession.startTime)}</p>
-                  <p className="mt-1 inline-flex items-center gap-1.5 text-base font-semibold sm:text-lg">
-                    <MdAccessTime className="h-4 w-4" />
-                    {formatTime(nextSession.startTime)}
-                  </p>
-                </div>
-              ) : null}
             </div>
 
             <div className="order-2 flex min-h-[18rem] flex-col justify-center p-6 sm:min-h-[22rem] sm:p-8 lg:order-1 lg:min-h-[28rem] lg:p-10">
@@ -240,6 +229,20 @@ export default async function ClassDetailPage({
                     </p>
                   </div>
                 )}
+                {classData.startDateTime ? (
+                  <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3 sm:col-span-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
+                      {t.dateAndTime}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-[color:var(--text)] sm:text-base">
+                      {formatDate(classData.startDateTime)}
+                    </p>
+                    <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
+                      <MdAccessTime className="h-4 w-4" />
+                      {formatTime(classData.startDateTime)}
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
             </div>
@@ -305,39 +308,34 @@ export default async function ClassDetailPage({
           ) : null}
 
           <article className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm sm:p-7">
-            <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.upcomingSessions}</h2>
-            {sessions.length === 0 ? (
-              <p className="mt-4 text-sm text-[color:var(--text-muted)]">{t.noUpcomingSessions}</p>
-            ) : (
-              <div className="mt-5 grid gap-3">
-                {sessions.map((session) => (
-                  <div
-                    key={session.id}
-                    className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4"
-                  >
-                    <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
-                      <MdCalendarMonth className={`h-4 w-4 ${isCooking ? "text-coral" : "text-purple"}`} />
-                      {formatDate(session.startTime)}
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[color:var(--text-muted)]">
-                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
-                        <MdAccessTime className="h-4 w-4" />
-                        {formatTime(session.startTime)}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-xs sm:text-sm">
-                        <MdPerson className="h-4 w-4" />
-                        {session.seatsAvailable} {t.seatsAvailable}
-                      </span>
-                    </div>
-                    <Link
-                      href={`/${locale}/classes/${classData.slug}/book?session=${session.id}`}
-                      className="mt-3 inline-flex items-center justify-center rounded-lg bg-[color:var(--primary)] px-4 py-2 text-xs font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] sm:text-sm"
-                    >
-                      {t.bookNow}
-                    </Link>
+            <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.schedule}</h2>
+            {classData.startDateTime ? (
+              <div className="mt-5">
+                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
+                  <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
+                    <MdCalendarMonth className={`h-4 w-4 ${isCooking ? "text-coral" : "text-purple"}`} />
+                    {formatDate(classData.startDateTime)}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-[color:var(--text-muted)]">
+                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
+                      <MdAccessTime className="h-4 w-4" />
+                      {formatTime(classData.startDateTime)}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs sm:text-sm">
+                      <MdPerson className="h-4 w-4" />
+                      {seatsAvailable} {t.seatsAvailable}
+                    </span>
                   </div>
-                ))}
+                  <Link
+                    href={`/${locale}/classes/${classData.slug}/book`}
+                    className="mt-3 inline-flex items-center justify-center rounded-lg bg-[color:var(--primary)] px-4 py-2 text-xs font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] sm:text-sm"
+                  >
+                    {t.bookNow}
+                  </Link>
+                </div>
               </div>
+            ) : (
+              <p className="mt-4 text-sm text-[color:var(--text-muted)]">{t.noSchedule}</p>
             )}
           </article>
 
@@ -397,9 +395,9 @@ export default async function ClassDetailPage({
             </div>
             <p className="mt-4 text-sm leading-6 text-[color:var(--text-muted)]">{t.bookingHint}</p>
 
-            {sessions.length > 0 ? (
+            {classData.startDateTime && seatsAvailable > 0 ? (
               <Link
-                href={`/${locale}/classes/${classData.slug}/book?session=${sessions[0]?.id}`}
+                href={`/${locale}/classes/${classData.slug}/book`}
                 className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
               >
                 {t.secureSeatNow}

@@ -67,7 +67,7 @@ type SettlementSnapshot = {
     bookingNumber: string;
     customerName: string;
     customerEmail: string | null;
-    sessionStartTime: string;
+    classStartTime: string;
     participantIndex: number;
     participantName: string;
     participantDateOfBirth: string | null;
@@ -201,7 +201,7 @@ export default function ClassSettlementPanel({
     bookedBy: isArabic ? 'الحجز باسم' : 'Booked By',
     participantName: isArabic ? 'اسم المشارك' : 'Participant Name',
     booking: isArabic ? 'الحجز' : 'Booking',
-    session: isArabic ? 'الجلسة' : 'Session',
+    classDate: isArabic ? 'تاريخ الدورة' : 'Class Date',
     dob: isArabic ? 'الميلاد' : 'DOB',
     language: isArabic ? 'اللغة' : 'Language',
     finance: isArabic ? 'تفصيل الورشة المالي' : 'Workshop Finance Breakdown',
@@ -610,7 +610,7 @@ export default function ClassSettlementPanel({
                     <tr className="text-left text-zinc-500 dark:text-zinc-400">
                       <th className="py-2 pe-4">{t.participantName}</th>
                       <th className="py-2 pe-4">{t.bookedBy}</th>
-                      <th className="py-2 pe-4">{t.session}</th>
+                      <th className="py-2 pe-4">{t.classDate}</th>
                       <th className="py-2 pe-4">{t.booking}</th>
                       <th className="py-2 pe-4">{t.dob}</th>
                       <th className="py-2">{t.language}</th>
@@ -624,7 +624,7 @@ export default function ClassSettlementPanel({
                           <div>{participant.customerName}</div>
                           <div className="text-xs text-zinc-500 dark:text-zinc-400">{participant.customerEmail || '—'}</div>
                         </td>
-                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{formatDateTime(participant.sessionStartTime)}</td>
+                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{formatDateTime(participant.classStartTime)}</td>
                         <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{participant.bookingNumber}</td>
                         <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{participant.participantDateOfBirth || '—'}</td>
                         <td className="py-3 text-zinc-600 dark:text-zinc-300">{participant.participantPreferredLanguage || '—'}</td>
