@@ -81,7 +81,7 @@ export default function BackupSection({ locale }: BackupSectionProps) {
 
   const handleDatabaseRestore = async (file: File) => {
     setDbStatus("loading");
-    setMessage("");
+    setMessage(locale === "ar" ? "در حال بازیابی..." : "Restoring database...");
 
     try {
       const formData = new FormData();
@@ -93,7 +93,11 @@ export default function BackupSection({ locale }: BackupSectionProps) {
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Restore failed");
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Restore failed");
+      }
 
       setDbStatus("success");
       setMessage(t.success);
@@ -101,10 +105,11 @@ export default function BackupSection({ locale }: BackupSectionProps) {
         setDbStatus("idle");
         window.location.reload();
       }, 2000);
-    } catch {
+    } catch (err) {
       setDbStatus("error");
-      setMessage("Error restoring backup");
-      setTimeout(() => setDbStatus("idle"), 3000);
+      const errorMsg = err instanceof Error ? err.message : "Error restoring backup";
+      setMessage(errorMsg);
+      setTimeout(() => setDbStatus("idle"), 5000);
     }
   };
 

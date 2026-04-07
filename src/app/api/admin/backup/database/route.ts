@@ -116,10 +116,17 @@ async function handleRestore(file: File) {
 
     const tempFile = path.join(backupDir, `restore-${Date.now()}.sql`);
 
-    // Save uploaded file
+    // Save uploaded file and clean invalid commands
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    fs.writeFileSync(tempFile, buffer);
+    let sqlContent = Buffer.from(bytes).toString("utf-8");
+    
+    // Remove invalid psql commands (like \restrict which isn't valid PostgreSQL)
+    sqlContent = sqlContent
+      .split("\n")
+      .filter(line => !line.trim().startsWith("\\restrict"))
+      .join("\n");
+    
+    fs.writeFileSync(tempFile, sqlContent, "utf-8");
 
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
@@ -134,10 +141,22 @@ async function handleRestore(file: File) {
     const port = url.port || "5432";
     const database = url.pathname.slice(1);
 
+    // First, drop all tables in public schema to allow clean restore
+    const dropCommand = `PGPASSWORD="${password}" psql -h ${host} -p ${port} -U ${username} -d ${database} -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO ${username}; GRANT ALL ON SCHEMA public TO public;"`;
+    
+    try {
+      await execAsync(dropCommand, { maxBuffer: 1024 * 1024 * 5 });
+    } catch (dropErr) {
+      console.warn("Drop schema warning (may be expected):", dropErr);
+    }
+
     // Restore using psql
     const command = `PGPASSWORD="${password}" psql -h ${host} -p ${port} -U ${username} -d ${database} -f "${tempFile}"`;
     
-    await execAsync(command, { maxBuffer: 1024 * 1024 * 20 });
+    const { stdout, stderr } = await execAsync(command, { maxBuffer: 1024 * 1024 * 50 });
+    
+    console.log("Restore stdout:", stdout?.slice(0, 500));
+    if (stderr) console.log("Restore stderr:", stderr?.slice(0, 500));
 
     // Clean up temp file
     fs.unlinkSync(tempFile);
@@ -149,6 +168,9 @@ async function handleRestore(file: File) {
   } catch (error) {
     console.error("Restore error:", error);
     const message = error instanceof Error ? error.message : "Restore failed";
-    throw new Error(`Restore failed: ${message}`);
+    return NextResponse.json(
+      { error: `Restore failed: ${message}` },
+      { status: 500 }
+    );
   }
 }
