@@ -1,0 +1,142 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createJoinUsApplication, getJoinUsFormsConfig } from "@/lib/db/joinUs";
+import { notifyRole } from "@/lib/notificationService";
+import { isValidEmail, isValidPhone } from "@/lib/forms/eventBooking";
+
+function parseSafeString(value: unknown, maxLength = 3000): string {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, maxLength);
+}
+
+function parseSafeArray(value: unknown, maxItems = 20): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((v): v is string => typeof v === "string")
+    .map((s) => s.trim().slice(0, 500))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const formType = parseSafeString(body.formType, 50) || "trainer";
+
+    // Check if form type is enabled
+    const config = await getJoinUsFormsConfig();
+    const formConfig = config[formType];
+    if (!formConfig || !formConfig.enabled) {
+      return NextResponse.json(
+        { error: "This form is not currently accepting applications" },
+        { status: 400 },
+      );
+    }
+
+    // Parse fields
+    const fullName = parseSafeString(body.fullName, 255);
+    const email = parseSafeString(body.email, 255).toLowerCase();
+    const phone = parseSafeString(body.phone, 50);
+    const dateOfBirth = parseSafeString(body.dateOfBirth, 10);
+    const nationality = parseSafeString(body.nationality, 100);
+    const address = parseSafeString(body.address, 500);
+    const instagramUrl = parseSafeString(body.instagramUrl, 500);
+    const certifications = parseSafeString(body.certifications, 2000);
+    const employmentStatus = parseSafeString(body.employmentStatus, 100);
+    const employerDetails = parseSafeString(body.employerDetails, 500);
+    const hasPriorTraining = Boolean(body.hasPriorTraining);
+    const priorTrainingDetails = parseSafeString(body.priorTrainingDetails, 2000);
+    const motivation = parseSafeString(body.motivation, 3000);
+    const personalityDescription = parseSafeString(body.personalityDescription, 3000);
+    const workshopCategory = parseSafeString(body.workshopCategory, 100);
+    const otherSkillsDetail = parseSafeString(body.otherSkillsDetail, 1000);
+    const hasRestaurantExperience = Boolean(body.hasRestaurantExperience);
+    const restaurantDetails = parseSafeString(body.restaurantDetails, 2000);
+    const kitchenInterests = parseSafeString(body.kitchenInterests, 2000);
+    const culinaryDishes = parseSafeArray(body.culinaryDishes);
+    const artsSpecialization = parseSafeString(body.artsSpecialization, 500);
+    const artsWorkshopIdeas = parseSafeArray(body.artsWorkshopIdeas);
+
+    // Validation
+    if (!fullName || !email || !phone) {
+      return NextResponse.json(
+        { error: "Full name, email, and phone are required" },
+        { status: 400 },
+      );
+    }
+
+    if (!isValidEmail(email)) {
+      return NextResponse.json(
+        { error: "Invalid email format" },
+        { status: 400 },
+      );
+    }
+
+    if (!isValidPhone(phone)) {
+      return NextResponse.json(
+        { error: "Invalid phone format" },
+        { status: 400 },
+      );
+    }
+
+    if (!workshopCategory) {
+      return NextResponse.json(
+        { error: "Workshop category is required" },
+        { status: 400 },
+      );
+    }
+
+    const application = await createJoinUsApplication({
+      formType: formType as "trainer" | "social_media",
+      fullName,
+      phone,
+      email,
+      dateOfBirth: dateOfBirth || null,
+      nationality: nationality || null,
+      address: address || null,
+      instagramUrl: instagramUrl || null,
+      photoUrl: null,
+      certifications: certifications || null,
+      employmentStatus: employmentStatus || null,
+      employerDetails: employerDetails || null,
+      hasPriorTraining,
+      priorTrainingDetails: priorTrainingDetails || null,
+      motivation: motivation || null,
+      personalityDescription: personalityDescription || null,
+      workshopCategory: workshopCategory || null,
+      otherSkillsDetail: otherSkillsDetail || null,
+      hasRestaurantExperience,
+      restaurantDetails: restaurantDetails || null,
+      recipeFileUrl: null,
+      kitchenInterests: kitchenInterests || null,
+      culinaryDishes,
+      artsSpecialization: artsSpecialization || null,
+      artsWorkshopIdeas,
+      extraData: {},
+    });
+
+    await notifyRole("ADMIN", {
+      type: "join_us_application_new",
+      title: "New Join Us Application",
+      message: `${fullName} submitted a ${formType} application`,
+      data: {
+        applicationId: application.id,
+        fullName,
+        email,
+        formType,
+        workshopCategory,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Application submitted successfully",
+      id: application.id,
+    });
+  } catch (error) {
+    console.error("Error creating join-us application:", error);
+    return NextResponse.json(
+      { error: "Failed to submit application" },
+      { status: 500 },
+    );
+  }
+}

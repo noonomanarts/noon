@@ -123,6 +123,7 @@ export default async function AdminLayout({
     recipes: locale === "ar" ? "الوصفات" : "Recipes",
     pages: locale === "ar" ? "الصفحات" : "Pages",
     contactMessages: locale === "ar" ? "رسائل التواصل" : "Contact Messages",
+    joinUsApplications: locale === "ar" ? "طلبات الانضمام" : "Join Us Applications",
     settings: locale === "ar" ? "الإعدادات" : "Settings",
     notifications: locale === "ar" ? "الإشعارات" : "Notifications",
     whatsapp: locale === "ar" ? "واتساب" : "WhatsApp",
@@ -201,6 +202,7 @@ export default async function AdminLayout({
             { iconName: "FiFileText" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.recipes, href: `/${locale}/admin/recipes` },
             { iconName: "FiFileText" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.pages, href: `/${locale}/admin/pages` },
             { iconName: "FiFileText" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.contactMessages, href: `/${locale}/admin/contact-messages` },
+            { iconName: "FiFileText" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.joinUsApplications, href: `/${locale}/admin/join-us-applications` },
           ],
         },
         {
