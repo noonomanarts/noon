@@ -4,8 +4,10 @@ services:
     image: postgres:16-alpine
     container_name: noon-postgres
     restart: unless-stopped
-    ports:
-      - "${POSTGRES_PORT:-5433}:5432"
+    # SECURITY: Do NOT expose postgres port to the internet.
+    # The app connects via the internal Docker network.
+    expose:
+      - "5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
