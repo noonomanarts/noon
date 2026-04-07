@@ -1,6 +1,7 @@
 const {Pool} = require('pg');
+const { resolveDatabaseUrl } = require('./db-connection');
 (async()=>{
-  const pool = new Pool({connectionString: process.env.DATABASE_URL});
+  const pool = new Pool({connectionString: resolveDatabaseUrl()});
   try {
     const res = await pool.query('SELECT id, email, password, created_at FROM users WHERE email = $1', ['admin@noonomanarts.com']);
     if (res.rows.length === 0) {

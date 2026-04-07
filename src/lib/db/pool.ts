@@ -6,10 +6,24 @@ import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 // Connection pool singleton
 const globalForPool = global as unknown as { pool: Pool | undefined };
 
-const connectionString = process.env.DATABASE_URL;
+function resolveDatabaseUrl(): string {
+  if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim()) {
+    return process.env.DATABASE_URL.trim();
+  }
 
-if (!connectionString) {
-  console.warn('DATABASE_URL is not set. Database operations will fail.');
+  const host = process.env.PGHOST || process.env.POSTGRES_HOST || 'localhost';
+  const port = process.env.PGPORT || process.env.POSTGRES_PORT || '5433';
+  const user = process.env.PGUSER || process.env.POSTGRES_USER || 'postgres';
+  const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD || 'postgres';
+  const database = process.env.PGDATABASE || process.env.POSTGRES_DB || 'noonomanarts';
+
+  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${encodeURIComponent(database)}`;
+}
+
+const connectionString = resolveDatabaseUrl();
+
+if (!process.env.DATABASE_URL) {
+  console.warn('DATABASE_URL is not set. Falling back to PG/POSTGRES environment variables.');
 }
 
 export const pool: Pool =

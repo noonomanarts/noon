@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdminUser } from '@/app/api/admin/whatsapp/_lib';
-import { addWhatsAppSession, listWhatsAppSessions } from '@/lib/whatsapp/wwebjsService';
+import { addWhatsAppSession, listWhatsAppSessions } from '@/lib/whatsapp/apiService';
 
 export const runtime = 'nodejs';
 

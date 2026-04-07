@@ -5,6 +5,17 @@ echo "============================================"
 echo "Noon Application Startup Script"
 echo "============================================"
 
+# Build DATABASE_URL from PG/POSTGRES variables when it is missing.
+if [ -z "$DATABASE_URL" ]; then
+  DB_HOST="${PGHOST:-${POSTGRES_HOST:-localhost}}"
+  DB_PORT="${PGPORT:-${POSTGRES_PORT:-5433}}"
+  DB_USER="${PGUSER:-${POSTGRES_USER:-postgres}}"
+  DB_PASSWORD="${PGPASSWORD:-${POSTGRES_PASSWORD:-postgres}}"
+  DB_NAME="${PGDATABASE:-${POSTGRES_DB:-noonomanarts}}"
+  export DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+  echo "DATABASE_URL was missing, built it from PG/POSTGRES environment variables."
+fi
+
 # Function to wait for database
 wait_for_db() {
   echo "Waiting for PostgreSQL to be ready..."

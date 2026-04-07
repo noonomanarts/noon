@@ -1,4 +1,4 @@
-import { sendWhatsAppTextViaManagedSession } from '@/lib/whatsapp/wwebjsService';
+import { sendWhatsAppTextViaManagedSession } from '@/lib/whatsapp/apiService';
 
 export function normalizePhoneToChatId(phone: string): string | null {
   let digits = phone.replace(/\D/g, '');

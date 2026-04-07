@@ -43,34 +43,6 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-ENV CHROME_BIN=/usr/bin/chromium-browser
-ENV PUPPETEER_SKIP_DOWNLOAD=true
-ENV WWEBJS_SEND_LOG_LEVEL=info
-
-# Runtime dependencies for puppeteer/chromium used by whatsapp-web.js.
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont \
-    font-noto-emoji \
-    udev \
-    dbus \
-    mesa-gbm \
-    mesa-gl \
-    libxcomposite \
-    libxdamage \
-    libxrandr \
-    libxshmfence \
-    libxext \
-    libx11 \
-    libxcb
-
-# Prevent dbus errors in headless Chromium
-ENV DBUS_SESSION_BUS_ADDRESS=/dev/null
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -88,8 +60,8 @@ COPY --from=builder /app/scripts ./scripts
 RUN chmod +x /app/scripts/*.sh
 
 # Create directories for persistent data and Next.js cache (will be mounted as volumes)
-RUN mkdir -p /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache /app/.wwebjs_auth \
-    && chown -R nextjs:nodejs /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache /app/.wwebjs_auth /app/scripts /app/database
+RUN mkdir -p /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache \
+    && chown -R nextjs:nodejs /app/public/uploads /app/data /app/logs /app/backups /app/.next/cache /app/scripts /app/database
 
 USER nextjs
 

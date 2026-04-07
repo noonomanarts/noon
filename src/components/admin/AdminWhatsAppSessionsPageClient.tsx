@@ -21,6 +21,7 @@ type SessionItem = {
   isPrimary: boolean;
   status: SessionStatus;
   qrCodeDataUrl: string | null;
+  previewType?: 'qr' | 'screenshot' | null;
   lastError: string | null;
   updatedAt: string;
 };
@@ -105,10 +106,8 @@ export default function AdminWhatsAppSessionsPageClient({ locale }: { locale: Lo
       restart: isArabic ? 'إعادة تشغيل' : 'Restart',
       noSessions: isArabic ? 'لا توجد سشنات بعد.' : 'No sessions yet.',
       updatedAt: isArabic ? 'آخر تحديث' : 'Updated',
-      qrHint: isArabic
-        ? 'افتح WhatsApp على الجهاز > Linked Devices > Link a device ثم امسح هذا الرمز.'
-        : 'Open WhatsApp on your phone > Linked Devices > Link a device, then scan this QR.',
       noQr: isArabic ? 'لا يوجد QR حالياً.' : 'No QR available right now.',
+      noPreview: isArabic ? 'لا يوجد معاينة متاحة حالياً.' : 'No preview available right now.',
     }),
     [isArabic]
   );
@@ -373,26 +372,24 @@ export default function AdminWhatsAppSessionsPageClient({ locale }: { locale: Lo
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-4 lg:grid-cols-[220px_1fr]">
-                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950 sm:p-4">
+                  <div className="relative overflow-hidden rounded-lg border border-zinc-200 bg-gradient-to-br from-zinc-100 to-zinc-200 dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
+                    <div className="relative min-h-[240px] w-full sm:min-h-[320px] lg:min-h-[420px]">
                     {session.qrCodeDataUrl ? (
                       <Image
                         src={session.qrCodeDataUrl}
                         alt={session.sessionId}
-                        width={190}
-                        height={190}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 92vw, 72vw"
                         unoptimized
-                        className="mx-auto size-[190px] rounded-lg bg-white p-2"
+                        className="object-contain p-3 sm:p-4"
                       />
                     ) : (
-                      <div className="flex size-[190px] items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
-                        {t.noQr}
+                      <div className="flex h-full min-h-[240px] w-full items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-white px-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 sm:min-h-[320px] lg:min-h-[420px]">
+                        {session.status === 'qr' ? t.noQr : t.noPreview}
                       </div>
                     )}
                   </div>
-
-                  <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200">
-                    <p>{t.qrHint}</p>
                   </div>
                 </div>
               </article>

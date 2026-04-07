@@ -6,12 +6,25 @@
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const { resolveDatabaseUrl } = require('./db-connection');
 
-const MIGRATIONS_DIR = process.env.MIGRATIONS_DIR || '/app/database/migrations';
+function resolveMigrationsDir() {
+  const candidates = [
+    process.env.MIGRATIONS_DIR,
+    path.join(process.cwd(), 'database', 'migrations'),
+    '/app/database/migrations',
+  ].filter(Boolean);
+
+  const found = candidates.find((candidate) => fs.existsSync(candidate));
+  return found || path.join(process.cwd(), 'database', 'migrations');
+}
+
+const MIGRATIONS_DIR = resolveMigrationsDir();
 
 async function runMigrations() {
+  const connectionString = resolveDatabaseUrl();
   const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString,
   });
 
   try {

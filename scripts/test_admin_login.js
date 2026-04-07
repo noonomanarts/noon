@@ -1,7 +1,8 @@
 const {Pool} = require('pg');
 const bcrypt = require('bcryptjs');
+const { resolveDatabaseUrl } = require('./db-connection');
 (async()=>{
-  const pool = new Pool({connectionString: process.env.DATABASE_URL});
+  const pool = new Pool({connectionString: resolveDatabaseUrl()});
   try {
     const res = await pool.query('SELECT email, password FROM users WHERE email = $1', ['admin@noonomanarts.com']);
     if (res.rows.length === 0) {

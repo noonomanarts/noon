@@ -1,7 +1,8 @@
 const {Pool} = require('pg');
 const bcrypt = require('bcryptjs');
+const { resolveDatabaseUrl } = require('./db-connection');
 (async()=>{
-  const pool = new Pool({connectionString: process.env.DATABASE_URL});
+  const pool = new Pool({connectionString: resolveDatabaseUrl()});
   try {
     const password = 'admin123';
     const hash = await bcrypt.hash(password, 10);

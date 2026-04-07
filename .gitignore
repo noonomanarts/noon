@@ -50,5 +50,3 @@ next-env.d.ts
 
 # uploads
 /public/uploads/
-.wwebjs_cache
-.wwebjs_auth

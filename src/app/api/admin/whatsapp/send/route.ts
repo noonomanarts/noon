@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db/pool';
 import { requireAdminUser } from '@/app/api/admin/whatsapp/_lib';
-import { sendWhatsAppTextViaManagedSession } from '@/lib/whatsapp/wwebjsService';
+import { sendWhatsAppTextViaManagedSession } from '@/lib/whatsapp/apiService';
 
 export const runtime = 'nodejs';
 
