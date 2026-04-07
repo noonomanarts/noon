@@ -19,11 +19,35 @@ export async function ensureRecipeManagementSchema(): Promise<void> {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS admin_workshop_notes_photo VARCHAR(500)`);
 
     await query(`
-      UPDATE classes
-      SET trainer_photos = COALESCE(photos, '{}')
-      WHERE (trainer_photos IS NULL OR CARDINALITY(trainer_photos) = 0)
-        AND photos IS NOT NULL
-        AND CARDINALITY(photos) > 0
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'classes'
+            AND column_name = 'photos'
+        ) THEN
+          UPDATE classes
+          SET trainer_photos = COALESCE(photos, '{}')
+          WHERE (trainer_photos IS NULL OR CARDINALITY(trainer_photos) = 0)
+            AND photos IS NOT NULL
+            AND CARDINALITY(photos) > 0;
+        ELSIF EXISTS (
+          SELECT 1
+          FROM information_schema.columns
+          WHERE table_schema = 'public'
+            AND table_name = 'classes'
+            AND column_name = 'workshop_photos'
+        ) THEN
+          UPDATE classes
+          SET trainer_photos = COALESCE(workshop_photos, '{}')
+          WHERE (trainer_photos IS NULL OR CARDINALITY(trainer_photos) = 0)
+            AND workshop_photos IS NOT NULL
+            AND CARDINALITY(workshop_photos) > 0;
+        END IF;
+      END
+      $$;
     `);
 
     await query(`
