@@ -247,10 +247,10 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
           return;
         }
 
-        const returnUrl = `/${locale}/account/wallet`;
+        const sandboxReturnUrl = returnUrl || `/${locale}/account/wallet`;
         setShowDepositModal(false);
         setMessage(isArabic ? 'سيتم تحويلك الآن لبوابة الدفع التجريبية.' : 'Redirecting you to sandbox payment gateway.');
-        window.location.href = `/${locale}/wallet/topup/sandbox?reference=${encodeURIComponent(reference)}&returnUrl=${encodeURIComponent(returnUrl)}`;
+        window.location.href = `/${locale}/wallet/topup/sandbox?reference=${encodeURIComponent(reference)}&returnUrl=${encodeURIComponent(sandboxReturnUrl)}`;
       } else {
         const data = await response.json();
         setMessage(data.error || (isArabic ? 'فشل في إنشاء عملية الشحن' : 'Failed to create top-up request'));

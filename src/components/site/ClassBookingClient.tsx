@@ -248,13 +248,12 @@ export default function ClassBookingClient({
         throw new Error(typeof payload?.error === 'string' ? payload.error : 'Failed to load wallet');
       }
       setWallet(payload as WalletPayload);
-    } catch (walletError) {
-      setError(walletError instanceof Error ? walletError.message : 'Failed to load wallet');
-      setWallet(null);
+    } catch {
+      setWallet({ balance: 0, available_balance: 0, currency: classData.currency });
     } finally {
       setLoadingWallet(false);
     }
-  }, []);
+  }, [classData.currency]);
 
   useEffect(() => {
     void loadWallet();
@@ -731,35 +730,33 @@ export default function ClassBookingClient({
             </div>
           </div>
 
-          {hasEnoughBalance ? (
-            <button
-              type="button"
-              onClick={() => void submitBooking()}
-              disabled={processing || loadingWallet || !hasBookableSeats}
-              className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {processing ? t.processing : t.submit}
-            </button>
-          ) : (
-            hasBookableSeats && !loadingWallet && (
-              <div className="mt-5 space-y-3">
-                <p className="text-center text-xs text-amber-700 dark:text-amber-400">
-                  {isArabic
-                    ? `رصيدك الحالي غير كافٍ. تحتاج ${formatAmountWithCurrency(totalAmount - (wallet?.balance ?? 0), classData.currency)} إضافية لإتمام الحجز.`
-                    : `Your balance is insufficient. You need ${formatAmountWithCurrency(totalAmount - (wallet?.balance ?? 0), classData.currency)} more to complete this booking.`}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const returnUrl = `/${locale}/classes/${slug}/book`;
-                    window.location.href = `/${locale}/account/wallet?returnUrl=${encodeURIComponent(returnUrl)}`;
-                  }}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
-                >
-                  {isArabic ? 'شحن المحفظة وإتمام الحجز' : 'Top Up Wallet & Complete Booking'}
-                </button>
-              </div>
-            )
+          <button
+            type="button"
+            onClick={() => {
+              if (!hasEnoughBalance) {
+                const returnUrl = `/${locale}/classes/${slug}/book`;
+                window.location.href = `/${locale}/account/wallet?returnUrl=${encodeURIComponent(returnUrl)}`;
+                return;
+              }
+              void submitBooking();
+            }}
+            disabled={processing || loadingWallet || !hasBookableSeats}
+            className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {processing
+              ? t.processing
+              : hasEnoughBalance
+                ? t.submit
+                : isArabic
+                  ? 'شحن المحفظة وإتمام الحجز'
+                  : 'Top Up Wallet & Complete Booking'}
+          </button>
+          {!hasEnoughBalance && hasBookableSeats && !loadingWallet && (
+            <p className="mt-2 text-center text-xs text-amber-700 dark:text-amber-400">
+              {isArabic
+                ? `رصيدك الحالي غير كافٍ. تحتاج ${formatAmountWithCurrency(totalAmount - (wallet?.balance ?? 0), classData.currency)} إضافية لإتمام الحجز.`
+                : `Your balance is insufficient. You need ${formatAmountWithCurrency(totalAmount - (wallet?.balance ?? 0), classData.currency)} more to complete this booking.`}
+            </p>
           )}
         </aside>
       </div>
