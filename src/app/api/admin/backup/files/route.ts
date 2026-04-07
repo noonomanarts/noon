@@ -24,19 +24,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { action } = await request.json();
+    const contentType = request.headers.get("content-type") || "";
 
-    if (action === "backup") {
-      return await handleBackup();
-    } else if (action === "restore") {
+    if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
-      const file = formData.get("file") as File;
-      
+      const action = String(formData.get("action") || "");
+
+      if (action !== "restore") {
+        return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+      }
+
+      const file = formData.get("file") as File | null;
       if (!file) {
         return NextResponse.json({ error: "No file provided" }, { status: 400 });
       }
 
       return await handleRestore(file);
+    }
+
+    const body = (await request.json().catch(() => ({}))) as { action?: string };
+    const action = String(body.action || "");
+
+    if (action === "backup") {
+      return await handleBackup();
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });

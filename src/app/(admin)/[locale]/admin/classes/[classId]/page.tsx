@@ -155,13 +155,12 @@ export default function AdminClassDetailsPage({
     subtitle: isArabic
       ? 'لوحة تشغيل كاملة لمراجعة المحتوى، الجلسات، الحجوزات، وحالة النشر.'
       : 'A complete operations view for content, sessions, bookings, and publishing status.',
-    edit: isArabic ? 'تعديل الصف' : 'Edit class',
-    sessions: isArabic ? 'إدارة الجلسات' : 'Manage sessions',
-    calendar: isArabic ? 'عرض التقويم' : 'Open calendar',
-    publicPage: isArabic ? 'الصفحة العامة' : 'Public page',
-    enrollmentWallet: isArabic ? 'تسجيل + المحفظة' : 'Enrollment + Wallet',
-    publish: isArabic ? 'نشر الصف' : 'Publish class',
-    moveToDraft: isArabic ? 'إرجاع إلى مسودة' : 'Move to draft',
+    edit: isArabic ? 'تعديل' : 'Edit',
+    calendar: isArabic ? 'التقويم' : 'Calendar',
+    publicPage: isArabic ? 'الصفحة' : 'Public',
+    enrollmentWallet: isArabic ? 'التسجيل+المحفظة' : 'Enroll+Wallet',
+    publish: isArabic ? 'نشر' : 'Publish',
+    moveToDraft: isArabic ? 'مسودة' : 'Draft',
     loading: isArabic ? 'جاري تحميل تفاصيل الصف...' : 'Loading class details...',
     notFound: isArabic ? 'تعذر العثور على هذا الصف.' : 'This class could not be found.',
     overview: isArabic ? 'نظرة عامة' : 'Overview',
@@ -320,47 +319,49 @@ export default function AdminClassDetailsPage({
               </h1>
             </div>
 
-            <div className="flex w-full flex-col gap-3 xl:w-auto xl:min-w-[240px]">
+            <div className="flex w-full flex-col gap-3 xl:w-auto xl:min-w-[340px]">
               <Link
                 href={`/${locale}/admin/classes/${classId}/edit`}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
                 <IoCreateOutline className="h-4 w-4" />
                 {t.edit}
               </Link>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <Link
                   href={`/${locale}/admin/calendar`}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[color:var(--noon-teal)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)]"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[color:var(--noon-teal)]/35 bg-white px-3 text-xs font-semibold text-[color:var(--noon-teal-strong)] transition hover:bg-[color:var(--noon-teal)]/5 dark:border-[color:var(--noon-teal)]/40 dark:bg-zinc-950"
                 >
                   <IoGlobeOutline className="h-4 w-4" />
                   {t.calendar}
                 </Link>
                 <Link
                   href={`/${locale}/classes/${classData.slug}`}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800"
                   target="_blank"
                 >
                   <IoEyeOutline className="h-4 w-4" />
                   {t.publicPage}
                 </Link>
               </div>
-              <button
-                type="button"
-                onClick={() => void handleStatusChange(classData.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED')}
-                disabled={statusLoading}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-transparent bg-[color:var(--noon-teal)]/10 px-4 py-3 text-sm font-semibold text-[color:var(--noon-teal-strong)] transition hover:bg-[color:var(--noon-teal)]/15 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-[color:var(--noon-teal)]/15"
-              >
-                <IoCheckmarkCircle className="h-4 w-4" />
-                {classData.status === 'PUBLISHED' ? t.moveToDraft : t.publish}
-              </button>
-              <Link
-                href={`/${locale}/admin/classes/${classId}/enrollment-wallet`}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[color:var(--noon-teal)]/35 bg-white px-4 py-3 text-sm font-semibold text-[color:var(--noon-teal-strong)] transition hover:bg-[color:var(--noon-teal)]/5 dark:border-[color:var(--noon-teal)]/40 dark:bg-zinc-950"
-              >
-                <IoWalletOutline className="h-4 w-4" />
-                {t.enrollmentWallet}
-              </Link>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleStatusChange(classData.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED')}
+                  disabled={statusLoading}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[color:var(--noon-teal)] px-3 text-xs font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <IoCheckmarkCircle className="h-4 w-4" />
+                  {classData.status === 'PUBLISHED' ? t.moveToDraft : t.publish}
+                </button>
+                <Link
+                  href={`/${locale}/admin/classes/${classId}/enrollment-wallet`}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[color:var(--noon-teal)]/35 bg-white px-3 text-xs font-semibold text-[color:var(--noon-teal-strong)] transition hover:bg-[color:var(--noon-teal)]/5 dark:border-[color:var(--noon-teal)]/40 dark:bg-zinc-950"
+                >
+                  <IoWalletOutline className="h-4 w-4" />
+                  {t.enrollmentWallet}
+                </Link>
+              </div>
             </div>
           </div>
         </div>
