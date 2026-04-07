@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^echo \"SELECT id, title, image, images FROM classes;\" \\| psql \"postgresql://postgres:postgres@localhost:5433/noonomanarts\" -A -t 2>&1 \\| head -20$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
