@@ -10,7 +10,7 @@ type AdminUser = {
   fullName: string;
   email: string;
   phoneNumber: string;
-  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
+  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN' | 'PHOTOGRAPHER';
 };
 
 type SendResult = {

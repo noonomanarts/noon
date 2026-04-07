@@ -16,7 +16,7 @@ type NavItem = {
 
 interface AccountSidebarProps {
   locale: Locale;
-  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
+  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN' | 'PHOTOGRAPHER';
 }
 
 export function AccountSidebar({ locale, role }: AccountSidebarProps) {
@@ -31,6 +31,16 @@ export function AccountSidebar({ locale, role }: AccountSidebarProps) {
             key: 'trainer-dashboard',
             label: isArabic ? 'لوحة المدرب' : 'Trainer Dashboard',
             href: `/${locale}/account/trainer`,
+            icon: FiBarChart2,
+          },
+        ]
+      : []),
+    ...(role === 'PHOTOGRAPHER'
+      ? [
+          {
+            key: 'photographer-dashboard',
+            label: isArabic ? 'لوحة المصور' : 'Photographer Dashboard',
+            href: `/${locale}/photographer`,
             icon: FiBarChart2,
           },
         ]

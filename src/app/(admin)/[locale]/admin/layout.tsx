@@ -128,6 +128,7 @@ export default async function AdminLayout({
     notifications: locale === "ar" ? "الإشعارات" : "Notifications",
     whatsapp: locale === "ar" ? "واتساب" : "WhatsApp",
     whatsappSessions: locale === "ar" ? "سشنات واتساب" : "WhatsApp Sessions",
+    photographerTasks: locale === "ar" ? "مهام المصور" : "Photographer Tasks",
     logout: locale === "ar" ? "تسجيل خروج" : "Logout",
     profile: locale === "ar" ? "الملف الشخصي" : "Profile",
     accountSettings: locale === "ar" ? "إعدادات الحساب" : "Account Settings",
@@ -183,6 +184,7 @@ export default async function AdminLayout({
             },
             { iconName: "FiCreditCard" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.payments, href: `/${locale}/admin/payments` },
             { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: locale === "ar" ? "المحافظ" : "Wallets", href: `/${locale}/admin/wallets` },
+            { iconName: "FiFileText" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.photographerTasks, href: `/${locale}/admin/photographer-tasks` },
           ],
         },
         {

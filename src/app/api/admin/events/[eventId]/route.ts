@@ -8,6 +8,7 @@ import {
   updateEventBooking,
 } from '@/lib/db/events';
 import { query } from '@/lib/db/pool';
+import { createNotification } from '@/lib/db/notifications';
 import {
   addMinutes,
   buildEventCalendarTitle,
@@ -213,6 +214,22 @@ export async function PUT(request: NextRequest, props: Params) {
         `DELETE FROM calendar_events WHERE event_booking_id = $1`,
         [params.eventId]
       );
+    }
+
+    // Notify photographer when event is confirmed
+    if (updateData.status === 'CLIENT_CONFIRMED') {
+      const eventLabel = eventType === 'COOKING_COMPETITION'
+        ? 'Cooking Competition'
+        : eventType === 'PRIVATE_CLASS'
+          ? 'Private Class'
+          : 'Birthday Party';
+      createNotification({
+        recipientRole: 'PHOTOGRAPHER',
+        type: 'PHOTOGRAPHER_EVENT_CONFIRMED',
+        title: 'Event Confirmed',
+        message: `${eventLabel} for "${updatedEvent.fullName}" (${updatedEvent.companyOrGroupName || 'N/A'}) has been confirmed on ${selectedDate}.`,
+        data: { eventId: params.eventId, eventType, fullName: updatedEvent.fullName },
+      }).catch(() => {});
     }
 
     return NextResponse.json(updatedEvent);

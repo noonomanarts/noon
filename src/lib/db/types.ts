@@ -3,7 +3,7 @@
  */
 
 // Enums (types)
-export type UserRole = 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
+export type UserRole = 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN' | 'PHOTOGRAPHER';
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type PreferredLanguage = 'ENGLISH' | 'ARABIC';
@@ -54,7 +54,29 @@ export const UserRole = {
   CUSTOMER: 'CUSTOMER' as const,
   EMPLOYEE: 'EMPLOYEE' as const,
   SOCIAL_MEDIA_ADMIN: 'SOCIAL_MEDIA_ADMIN' as const,
+  PHOTOGRAPHER: 'PHOTOGRAPHER' as const,
 };
+
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export interface PhotographerTask {
+  id: string;
+  photographer_user_id: string;
+  assigned_by_user_id: string;
+  title: string;
+  title_ar: string | null;
+  description: string | null;
+  description_ar: string | null;
+  priority: TaskPriority;
+  status: TaskStatus;
+  due_date: Date | null;
+  completed_at: Date | null;
+  notes: string | null;
+  notes_ar: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
 
 export const ClassStatus = {
   DRAFT: 'DRAFT' as const,

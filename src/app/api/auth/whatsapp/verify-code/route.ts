@@ -235,7 +235,9 @@ export async function POST(request: Request) {
       ? '/admin'
       : userRole === 'SOCIAL_MEDIA_ADMIN'
         ? '/admin/calendar'
-        : '/account';
+        : userRole === 'PHOTOGRAPHER'
+          ? '/photographer'
+          : '/account';
 
     return NextResponse.json({ success: true, redirectTo });
   } catch (error) {

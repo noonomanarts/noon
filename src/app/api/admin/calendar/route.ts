@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { addMinutes, findCalendarOccupancy } from '@/lib/calendar';
 import { createCalendarEvent, findCalendarEvents } from '@/lib/db/events';
 import { getUserById } from '@/lib/db/users';
+import { createNotification } from '@/lib/db/notifications';
 import type { CalendarEventType } from '@/lib/db/types';
 
 const ALLOWED_TYPES = new Set<CalendarEventType>([
@@ -220,6 +221,18 @@ export async function POST(request: NextRequest) {
         visibleTrainerIds: allowTrainerVisibility ? visibleTrainerIds : [],
         color: TYPE_COLORS.CLEANING,
       });
+    }
+
+    // Notify photographer about new meetings/appointments
+    if (type === 'APPOINTMENT' || type === 'SCHEDULER') {
+      const dateStr = new Date(startDateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      createNotification({
+        recipientRole: 'PHOTOGRAPHER',
+        type: 'PHOTOGRAPHER_MEETING_SCHEDULED',
+        title: 'New Meeting Scheduled',
+        message: `Meeting "${title}" scheduled for ${dateStr}.`,
+        data: { calendarEventId: calendarEvent.id, title, startDateTime: startDateTime.toISOString() },
+      }).catch(() => {});
     }
 
     return NextResponse.json(calendarEvent, { status: 201 });
