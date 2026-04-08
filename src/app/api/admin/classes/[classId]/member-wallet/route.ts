@@ -296,7 +296,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
 
       void addBonusPoints(userId, amount).catch(() => {});
 
-      void sendUserTransactionWhatsApp({
+      await sendUserTransactionWhatsApp({
         userId,
         key: 'class_booking_paid',
         vars: {
@@ -305,6 +305,8 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
           balance: newBalance,
           classTitle: (classRow.title_ar as string | null) || String(classRow.title || ''),
         },
+      }).catch((error) => {
+        console.error('Failed to send admin class booking WhatsApp message:', error);
       });
 
       return NextResponse.json({

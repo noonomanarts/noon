@@ -243,8 +243,9 @@ export async function verifyLogin(
 ): Promise<UserPublic | null> {
   const normalizedIdentifier = identifier.toLowerCase().trim();
   
-  // Try to find user by email
-  const user = await getUserByEmail(normalizedIdentifier);
+  const user =
+    (await getUserByEmail(normalizedIdentifier)) ??
+    (await getUserByPhoneNormalized(normalizedIdentifier));
   
   if (!user || user.status !== 'ACTIVE') {
     return null;
@@ -256,12 +257,17 @@ export async function verifyLogin(
   }
 
   // Update last login
-  await query(
-    `UPDATE users SET last_login_at = $1, updated_at = $1 WHERE id = $2`,
-    [new Date(), user.id]
-  );
+  await recordUserLogin(user.id);
 
   return userToUserPublic(user);
+}
+
+export async function recordUserLogin(userId: string): Promise<void> {
+  const now = new Date();
+  await query(
+    `UPDATE users SET last_login_at = $1, updated_at = $1 WHERE id = $2`,
+    [now, userId]
+  );
 }
 
 /**

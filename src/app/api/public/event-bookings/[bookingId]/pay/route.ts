@@ -137,7 +137,7 @@ export async function POST(request: NextRequest, props: Params) {
 
     const updatedBooking = updatedBookingResult.rows[0];
 
-    void sendUserTransactionWhatsApp({
+    await sendUserTransactionWhatsApp({
       userId: user.id,
       key: 'event_booking_paid',
       vars: {
@@ -146,6 +146,8 @@ export async function POST(request: NextRequest, props: Params) {
         currency,
         balance: newBalance,
       },
+    }).catch((error) => {
+      console.error('Failed to send event booking WhatsApp message:', error);
     });
 
     return NextResponse.json({

@@ -8,6 +8,7 @@ import {
 import type { Locale } from '@/lib/locale';
 
 const TEMPLATE_KEYS: WhatsAppTransactionTemplateKey[] = [
+  'login_success',
   'class_booking_paid',
   'event_booking_paid',
   'shop_purchase_paid',
@@ -39,6 +40,7 @@ export default function AdminWhatsAppTemplatesPageClient({
 
   const labels = useMemo<Record<WhatsAppTransactionTemplateKey, { en: string; ar: string }>>(
     () => ({
+      login_success: { en: 'Login success', ar: 'نجاح تسجيل الدخول' },
       class_booking_paid: { en: 'Class booking paid', ar: 'دفع حجز كلاس' },
       event_booking_paid: { en: 'Event booking paid', ar: 'دفع حجز فعالية' },
       shop_purchase_paid: { en: 'Shop purchase paid', ar: 'دفع شراء من المتجر' },
@@ -58,11 +60,11 @@ export default function AdminWhatsAppTemplatesPageClient({
   );
 
   const t = {
-    title: isArabic ? 'تمبليتات واتساب للمعاملات المالية' : 'WhatsApp Financial Message Templates',
+    title: isArabic ? 'تمبليتات رسائل واتساب التلقائية' : 'WhatsApp Automatic Message Templates',
     hint: isArabic
-      ? 'عدّل نصوص رسائل واتساب التي تُرسل تلقائياً عند كل حركة مالية في النظام.'
-      : 'Edit the WhatsApp messages sent automatically for each financial transaction in the system.',
-    globalEnable: isArabic ? 'تفعيل الرسائل التلقائية المالية' : 'Enable automatic financial messages',
+      ? 'عدّل نصوص رسائل واتساب التي تُرسل تلقائياً في النظام، بما فيها رسائل الدخول والعمليات المختلفة.'
+      : 'Edit the WhatsApp messages sent automatically across the system, including login and transaction events.',
+    globalEnable: isArabic ? 'تفعيل الرسائل التلقائية' : 'Enable automatic messages',
     eventEnable: isArabic ? 'تفعيل هذا الحدث' : 'Enable this event',
     messageEn: isArabic ? 'النص (English)' : 'Message (English)',
     messageAr: isArabic ? 'النص (Arabic)' : 'Message (Arabic)',

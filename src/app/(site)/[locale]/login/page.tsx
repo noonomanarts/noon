@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { isLocale, type Locale } from "@/lib/locale";
 import { ensureDefaultAdmin, verifyLogin } from "@/lib/authStore";
+import { sendUserWhatsAppTemplate } from "@/lib/whatsapp/transactionNotifications";
 import WhatsAppAuthCard from "@/components/site/WhatsAppAuthCard";
 import PasswordInput from "@/components/site/PasswordInput";
 
@@ -54,6 +55,11 @@ export default async function LoginPage({
       httpOnly: true,
       sameSite: "lax",
       path: "/",
+    });
+
+    await sendUserWhatsAppTemplate({
+      userId: user.id,
+      key: "login_success",
     });
 
     const localeString = typeof localeValue === "string" ? localeValue : "en";

@@ -288,13 +288,15 @@ export async function convertPointsToCredit(
 
     await client.query('COMMIT');
 
-    void sendUserTransactionWhatsApp({
+    await sendUserTransactionWhatsApp({
       userId,
       key: 'wallet_points_conversion',
       vars: {
         amount: amountCredited,
         currency: walletCurrency,
       },
+    }).catch((error) => {
+      console.error('Failed to send wallet points conversion WhatsApp message:', error);
     });
 
     return { pointsUsed: pointsToConvert, amountCredited };
@@ -416,7 +418,7 @@ export async function transferWalletFunds(
       data: { amount, currency: receiverWallet.rows[0].currency },
     });
 
-    void sendUserTransactionWhatsApp({
+    await sendUserTransactionWhatsApp({
       userId: fromUserId,
       key: 'wallet_transfer_sent',
       vars: {
@@ -424,9 +426,11 @@ export async function transferWalletFunds(
         currency: senderWallet.rows[0].currency,
         balance: senderNewBalance,
       },
+    }).catch((error) => {
+      console.error('Failed to send wallet transfer sent WhatsApp message:', error);
     });
 
-    void sendUserTransactionWhatsApp({
+    await sendUserTransactionWhatsApp({
       userId: toUserId,
       key: 'wallet_transfer_received',
       vars: {
@@ -434,6 +438,8 @@ export async function transferWalletFunds(
         currency: receiverWallet.rows[0].currency,
         balance: receiverBalance + amount,
       },
+    }).catch((error) => {
+      console.error('Failed to send wallet transfer received WhatsApp message:', error);
     });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -478,7 +484,7 @@ export async function depositToWallet(userId: string, amount: number, reason?: s
     data: { amount, currency: wallet.currency },
   });
 
-  void sendUserTransactionWhatsApp({
+  await sendUserTransactionWhatsApp({
     userId,
     key: 'wallet_deposit',
     vars: {
@@ -486,6 +492,8 @@ export async function depositToWallet(userId: string, amount: number, reason?: s
       currency: wallet.currency,
       balance: newBalance,
     },
+  }).catch((error) => {
+    console.error('Failed to send wallet deposit WhatsApp message:', error);
   });
 }
 
@@ -573,7 +581,7 @@ export async function requestWalletWithdrawal(userId: string, amount: number, re
       data: { walletId: wallet.id },
     });
 
-    void sendUserTransactionWhatsApp({
+    await sendUserTransactionWhatsApp({
       userId: wallet.user_id,
       key: 'withdrawal_request_submitted',
       vars: {
@@ -581,6 +589,8 @@ export async function requestWalletWithdrawal(userId: string, amount: number, re
         currency: wallet.currency,
         availableBalance: newAvailableBalance,
       },
+    }).catch((error) => {
+      console.error('Failed to send withdrawal submitted WhatsApp message:', error);
     });
 
     return {
@@ -793,7 +803,7 @@ export async function cancelWithdrawalRequestByUser(userId: string, transactionI
       data: { transactionId },
     });
 
-    void sendUserTransactionWhatsApp({
+    await sendUserTransactionWhatsApp({
       userId: wallet.user_id,
       key: 'withdrawal_request_cancelled',
       vars: {
@@ -801,6 +811,8 @@ export async function cancelWithdrawalRequestByUser(userId: string, transactionI
         currency: wallet.currency,
         balance: newBalance,
       },
+    }).catch((error) => {
+      console.error('Failed to send withdrawal cancelled WhatsApp message:', error);
     });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -905,13 +917,15 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
       data: { transactionId },
     });
 
-    void sendUserTransactionWhatsApp({
+    await sendUserTransactionWhatsApp({
       userId: wallet.user_id,
       key: 'withdrawal_request_approved',
       vars: {
         amount,
         currency: wallet.currency,
       },
+    }).catch((error) => {
+      console.error('Failed to send withdrawal approved WhatsApp message:', error);
     });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -1020,7 +1034,7 @@ export async function rejectWithdrawalRequest(transactionId: string, adminReason
       data: { transactionId },
     });
 
-    void sendUserTransactionWhatsApp({
+    await sendUserTransactionWhatsApp({
       userId: wallet.user_id,
       key: 'withdrawal_request_rejected',
       vars: {
@@ -1028,6 +1042,8 @@ export async function rejectWithdrawalRequest(transactionId: string, adminReason
         currency: wallet.currency,
         balance: newBalance,
       },
+    }).catch((error) => {
+      console.error('Failed to send withdrawal rejected WhatsApp message:', error);
     });
   } catch (error) {
     await client.query('ROLLBACK');
@@ -1070,7 +1086,7 @@ export async function adminAddWalletCredit(userId: string, amount: number, reaso
     data: { amount, currency: wallet.currency },
   });
 
-  void sendUserTransactionWhatsApp({
+  await sendUserTransactionWhatsApp({
     userId: wallet.user_id,
     key: 'wallet_admin_credit',
     vars: {
@@ -1078,6 +1094,8 @@ export async function adminAddWalletCredit(userId: string, amount: number, reaso
       currency: wallet.currency,
       balance: newBalance,
     },
+  }).catch((error) => {
+    console.error('Failed to send admin wallet credit WhatsApp message:', error);
   });
 
   return {
@@ -1120,7 +1138,7 @@ export async function adminDeductWalletCredit(userId: string, amount: number, re
     data: { amount, currency: wallet.currency },
   });
 
-  void sendUserTransactionWhatsApp({
+  await sendUserTransactionWhatsApp({
     userId: wallet.user_id,
     key: 'wallet_admin_deduct',
     vars: {
@@ -1128,6 +1146,8 @@ export async function adminDeductWalletCredit(userId: string, amount: number, re
       currency: wallet.currency,
       balance: newBalance,
     },
+  }).catch((error) => {
+    console.error('Failed to send admin wallet deduction WhatsApp message:', error);
   });
 
   return {
@@ -1497,7 +1517,7 @@ export async function updateWalletTopupPaymentStatus(data: {
     await client.query('COMMIT');
 
     if (topupWhatsappPayload) {
-      void sendUserTransactionWhatsApp({
+      await sendUserTransactionWhatsApp({
         userId: topupWhatsappPayload.userId,
         key: 'wallet_topup_paid',
         vars: {
@@ -1506,6 +1526,8 @@ export async function updateWalletTopupPaymentStatus(data: {
           currency: topupWhatsappPayload.currency,
           balance: topupWhatsappPayload.balance,
         },
+      }).catch((error) => {
+        console.error('Failed to send wallet top-up WhatsApp message:', error);
       });
     }
 

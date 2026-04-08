@@ -59,10 +59,12 @@ export default function ClassListingHeader({
 
           <div className="w-full max-w-[14rem] justify-self-center sm:max-w-[16rem] md:max-w-none md:-translate-y-2 md:justify-self-end lg:-translate-y-4">
             <ClassHeaderSlideshow
+              key={`${locale}-${slideImages.join("|")}`}
               images={slideImages}
               alt={title}
               intervalMs={autoplayMs}
               indicatorColor={backgroundColor}
+              isRTL={locale === "ar"}
             />
           </div>
         </div>

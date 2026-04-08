@@ -17,6 +17,7 @@ type ClassHeaderSlideshowProps = {
   intervalMs?: number;
   indicatorColor?: string;
   className?: string;
+  isRTL?: boolean;
 };
 
 function normalizeImageSrc(value: string): string {
@@ -33,6 +34,7 @@ export default function ClassHeaderSlideshow({
   intervalMs = 4200,
   indicatorColor = "#cb8578",
   className,
+  isRTL = false,
 }: ClassHeaderSlideshowProps) {
   const preparedImages = useMemo(
     () =>
@@ -66,8 +68,10 @@ export default function ClassHeaderSlideshow({
         onMouseLeave={() => swiper?.autoplay?.start()}
       >
         <Swiper
+          key={`${isRTL ? "rtl" : "ltr"}-${preparedImages.join("|")}`}
           modules={[A11y, Autoplay, Keyboard, Navigation, Pagination]}
           className="touch-pan-y select-none"
+          dir={isRTL ? "rtl" : "ltr"}
           slidesPerView={1}
           loop={enableSlider}
           speed={700}

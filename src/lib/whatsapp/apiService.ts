@@ -491,15 +491,17 @@ function buildSendUrlCandidates(sendApiUrl: string): string[] {
   if (!normalized) return [];
 
   if (/send(text|message)?$/i.test(normalized)) {
-    return [normalized];
+    return [normalized, `${normalized}/`];
   }
 
-  return [
+  return Array.from(new Set([
     normalized,
     `${normalized}/api/sendText`,
     `${normalized}/sendText`,
     `${normalized}/api/messages/sendText`,
-  ];
+    `${normalized}/api/messages/text`,
+    `${normalized}/api/chats/sendText`,
+  ]));
 }
 
 export async function sendWhatsAppTextViaManagedSession(input: {
@@ -528,18 +530,53 @@ export async function sendWhatsAppTextViaManagedSession(input: {
     return { ok: false, status: 400, body: 'WhatsApp send API URL is not configured.' };
   }
 
-  const payloads = [
-    { session: activeSession, chatId, text },
-    { sessionName: activeSession, chatId, text },
-    { session: activeSession, chatId, message: text },
-    { name: activeSession, chatId, text },
+  const phoneDigits = chatId.replace(/@c\.us$/, '');
+  const sendTargets = [
+    { chatId },
+    { to: chatId },
+    { phone: phoneDigits },
+    { phoneNumber: phoneDigits },
   ];
+
+  const sessionPayloads = [
+    { session: activeSession },
+    { sessionName: activeSession },
+    { name: activeSession },
+  ];
+
+  const textPayloads = [
+    { text },
+    { message: text },
+    { body: text },
+    { content: text },
+  ];
+
+  const payloads = Array.from(
+    new Map(
+      sessionPayloads.flatMap((sessionPayload) =>
+        sendTargets.flatMap((target) =>
+          textPayloads.map((textPayload) => {
+            const payload = { ...sessionPayload, ...target, ...textPayload };
+            return [JSON.stringify(payload), payload] as const;
+          })
+        )
+      )
+    ).values()
+  );
 
   let attempts = 0;
   let lastStatus = 502;
   let lastBody = 'Failed to send WhatsApp message.';
 
-  for (const url of urls) {
+  const urlCandidates = Array.from(
+    new Set([
+      ...urls,
+      `${normalizeBaseUrl(settings.sendApiUrl)}/api/sessions/${encodeURIComponent(activeSession)}/messages/text`,
+      `${normalizeBaseUrl(settings.sendApiUrl)}/api/${encodeURIComponent(activeSession)}/sendText`,
+    ])
+  );
+
+  for (const url of urlCandidates) {
     for (const payload of payloads) {
       attempts += 1;
       try {

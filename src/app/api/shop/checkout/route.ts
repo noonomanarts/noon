@@ -401,7 +401,7 @@ export async function POST(request: NextRequest) {
 
       await client.query('COMMIT');
 
-      void sendUserTransactionWhatsApp({
+      await sendUserTransactionWhatsApp({
         userId: user.id,
         key: 'shop_purchase_paid',
         vars: {
@@ -410,6 +410,8 @@ export async function POST(request: NextRequest) {
           currency: String(walletRow.currency || 'OMR'),
           balance: newBalance,
         },
+      }).catch((error) => {
+        console.error('Failed to send shop purchase WhatsApp message:', error);
       });
 
       const response = NextResponse.json({

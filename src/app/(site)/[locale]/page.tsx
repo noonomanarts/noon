@@ -628,7 +628,7 @@ export default async function HomePage({
 
       {showPartners && partnerItems.length > 0 && (
         <Section isArabic={isArabic} title={partnersTitle} sectionClassName="pt-14 pb-2 sm:pt-16 sm:pb-3">
-        <PartnersCarousel items={partnerItems} isArabic={isArabic} />
+        <PartnersCarousel key={locale} items={partnerItems} isArabic={isArabic} />
         </Section>
       )}
 

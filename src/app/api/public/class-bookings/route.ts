@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
     // Award bonus points: 1 OMR = 1 point (fire-and-forget, non-blocking)
     void addBonusPoints(user.id, totalAmount).catch(() => { /* ignore points failure */ });
 
-    void sendUserTransactionWhatsApp({
+    await sendUserTransactionWhatsApp({
       userId: user.id,
       key: 'class_booking_paid',
       vars: {
@@ -340,6 +340,8 @@ export async function POST(request: NextRequest) {
         balance: newBalance,
         classTitle: (classRow.title_ar as string | null) || (classRow.title as string),
       },
+    }).catch((error) => {
+      console.error('Failed to send class booking WhatsApp message:', error);
     });
 
     return NextResponse.json({

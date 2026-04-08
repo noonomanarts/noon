@@ -388,6 +388,7 @@ export function sanitizeFooterAdminSettings(input: Partial<FooterAdminSettings> 
 }
 
 export type WhatsAppTransactionTemplateKey =
+  | 'login_success'
   | 'class_booking_paid'
   | 'event_booking_paid'
   | 'wallet_topup_paid'
@@ -417,6 +418,11 @@ export type WhatsAppTransactionTemplatesSettings = {
 export const defaultWhatsAppTransactionTemplatesSettings: WhatsAppTransactionTemplatesSettings = {
   enabled: true,
   templates: {
+    login_success: {
+      enabled: true,
+      en: 'Hi {{name}}, you have logged in successfully to your Noon account.',
+      ar: 'مرحباً {{name}}، تم تسجيل دخولك إلى حساب Noon بنجاح.',
+    },
     class_booking_paid: {
       enabled: true,
       en: 'Hi {{name}}, your class booking is confirmed. Paid {{amount}} {{currency}} for {{classTitle}}. Wallet balance: {{balance}} {{currency}}.',

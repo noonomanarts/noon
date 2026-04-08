@@ -6,10 +6,12 @@ import {
   getUserByPhoneNormalized,
   markUserWhatsAppVerified,
   normalizePhoneDigits,
+  recordUserLogin,
 } from '@/lib/db/users';
 import type { UserRole } from '@/lib/db/types';
 import { validateWhatsAppVerificationCode, type WhatsAppVerificationPurpose } from '@/lib/db/whatsappAuth';
 import { isEnglishPassword } from '@/lib/passwordPolicy';
+import { sendUserWhatsAppTemplate } from '@/lib/whatsapp/transactionNotifications';
 
 type RegisterData = {
   firstName?: string;
@@ -112,6 +114,7 @@ export async function POST(request: Request) {
       userId = user.id;
       userRole = user.role;
       await markUserWhatsAppVerified(user.id);
+      await recordUserLogin(user.id);
     }
 
     if (purpose === 'REGISTER') {
@@ -230,6 +233,13 @@ export async function POST(request: Request) {
       sameSite: 'lax',
       path: '/',
     });
+
+    if (purpose === 'LOGIN') {
+      await sendUserWhatsAppTemplate({
+        userId,
+        key: 'login_success',
+      });
+    }
 
     const redirectTo = userRole === 'ADMIN'
       ? '/admin'

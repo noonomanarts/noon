@@ -34,7 +34,7 @@ async function getTemplateSettings(): Promise<WhatsAppTransactionTemplatesSettin
   return sanitizeWhatsAppTransactionTemplatesSettings(saved ?? defaultWhatsAppTransactionTemplatesSettings);
 }
 
-export async function sendUserTransactionWhatsApp(input: {
+async function sendConfiguredUserWhatsAppTemplate(input: {
   userId: string;
   key: WhatsAppTransactionTemplateKey;
   vars?: TemplateVariables;
@@ -66,4 +66,20 @@ export async function sendUserTransactionWhatsApp(input: {
   } catch (error) {
     console.error('Failed to send transactional WhatsApp message:', error);
   }
+}
+
+export async function sendUserWhatsAppTemplate(input: {
+  userId: string;
+  key: WhatsAppTransactionTemplateKey;
+  vars?: TemplateVariables;
+}): Promise<void> {
+  await sendConfiguredUserWhatsAppTemplate(input);
+}
+
+export async function sendUserTransactionWhatsApp(input: {
+  userId: string;
+  key: WhatsAppTransactionTemplateKey;
+  vars?: TemplateVariables;
+}): Promise<void> {
+  await sendConfiguredUserWhatsAppTemplate(input);
 }
