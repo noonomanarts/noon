@@ -233,6 +233,35 @@ export function formatNotificationContent(
     };
   }
 
+  if (notification.type === 'trainer_workshop_suggestion_submitted') {
+    const trainerName =
+      pickUserName(notification.data) ??
+      getString(notification.data?.trainerName) ??
+      getString(notification.data?.trainer_name);
+    const suggestionTitle =
+      getString(notification.data?.suggestionTitle) ??
+      getString(notification.data?.suggestion_title);
+
+    return {
+      title: isArabic ? 'ورشة مقترحة جديدة' : 'New Suggested Workshop',
+      message: isArabic
+        ? trainerName && suggestionTitle
+          ? `أرسل ${trainerName} ورشة "${suggestionTitle}" للمراجعة.`
+          : trainerName
+            ? `أرسل ${trainerName} ورشة جديدة للمراجعة.`
+            : suggestionTitle
+              ? `تم إرسال ورشة "${suggestionTitle}" للمراجعة.`
+              : 'تم إرسال ورشة مقترحة جديدة للمراجعة.'
+        : trainerName && suggestionTitle
+          ? `${trainerName} submitted "${suggestionTitle}" for review.`
+          : trainerName
+            ? `${trainerName} submitted a suggested workshop for review.`
+            : suggestionTitle
+              ? `"${suggestionTitle}" was submitted for review.`
+              : 'A new suggested workshop was submitted for review.',
+    };
+  }
+
   return {
     title: notification.title || (isArabic ? 'إشعار' : 'Notification'),
     message: notification.message || '',

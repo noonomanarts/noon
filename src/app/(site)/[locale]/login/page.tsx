@@ -57,7 +57,8 @@ export default async function LoginPage({
       path: "/",
     });
 
-    await sendUserWhatsAppTemplate({
+    // Login must not depend on the WhatsApp gateway being reachable.
+    void sendUserWhatsAppTemplate({
       userId: user.id,
       key: "login_success",
     });

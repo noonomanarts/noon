@@ -235,7 +235,8 @@ export async function POST(request: Request) {
     });
 
     if (purpose === 'LOGIN') {
-      await sendUserWhatsAppTemplate({
+      // Authentication should succeed even when the WhatsApp gateway is slow or unavailable.
+      void sendUserWhatsAppTemplate({
         userId,
         key: 'login_success',
       });

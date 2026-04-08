@@ -116,10 +116,13 @@ export default function AdminNotificationCenter({ locale }: AdminNotificationCen
       </button>
 
       {open && (
-        <div className={`absolute top-11 ${locale === 'ar' ? 'left-0' : 'right-0'} z-[170] w-[360px] max-w-[90vw] rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-700/60 shadow-2xl overflow-hidden`}>
-          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200/70 dark:border-zinc-700/60">
+        <div
+          className={`absolute top-11 ${locale === 'ar' ? 'left-0' : 'right-0'} z-[170] w-[360px] max-w-[90vw] overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-2xl dark:border-zinc-700/60 dark:bg-zinc-900`}
+          dir={locale === 'ar' ? 'rtl' : 'ltr'}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/70 px-4 py-3 dark:border-zinc-700/60">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">{t.title}</h3>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={markAllRead}
                 className="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
@@ -137,7 +140,7 @@ export default function AdminNotificationCenter({ locale }: AdminNotificationCen
             </div>
           </div>
 
-          <div className="max-h-[420px] overflow-y-auto">
+          <div className="max-h-[420px] overflow-y-auto overscroll-contain">
             {loading ? (
               <div className="px-4 py-6 text-sm text-zinc-500 dark:text-zinc-400">...</div>
             ) : notifications.length === 0 ? (
@@ -149,7 +152,7 @@ export default function AdminNotificationCenter({ locale }: AdminNotificationCen
                   onClick={() => {
                     if (!item.is_read) void markOneRead(item.id);
                   }}
-                  className={`w-full text-left px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors ${item.is_read ? '' : 'bg-indigo-50/70 dark:bg-indigo-900/20'}`}
+                  className={`w-full border-b border-zinc-100 px-4 py-3 text-start transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50 ${item.is_read ? '' : 'bg-indigo-50/70 dark:bg-indigo-900/20'}`}
                 >
                   {(() => {
                     const localized = formatNotificationContent(
@@ -160,9 +163,13 @@ export default function AdminNotificationCenter({ locale }: AdminNotificationCen
 
                     return (
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-zinc-900 dark:text-white">{localized.title}</p>
-                      <p className="mt-1 truncate text-xs text-zinc-600 dark:text-zinc-300">{localized.message}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm font-semibold leading-6 text-zinc-900 dark:text-white">
+                        {localized.title}
+                      </p>
+                      <p className="mt-1 whitespace-normal break-words text-xs leading-5 text-zinc-600 dark:text-zinc-300">
+                        {localized.message}
+                      </p>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
                         {new Date(item.created_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
                       </p>
