@@ -1,9 +1,15 @@
 "use client";
 
-import useEmblaCarousel from "embla-carousel-react";
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useId, useMemo, useState } from "react";
 import { HiChevronLeft, HiChevronRight } from "react-icons/hi2";
+import { A11y, Autoplay, Keyboard, Navigation, Pagination } from "swiper/modules";
+import { Swiper, SwiperSlide } from "swiper/react";
+import type { Swiper as SwiperInstance } from "swiper/types";
+
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 
 type ClassHeaderSlideshowProps = {
   images: string[];
@@ -28,15 +34,19 @@ export default function ClassHeaderSlideshow({
   indicatorColor = "#cb8578",
   className,
 }: ClassHeaderSlideshowProps) {
-  const preparedImages = Array.from(
-    new Set(images.map((item) => normalizeImageSrc(item)).filter((item) => item.length > 0))
+  const preparedImages = useMemo(
+    () =>
+      Array.from(
+        new Set(images.map((item) => normalizeImageSrc(item)).filter((item) => item.length > 0)),
+      ),
+    [images],
   );
 
-  const hydrated = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
+  const [swiper, setSwiper] = useState<SwiperInstance | null>(null);
+  const sliderId = useId().replace(/:/g, "");
+  const navigationPrevClass = `class-header-slideshow-prev-${sliderId}`;
+  const navigationNextClass = `class-header-slideshow-next-${sliderId}`;
+  const paginationClass = `class-header-slideshow-pagination-${sliderId}`;
 
   if (preparedImages.length === 0) {
     return (
@@ -46,210 +56,116 @@ export default function ClassHeaderSlideshow({
     );
   }
 
-  if (!hydrated) {
-    return (
-      <div className={className ? `w-full ${className}` : "w-full"}>
-        <div className="group relative overflow-hidden rounded-[2.25rem] border border-white/35 bg-white/15 shadow-[0_34px_90px_rgba(46,27,17,0.24)] backdrop-blur-sm">
-          <div className="relative aspect-[3/4] w-full bg-white/20">
-            <Image
-              src={preparedImages[0]}
-              alt={alt}
-              fill
-              priority
-              fetchPriority="high"
-              sizes="(max-width: 640px) 90vw, (max-width: 1024px) 50vw, 24rem"
-              draggable={false}
-              className="object-cover"
-            />
-          </div>
-        </div>
-        {preparedImages.length > 1 && (
-          <div className="mt-5 flex items-center justify-center gap-2.5">
-            {preparedImages.map((src, index) => (
-              <span
-                key={`${src}-dot-${index}`}
-                className="h-3.5 w-3.5 rounded-full"
-                style={{
-                  backgroundColor: indicatorColor,
-                  opacity: index === 0 ? 1 : 0.38,
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <ClassHeaderSlideshowInteractive
-      images={preparedImages}
-      alt={alt}
-      intervalMs={intervalMs}
-      indicatorColor={indicatorColor}
-      className={className}
-    />
-  );
-}
-
-function ClassHeaderSlideshowInteractive({
-  images,
-  alt,
-  intervalMs,
-  indicatorColor,
-  className,
-}: {
-  images: string[];
-  alt: string;
-  intervalMs: number;
-  indicatorColor: string;
-  className?: string;
-}) {
-  const autoplayTimerRef = useRef<number | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    loop: images.length > 1,
-    align: "start",
-    containScroll: "trimSnaps",
-    dragFree: false,
-  });
-
-  const stopAutoplay = useCallback(() => {
-    if (autoplayTimerRef.current !== null) {
-      window.clearInterval(autoplayTimerRef.current);
-      autoplayTimerRef.current = null;
-    }
-  }, []);
-
-  const startAutoplay = useCallback(() => {
-    if (!emblaApi || images.length <= 1) return;
-    stopAutoplay();
-    autoplayTimerRef.current = window.setInterval(() => {
-      emblaApi.scrollNext();
-    }, intervalMs);
-  }, [emblaApi, images.length, intervalMs, stopAutoplay]);
-
-  useEffect(() => {
-    if (!emblaApi || images.length <= 1) return;
-    startAutoplay();
-    return () => stopAutoplay();
-  }, [emblaApi, images.length, startAutoplay, stopAutoplay]);
-
-  useEffect(() => {
-    if (!emblaApi || images.length <= 1) return;
-    const onPointerDown = () => stopAutoplay();
-    const onPointerUp = () => startAutoplay();
-    emblaApi.on("pointerDown", onPointerDown);
-    emblaApi.on("pointerUp", onPointerUp);
-    emblaApi.on("settle", onPointerUp);
-    return () => {
-      emblaApi.off("pointerDown", onPointerDown);
-      emblaApi.off("pointerUp", onPointerUp);
-      emblaApi.off("settle", onPointerUp);
-    };
-  }, [emblaApi, images.length, startAutoplay, stopAutoplay]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
-    onSelect();
-    emblaApi.on("select", onSelect);
-    return () => {
-      emblaApi.off("select", onSelect);
-    };
-  }, [emblaApi]);
-
-  const goToPrev = useCallback(() => {
-    emblaApi?.scrollPrev();
-  }, [emblaApi]);
-
-  const goToNext = useCallback(() => {
-    emblaApi?.scrollNext();
-  }, [emblaApi]);
-
-  const goToSlide = useCallback(
-    (index: number) => {
-      emblaApi?.scrollTo(index);
-    },
-    [emblaApi],
-  );
+  const enableSlider = preparedImages.length > 1;
 
   return (
     <div className={className ? `w-full ${className}` : "w-full"}>
       <div
         className="group relative overflow-hidden rounded-[2.25rem] border border-white/35 bg-white/15 shadow-[0_34px_90px_rgba(46,27,17,0.24)] backdrop-blur-sm"
-        onMouseEnter={stopAutoplay}
-        onMouseLeave={startAutoplay}
+        onMouseEnter={() => swiper?.autoplay?.stop()}
+        onMouseLeave={() => swiper?.autoplay?.start()}
       >
-        <div
-          ref={emblaRef}
-          className="touch-pan-y overflow-hidden select-none"
-          role="region"
-          aria-roledescription="carousel"
-          aria-label={alt}
+        <Swiper
+          modules={[A11y, Autoplay, Keyboard, Navigation, Pagination]}
+          className="touch-pan-y select-none"
+          slidesPerView={1}
+          loop={enableSlider}
+          speed={700}
+          allowTouchMove={enableSlider}
+          grabCursor={enableSlider}
+          watchOverflow
+          keyboard={{ enabled: enableSlider }}
+          autoplay={
+            enableSlider
+              ? {
+                  delay: intervalMs,
+                  disableOnInteraction: false,
+                  pauseOnMouseEnter: false,
+                }
+              : false
+          }
+          navigation={
+            enableSlider
+              ? {
+                  prevEl: `.${navigationPrevClass}`,
+                  nextEl: `.${navigationNextClass}`,
+                }
+              : false
+          }
+          pagination={
+            enableSlider
+              ? {
+                  el: `.${paginationClass}`,
+                  clickable: true,
+                  bulletClass:
+                    "class-header-slideshow-bullet h-3.5 w-3.5 rounded-full transition-transform duration-200",
+                  bulletActiveClass: "class-header-slideshow-bullet-active scale-110",
+                  renderBullet: (_, className) =>
+                    `<button type="button" class="${className}" aria-label="Go to slide"></button>`,
+                }
+              : false
+          }
+          a11y={{
+            containerMessage: alt,
+            containerRoleDescriptionMessage: "carousel",
+            slideRole: "group",
+          }}
+          onSwiper={setSwiper}
         >
-          <div className="flex">
-            {images.map((src, index) => (
-              <div key={`${src}-${index}`} className="relative min-w-0 flex-[0_0_100%]">
-                <div className="relative aspect-[3/4] w-full bg-white/20">
-                  <Image
-                    src={src}
-                    alt={alt}
-                    fill
-                    priority={index === 0}
-                    loading={index <= 1 ? "eager" : "lazy"}
-                    fetchPriority={index === 0 ? "high" : "auto"}
-                    sizes="(max-width: 640px) 90vw, (max-width: 1024px) 50vw, 24rem"
-                    draggable={false}
-                    className="object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-                  />
-                </div>
+          {preparedImages.map((src, index) => (
+            <SwiperSlide key={`${src}-${index}`}>
+              <div className="relative aspect-[3/4] w-full bg-white/20">
+                <Image
+                  src={src}
+                  alt={alt}
+                  fill
+                  priority={index === 0}
+                  loading={index <= 1 ? "eager" : "lazy"}
+                  fetchPriority={index === 0 ? "high" : "auto"}
+                  sizes="(max-width: 640px) 90vw, (max-width: 1024px) 50vw, 24rem"
+                  draggable={false}
+                  className="object-cover"
+                />
               </div>
-            ))}
-          </div>
-        </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
 
-        {images.length > 1 && (
+        {enableSlider ? (
           <>
             <button
               type="button"
               aria-label="Previous slide"
-              onClick={goToPrev}
-              className="absolute left-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-black/35 text-white backdrop-blur transition hover:bg-black/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+              className={`absolute left-3 top-1/2 z-10 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-black/35 text-white backdrop-blur transition hover:bg-black/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${navigationPrevClass}`}
             >
               <HiChevronLeft className="h-5 w-5" />
             </button>
             <button
               type="button"
               aria-label="Next slide"
-              onClick={goToNext}
-              className="absolute right-3 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-black/35 text-white backdrop-blur transition hover:bg-black/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+              className={`absolute right-3 top-1/2 z-10 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-black/35 text-white backdrop-blur transition hover:bg-black/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ${navigationNextClass}`}
             >
               <HiChevronRight className="h-5 w-5" />
             </button>
           </>
-        )}
+        ) : null}
       </div>
 
-      {images.length > 1 && (
-        <div className="mt-5 flex items-center justify-center gap-2.5">
-          {images.map((src, index) => (
-            <button
-              key={`${src}-dot-${index}`}
-              type="button"
-              aria-label={`Slide ${index + 1}`}
-              aria-pressed={selectedIndex === index}
-              onClick={() => goToSlide(index)}
-              className={`h-3.5 w-3.5 rounded-full transition ${selectedIndex === index ? "scale-110" : ""}`}
-              style={{
-                backgroundColor: indicatorColor,
-                opacity: selectedIndex === index ? 1 : 0.38,
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {enableSlider ? (
+        <>
+          <div className={`mt-5 flex items-center justify-center gap-2.5 ${paginationClass}`} />
+          <style jsx>{`
+            :global(.${paginationClass} .class-header-slideshow-bullet) {
+              background-color: ${indicatorColor};
+              opacity: 0.38;
+            }
+
+            :global(.${paginationClass} .class-header-slideshow-bullet-active) {
+              opacity: 1;
+            }
+          `}</style>
+        </>
+      ) : null}
     </div>
   );
 }
