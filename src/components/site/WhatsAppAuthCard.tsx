@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import PasswordInput from '@/components/site/PasswordInput';
+import CountryCodeSelect from '@/components/site/CountryCodeSelect';
 import { isEnglishPassword } from '@/lib/passwordPolicy';
 
 type Locale = 'en' | 'ar';
@@ -29,7 +30,7 @@ export default function WhatsAppAuthCard({
   purpose: Purpose;
 }) {
   const isArabic = locale === 'ar';
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const phoneRef = useRef('');
   const [verificationId, setVerificationId] = useState('');
   const [code, setCode] = useState('');
   const [requesting, setRequesting] = useState(false);
@@ -47,6 +48,11 @@ export default function WhatsAppAuthCard({
     confirmPassword: '',
     acceptedTerms: false,
   });
+
+  // Update phoneRef when CountryCodeSelect changes
+  const handlePhoneChange = useCallback((fullPhone: string) => {
+    phoneRef.current = fullPhone;
+  }, []);
 
   const t = useMemo(
     () => ({
@@ -66,7 +72,7 @@ export default function WhatsAppAuthCard({
           : isArabic
             ? 'أكمل بياناتك ثم استلم رمز التحقق على واتساب لإتمام إنشاء الحساب.'
             : 'Complete your details and receive a WhatsApp verification code to finish registration.',
-      phone: isArabic ? 'رقم واتساب' : 'WhatsApp Number',
+      phone: isArabic ? 'رقم الهاتف' : 'Phone Number',
       code: isArabic ? 'رمز التحقق' : 'Verification Code',
       requestCode: isArabic ? 'إرسال رمز التحقق' : 'Send Verification Code',
       resendCode: isArabic ? 'إعادة إرسال الكود' : 'Resend Code',
@@ -111,7 +117,11 @@ export default function WhatsAppAuthCard({
     setError(null);
     setInfo(null);
 
-    if (!phoneNumber.trim()) {
+    // Phone format from CountryCodeSelect: "+968 12345678"
+    const phone = phoneRef.current.trim();
+    // Check if there are digits after the dial code
+    const hasNumber = phone.replace(/^\+\d+\s*/, '').trim().length > 0;
+    if (!hasNumber) {
       setError(t.needPhone);
       return;
     }
@@ -147,13 +157,16 @@ export default function WhatsAppAuthCard({
 
     setRequesting(true);
 
+    // Remove spaces from phone for API
+    const fullPhoneNumber = phoneRef.current.replace(/\s+/g, '');
+
     try {
       const response = await fetch('/api/auth/whatsapp/request-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           purpose,
-          phoneNumber: phoneNumber.trim(),
+          phoneNumber: fullPhoneNumber,
           locale,
           email: purpose === 'register' ? registerForm.email.trim() : undefined,
         }),
@@ -192,6 +205,9 @@ export default function WhatsAppAuthCard({
 
     setVerifying(true);
 
+    // Remove spaces from phone for API
+    const fullPhoneNumber = phoneRef.current.replace(/\s+/g, '');
+
     try {
       const response = await fetch('/api/auth/whatsapp/verify-code', {
         method: 'POST',
@@ -200,7 +216,7 @@ export default function WhatsAppAuthCard({
           purpose,
           verificationId,
           code: code.trim(),
-          phoneNumber: phoneNumber.trim(),
+          phoneNumber: fullPhoneNumber,
           locale,
           registerData:
             purpose === 'register'
@@ -348,13 +364,10 @@ export default function WhatsAppAuthCard({
           </>
         ) : null}
 
-        <input
-          value={phoneNumber}
-          onChange={(event) => setPhoneNumber(event.target.value)}
-          placeholder={t.phone}
-          lang="en"
-          dir="ltr"
-          className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+        <CountryCodeSelect
+          locale={locale}
+          onChange={handlePhoneChange}
+          inputClassName="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
         />
 
         <div className="grid gap-2 sm:grid-cols-2">

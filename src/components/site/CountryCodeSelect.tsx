@@ -79,6 +79,8 @@ interface Props {
   defaultDialCode?: string;
   defaultNumber?: string;
   inputClassName?: string;
+  /** Called whenever the full phone (dial code + number) changes */
+  onChange?: (fullPhone: string) => void;
 }
 
 export default function CountryCodeSelect({
@@ -88,6 +90,7 @@ export default function CountryCodeSelect({
   defaultDialCode,
   defaultNumber = "",
   inputClassName = "",
+  onChange,
 }: Props) {
   const isAr = locale === "ar";
   const initialCountry = defaultDialCode
@@ -106,6 +109,11 @@ export default function CountryCodeSelect({
 
   // Full value sent to the server
   const fullPhone = `${selected.dial} ${phoneNumber}`.trim();
+
+  // Notify parent of changes
+  useEffect(() => {
+    onChange?.(fullPhone);
+  }, [fullPhone, onChange]);
 
   // Close on outside click
   useEffect(() => {
