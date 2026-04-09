@@ -1204,6 +1204,14 @@ export async function getAllWallets(): Promise<
     user_profile_image: string | null;
   })[]
 > {
+  await pool.query(
+    `INSERT INTO wallets (user_id, balance, available_balance, currency)
+     SELECT u.id, 0, 0, 'OMR'
+     FROM users u
+     LEFT JOIN wallets w ON w.user_id = u.id
+     WHERE w.id IS NULL`
+  );
+
   const result = await pool.query(
     `SELECT w.*, u.full_name as user_full_name, u.email as user_email, u.phone_number as user_phone_number,
             u.profile_image as user_profile_image,

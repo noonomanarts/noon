@@ -70,6 +70,21 @@ type PromoValidationPayload = {
 };
 
 const SHIPPING_FEE = 2;
+const CHECKOUT_DRAFT_STORAGE_KEY = 'checkout_draft_v1';
+
+type CheckoutDraft = {
+  form: {
+    area: string;
+    streetAddress: string;
+    postalCode: string;
+    recipientFullName: string;
+    recipientPhone: string;
+    notes: string;
+  };
+  selectedLocation: DeliveryLocation | null;
+  promoCodeInput: string;
+  appliedPromo: PromoValidationPayload | null;
+};
 
 export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const searchParams = useSearchParams();
@@ -79,7 +94,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [topupLoading, setTopupLoading] = useState(false);
-  const [topupAmount, setTopupAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -88,6 +102,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const [unauthorized, setUnauthorized] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<DeliveryLocation | null>(null);
+  const [resumeAfterTopup, setResumeAfterTopup] = useState(false);
 
   const [form, setForm] = useState({
     area: '',
@@ -121,6 +136,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     onlyMuscat: isArabic ? 'التوصيل داخل مسقط فقط.' : 'Delivery is available in Muscat only.',
     orderSummary: isArabic ? 'ملخص الطلب' : 'Order Summary',
     walletBalance: isArabic ? 'رصيد المحفظة' : 'Wallet Balance',
+    walletUsed: isArabic ? 'سيتم الخصم من المحفظة' : 'Will be paid from wallet',
     subtotal: isArabic ? 'الإجمالي الفرعي' : 'Subtotal',
     shipping: isArabic ? 'رسوم التوصيل' : 'Shipping Fee',
     discount: isArabic ? 'الخصم' : 'Discount',
@@ -131,15 +147,29 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     promoPlaceholder: isArabic ? 'مثال: NOON20' : 'Example: NOON20',
     total: isArabic ? 'الإجمالي النهائي' : 'Total',
     payWallet: isArabic ? 'الدفع من المحفظة' : 'Pay with Wallet',
+    payShortfall: isArabic ? 'ادفع المتبقي عبر Paymob' : 'Pay Remaining with Paymob',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
-    insufficient: isArabic ? 'رصيد المحفظة غير كافٍ للدفع. قم بشحن المحفظة.' : 'Wallet balance is insufficient for payment. Top up your wallet.',
+    insufficient: isArabic
+      ? 'رصيد المحفظة الحالي لا يغطي كامل الطلب. سنستخدم كل الرصيد المتاح أولاً، ثم تدفعين فقط المبلغ المتبقي عبر Paymob.'
+      : 'Your wallet does not fully cover this order. We will use your available wallet balance first, and you will only pay the remaining amount through Paymob.',
     topupTitle: isArabic ? 'شحن المحفظة' : 'Top Up Wallet',
-    topupHint: isArabic ? 'يمكنك زيادة الرصيد مباشرة قبل الدفع.' : 'You can increase your balance before payment.',
-    topupAmount: isArabic ? 'مبلغ الشحن' : 'Top Up Amount',
-    topupAction: isArabic ? 'شحن الآن' : 'Top Up Now',
+    topupHint: isArabic
+      ? 'سيتم خصم الرصيد الموجود في محفظتك تلقائياً عند إتمام الطلب، لذلك المطلوب الآن هو دفع قيمة النقص فقط.'
+      : 'Your existing wallet balance will be used automatically during checkout, so you only need to pay the shortfall now.',
+    topupAmount: isArabic ? 'المبلغ المتبقي' : 'Remaining Amount',
     topupRedirect: isArabic
       ? 'سيتم تحويلك الآن إلى بوابة Paymob الآمنة.'
       : 'You will now be redirected to Paymob secure checkout.',
+    topupResume: isArabic
+      ? 'تم شحن المبلغ المتبقي. يتم الآن إكمال الطلب تلقائياً.'
+      : 'The remaining amount was received. Completing your order now.',
+    shortfall: isArabic ? 'المبلغ المتبقي' : 'Remaining amount',
+    shortfallHelp: isArabic
+      ? 'هذا هو فقط المبلغ الذي ستدفعينه الآن عبر Paymob لإكمال الطلب.'
+      : 'This is the only amount you need to pay now through Paymob to complete the order.',
+    paymobCtaHint: isArabic
+      ? 'بالضغط على الزر التالي سيتم تحويلك إلى Paymob لدفع هذا المبلغ فقط.'
+      : 'When you continue, you will be redirected to Paymob to pay this amount only.',
     successTitle: isArabic ? 'تم تأكيد الطلب بنجاح' : 'Order confirmed successfully',
     orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',
     continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
@@ -201,8 +231,46 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const total = Number((discountedSubtotal + SHIPPING_FEE).toFixed(3));
   const walletBalance = wallet?.balance ?? 0;
   const hasEnoughBalance = walletBalance >= total;
+  const shortfallAmount = Number(Math.max(0, total - walletBalance).toFixed(3));
+  const walletUsedAmount = Number(Math.min(walletBalance, total).toFixed(3));
   const hasItems = (cart?.items.length ?? 0) > 0;
   const isLocationMissing = selectedLocation === null;
+
+  const persistCheckoutDraft = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const payload: CheckoutDraft = {
+      form,
+      selectedLocation,
+      promoCodeInput,
+      appliedPromo,
+    };
+
+    window.sessionStorage.setItem(`${CHECKOUT_DRAFT_STORAGE_KEY}:${locale}`, JSON.stringify(payload));
+  }, [appliedPromo, form, locale, promoCodeInput, selectedLocation]);
+
+  const clearCheckoutDraft = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    window.sessionStorage.removeItem(`${CHECKOUT_DRAFT_STORAGE_KEY}:${locale}`);
+  }, [locale]);
+
+  const restoreCheckoutDraft = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+
+    const raw = window.sessionStorage.getItem(`${CHECKOUT_DRAFT_STORAGE_KEY}:${locale}`);
+    if (!raw) return false;
+
+    try {
+      const parsed = JSON.parse(raw) as CheckoutDraft;
+      setForm(parsed.form);
+      setSelectedLocation(parsed.selectedLocation ?? null);
+      setPromoCodeInput(parsed.promoCodeInput ?? '');
+      setAppliedPromo(parsed.appliedPromo ?? null);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [locale]);
 
   const requiredMissing = useMemo(() => {
     return (
@@ -215,11 +283,15 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   useEffect(() => {
     const topupStatus = searchParams.get('topup');
+    const restored = restoreCheckoutDraft();
     if (!topupStatus) return;
 
     if (topupStatus === 'paid') {
-      setMessage(isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.');
+      setMessage(restored ? t.topupResume : (isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.'));
       setError(null);
+      if (restored) {
+        setResumeAfterTopup(true);
+      }
       void loadData();
       return;
     }
@@ -243,8 +315,11 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
           : 'Payment was received and your balance will update once Paymob confirms it.'
       );
       setError(null);
+      if (restored) {
+        setResumeAfterTopup(true);
+      }
     }
-  }, [isArabic, loadData, searchParams]);
+  }, [isArabic, loadData, restoreCheckoutDraft, searchParams, t.topupResume]);
 
   useEffect(() => {
     if (!cart || cart.items.length === 0) {
@@ -307,14 +382,16 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     setMessage(null);
     setError(null);
 
-    const amount = Number(topupAmount);
+    const amount = shortfallAmount;
     if (!Number.isFinite(amount) || amount <= 0) {
-      setError(isArabic ? 'مبلغ الشحن غير صحيح.' : 'Invalid top-up amount.');
+      setError(isArabic ? 'لا يوجد مبلغ متبقٍ للدفع.' : 'There is no remaining amount to charge.');
       return;
     }
 
     setTopupLoading(true);
     try {
+      persistCheckoutDraft();
+
       const response = await fetch('/api/wallet/topup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -340,7 +417,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         throw new Error(isArabic ? 'رابط الدفع غير متوفر.' : 'Payment URL is missing.');
       }
 
-      setTopupAmount('');
       setMessage(t.topupRedirect);
       window.location.href = redirectUrl;
     } catch (topupError) {
@@ -350,9 +426,11 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     }
   };
 
-  const submitCheckout = async () => {
+  const submitCheckout = useCallback(async (isResumeAttempt = false) => {
     setError(null);
-    setMessage(null);
+    if (!isResumeAttempt) {
+      setMessage(null);
+    }
 
     if (!hasItems) {
       setError(isArabic ? 'السلة فارغة.' : 'Your cart is empty.');
@@ -389,6 +467,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         throw new Error(payload.error || (isArabic ? 'فشل إتمام الطلب.' : 'Checkout failed.'));
       }
 
+      clearCheckoutDraft();
       setCheckoutResult(payload);
       setWallet(payload.wallet);
       setCart({
@@ -402,10 +481,52 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
       window.dispatchEvent(new CustomEvent('cart:changed', { detail: { count: 0 } }));
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : 'Checkout failed');
+      if (isResumeAttempt) {
+        setResumeAfterTopup(true);
+      }
     } finally {
       setProcessing(false);
     }
-  };
+  }, [
+    appliedPromo?.promoCode,
+    clearCheckoutDraft,
+    form,
+    hasItems,
+    isArabic,
+    isLocationMissing,
+    requiredMissing,
+    selectedLocation,
+    t.locationRequired,
+    t.required,
+  ]);
+
+  useEffect(() => {
+    if (
+      !resumeAfterTopup ||
+      loading ||
+      processing ||
+      checkoutResult ||
+      !hasItems ||
+      !hasEnoughBalance ||
+      requiredMissing ||
+      isLocationMissing
+    ) {
+      return;
+    }
+
+    setResumeAfterTopup(false);
+    void submitCheckout(true);
+  }, [
+    checkoutResult,
+    hasEnoughBalance,
+    hasItems,
+    isLocationMissing,
+    loading,
+    processing,
+    requiredMissing,
+    resumeAfterTopup,
+    submitCheckout,
+  ]);
 
   if (loading) {
     return (
@@ -679,6 +800,23 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                 </span>
               </div>
               <div className="flex items-center justify-between">
+                <span>{t.walletUsed}</span>
+                <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                  {formatAmountWithCurrency(walletUsedAmount, currency)}
+                </span>
+              </div>
+              {!hasEnoughBalance ? (
+                <div className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-900/10">
+                  <div className="flex items-center justify-between text-amber-800 dark:text-amber-200">
+                    <span className="font-medium">{t.shortfall}</span>
+                    <span className="font-semibold">{formatAmountWithCurrency(shortfallAmount, currency)}</span>
+                  </div>
+                  <p className="mt-1 text-[11px] leading-5 text-amber-700 dark:text-amber-300">
+                    {t.shortfallHelp}
+                  </p>
+                </div>
+              ) : null}
+              <div className="flex items-center justify-between">
                 <span>{t.subtotal}</span>
                 <span>{formatAmountWithCurrency(subtotal, currency)}</span>
               </div>
@@ -721,26 +859,30 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             {!hasEnoughBalance ? (
               <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center dark:border-emerald-900/40 dark:bg-emerald-900/20">
                 <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">{t.topupTitle}</h3>
-                <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">{t.topupHint}</p>
-                <div className="mt-3 flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0.001"
-                    step="0.001"
-                    value={topupAmount}
-                    onChange={(event) => setTopupAmount(event.target.value)}
-                    placeholder={t.topupAmount}
-                    className="min-w-0 flex-1 rounded-xl border border-solid border-[#b5ada4] bg-[color:var(--muted)] px-3 py-2 text-sm text-[color:var(--text)] focus:border-[color:var(--primary)] focus:outline-2 focus:outline-[color:var(--focus)]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void handleTopup()}
-                    disabled={topupLoading}
-                    className="inline-flex shrink-0 whitespace-nowrap rounded-xl border border-emerald-400/60 px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-500/10 disabled:opacity-60"
-                  >
-                    {topupLoading ? t.processing : t.topupAction}
-                  </button>
+                <p className="mt-1 text-xs leading-6 text-emerald-800 dark:text-emerald-300">{t.topupHint}</p>
+                <div className="mt-3 grid gap-2 rounded-xl border border-emerald-300/60 bg-white/70 p-3 text-sm dark:bg-emerald-950/20">
+                  <div className="flex items-center justify-between text-emerald-900 dark:text-emerald-200">
+                    <span>{t.walletBalance}</span>
+                    <span className="font-semibold">{formatAmountWithCurrency(walletBalance, currency)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-emerald-900 dark:text-emerald-200">
+                    <span>{t.walletUsed}</span>
+                    <span className="font-semibold">{formatAmountWithCurrency(walletUsedAmount, currency)}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-emerald-300/60 pt-2 text-emerald-950 dark:text-emerald-100">
+                    <span className="font-medium">{t.topupAmount}</span>
+                    <span className="text-base font-bold">{formatAmountWithCurrency(shortfallAmount, currency)}</span>
+                  </div>
                 </div>
+                <p className="mt-3 text-[11px] leading-5 text-emerald-700 dark:text-emerald-300">{t.paymobCtaHint}</p>
+                <button
+                  type="button"
+                  onClick={() => void handleTopup()}
+                  disabled={topupLoading || shortfallAmount <= 0}
+                  className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-emerald-400/60 px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-500/10 disabled:opacity-60"
+                >
+                  {topupLoading ? t.processing : t.payShortfall}
+                </button>
               </div>
             ) : null}
 
