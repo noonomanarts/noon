@@ -523,3 +523,360 @@ export function sanitizeWhatsAppTransactionTemplatesSettings(
     templates,
   };
 }
+
+// =============================================================================
+// Email Settings and Templates
+// =============================================================================
+
+export type EmailSettings = {
+  enabled: boolean;
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure: boolean;
+  smtpUser: string;
+  smtpPassword: string;
+  senderName: string;
+  senderEmail: string;
+  replyToEmail: string;
+};
+
+export const defaultEmailSettings: EmailSettings = {
+  enabled: true,
+  smtpHost: 'smtp.zoho.com',
+  smtpPort: 587,
+  smtpSecure: false,
+  smtpUser: 'info@noonomanarts.com',
+  smtpPassword: 'ROKFvQ7rvH4Z',
+  senderName: 'Noon',
+  senderEmail: 'info@noonomanarts.com',
+  replyToEmail: 'info@noonomanarts.com',
+};
+
+export function sanitizeEmailSettings(input: Partial<EmailSettings> | null | undefined): EmailSettings {
+  const source = input ?? {};
+  return {
+    enabled: typeof source.enabled === 'boolean' ? source.enabled : defaultEmailSettings.enabled,
+    smtpHost: sanitizeTextValue(source.smtpHost, defaultEmailSettings.smtpHost, 200),
+    smtpPort: typeof source.smtpPort === 'number' && source.smtpPort > 0 ? source.smtpPort : defaultEmailSettings.smtpPort,
+    smtpSecure: typeof source.smtpSecure === 'boolean' ? source.smtpSecure : defaultEmailSettings.smtpSecure,
+    smtpUser: sanitizeTextValue(source.smtpUser, defaultEmailSettings.smtpUser, 200),
+    smtpPassword: typeof source.smtpPassword === 'string' ? source.smtpPassword : defaultEmailSettings.smtpPassword,
+    senderName: sanitizeTextValue(source.senderName, defaultEmailSettings.senderName, 100),
+    senderEmail: sanitizeTextValue(source.senderEmail, defaultEmailSettings.senderEmail, 200),
+    replyToEmail: sanitizeTextValue(source.replyToEmail, defaultEmailSettings.replyToEmail, 200),
+  };
+}
+
+export type EmailTransactionTemplateKey =
+  | 'login_success'
+  | 'class_booking_paid'
+  | 'class_booking_cancelled'
+  | 'class_reminder'
+  | 'class_cancelled_by_admin'
+  | 'event_booking_paid'
+  | 'event_booking_cancelled'
+  | 'wallet_topup_paid'
+  | 'wallet_deposit'
+  | 'wallet_points_conversion'
+  | 'wallet_transfer_sent'
+  | 'wallet_transfer_received'
+  | 'withdrawal_request_submitted'
+  | 'withdrawal_request_cancelled'
+  | 'withdrawal_request_approved'
+  | 'withdrawal_request_rejected'
+  | 'wallet_admin_credit'
+  | 'wallet_admin_deduct'
+  | 'shop_purchase_paid'
+  | 'shop_order_shipped'
+  | 'shop_order_delivered'
+  | 'trainer_workshop_reminder'
+  | 'trainer_workshop_assigned'
+  | 'welcome_email'
+  | 'password_reset';
+
+export type EmailTransactionTemplateItem = {
+  enabled: boolean;
+  subjectEn: string;
+  subjectAr: string;
+  bodyEn: string;
+  bodyAr: string;
+};
+
+export type EmailTransactionTemplatesSettings = {
+  enabled: boolean;
+  templates: Record<EmailTransactionTemplateKey, EmailTransactionTemplateItem>;
+};
+
+export const defaultEmailTransactionTemplatesSettings: EmailTransactionTemplatesSettings = {
+  enabled: true,
+  templates: {
+    login_success: {
+      enabled: false,
+      subjectEn: 'Login Notification - Noon',
+      subjectAr: 'إشعار تسجيل الدخول - نون',
+      bodyEn: `<p>Hi {{name}},</p><p>You have successfully logged in to your Noon account.</p><p>If this wasn't you, please contact us immediately.</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم تسجيل دخولك إلى حساب نون بنجاح.</p><p>إذا لم تكن أنت، يرجى الاتصال بنا فوراً.</p>`,
+    },
+    class_booking_paid: {
+      enabled: true,
+      subjectEn: 'Booking Confirmed - {{classTitle}}',
+      subjectAr: 'تأكيد الحجز - {{classTitle}}',
+      bodyEn: `<p>Hi {{name}},</p><p>Your class booking has been confirmed!</p><p><strong>Class:</strong> {{classTitle}}<br><strong>Date:</strong> {{classDate}}<br><strong>Time:</strong> {{classTime}}<br><strong>Amount Paid:</strong> {{amount}} {{currency}}</p><p>We look forward to seeing you!</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم تأكيد حجزك للكلاس!</p><p><strong>الكلاس:</strong> {{classTitle}}<br><strong>التاريخ:</strong> {{classDate}}<br><strong>الوقت:</strong> {{classTime}}<br><strong>المبلغ المدفوع:</strong> {{amount}} {{currency}}</p><p>نتطلع لرؤيتك!</p>`,
+    },
+    class_booking_cancelled: {
+      enabled: true,
+      subjectEn: 'Booking Cancelled - {{classTitle}}',
+      subjectAr: 'إلغاء الحجز - {{classTitle}}',
+      bodyEn: `<p>Hi {{name}},</p><p>Your booking for <strong>{{classTitle}}</strong> has been cancelled.</p><p>A credit of {{amount}} {{currency}} has been added to your wallet.</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم إلغاء حجزك لـ <strong>{{classTitle}}</strong>.</p><p>تمت إضافة رصيد {{amount}} {{currency}} إلى محفظتك.</p>`,
+    },
+    class_reminder: {
+      enabled: true,
+      subjectEn: 'Reminder: Your Class Tomorrow - {{classTitle}}',
+      subjectAr: 'تذكير: كلاسك غداً - {{classTitle}}',
+      bodyEn: `<p>Hi {{name}},</p><p>This is a friendly reminder that your class <strong>{{classTitle}}</strong> is scheduled for tomorrow.</p><p><strong>Date:</strong> {{classDate}}<br><strong>Time:</strong> {{classTime}}<br><strong>Location:</strong> Noon Studio</p><p>We look forward to seeing you!</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>هذا تذكير بأن كلاسك <strong>{{classTitle}}</strong> مقرر غداً.</p><p><strong>التاريخ:</strong> {{classDate}}<br><strong>الوقت:</strong> {{classTime}}<br><strong>الموقع:</strong> استوديو نون</p><p>نتطلع لرؤيتك!</p>`,
+    },
+    class_cancelled_by_admin: {
+      enabled: true,
+      subjectEn: 'Class Cancelled - {{classTitle}}',
+      subjectAr: 'تم إلغاء الكلاس - {{classTitle}}',
+      bodyEn: `<p>Hi {{name}},</p><p>We regret to inform you that the class <strong>{{classTitle}}</strong> scheduled for {{classDate}} has been cancelled.</p><p>A full refund of {{amount}} {{currency}} has been credited to your wallet.</p><p>We apologize for any inconvenience.</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>نأسف لإبلاغك بأن الكلاس <strong>{{classTitle}}</strong> المقرر في {{classDate}} قد تم إلغاؤه.</p><p>تم إضافة استرداد كامل بقيمة {{amount}} {{currency}} إلى محفظتك.</p><p>نعتذر عن أي إزعاج.</p>`,
+    },
+    event_booking_paid: {
+      enabled: true,
+      subjectEn: 'Event Booking Confirmed - {{bookingNumber}}',
+      subjectAr: 'تأكيد حجز الفعالية - {{bookingNumber}}',
+      bodyEn: `<p>Hi {{name}},</p><p>Your event booking <strong>{{bookingNumber}}</strong> has been confirmed!</p><p><strong>Amount Paid:</strong> {{amount}} {{currency}}</p><p>Our team will contact you soon with more details.</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم تأكيد حجز الفعالية <strong>{{bookingNumber}}</strong>!</p><p><strong>المبلغ المدفوع:</strong> {{amount}} {{currency}}</p><p>سيتواصل فريقنا معك قريباً لمزيد من التفاصيل.</p>`,
+    },
+    event_booking_cancelled: {
+      enabled: true,
+      subjectEn: 'Event Booking Cancelled - {{bookingNumber}}',
+      subjectAr: 'إلغاء حجز الفعالية - {{bookingNumber}}',
+      bodyEn: `<p>Hi {{name}},</p><p>Your event booking <strong>{{bookingNumber}}</strong> has been cancelled.</p><p>If you have any questions, please contact us.</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم إلغاء حجز الفعالية <strong>{{bookingNumber}}</strong>.</p><p>إذا كان لديك أي استفسار، يرجى التواصل معنا.</p>`,
+    },
+    wallet_topup_paid: {
+      enabled: true,
+      subjectEn: 'Wallet Top-up Successful - {{reference}}',
+      subjectAr: 'نجاح شحن المحفظة - {{reference}}',
+      bodyEn: `<p>Hi {{name}},</p><p>Your wallet top-up was successful!</p><p><strong>Reference:</strong> {{reference}}<br><strong>Amount Added:</strong> {{amount}} {{currency}}<br><strong>New Balance:</strong> {{balance}} {{currency}}</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تمت عملية شحن المحفظة بنجاح!</p><p><strong>المرجع:</strong> {{reference}}<br><strong>المبلغ المضاف:</strong> {{amount}} {{currency}}<br><strong>الرصيد الجديد:</strong> {{balance}} {{currency}}</p>`,
+    },
+    wallet_deposit: {
+      enabled: true,
+      subjectEn: 'Wallet Deposit Added',
+      subjectAr: 'تمت إضافة إيداع للمحفظة',
+      bodyEn: `<p>Hi {{name}},</p><p>A deposit has been added to your wallet.</p><p><strong>Amount:</strong> {{amount}} {{currency}}<br><strong>New Balance:</strong> {{balance}} {{currency}}</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تمت إضافة إيداع إلى محفظتك.</p><p><strong>المبلغ:</strong> {{amount}} {{currency}}<br><strong>الرصيد الجديد:</strong> {{balance}} {{currency}}</p>`,
+    },
+    wallet_points_conversion: {
+      enabled: true,
+      subjectEn: 'Points Converted to Wallet Credit',
+      subjectAr: 'تم تحويل النقاط إلى رصيد المحفظة',
+      bodyEn: `<p>Hi {{name}},</p><p>Your points have been converted to wallet credit!</p><p><strong>Amount Added:</strong> {{amount}} {{currency}}<br><strong>New Balance:</strong> {{balance}} {{currency}}</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم تحويل نقاطك إلى رصيد في المحفظة!</p><p><strong>المبلغ المضاف:</strong> {{amount}} {{currency}}<br><strong>الرصيد الجديد:</strong> {{balance}} {{currency}}</p>`,
+    },
+    wallet_transfer_sent: {
+      enabled: true,
+      subjectEn: 'Wallet Transfer Sent',
+      subjectAr: 'تم إرسال تحويل من المحفظة',
+      bodyEn: `<p>Hi {{name}},</p><p>You have sent a wallet transfer.</p><p><strong>Amount:</strong> {{amount}} {{currency}}<br><strong>New Balance:</strong> {{balance}} {{currency}}</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>قمت بإرسال تحويل من محفظتك.</p><p><strong>المبلغ:</strong> {{amount}} {{currency}}<br><strong>الرصيد الجديد:</strong> {{balance}} {{currency}}</p>`,
+    },
+    wallet_transfer_received: {
+      enabled: true,
+      subjectEn: 'Wallet Transfer Received',
+      subjectAr: 'تم استلام تحويل في المحفظة',
+      bodyEn: `<p>Hi {{name}},</p><p>You have received a wallet transfer!</p><p><strong>Amount:</strong> {{amount}} {{currency}}<br><strong>New Balance:</strong> {{balance}} {{currency}}</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>استلمت تحويلاً في محفظتك!</p><p><strong>المبلغ:</strong> {{amount}} {{currency}}<br><strong>الرصيد الجديد:</strong> {{balance}} {{currency}}</p>`,
+    },
+    withdrawal_request_submitted: {
+      enabled: true,
+      subjectEn: 'Withdrawal Request Submitted',
+      subjectAr: 'تم تقديم طلب السحب',
+      bodyEn: `<p>Hi {{name}},</p><p>Your withdrawal request has been submitted and is pending review.</p><p><strong>Amount:</strong> {{amount}} {{currency}}<br><strong>Available Balance:</strong> {{availableBalance}} {{currency}}</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم تقديم طلب السحب الخاص بك وهو قيد المراجعة.</p><p><strong>المبلغ:</strong> {{amount}} {{currency}}<br><strong>الرصيد المتاح:</strong> {{availableBalance}} {{currency}}</p>`,
+    },
+    withdrawal_request_cancelled: {
+      enabled: true,
+      subjectEn: 'Withdrawal Request Cancelled',
+      subjectAr: 'تم إلغاء طلب السحب',
+      bodyEn: `<p>Hi {{name}},</p><p>Your withdrawal request has been cancelled and the funds have been restored.</p><p><strong>Amount:</strong> {{amount}} {{currency}}<br><strong>New Balance:</strong> {{balance}} {{currency}}</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم إلغاء طلب السحب وتم إرجاع المبلغ.</p><p><strong>المبلغ:</strong> {{amount}} {{currency}}<br><strong>الرصيد الجديد:</strong> {{balance}} {{currency}}</p>`,
+    },
+    withdrawal_request_approved: {
+      enabled: true,
+      subjectEn: 'Withdrawal Request Approved',
+      subjectAr: 'تمت الموافقة على طلب السحب',
+      bodyEn: `<p>Hi {{name}},</p><p>Great news! Your withdrawal request has been approved.</p><p><strong>Amount:</strong> {{amount}} {{currency}}</p><p>The funds will be transferred to your account shortly.</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>أخبار سارة! تمت الموافقة على طلب السحب الخاص بك.</p><p><strong>المبلغ:</strong> {{amount}} {{currency}}</p><p>سيتم تحويل المبلغ إلى حسابك قريباً.</p>`,
+    },
+    withdrawal_request_rejected: {
+      enabled: true,
+      subjectEn: 'Withdrawal Request Rejected',
+      subjectAr: 'تم رفض طلب السحب',
+      bodyEn: `<p>Hi {{name}},</p><p>Your withdrawal request has been rejected and the funds have been released back to your wallet.</p><p><strong>Amount:</strong> {{amount}} {{currency}}<br><strong>New Balance:</strong> {{balance}} {{currency}}</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم رفض طلب السحب وتم تحرير المبلغ إلى محفظتك.</p><p><strong>المبلغ:</strong> {{amount}} {{currency}}<br><strong>الرصيد الجديد:</strong> {{balance}} {{currency}}</p>`,
+    },
+    wallet_admin_credit: {
+      enabled: true,
+      subjectEn: 'Wallet Credit Added by Admin',
+      subjectAr: 'تمت إضافة رصيد من الإدارة',
+      bodyEn: `<p>Hi {{name}},</p><p>An admin has added credit to your wallet.</p><p><strong>Amount:</strong> {{amount}} {{currency}}<br><strong>New Balance:</strong> {{balance}} {{currency}}</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تمت إضافة رصيد إلى محفظتك من الإدارة.</p><p><strong>المبلغ:</strong> {{amount}} {{currency}}<br><strong>الرصيد الجديد:</strong> {{balance}} {{currency}}</p>`,
+    },
+    wallet_admin_deduct: {
+      enabled: true,
+      subjectEn: 'Wallet Deduction by Admin',
+      subjectAr: 'تم خصم رصيد من الإدارة',
+      bodyEn: `<p>Hi {{name}},</p><p>An admin has deducted credit from your wallet.</p><p><strong>Amount:</strong> {{amount}} {{currency}}<br><strong>New Balance:</strong> {{balance}} {{currency}}</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم خصم رصيد من محفظتك من الإدارة.</p><p><strong>المبلغ:</strong> {{amount}} {{currency}}<br><strong>الرصيد الجديد:</strong> {{balance}} {{currency}}</p>`,
+    },
+    shop_purchase_paid: {
+      enabled: true,
+      subjectEn: 'Order Confirmed - {{orderNumber}}',
+      subjectAr: 'تأكيد الطلب - {{orderNumber}}',
+      bodyEn: `<p>Hi {{name}},</p><p>Thank you for your order!</p><p><strong>Order Number:</strong> {{orderNumber}}<br><strong>Total:</strong> {{amount}} {{currency}}</p><p>We'll notify you when your order ships.</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>شكراً لطلبك!</p><p><strong>رقم الطلب:</strong> {{orderNumber}}<br><strong>المجموع:</strong> {{amount}} {{currency}}</p><p>سنعلمك عندما يتم شحن طلبك.</p>`,
+    },
+    shop_order_shipped: {
+      enabled: true,
+      subjectEn: 'Order Shipped - {{orderNumber}}',
+      subjectAr: 'تم شحن الطلب - {{orderNumber}}',
+      bodyEn: `<p>Hi {{name}},</p><p>Your order <strong>{{orderNumber}}</strong> has been shipped!</p><p>Track your delivery and expect it soon.</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم شحن طلبك <strong>{{orderNumber}}</strong>!</p><p>تتبع طلبك وتوقعه قريباً.</p>`,
+    },
+    shop_order_delivered: {
+      enabled: true,
+      subjectEn: 'Order Delivered - {{orderNumber}}',
+      subjectAr: 'تم تسليم الطلب - {{orderNumber}}',
+      bodyEn: `<p>Hi {{name}},</p><p>Your order <strong>{{orderNumber}}</strong> has been delivered!</p><p>We hope you enjoy your purchase. Thank you for shopping with us!</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم تسليم طلبك <strong>{{orderNumber}}</strong>!</p><p>نأمل أن تستمتع بمشترياتك. شكراً للتسوق معنا!</p>`,
+    },
+    trainer_workshop_reminder: {
+      enabled: true,
+      subjectEn: 'Workshop Reminder - {{classTitle}}',
+      subjectAr: 'تذكير بالورشة - {{classTitle}}',
+      bodyEn: `<p>Hi {{name}},</p><p>This is a reminder that you have a workshop scheduled.</p><p><strong>Workshop:</strong> {{classTitle}}<br><strong>Date:</strong> {{classDate}}<br><strong>Time:</strong> {{classTime}}<br><strong>Participants:</strong> {{participantsCount}}</p><p>Please review your materials and be ready!</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>هذا تذكير بأن لديك ورشة مقررة.</p><p><strong>الورشة:</strong> {{classTitle}}<br><strong>التاريخ:</strong> {{classDate}}<br><strong>الوقت:</strong> {{classTime}}<br><strong>المشاركون:</strong> {{participantsCount}}</p><p>يرجى مراجعة المواد والاستعداد!</p>`,
+    },
+    trainer_workshop_assigned: {
+      enabled: true,
+      subjectEn: 'New Workshop Assigned - {{classTitle}}',
+      subjectAr: 'ورشة جديدة مكلف بها - {{classTitle}}',
+      bodyEn: `<p>Hi {{name}},</p><p>You have been assigned to a new workshop!</p><p><strong>Workshop:</strong> {{classTitle}}<br><strong>Date:</strong> {{classDate}}<br><strong>Time:</strong> {{classTime}}</p><p>Please check your trainer dashboard for more details.</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تم تكليفك بورشة جديدة!</p><p><strong>الورشة:</strong> {{classTitle}}<br><strong>التاريخ:</strong> {{classDate}}<br><strong>الوقت:</strong> {{classTime}}</p><p>يرجى التحقق من لوحة المدرب لمزيد من التفاصيل.</p>`,
+    },
+    welcome_email: {
+      enabled: true,
+      subjectEn: 'Welcome to Noon!',
+      subjectAr: 'مرحباً بك في نون!',
+      bodyEn: `<p>Hi {{name}},</p><p>Welcome to <strong>Noon</strong>! We're thrilled to have you join our community.</p><p>Explore our classes, workshops, and shop to discover amazing culinary and creative experiences.</p><p>If you have any questions, feel free to reach out to us!</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>أهلاً بك في <strong>نون</strong>! نحن سعداء بانضمامك إلى مجتمعنا.</p><p>استكشف كلاساتنا وورشاتنا ومتجرنا لاكتشاف تجارب طهي وإبداعية مذهلة.</p><p>إذا كان لديك أي استفسار، لا تتردد في التواصل معنا!</p>`,
+    },
+    password_reset: {
+      enabled: true,
+      subjectEn: 'Password Reset Request - Noon',
+      subjectAr: 'طلب إعادة تعيين كلمة المرور - نون',
+      bodyEn: `<p>Hi {{name}},</p><p>We received a request to reset your password.</p><p><a href="{{resetLink}}" style="display: inline-block; background: #14b8a6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none;">Reset Password</a></p><p>If you didn't request this, please ignore this email.</p>`,
+      bodyAr: `<p>مرحباً {{name}}،</p><p>تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بك.</p><p><a href="{{resetLink}}" style="display: inline-block; background: #14b8a6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none;">إعادة تعيين كلمة المرور</a></p><p>إذا لم تطلب ذلك، يرجى تجاهل هذا البريد.</p>`,
+    },
+  },
+};
+
+export function sanitizeEmailTransactionTemplatesSettings(
+  input: Partial<EmailTransactionTemplatesSettings> | null | undefined
+): EmailTransactionTemplatesSettings {
+  const source = input ?? {};
+  const sourceTemplates = (source.templates ?? {}) as Partial<
+    Record<EmailTransactionTemplateKey, Partial<EmailTransactionTemplateItem>>
+  >;
+
+  const templates = Object.entries(defaultEmailTransactionTemplatesSettings.templates).reduce(
+    (acc, [key, fallback]) => {
+      const typedKey = key as EmailTransactionTemplateKey;
+      const raw = sourceTemplates[typedKey] ?? {};
+      acc[typedKey] = {
+        enabled: typeof raw.enabled === 'boolean' ? raw.enabled : fallback.enabled,
+        subjectEn: sanitizeTextValue(raw.subjectEn, fallback.subjectEn, 200),
+        subjectAr: sanitizeTextValue(raw.subjectAr, fallback.subjectAr, 200),
+        bodyEn: sanitizeTextValue(raw.bodyEn, fallback.bodyEn, 10000),
+        bodyAr: sanitizeTextValue(raw.bodyAr, fallback.bodyAr, 10000),
+      };
+      return acc;
+    },
+    {} as Record<EmailTransactionTemplateKey, EmailTransactionTemplateItem>
+  );
+
+  return {
+    enabled: typeof source.enabled === 'boolean' ? source.enabled : defaultEmailTransactionTemplatesSettings.enabled,
+    templates,
+  };
+}
+
+// =============================================================================
+// Invoice/Bill Template Settings
+// =============================================================================
+
+export type InvoiceTemplateSettings = {
+  logoUrl: string;
+  companyName: string;
+  companyNameAr: string;
+  companyAddress: string;
+  companyAddressAr: string;
+  companyPhone: string;
+  companyEmail: string;
+  taxNumber: string;
+  bankName: string;
+  bankAccount: string;
+  bankIban: string;
+  footerNotes: string;
+  footerNotesAr: string;
+  primaryColor: string;
+  secondaryColor: string;
+};
+
+export const defaultInvoiceTemplateSettings: InvoiceTemplateSettings = {
+  logoUrl: '/images/noon-logo.svg',
+  companyName: 'Noon - Noonoman Arts',
+  companyNameAr: 'نون - فنون النعمان',
+  companyAddress: 'Muscat, Oman',
+  companyAddressAr: 'مسقط، عمان',
+  companyPhone: '+968 9999 9999',
+  companyEmail: 'info@noonomanarts.com',
+  taxNumber: '',
+  bankName: '',
+  bankAccount: '',
+  bankIban: '',
+  footerNotes: 'Thank you for your business!',
+  footerNotesAr: 'شكراً لتعاملكم معنا!',
+  primaryColor: '#14b8a6',
+  secondaryColor: '#fb7185',
+};
+
+export function sanitizeInvoiceTemplateSettings(
+  input: Partial<InvoiceTemplateSettings> | null | undefined
+): InvoiceTemplateSettings {
+  const source = input ?? {};
+  return {
+    logoUrl: sanitizeTextValue(source.logoUrl, defaultInvoiceTemplateSettings.logoUrl, 500),
+    companyName: sanitizeTextValue(source.companyName, defaultInvoiceTemplateSettings.companyName, 200),
+    companyNameAr: sanitizeTextValue(source.companyNameAr, defaultInvoiceTemplateSettings.companyNameAr, 200),
+    companyAddress: sanitizeTextValue(source.companyAddress, defaultInvoiceTemplateSettings.companyAddress, 500),
+    companyAddressAr: sanitizeTextValue(source.companyAddressAr, defaultInvoiceTemplateSettings.companyAddressAr, 500),
+    companyPhone: sanitizeTextValue(source.companyPhone, defaultInvoiceTemplateSettings.companyPhone, 50),
+    companyEmail: sanitizeTextValue(source.companyEmail, defaultInvoiceTemplateSettings.companyEmail, 200),
+    taxNumber: sanitizeTextValue(source.taxNumber, defaultInvoiceTemplateSettings.taxNumber, 100),
+    bankName: sanitizeTextValue(source.bankName, defaultInvoiceTemplateSettings.bankName, 200),
+    bankAccount: sanitizeTextValue(source.bankAccount, defaultInvoiceTemplateSettings.bankAccount, 100),
+    bankIban: sanitizeTextValue(source.bankIban, defaultInvoiceTemplateSettings.bankIban, 50),
+    footerNotes: sanitizeTextValue(source.footerNotes, defaultInvoiceTemplateSettings.footerNotes, 1000),
+    footerNotesAr: sanitizeTextValue(source.footerNotesAr, defaultInvoiceTemplateSettings.footerNotesAr, 1000),
+    primaryColor: sanitizeTextValue(source.primaryColor, defaultInvoiceTemplateSettings.primaryColor, 20),
+    secondaryColor: sanitizeTextValue(source.secondaryColor, defaultInvoiceTemplateSettings.secondaryColor, 20),
+  };
+}

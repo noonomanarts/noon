@@ -15,6 +15,7 @@ import {
   FiBookOpen,
   FiCalendar,
   FiGrid,
+  FiMail,
   FiSettings,
   FiShoppingBag,
   FiThumbsUp,
@@ -45,6 +46,7 @@ type AdminIconName =
   | "FiBell"
   | "FiPackage"
   | "FiMessageSquare"
+  | "FiMail"
   | "FiTag";
 
 type AdminMenuItem = {
@@ -129,6 +131,7 @@ export default async function AdminLayout({
     whatsapp: locale === "ar" ? "واتساب" : "WhatsApp",
     whatsappSessions: locale === "ar" ? "سشنات واتساب" : "WhatsApp Sessions",
     whatsappTemplates: locale === "ar" ? "تمبليتات واتساب" : "WhatsApp Templates",
+    email: locale === "ar" ? "البريد الإلكتروني" : "Email",
     photographerTasks: locale === "ar" ? "مهام المصور" : "Photographer Tasks",
     logout: locale === "ar" ? "تسجيل خروج" : "Logout",
     profile: locale === "ar" ? "الملف الشخصي" : "Profile",
@@ -215,6 +218,7 @@ export default async function AdminLayout({
             { iconName: "FiMessageSquare" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.whatsapp, href: `/${locale}/admin/whatsapp` },
             { iconName: "FiMessageSquare" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.whatsappSessions, href: `/${locale}/admin/whatsapp/sessions` },
             { iconName: "FiMessageSquare" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.whatsappTemplates, href: `/${locale}/admin/whatsapp/templates` },
+            { iconName: "FiMail" as const, iconColor: "text-blue-600 dark:text-blue-400", label: t.email, href: `/${locale}/admin/email` },
             { iconName: "FiBell" as const, iconColor: "text-pink-600 dark:text-pink-400", label: t.notifications, href: `/${locale}/admin/notifications` },
           ],
         },
@@ -264,6 +268,7 @@ export default async function AdminLayout({
                             : item.iconName === "FiMessageSquare" ? FiMessageSquare
                             : item.iconName === "FiTag" ? FiTag
                             : item.iconName === "FiPackage" ? FiPackage
+                            : item.iconName === "FiMail" ? FiMail
                             : FiBell;
                           
                           return (

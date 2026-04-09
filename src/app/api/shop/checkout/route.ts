@@ -7,6 +7,7 @@ import { validatePromoCode } from '@/lib/db/promoCodes';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import { getWorkersWithOrdersPermission } from '@/lib/db/worker';
 import { notifyUser } from '@/lib/notificationService';
+import { createShopSaleFinanceEntry } from '@/lib/db/finance';
 
 const SHIPPING_FEE = 2;
 const DELIVERY_CITY = 'Muscat';
@@ -400,6 +401,16 @@ export async function POST(request: NextRequest) {
           [item.quantity, item.productId]
         );
       }
+
+      // Create finance entry for shop sale
+      await createShopSaleFinanceEntry({
+        db: client,
+        orderNumber: String(orderInsert.rows[0].order_number),
+        orderId,
+        amount: totalAmount,
+        currency: String(walletRow.currency || 'OMR'),
+        customerName: recipientFullName,
+      });
 
       await client.query('COMMIT');
 

@@ -1267,3 +1267,69 @@ export async function getAdminFinanceReport(
     recentEntries: recentEntriesResult.rows.map((row) => mapFinanceEntryRow(row as Record<string, unknown>)),
   };
 }
+
+// Helper types for transactional finance entries
+type Queryable = {
+  query: (text: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[]; rowCount?: number | null }>;
+};
+
+/**
+ * Create a shop sale finance entry inside an existing transaction.
+ * Call this when a shop order is successfully paid.
+ */
+export async function createShopSaleFinanceEntry(params: {
+  db: Queryable;
+  orderNumber: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+  customerName?: string | null;
+}): Promise<void> {
+  if (params.amount <= 0) {
+    return;
+  }
+
+  // Find Shop Sales reason
+  const reasonResult = await params.db.query(
+    `SELECT id, name FROM admin_finance_reasons
+     WHERE entry_type = 'INCOME'
+       AND is_archived = FALSE
+       AND name = ANY($1::text[])
+     ORDER BY CASE WHEN is_active THEN 0 ELSE 1 END,
+              array_position($1::text[], name),
+              sort_order ASC
+     LIMIT 1`,
+    [['Shop Sales', 'Other Income']]
+  );
+
+  const reasonRow = reasonResult.rows[0];
+  const reasonId = reasonRow?.id ? String(reasonRow.id) : null;
+  const reasonName = reasonRow?.name ? String(reasonRow.name) : 'Shop Sales';
+
+  await params.db.query(
+    `INSERT INTO admin_finance_entries (
+       entry_type, title, category, reason_id, reason_name,
+       amount, currency, occurred_at, counterparty, notes, metadata,
+       created_by_user_id, updated_by_user_id, created_at, updated_at
+     ) VALUES (
+       'INCOME', $1, $2, $3, $4,
+       $5, $6, NOW(), $7, $8, $9,
+       NULL, NULL, NOW(), NOW()
+     )`,
+    [
+      `Shop sale: Order #${params.orderNumber}`,
+      reasonName,
+      reasonId,
+      reasonName,
+      params.amount,
+      params.currency,
+      params.customerName || null,
+      'Auto-generated from shop checkout.',
+      JSON.stringify({
+        source: 'SHOP_ORDER',
+        orderId: params.orderId,
+        orderNumber: params.orderNumber,
+      }),
+    ]
+  );
+}
