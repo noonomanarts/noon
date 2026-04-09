@@ -401,7 +401,7 @@ export async function POST(request: NextRequest) {
 
       await client.query('COMMIT');
 
-      await sendUserTransactionWhatsApp({
+      void sendUserTransactionWhatsApp({
         userId: user.id,
         key: 'shop_purchase_paid',
         vars: {

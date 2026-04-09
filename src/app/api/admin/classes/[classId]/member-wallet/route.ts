@@ -296,7 +296,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
 
       void addBonusPoints(userId, amount).catch(() => {});
 
-      await sendUserTransactionWhatsApp({
+      void sendUserTransactionWhatsApp({
         userId,
         key: 'class_booking_paid',
         vars: {

@@ -288,7 +288,7 @@ export async function convertPointsToCredit(
 
     await client.query('COMMIT');
 
-    await sendUserTransactionWhatsApp({
+    void sendUserTransactionWhatsApp({
       userId,
       key: 'wallet_points_conversion',
       vars: {
@@ -418,7 +418,7 @@ export async function transferWalletFunds(
       data: { amount, currency: receiverWallet.rows[0].currency },
     });
 
-    await sendUserTransactionWhatsApp({
+    void sendUserTransactionWhatsApp({
       userId: fromUserId,
       key: 'wallet_transfer_sent',
       vars: {
@@ -430,7 +430,7 @@ export async function transferWalletFunds(
       console.error('Failed to send wallet transfer sent WhatsApp message:', error);
     });
 
-    await sendUserTransactionWhatsApp({
+    void sendUserTransactionWhatsApp({
       userId: toUserId,
       key: 'wallet_transfer_received',
       vars: {
@@ -484,7 +484,7 @@ export async function depositToWallet(userId: string, amount: number, reason?: s
     data: { amount, currency: wallet.currency },
   });
 
-  await sendUserTransactionWhatsApp({
+  void sendUserTransactionWhatsApp({
     userId,
     key: 'wallet_deposit',
     vars: {
@@ -581,7 +581,7 @@ export async function requestWalletWithdrawal(userId: string, amount: number, re
       data: { walletId: wallet.id },
     });
 
-    await sendUserTransactionWhatsApp({
+    void sendUserTransactionWhatsApp({
       userId: wallet.user_id,
       key: 'withdrawal_request_submitted',
       vars: {
@@ -803,7 +803,7 @@ export async function cancelWithdrawalRequestByUser(userId: string, transactionI
       data: { transactionId },
     });
 
-    await sendUserTransactionWhatsApp({
+    void sendUserTransactionWhatsApp({
       userId: wallet.user_id,
       key: 'withdrawal_request_cancelled',
       vars: {
@@ -917,7 +917,7 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
       data: { transactionId },
     });
 
-    await sendUserTransactionWhatsApp({
+    void sendUserTransactionWhatsApp({
       userId: wallet.user_id,
       key: 'withdrawal_request_approved',
       vars: {
@@ -1034,7 +1034,7 @@ export async function rejectWithdrawalRequest(transactionId: string, adminReason
       data: { transactionId },
     });
 
-    await sendUserTransactionWhatsApp({
+    void sendUserTransactionWhatsApp({
       userId: wallet.user_id,
       key: 'withdrawal_request_rejected',
       vars: {
@@ -1086,7 +1086,7 @@ export async function adminAddWalletCredit(userId: string, amount: number, reaso
     data: { amount, currency: wallet.currency },
   });
 
-  await sendUserTransactionWhatsApp({
+  void sendUserTransactionWhatsApp({
     userId: wallet.user_id,
     key: 'wallet_admin_credit',
     vars: {
@@ -1138,7 +1138,7 @@ export async function adminDeductWalletCredit(userId: string, amount: number, re
     data: { amount, currency: wallet.currency },
   });
 
-  await sendUserTransactionWhatsApp({
+  void sendUserTransactionWhatsApp({
     userId: wallet.user_id,
     key: 'wallet_admin_deduct',
     vars: {
@@ -1517,7 +1517,7 @@ export async function updateWalletTopupPaymentStatus(data: {
     await client.query('COMMIT');
 
     if (topupWhatsappPayload) {
-      await sendUserTransactionWhatsApp({
+      void sendUserTransactionWhatsApp({
         userId: topupWhatsappPayload.userId,
         key: 'wallet_topup_paid',
         vars: {

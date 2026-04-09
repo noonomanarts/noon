@@ -137,7 +137,7 @@ export async function POST(request: NextRequest, props: Params) {
 
     const updatedBooking = updatedBookingResult.rows[0];
 
-    await sendUserTransactionWhatsApp({
+    void sendUserTransactionWhatsApp({
       userId: user.id,
       key: 'event_booking_paid',
       vars: {

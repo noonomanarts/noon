@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
     // Award bonus points: 1 OMR = 1 point (fire-and-forget, non-blocking)
     void addBonusPoints(user.id, totalAmount).catch(() => { /* ignore points failure */ });
 
-    await sendUserTransactionWhatsApp({
+    void sendUserTransactionWhatsApp({
       userId: user.id,
       key: 'class_booking_paid',
       vars: {
