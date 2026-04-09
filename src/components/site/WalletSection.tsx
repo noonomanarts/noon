@@ -121,6 +121,62 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const topupStatus = searchParams.get('topup');
+    const reference = searchParams.get('reference');
+
+    if (!topupStatus) return;
+
+    if (topupStatus === 'paid') {
+      setMessage(isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.');
+      void refreshWalletBalance();
+      return;
+    }
+
+    if (topupStatus === 'cancelled') {
+      setMessage(isArabic ? 'تم إلغاء عملية الشحن.' : 'Wallet top-up was cancelled.');
+      return;
+    }
+
+    if (topupStatus === 'failed') {
+      setMessage(isArabic ? 'فشلت عملية شحن المحفظة.' : 'Wallet top-up payment failed.');
+      return;
+    }
+
+    if (topupStatus === 'pending' && reference) {
+      void fetch(`/api/wallet/topup/paymob/status?reference=${encodeURIComponent(reference)}`, {
+        cache: 'no-store',
+      })
+        .then(async (response) => {
+          const payload = (await response.json().catch(() => ({}))) as {
+            payment?: { status?: string };
+          };
+
+          if (payload.payment?.status === 'PAID') {
+            setMessage(isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.');
+            await refreshWalletBalance();
+            return;
+          }
+
+          setMessage(
+            isArabic
+              ? 'تم استلام طلب الدفع، ويتم تحديث حالة الشحن الآن.'
+              : 'Payment was received and the top-up status is being updated.'
+          );
+        })
+        .catch(() => {
+          setMessage(
+            isArabic
+              ? 'تم إنشاء الدفع. تحقّق من حالة الشحن بعد لحظات.'
+              : 'Payment was created. Check the top-up status again in a moment.'
+          );
+        });
+    }
+  }, [isArabic, refreshWalletBalance]);
+
+  useEffect(() => {
     const source = new EventSource('/api/stream');
 
     const handleWalletUpdated = (event: MessageEvent) => {
@@ -230,7 +286,7 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: parseFloat(depositAmount),
-          gateway: 'SANDBOX_GATEWAY',
+          returnUrl: returnUrl || `/${locale}/account/wallet`,
           metadata: {
             description: depositDescription || undefined,
             source: 'wallet_section',
@@ -241,16 +297,15 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
 
       if (response.ok) {
         const payload = await response.json();
-        const reference = payload?.payment?.reference;
-        if (!reference) {
+        const redirectUrl = payload?.payment?.redirectUrl;
+        if (!redirectUrl) {
           setMessage(isArabic ? 'تعذر إنشاء رابط الدفع.' : 'Failed to create payment link.');
           return;
         }
 
-        const sandboxReturnUrl = returnUrl || `/${locale}/account/wallet`;
         setShowDepositModal(false);
-        setMessage(isArabic ? 'سيتم تحويلك الآن لبوابة الدفع التجريبية.' : 'Redirecting you to sandbox payment gateway.');
-        window.location.href = `/${locale}/wallet/topup/sandbox?reference=${encodeURIComponent(reference)}&returnUrl=${encodeURIComponent(sandboxReturnUrl)}`;
+        setMessage(isArabic ? 'سيتم تحويلك الآن إلى Paymob.' : 'Redirecting you to Paymob.');
+        window.location.href = redirectUrl;
       } else {
         const data = await response.json();
         setMessage(data.error || (isArabic ? 'فشل في إنشاء عملية الشحن' : 'Failed to create top-up request'));

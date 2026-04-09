@@ -1270,6 +1270,108 @@ export async function createWalletTopupPayment(data: {
   };
 }
 
+export async function updateWalletTopupPaymentGatewayData(data: {
+  reference: string;
+  gateway?: string;
+  paymentUrl?: string | null;
+  metadata?: Record<string, unknown>;
+}): Promise<WalletTopupPayment> {
+  await ensureWalletTopupPaymentsTable();
+
+  const result = await pool.query(
+    `UPDATE wallet_topup_payments
+     SET gateway = COALESCE($2::varchar, gateway),
+         payment_url = COALESCE($3::text, payment_url),
+         metadata = CASE
+           WHEN $4::jsonb IS NULL THEN metadata
+           ELSE COALESCE(metadata, '{}'::jsonb) || $4::jsonb
+         END,
+         updated_at = NOW()
+     WHERE reference = $1
+     RETURNING *`,
+    [
+      data.reference,
+      data.gateway ?? null,
+      data.paymentUrl ?? null,
+      data.metadata ? JSON.stringify(data.metadata) : null,
+    ]
+  );
+
+  if (!result.rows[0]) {
+    throw new Error('Topup payment not found');
+  }
+
+  const row = result.rows[0];
+  return {
+    ...row,
+    amount: parseFloat(row.amount as string),
+    metadata: row.metadata ?? {},
+  };
+}
+
+export async function getWalletTopupPaymentByReference(reference: string): Promise<WalletTopupPayment | null> {
+  await ensureWalletTopupPaymentsTable();
+
+  const result = await pool.query(
+    `SELECT * FROM wallet_topup_payments WHERE reference = $1 LIMIT 1`,
+    [reference]
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...row,
+    amount: parseFloat(row.amount as string),
+    metadata: row.metadata ?? {},
+  };
+}
+
+export async function getWalletTopupPaymentForUser(reference: string, userId: string): Promise<WalletTopupPayment | null> {
+  await ensureWalletTopupPaymentsTable();
+
+  const result = await pool.query(
+    `SELECT * FROM wallet_topup_payments WHERE reference = $1 AND user_id = $2 LIMIT 1`,
+    [reference, userId]
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...row,
+    amount: parseFloat(row.amount as string),
+    metadata: row.metadata ?? {},
+  };
+}
+
+export async function getWalletTopupPaymentByGatewayOrderId(orderId: number): Promise<WalletTopupPayment | null> {
+  await ensureWalletTopupPaymentsTable();
+
+  const result = await pool.query(
+    `SELECT *
+     FROM wallet_topup_payments
+     WHERE metadata->'paymob'->>'orderId' = $1
+     LIMIT 1`,
+    [String(orderId)]
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    ...row,
+    amount: parseFloat(row.amount as string),
+    metadata: row.metadata ?? {},
+  };
+}
+
 export async function listWalletTopupPaymentsForAdmin(options?: {
   status?: WalletTopupPaymentStatus | 'ALL';
   search?: string;

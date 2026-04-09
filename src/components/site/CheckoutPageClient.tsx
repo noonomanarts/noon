@@ -138,8 +138,8 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     topupAmount: isArabic ? 'مبلغ الشحن' : 'Top Up Amount',
     topupAction: isArabic ? 'شحن الآن' : 'Top Up Now',
     topupRedirect: isArabic
-      ? 'سيتم تحويلك الآن لبوابة الدفع التجريبية.'
-      : 'You will now be redirected to sandbox payment gateway.',
+      ? 'سيتم تحويلك الآن إلى بوابة Paymob الآمنة.'
+      : 'You will now be redirected to Paymob secure checkout.',
     successTitle: isArabic ? 'تم تأكيد الطلب بنجاح' : 'Order confirmed successfully',
     orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',
     continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
@@ -233,6 +233,16 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     if (topupStatus === 'cancelled') {
       setError(isArabic ? 'تم إلغاء عملية شحن المحفظة.' : 'Wallet top-up was cancelled.');
       setMessage(null);
+      return;
+    }
+
+    if (topupStatus === 'pending') {
+      setMessage(
+        isArabic
+          ? 'تم استلام طلب الدفع، ويتم تحديث الرصيد عند تأكيد Paymob.'
+          : 'Payment was received and your balance will update once Paymob confirms it.'
+      );
+      setError(null);
     }
   }, [isArabic, loadData, searchParams]);
 
@@ -310,7 +320,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount,
-          gateway: 'SANDBOX_GATEWAY',
+          returnUrl: `/${locale}/checkout`,
           metadata: {
             source: 'checkout_sidebar',
             locale,
@@ -323,18 +333,16 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         throw new Error(typeof errPayload?.error === 'string' ? errPayload.error : 'Failed to top up wallet');
       }
 
-      const payload = (await response.json()) as { payment?: { reference?: string } };
-      const reference = payload?.payment?.reference;
+      const payload = (await response.json()) as { payment?: { redirectUrl?: string } };
+      const redirectUrl = payload?.payment?.redirectUrl;
 
-      if (!reference) {
-        throw new Error(isArabic ? 'مرجع الدفع غير متوفر.' : 'Payment reference is missing.');
+      if (!redirectUrl) {
+        throw new Error(isArabic ? 'رابط الدفع غير متوفر.' : 'Payment URL is missing.');
       }
 
       setTopupAmount('');
       setMessage(t.topupRedirect);
-
-      const returnUrl = `/${locale}/checkout`;
-      window.location.href = `/${locale}/wallet/topup/sandbox?reference=${encodeURIComponent(reference)}&returnUrl=${encodeURIComponent(returnUrl)}`;
+      window.location.href = redirectUrl;
     } catch (topupError) {
       setError(topupError instanceof Error ? topupError.message : 'Failed to top up wallet');
     } finally {
