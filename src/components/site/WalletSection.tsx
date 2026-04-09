@@ -742,7 +742,7 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
       {/* Balance */}
       <div className="noon-soft-teal rounded-lg p-4 mb-4 border border-teal/20 dark:border-teal/30">
         <div className="text-sm text-[color:var(--text-muted)] mb-1">
-          {isArabic ? 'رصيد المحفظة (للدفع)' : 'Wallet Balance (for payments)'}
+          {isArabic ? 'رصيد الدفع داخل الموقع' : 'Website Payment Balance'}
         </div>
         <div className="text-2xl font-bold text-teal-700 dark:text-teal-300">
           {formatAmountWithCurrency(walletData.balance, walletData.currency)}
@@ -751,13 +751,13 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
 
       <div className="noon-soft-yellow rounded-lg p-4 mb-6 border border-yellow/30 dark:border-yellow/35">
         <div className="text-sm text-[color:var(--text-muted)] mb-1">
-          {isArabic ? 'المقدار القابل للسحب (نقدًا)' : 'Withdrawable Amount (cash out)'}
+          {isArabic ? 'الرصيد القابل للسحب نقدًا' : 'Cash-Withdrawable Amount'}
         </div>
         <div className="text-xl font-semibold text-yellow-800 dark:text-yellow-300">
           {formatAmountWithCurrency(walletData.available_balance ?? 0, walletData.currency)}
         </div>
         <div className="text-xs text-[color:var(--text-subtle)] mt-1">
-          {isArabic ? 'للسحب النقدي فقط ويتطلب موافقة الإدارة' : 'For cash withdrawal only, admin approval required'}
+          {isArabic ? 'هذا الرصيد مخصص للسحب النقدي فقط ولا يحدد قدرتك على الدفع داخل الموقع' : 'This balance is only for cash withdrawal and does not determine whether you can pay on the website'}
         </div>
       </div>
 

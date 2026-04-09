@@ -116,8 +116,8 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const t = {
     title: isArabic ? 'إتمام الطلب' : 'Checkout',
     subtitle: isArabic
-      ? 'راجعي بيانات التوصيل ثم أكملي الدفع من المحفظة.'
-      : 'Review shipping details and complete payment with your wallet.',
+      ? 'راجعي بيانات التوصيل وكمّلي الطلب.'
+      : 'Review your delivery details and complete your order.',
     loading: isArabic ? 'جاري تحميل بيانات الطلب...' : 'Loading checkout data...',
     loginRequired: isArabic ? 'يرجى تسجيل الدخول لإتمام الطلب.' : 'Please login to complete checkout.',
     goToLogin: isArabic ? 'تسجيل الدخول' : 'Go to login',
@@ -147,29 +147,29 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     promoPlaceholder: isArabic ? 'مثال: NOON20' : 'Example: NOON20',
     total: isArabic ? 'الإجمالي النهائي' : 'Total',
     payWallet: isArabic ? 'الدفع من المحفظة' : 'Pay with Wallet',
-    payShortfall: isArabic ? 'ادفع المتبقي عبر Paymob' : 'Pay Remaining with Paymob',
+    payShortfall: isArabic ? 'ادفعي المتبقي' : 'Pay the rest',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
     insufficient: isArabic
-      ? 'رصيد المحفظة الحالي لا يغطي كامل الطلب. سنستخدم كل الرصيد المتاح أولاً، ثم تدفعين فقط المبلغ المتبقي عبر Paymob.'
-      : 'Your wallet does not fully cover this order. We will use your available wallet balance first, and you will only pay the remaining amount through Paymob.',
+      ? 'رصيدك ما يكفي للطلب كامل. بنخصم اللي عندك من المحفظة، وتدفعي بس الباقي.'
+      : 'Your wallet balance is not enough for the full order. We will use what you have in your wallet, and you only pay the rest.',
     topupTitle: isArabic ? 'شحن المحفظة' : 'Top Up Wallet',
     topupHint: isArabic
-      ? 'سيتم خصم الرصيد الموجود في محفظتك تلقائياً عند إتمام الطلب، لذلك المطلوب الآن هو دفع قيمة النقص فقط.'
-      : 'Your existing wallet balance will be used automatically during checkout, so you only need to pay the shortfall now.',
+      ? 'الموجود في محفظتك بينخصم لحاله، فالمطلوب منك الآن فقط قيمة النقص.'
+      : 'What you already have in your wallet will be used automatically, so you only need to pay the missing amount now.',
     topupAmount: isArabic ? 'المبلغ المتبقي' : 'Remaining Amount',
     topupRedirect: isArabic
-      ? 'سيتم تحويلك الآن إلى بوابة Paymob الآمنة.'
-      : 'You will now be redirected to Paymob secure checkout.',
+      ? 'لحظة، بنحوّلك لصفحة الدفع.'
+      : 'One moment, taking you to the payment page.',
     topupResume: isArabic
-      ? 'تم شحن المبلغ المتبقي. يتم الآن إكمال الطلب تلقائياً.'
-      : 'The remaining amount was received. Completing your order now.',
-    shortfall: isArabic ? 'المبلغ المتبقي' : 'Remaining amount',
+      ? 'وصل المبلغ المتبقي، والحين بنكمل الطلب تلقائياً.'
+      : 'The remaining amount was received. Finishing your order now.',
+    shortfall: isArabic ? 'الباقي عليك' : 'Left to pay',
     shortfallHelp: isArabic
-      ? 'هذا هو فقط المبلغ الذي ستدفعينه الآن عبر Paymob لإكمال الطلب.'
-      : 'This is the only amount you need to pay now through Paymob to complete the order.',
+      ? 'هذا فقط المبلغ اللي تحتاجي تدفعيه الآن عشان يكتمل الطلب.'
+      : 'This is the only amount you need to pay now to complete your order.',
     paymobCtaHint: isArabic
-      ? 'بالضغط على الزر التالي سيتم تحويلك إلى Paymob لدفع هذا المبلغ فقط.'
-      : 'When you continue, you will be redirected to Paymob to pay this amount only.',
+      ? 'إذا ضغطتي الزر، بتنتقلي لصفحة الدفع عشان تدفعي هذا المبلغ فقط.'
+      : 'When you continue, you will go to the payment page to pay this amount only.',
     successTitle: isArabic ? 'تم تأكيد الطلب بنجاح' : 'Order confirmed successfully',
     orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',
     continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
@@ -311,8 +311,8 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     if (topupStatus === 'pending') {
       setMessage(
         isArabic
-          ? 'تم استلام طلب الدفع، ويتم تحديث الرصيد عند تأكيد Paymob.'
-          : 'Payment was received and your balance will update once Paymob confirms it.'
+          ? 'استلمنا عملية الدفع، وجاري تحديث الرصيد.'
+          : 'We got your payment and are updating your balance now.'
       );
       setError(null);
       if (restored) {

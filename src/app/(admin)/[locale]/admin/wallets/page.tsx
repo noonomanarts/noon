@@ -53,6 +53,11 @@ export default async function WalletsPage({
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           {locale === "ar" ? "محافظ المستخدمين" : "User Wallets"}
         </h1>
+        <p className="mt-2 max-w-3xl text-sm text-gray-600 dark:text-zinc-400">
+          {locale === "ar"
+            ? "رصيد المحفظة هو الرصيد الذي يمكن للمستخدم إنفاقه داخل الموقع. أما المقدار القابل للسحب فهو جزء منفصل مخصص للسحب النقدي فقط ولا يؤثر على قدرة المستخدم على الشراء داخل الموقع."
+            : "Wallet balance is the amount a user can spend inside the website. Withdrawable amount is a separate cash-out value only and does not control whether the user can pay for orders on the website."}
+        </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">

@@ -507,7 +507,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
           <div className="flex items-center justify-between">
             <div>
               <p className="text-white/85 text-sm font-medium">
-                {locale === "ar" ? "الرصيد الإجمالي" : "Total Balance"}
+                {locale === "ar" ? "إجمالي رصيد الدفع داخل الموقع" : "Total Website Payment Balance"}
               </p>
               <p className="text-2xl font-bold">{formatAmountWithCurrency(stats.totalBalance, 'OMR')}</p>
             </div>
@@ -521,7 +521,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
           <div className="flex items-center justify-between">
             <div>
               <p className="text-white/85 text-sm font-medium">
-                {locale === "ar" ? "المقدار القابل للسحب" : "Withdrawable Amount"}
+                {locale === "ar" ? "إجمالي الرصيد القابل للسحب نقدًا" : "Total Cash-Withdrawable Amount"}
               </p>
               <p className="text-2xl font-bold">{formatAmountWithCurrency(stats.totalAvailable, 'OMR')}</p>
             </div>
@@ -549,7 +549,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
           <div className="flex items-center justify-between">
             <div>
               <p className="text-white/85 text-sm font-medium">
-                {locale === "ar" ? "محافظ قابل السحب" : "Withdrawable Wallets"}
+                {locale === "ar" ? "محافظ لديها رصيد قابل للسحب" : "Wallets With Cash-Out Balance"}
               </p>
               <p className="text-2xl font-bold">{stats.walletsWithAvailable} / {stats.walletsWithBalance}</p>
             </div>
@@ -617,10 +617,10 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                   {locale === "ar" ? "رقم الهاتف" : "Phone Number"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
-                  {locale === "ar" ? "رصيد المحفظة (للدفع)" : "Wallet Balance (for payments)"}
+                  {locale === "ar" ? "رصيد الدفع داخل الموقع" : "Website Payment Balance"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
-                  {locale === "ar" ? "المقدار القابل للسحب (نقدًا)" : "Withdrawable Amount (cash out)"}
+                  {locale === "ar" ? "الرصيد القابل للسحب نقدًا" : "Cash-Withdrawable Amount"}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                   {locale === "ar" ? "المبلغ المحجوز" : "Blocked Amount"}
@@ -769,7 +769,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 mr-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/40 transition-colors duration-200">
                 <FiCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />
               </div>
-              <span className="font-medium">{locale === "ar" ? "تعديل القابل للسحب" : "Edit Withdrawable"}</span>
+              <span className="font-medium">{locale === "ar" ? "تعديل السحب النقدي" : "Edit Cash-Out Amount"}</span>
             </button>
             <button
               onClick={() => {
@@ -1028,7 +1028,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
             <div className="border-b border-zinc-200/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-semibold text-zinc-900 dark:text-white bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  {locale === "ar" ? "تعديل المقدار القابل للسحب" : "Edit Withdrawable Amount"}
+                  {locale === "ar" ? "تعديل رصيد السحب النقدي" : "Edit Cash-Withdrawable Amount"}
                 </h3>
                 <button
                   onClick={() => setShowEditAvailableBalance(false)}
@@ -1042,7 +1042,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
             <div className="p-6 space-y-5">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
-                  {locale === "ar" ? "المقدار القابل للسحب الجديد" : "New Withdrawable Amount"}
+                  {locale === "ar" ? "قيمة السحب النقدي الجديدة" : "New Cash-Withdrawable Amount"}
                 </label>
                 <input
                   type="number"
@@ -1056,7 +1056,9 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
               <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 p-4 border border-blue-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-800/30">
                 <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
-                  {locale === "ar" ? "سيتم تحديث المبلغ القابل للسحب النقدي للمستخدم المحدد" : "Cash-withdrawable amount will be updated for the selected user"}
+                  {locale === "ar"
+                    ? "هذا الحقل يغيّر فقط الرصيد المسموح سحبه نقدًا. لا يغيّر قدرة المستخدم على الدفع داخل الموقع، لأن الدفع يعتمد على رصيد المحفظة الأساسي."
+                    : "This field only changes the amount allowed for cash withdrawal. It does not change whether the user can pay on the website, because website payments use the main wallet balance."}
                 </p>
               </div>
             </div>
