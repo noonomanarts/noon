@@ -12,17 +12,27 @@ interface User {
   phoneNumber?: string;
   dateOfBirth?: string | null;
   preferredLanguage: "ENGLISH" | "ARABIC";
-  role: "ADMIN" | "TRAINER" | "CUSTOMER" | "EMPLOYEE" | "SOCIAL_MEDIA_ADMIN";
+  role: "ADMIN" | "TRAINER" | "CUSTOMER" | "EMPLOYEE" | "SOCIAL_MEDIA_ADMIN" | "WORKER" | "PHOTOGRAPHER";
   profileImage?: string;
 }
 
-type FormRole = "admin" | "trainer" | "user" | "employee" | "social_media_admin";
+interface WorkerPermissions {
+  can_restock: boolean;
+  can_print_labels: boolean;
+  can_record_sales: boolean;
+  can_manage_orders: boolean;
+  can_print_bills: boolean;
+}
+
+type FormRole = "admin" | "trainer" | "user" | "employee" | "social_media_admin" | "worker" | "photographer";
 
 function mapRoleToForm(role: User["role"]): FormRole {
   if (role === "CUSTOMER") return "user";
   if (role === "TRAINER") return "trainer";
   if (role === "EMPLOYEE") return "employee";
   if (role === "SOCIAL_MEDIA_ADMIN") return "social_media_admin";
+  if (role === "WORKER") return "worker";
+  if (role === "PHOTOGRAPHER") return "photographer";
   return "admin";
 }
 
@@ -50,6 +60,14 @@ export default function EditUserPage({
     confirmPassword: "",
   });
 
+  const [workerPermissions, setWorkerPermissions] = useState<WorkerPermissions>({
+    can_restock: false,
+    can_print_labels: false,
+    can_record_sales: false,
+    can_manage_orders: false,
+    can_print_bills: false,
+  });
+
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string>("");
   const [error, setError] = useState("");
@@ -74,6 +92,8 @@ export default function EditUserPage({
     employee: locale === "ar" ? "موظف" : "Employee",
     trainer: locale === "ar" ? "مدرب" : "Trainer",
     user: locale === "ar" ? "مستخدم" : "User",
+    worker: locale === "ar" ? "عامل" : "Worker",
+    photographer: locale === "ar" ? "مصور" : "Photographer",
     english: locale === "ar" ? "الإنجليزية" : "English",
     arabic: locale === "ar" ? "العربية" : "Arabic",
     changePassword: locale === "ar" ? "تغيير كلمة المرور" : "Change Password",
@@ -85,6 +105,12 @@ export default function EditUserPage({
     saveChanges: locale === "ar" ? "حفظ التغييرات" : "Save Changes",
     saving: locale === "ar" ? "جارٍ الحفظ..." : "Saving...",
     loading: locale === "ar" ? "جارٍ التحميل..." : "Loading...",
+    workerPermissions: locale === "ar" ? "صلاحيات العامل" : "Worker Permissions",
+    canRestock: locale === "ar" ? "إضافة مخزون" : "Add Restock",
+    canPrintLabels: locale === "ar" ? "طباعة الملصقات" : "Print Labels",
+    canRecordSales: locale === "ar" ? "تسجيل المبيعات" : "Record Sales",
+    canManageOrders: locale === "ar" ? "إدارة الطلبات" : "Manage Orders",
+    canPrintBills: locale === "ar" ? "طباعة الفواتير" : "Print Bills",
   };
 
   useEffect(() => {
@@ -110,6 +136,23 @@ export default function EditUserPage({
         });
         if (data.profileImage) {
           setPreviewImage(data.profileImage);
+        }
+        
+        // Fetch worker permissions if user is a worker
+        if (data.role === "WORKER") {
+          const permResponse = await fetch(`/api/admin/users/${userId}/worker-permissions`);
+          if (permResponse.ok) {
+            const permData = await permResponse.json();
+            if (permData) {
+              setWorkerPermissions({
+                can_restock: permData.can_restock ?? false,
+                can_print_labels: permData.can_print_labels ?? false,
+                can_record_sales: permData.can_record_sales ?? false,
+                can_manage_orders: permData.can_manage_orders ?? false,
+                can_print_bills: permData.can_print_bills ?? false,
+              });
+            }
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -178,6 +221,20 @@ export default function EditUserPage({
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to update user");
+      }
+
+      // Save worker permissions if role is worker
+      if (formData.role === "worker") {
+        const permResponse = await fetch(`/api/admin/users/${userId}/worker-permissions`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(workerPermissions),
+        });
+
+        if (!permResponse.ok) {
+          const permData = await permResponse.json();
+          throw new Error(permData.error || "Failed to update worker permissions");
+        }
       }
 
       router.push(`/${locale}/admin/users`);
@@ -354,6 +411,8 @@ export default function EditUserPage({
                 <option value="user">{t.user}</option>
                 <option value="trainer">{t.trainer}</option>
                 <option value="employee">{t.employee}</option>
+                <option value="worker">{t.worker}</option>
+                <option value="photographer">{t.photographer}</option>
                 <option value="social_media_admin">{t.socialMediaAdmin}</option>
                 <option value="admin">{t.admin}</option>
               </select>
@@ -373,6 +432,87 @@ export default function EditUserPage({
             </div>
           </div>
         </div>
+
+        {/* Worker Permissions - Only show when role is worker */}
+        {formData.role === "worker" && (
+          <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              {t.workerPermissions}
+            </h2>
+            <div className="space-y-3">
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={workerPermissions.can_restock}
+                  onChange={(e) =>
+                    setWorkerPermissions((prev) => ({
+                      ...prev,
+                      can_restock: e.target.checked,
+                    }))
+                  }
+                  className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">{t.canRestock}</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={workerPermissions.can_print_labels}
+                  onChange={(e) =>
+                    setWorkerPermissions((prev) => ({
+                      ...prev,
+                      can_print_labels: e.target.checked,
+                    }))
+                  }
+                  className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">{t.canPrintLabels}</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={workerPermissions.can_record_sales}
+                  onChange={(e) =>
+                    setWorkerPermissions((prev) => ({
+                      ...prev,
+                      can_record_sales: e.target.checked,
+                    }))
+                  }
+                  className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">{t.canRecordSales}</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={workerPermissions.can_manage_orders}
+                  onChange={(e) =>
+                    setWorkerPermissions((prev) => ({
+                      ...prev,
+                      can_manage_orders: e.target.checked,
+                    }))
+                  }
+                  className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">{t.canManageOrders}</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={workerPermissions.can_print_bills}
+                  onChange={(e) =>
+                    setWorkerPermissions((prev) => ({
+                      ...prev,
+                      can_print_bills: e.target.checked,
+                    }))
+                  }
+                  className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">{t.canPrintBills}</span>
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* Change Password */}
         <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">

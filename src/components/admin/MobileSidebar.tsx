@@ -12,6 +12,7 @@ import {
   FiGrid,
   FiSettings,
   FiShoppingBag,
+  FiShoppingCart,
   FiThumbsUp,
   FiTrendingUp,
   FiUserCheck,
@@ -22,6 +23,8 @@ import {
   FiPackage,
   FiMessageSquare,
   FiTag,
+  FiTruck,
+  FiPrinter,
 } from "react-icons/fi";
 
 const iconMap = {
@@ -36,12 +39,15 @@ const iconMap = {
   FiCreditCard,
   FiThumbsUp,
   FiShoppingBag,
+  FiShoppingCart,
   FiFileText,
   FiSettings,
   FiBell,
   FiPackage,
   FiMessageSquare,
   FiTag,
+  FiTruck,
+  FiPrinter,
 } as const;
 
 type MenuItem = {

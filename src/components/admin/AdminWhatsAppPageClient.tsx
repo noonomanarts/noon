@@ -4,13 +4,14 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { FiMessageSquare, FiSend } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
+import type { UserRole } from '@/lib/db/types';
 
 type AdminUser = {
   id: string;
   fullName: string;
   email: string;
   phoneNumber: string;
-  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
+  role: UserRole;
 };
 
 type SendResult = {

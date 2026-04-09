@@ -6,12 +6,13 @@ import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { FiChevronDown, FiGrid, FiSettings, FiUser } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
+import type { UserRole } from '@/lib/db/types';
 import LogoutButton from '@/components/site/LogoutButton';
 
 interface SiteProfileMenuProps {
   locale: Locale;
   fullName: string;
-  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
+  role: UserRole;
   profileImage?: string | null;
   tone?: 'light' | 'dark';
   menuClassName?: string;
@@ -34,11 +35,13 @@ export default function SiteProfileMenu({
   const accountHref = `/${locale}/account/profile`;
   const dashboardHref = role === 'ADMIN'
     ? `/${locale}/admin`
-    : role === 'SOCIAL_MEDIA_ADMIN'
+    : role === 'SOCIAL_MEDIA_ADMIN' || role === 'PHOTOGRAPHER'
       ? `/${locale}/photographer`
       : role === 'TRAINER'
         ? `/${locale}/account/trainer`
-        : null;
+        : role === 'WORKER'
+          ? `/${locale}/worker`
+          : null;
   const t = {
     account: isArabic ? 'ملفي الشخصي' : 'My Account',
     settings: isArabic ? 'الإعدادات' : 'Settings',

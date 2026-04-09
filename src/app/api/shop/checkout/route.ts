@@ -5,6 +5,8 @@ import { getUserById } from '@/lib/db/users';
 import { CART_COOKIE_NAME, emptyCart, parseCartCookie, serializeCartCookie } from '@/lib/cart';
 import { validatePromoCode } from '@/lib/db/promoCodes';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
+import { getWorkersWithOrdersPermission } from '@/lib/db/worker';
+import { notifyUser } from '@/lib/notificationService';
 
 const SHIPPING_FEE = 2;
 const DELIVERY_CITY = 'Muscat';
@@ -413,6 +415,23 @@ export async function POST(request: NextRequest) {
       }).catch((error) => {
         console.error('Failed to send shop purchase WhatsApp message:', error);
       });
+
+      // Notify workers with order management permission
+      void (async () => {
+        try {
+          const workers = await getWorkersWithOrdersPermission();
+          for (const worker of workers) {
+            await notifyUser(worker.id, {
+              title: 'New Website Order',
+              message: `Order #${orderInsert.rows[0].order_number} has been placed (${totalAmount.toFixed(3)} OMR)`,
+              type: 'shop_order',
+              data: { link: '/worker/orders' },
+            });
+          }
+        } catch (error) {
+          console.error('Failed to notify workers about new order:', error);
+        }
+      })();
 
       const response = NextResponse.json({
         success: true,

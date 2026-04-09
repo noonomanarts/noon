@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import type { ComponentType } from 'react';
 import { FiBarChart2, FiBell, FiCreditCard, FiSettings, FiShoppingBag, FiUser } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
+import type { UserRole } from '@/lib/db/types';
 import LogoutButton from '@/components/site/LogoutButton';
 
 type NavItem = {
@@ -16,7 +17,7 @@ type NavItem = {
 
 interface AccountSidebarProps {
   locale: Locale;
-  role: 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
+  role: UserRole;
 }
 
 export function AccountSidebar({ locale, role }: AccountSidebarProps) {

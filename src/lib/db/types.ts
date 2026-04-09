@@ -3,7 +3,7 @@
  */
 
 // Enums (types)
-export type UserRole = 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN';
+export type UserRole = 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN' | 'PHOTOGRAPHER' | 'WORKER';
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 export type PreferredLanguage = 'ENGLISH' | 'ARABIC';
@@ -586,3 +586,75 @@ export type SelectFields<T, K extends keyof T> = Pick<T, K>;
 
 // Utility for public user (without password)
 export type PublicUser = Omit<User, 'password'>;
+
+// Worker Dashboard Types
+export interface WorkerPermissions {
+  id: string;
+  user_id: string;
+  can_restock: boolean;
+  can_record_sales: boolean;
+  can_manage_orders: boolean;
+  can_print_labels: boolean;
+  can_print_bills: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface StockRestock {
+  id: string;
+  product_id: string;
+  worker_user_id: string;
+  quantity_added: number;
+  previous_quantity: number;
+  new_quantity: number;
+  unit_cost: number | null;
+  total_cost: number | null;
+  supplier_name: string | null;
+  notes: string | null;
+  notes_ar: string | null;
+  created_at: Date;
+}
+
+export type InShopSalePaymentMethod = 'CASH' | 'CARD' | 'BANK_TRANSFER';
+
+export interface InShopSale {
+  id: string;
+  sale_number: string;
+  worker_user_id: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  subtotal: number;
+  discount_amount: number;
+  discount_reason: string | null;
+  total_amount: number;
+  currency: string;
+  payment_method: InShopSalePaymentMethod;
+  notes: string | null;
+  notes_ar: string | null;
+  voided_at: Date | null;
+  voided_by_user_id: string | null;
+  void_reason: string | null;
+  created_at: Date;
+}
+
+export interface InShopSaleItem {
+  id: string;
+  sale_id: string;
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+  product_name_en: string;
+  product_name_ar: string;
+  product_sku: string | null;
+  created_at: Date;
+}
+
+export interface WorkerStats {
+  user_id: string;
+  total_restocks: number;
+  total_sales: number;
+  total_sales_amount: number;
+  restocks_today: number;
+  sales_today: number;
+}
