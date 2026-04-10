@@ -96,6 +96,27 @@ function renderCourseIconPreview(icon: string, type: "cooking" | "arts", classNa
   return <GiPalette className={className} />;
 }
 
+function renderImagePreviewCard(src: string, label: string, aspectClassName = "aspect-[3/4]") {
+  const normalizedSrc = src.trim();
+
+  return (
+    <div className="space-y-1.5">
+      <span className="block text-sm text-zinc-600 dark:text-zinc-300">{label}</span>
+      <div
+        className={`${aspectClassName} overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800`}
+      >
+        {normalizedSrc ? (
+          <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url("${normalizedSrc}")` }} />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center px-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
+            {label}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPageSettingsClient({
   locale,
   page,
@@ -489,6 +510,8 @@ export default function AdminPageSettingsClient({
     aboutWhatWeDoTitleColor: isArabic ? "لون عنوان القسم" : "Section Title Color",
     aboutWhatWeDoCardTitleColor: isArabic ? "لون عنوان البطاقة" : "Card Title Color",
     aboutWhatWeDoCardTextColor: isArabic ? "لون نص البطاقة" : "Card Text Color",
+    imagePreview: isArabic ? "معاينة الصورة" : "Image Preview",
+    backgroundPreview: isArabic ? "معاينة الخلفية" : "Background Preview",
     aboutFeatureItem: isArabic ? "عنصر" : "Item",
     aboutFeatureTextEn: isArabic ? "النص (EN)" : "Text (EN)",
     aboutFeatureTextAr: isArabic ? "النص (AR)" : "Text (AR)",
@@ -2028,8 +2051,8 @@ export default function AdminPageSettingsClient({
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1 text-sm md:col-span-2">
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem] md:items-start">
+              <label className="space-y-1 text-sm">
                 <span className="text-zinc-600 dark:text-zinc-300">{t.aboutSectionImage}</span>
                 <div className="flex gap-2">
                   <input
@@ -2058,6 +2081,8 @@ export default function AdminPageSettingsClient({
                   </label>
                 </div>
               </label>
+
+              {renderImagePreviewCard(settings.aboutPage.aboutImageSrc, t.imagePreview)}
 
               <label className="space-y-1 text-sm">
                 <span className="text-zinc-600 dark:text-zinc-300">{t.aboutTitleEn}</span>
@@ -2198,35 +2223,39 @@ export default function AdminPageSettingsClient({
                   className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                 />
               </label>
-              <label className="space-y-1 text-sm md:col-span-2">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutFounderImage}</span>
-                <div className="flex gap-2">
-                  <input
-                    value={settings.aboutPage.founderImageSrc}
-                    onChange={(event) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        aboutPage: { ...prev.aboutPage, founderImageSrc: event.target.value },
-                      }))
-                    }
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                  />
-                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
-                    <FiUpload className="size-3.5" />
-                    {uploadingAboutMediaKey === "founder" ? t.aboutUploading : t.aboutUpload}
+              <div className="space-y-4 md:col-span-2 md:grid md:grid-cols-[minmax(0,1fr)_12rem] md:items-start md:gap-4 md:space-y-0">
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.aboutFounderImage}</span>
+                  <div className="flex gap-2">
                     <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={uploadingAboutMediaKey !== null}
-                      onChange={(event) => {
-                        void handleAboutMediaUpload("founder", event.target.files?.[0] ?? null);
-                        event.currentTarget.value = "";
-                      }}
+                      value={settings.aboutPage.founderImageSrc}
+                      onChange={(event) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          aboutPage: { ...prev.aboutPage, founderImageSrc: event.target.value },
+                        }))
+                      }
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
-                  </label>
-                </div>
-              </label>
+                    <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                      <FiUpload className="size-3.5" />
+                      {uploadingAboutMediaKey === "founder" ? t.aboutUploading : t.aboutUpload}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingAboutMediaKey !== null}
+                        onChange={(event) => {
+                          void handleAboutMediaUpload("founder", event.target.files?.[0] ?? null);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                </label>
+
+                {renderImagePreviewCard(settings.aboutPage.founderImageSrc, t.imagePreview)}
+              </div>
             </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -2284,35 +2313,39 @@ export default function AdminPageSettingsClient({
                   className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                 />
               </label>
-              <label className="space-y-1 text-sm md:col-span-2">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutFamilyImage}</span>
-                <div className="flex gap-2">
-                  <input
-                    value={settings.aboutPage.familyImageSrc}
-                    onChange={(event) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        aboutPage: { ...prev.aboutPage, familyImageSrc: event.target.value },
-                      }))
-                    }
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                  />
-                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
-                    <FiUpload className="size-3.5" />
-                    {uploadingAboutMediaKey === "family" ? t.aboutUploading : t.aboutUpload}
+              <div className="space-y-4 md:col-span-2 md:grid md:grid-cols-[minmax(0,1fr)_12rem] md:items-start md:gap-4 md:space-y-0">
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.aboutFamilyImage}</span>
+                  <div className="flex gap-2">
                     <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={uploadingAboutMediaKey !== null}
-                      onChange={(event) => {
-                        void handleAboutMediaUpload("family", event.target.files?.[0] ?? null);
-                        event.currentTarget.value = "";
-                      }}
+                      value={settings.aboutPage.familyImageSrc}
+                      onChange={(event) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          aboutPage: { ...prev.aboutPage, familyImageSrc: event.target.value },
+                        }))
+                      }
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
-                  </label>
-                </div>
-              </label>
+                    <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                      <FiUpload className="size-3.5" />
+                      {uploadingAboutMediaKey === "family" ? t.aboutUploading : t.aboutUpload}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingAboutMediaKey !== null}
+                        onChange={(event) => {
+                          void handleAboutMediaUpload("family", event.target.files?.[0] ?? null);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                </label>
+
+                {renderImagePreviewCard(settings.aboutPage.familyImageSrc, t.imagePreview)}
+              </div>
             </div>
           </section>
 
@@ -2384,35 +2417,39 @@ export default function AdminPageSettingsClient({
                   />
                 </div>
               </label>
-              <label className="space-y-1 text-sm md:col-span-2">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutWhatWeDoBackground}</span>
-                <div className="flex gap-2">
-                  <input
-                    value={settings.aboutPage.whatWeDoBackgroundImageSrc}
-                    onChange={(event) =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        aboutPage: { ...prev.aboutPage, whatWeDoBackgroundImageSrc: event.target.value },
-                      }))
-                    }
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                  />
-                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
-                    <FiUpload className="size-3.5" />
-                    {uploadingAboutMediaKey === "whatWeDo" ? t.aboutUploading : t.aboutUpload}
+              <div className="space-y-4 text-sm md:col-span-2 md:grid md:grid-cols-[minmax(0,1fr)_12rem] md:items-start md:gap-4 md:space-y-0">
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.aboutWhatWeDoBackground}</span>
+                  <div className="flex gap-2">
                     <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={uploadingAboutMediaKey !== null}
-                      onChange={(event) => {
-                        void handleAboutMediaUpload("whatWeDo", event.target.files?.[0] ?? null);
-                        event.currentTarget.value = "";
-                      }}
+                      value={settings.aboutPage.whatWeDoBackgroundImageSrc}
+                      onChange={(event) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          aboutPage: { ...prev.aboutPage, whatWeDoBackgroundImageSrc: event.target.value },
+                        }))
+                      }
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
-                  </label>
-                </div>
-              </label>
+                    <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                      <FiUpload className="size-3.5" />
+                      {uploadingAboutMediaKey === "whatWeDo" ? t.aboutUploading : t.aboutUpload}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingAboutMediaKey !== null}
+                        onChange={(event) => {
+                          void handleAboutMediaUpload("whatWeDo", event.target.files?.[0] ?? null);
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+                </label>
+
+                {renderImagePreviewCard(settings.aboutPage.whatWeDoBackgroundImageSrc, t.backgroundPreview, "aspect-[4/5]")}
+              </div>
               <label className="space-y-1 text-sm">
                 <span className="text-zinc-600 dark:text-zinc-300">{t.aboutWhatWeDoCardTitleColor}</span>
                 <div className="flex gap-2">

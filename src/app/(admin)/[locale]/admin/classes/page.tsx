@@ -41,7 +41,13 @@ interface ClassItem {
   price: number;
   currency: string;
   status: string;
+  startDateTime?: string | null;
+  endDateTime?: string | null;
   trainer: Trainer | null;
+  sessions?: Array<{
+    startDateTime?: string | null;
+    endDateTime?: string | null;
+  }>;
   _count: {
     bookings: number;
   };
@@ -76,6 +82,44 @@ export default function AdminClassesPage() {
     classId: '',
     title: ''
   });
+
+  function formatClassDateTime(classItem: ClassItem) {
+    const startValue = classItem.startDateTime || classItem.sessions?.[0]?.startDateTime || null;
+    const endValue = classItem.endDateTime || classItem.sessions?.[0]?.endDateTime || null;
+
+    if (!startValue) {
+      return {
+        date: locale === 'ar' ? 'غير محدد' : 'Not scheduled',
+        time: locale === 'ar' ? 'لا يوجد وقت' : 'No time set',
+      };
+    }
+
+    const startDate = new Date(startValue);
+    if (Number.isNaN(startDate.getTime())) {
+      return {
+        date: locale === 'ar' ? 'تاريخ غير صالح' : 'Invalid date',
+        time: locale === 'ar' ? 'تحقق من البيانات' : 'Check data',
+      };
+    }
+
+    const endDate = endValue ? new Date(endValue) : null;
+    const dateFormatter = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+    const timeFormatter = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
+    const date = dateFormatter.format(startDate);
+    const time = endDate && !Number.isNaN(endDate.getTime())
+      ? `${timeFormatter.format(startDate)} - ${timeFormatter.format(endDate)}`
+      : timeFormatter.format(startDate);
+
+    return { date, time };
+  }
 
   useEffect(() => {
     fetchClasses();
@@ -357,6 +401,9 @@ export default function AdminClassesPage() {
                     Trainer
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                    Date
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                     Price
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
@@ -373,7 +420,7 @@ export default function AdminClassesPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {filteredClasses.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center">
+                    <td colSpan={8} className="px-4 py-12 text-center">
                       <div className="inline-flex flex-col items-center">
                         <div className="rounded-full bg-zinc-100 p-4 dark:bg-zinc-800">
                           <BiSolidBookAlt className="h-8 w-8 text-zinc-400" />
@@ -401,7 +448,10 @@ export default function AdminClassesPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredClasses.map((classItem) => (
+                  filteredClasses.map((classItem) => {
+                    const scheduledAt = formatClassDateTime(classItem);
+
+                    return (
                     <tr key={classItem.id} className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
@@ -432,6 +482,14 @@ export default function AdminClassesPage() {
                       </td>
                       <td className="px-4 py-4 text-sm text-zinc-700 dark:text-zinc-300">
                         {classItem.trainer?.fullName || '—'}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-200">
+                          {scheduledAt.date}
+                        </div>
+                        <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-500">
+                          {scheduledAt.time}
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         <div className="text-sm font-semibold text-zinc-900 dark:text-white">
@@ -497,7 +555,7 @@ export default function AdminClassesPage() {
                         </div>
                       </td>
                     </tr>
-                  ))
+                  )})
                 )}
               </tbody>
             </table>

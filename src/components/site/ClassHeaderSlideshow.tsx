@@ -17,6 +17,7 @@ type ClassHeaderSlideshowProps = {
   intervalMs?: number;
   indicatorColor?: string;
   className?: string;
+  frameClassName?: string;
   isRTL?: boolean;
 };
 
@@ -34,6 +35,7 @@ export default function ClassHeaderSlideshow({
   intervalMs = 4200,
   indicatorColor = "#cb8578",
   className,
+  frameClassName,
   isRTL = false,
 }: ClassHeaderSlideshowProps) {
   const preparedImages = useMemo(
@@ -59,11 +61,14 @@ export default function ClassHeaderSlideshow({
   }
 
   const enableSlider = preparedImages.length > 1;
+  const resolvedFrameClassName = frameClassName
+    ? `group relative overflow-hidden ${frameClassName}`
+    : "group relative overflow-hidden rounded-[2.25rem] border border-white/35 bg-white/15 shadow-[0_34px_90px_rgba(46,27,17,0.24)] backdrop-blur-sm";
 
   return (
     <div className={className ? `w-full ${className}` : "w-full"}>
       <div
-        className="group relative overflow-hidden rounded-[2.25rem] border border-white/35 bg-white/15 shadow-[0_34px_90px_rgba(46,27,17,0.24)] backdrop-blur-sm"
+        className={resolvedFrameClassName}
         onMouseEnter={() => swiper?.autoplay?.stop()}
         onMouseLeave={() => swiper?.autoplay?.start()}
       >

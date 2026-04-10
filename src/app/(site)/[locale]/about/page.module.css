@@ -6,6 +6,39 @@
   padding: 0;
 }
 
+.heroEditorialGrid {
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2.75rem);
+  align-items: stretch;
+}
+
+.heroMediaColumn {
+  min-width: 0;
+}
+
+.heroCopyPanel {
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--surface) 90%, #f7f0e6 10%);
+  min-height: 100%;
+}
+
+.heroCopyInner {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(1.5rem, 4vw, 3rem);
+}
+
+.heroSlideshowFrame {
+  aspect-ratio: 4 / 5;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  box-shadow: none;
+  border-radius: 0;
+  backdrop-filter: none;
+}
+
 .heroTitle {
   max-width: 18ch;
   font-size: clamp(2rem, 5vw, 4.15rem);
@@ -18,42 +51,11 @@
 
 .heroIntro {
   margin-top: 1rem;
-  max-width: 62ch;
-  font-size: 0.98rem;
-  line-height: 1.9;
-  color: var(--text-muted);
-}
-
-.metricTile {
-  border: 1px solid var(--border);
-  background: transparent;
-  padding: 0.8rem;
-  position: relative;
-}
-
-.metricTile::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  inset-inline: 0;
-  height: 3px;
-  background: linear-gradient(
-    to right,
-    color-mix(in oklab, var(--noon-teal) 72%, transparent),
-    color-mix(in oklab, var(--noon-coral) 72%, transparent)
-  );
-}
-
-.heroImageFrame {
-  border: 1px solid var(--border);
-  background: var(--muted);
-  aspect-ratio: 4 / 5;
-  overflow: hidden;
-  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.6);
-}
-
-.heroImageFrame :global(div) {
-  transform: scale(1.02);
+  max-width: 26ch;
+  font-size: clamp(1rem, 1.25vw, 1.45rem);
+  font-weight: 600;
+  line-height: 1.45;
+  color: color-mix(in oklab, var(--text) 92%, var(--noon-teal) 8%);
 }
 
 .splitSection {
@@ -192,6 +194,10 @@
     text-wrap: pretty;
   }
 
+  .heroIntro {
+    max-width: none;
+  }
+
   .portraitFrame {
     min-height: 16rem;
   }
@@ -202,8 +208,18 @@
 }
 
 @media (max-width: 1024px) {
+  .heroEditorialGrid {
+    grid-template-columns: 1fr;
+  }
+
   .offerBackground {
     background-attachment: scroll;
+  }
+}
+
+@media (min-width: 1024px) {
+  .heroEditorialGrid {
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1fr);
   }
 }
 

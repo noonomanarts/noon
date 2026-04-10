@@ -4,7 +4,6 @@ import Link from "next/link";
 import ClassHeaderSlideshow from "@/components/site/ClassHeaderSlideshow";
 import { getDefaultSitePageSettings, getSitePageByKey } from "@/lib/admin/sitePages";
 import { findTrainers } from "@/lib/db/trainers";
-import { getReadableTextColor, resolveHeaderColor } from "@/lib/headerBranding";
 import { isLocale, type Locale } from "@/lib/locale";
 import { markdownToSafeHtml } from "@/lib/markdown";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
@@ -104,9 +103,6 @@ export default async function AboutPage({
 
   if (!settings) return null;
 
-  const headerColor = await resolveHeaderColor();
-  const headerButtonTextColor = getReadableTextColor(headerColor);
-
   const pick = (en: string, ar: string) => (isArabic ? ar : en).trim();
 
   const heading = pick(settings.headingEn, settings.headingAr) || (isArabic ? "من نحن" : "About Us");
@@ -161,23 +157,7 @@ export default async function AboutPage({
   const aboutImageSrc =
     settings.aboutPage.aboutImageSrc.trim() || resolvedHeroSlides[0] || settings.aboutPage.heroImageSrc.trim();
 
-  const stats = [
-    {
-      value: String(Math.max(whatWeDoItems.length, 1)).padStart(2, "0"),
-      label: isArabic ? "مجالات الخبرة" : "Experience Areas",
-    },
-    {
-      value: String(Math.max(liveTrainers.length, 1)).padStart(2, "0"),
-      label: isArabic ? "مدربون نشطون" : "Active Trainers",
-    },
-    {
-      value: "15+",
-      label: isArabic ? "شركاء ومستقلون" : "Extended Creative Crew",
-    },
-  ];
-
   const ui = {
-    viewClasses: isArabic ? "استعرض الدورات" : "Explore Classes",
     trainersPlaceholder: isArabic
       ? "ستظهر ملفات المدربين هنا بمجرد إضافتهم وتفعيلهم."
       : "Trainer profiles will appear here as soon as they are added and activated.",
@@ -189,50 +169,35 @@ export default async function AboutPage({
       dir={isArabic ? "rtl" : "ltr"}
     >
       <section className={`${styles.heroShell} ${styles.reveal}`} style={revealStyle(50)}>
-        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-          <div>
-            <h1 className={styles.heroTitle}>{heading}</h1>
-            {intro ? <p className={styles.heroIntro}>{intro}</p> : null}
-
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link
-                href={`/${locale}/classes`}
-                className="inline-flex items-center border border-black/15 px-4 py-2 text-sm font-semibold transition hover:brightness-95"
-                style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
-              >
-                {ui.viewClasses}
-              </Link>
-            </div>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {stats.map((item) => (
-                <article key={item.label} className={styles.metricTile}>
-                  <p className="text-2xl font-semibold leading-none text-[color:var(--text)]">{item.value}</p>
-                  <p className="mt-2 text-xs uppercase tracking-[0.14em] text-[color:var(--text-subtle)]">
-                    {item.label}
-                  </p>
-                </article>
-              ))}
-            </div>
+        <div className={styles.heroEditorialGrid}>
+          <div className={styles.heroMediaColumn}>
+            <ClassHeaderSlideshow
+              key={`${locale}-${resolvedHeroSlides.join("|")}`}
+              images={resolvedHeroSlides}
+              alt={heading}
+              intervalMs={settings.aboutPage.heroAutoplayMs}
+              indicatorColor="#d65f4a"
+              isRTL={isArabic}
+              frameClassName={styles.heroSlideshowFrame}
+            />
           </div>
 
-          <div>
-            <div className="mx-auto w-full max-w-[15rem] sm:max-w-[18rem] lg:ms-auto lg:max-w-[20rem]">
-              <ClassHeaderSlideshow
-                key={`${locale}-${resolvedHeroSlides.join("|")}`}
-                images={resolvedHeroSlides}
-                alt={heading}
-                intervalMs={settings.aboutPage.heroAutoplayMs}
-                indicatorColor={headerColor}
-                isRTL={isArabic}
-              />
+          <article className={styles.heroCopyPanel}>
+            <div className={styles.heroCopyInner}>
+              <h1 className={styles.heroTitle}>{heading}</h1>
+              {intro ? <p className={styles.heroIntro}>{intro}</p> : null}
             </div>
-          </div>
+          </article>
         </div>
       </section>
 
       <section className={`${styles.splitSection} ${styles.reveal} mt-12`} style={revealStyle(120)}>
-        <div className="grid gap-8 lg:grid-cols-[0.8fr_1fr] lg:items-center">
+        <div className="grid gap-8 lg:grid-cols-[1fr_0.84fr] lg:items-center">
+          <article className={styles.narrativePanel}>
+            <SectionHeader title={aboutTitle} />
+            <div className={`${styles.richText} mt-5`} dangerouslySetInnerHTML={{ __html: aboutBodyHtml }} />
+          </article>
+
           <div className={styles.portraitFrame}>
             <MediaSurface
               src={aboutImageSrc}
@@ -240,15 +205,11 @@ export default async function AboutPage({
               className="h-full w-full"
             />
           </div>
-          <article className={styles.narrativePanel}>
-            <SectionHeader title={aboutTitle} />
-            <div className={`${styles.richText} mt-5`} dangerouslySetInnerHTML={{ __html: aboutBodyHtml }} />
-          </article>
         </div>
       </section>
 
       <section className={`${styles.splitSection} ${styles.reveal} mt-12`} style={revealStyle(200)}>
-        <div className="grid gap-8 lg:grid-cols-[0.8fr_1fr] lg:items-center">
+        <div className="grid gap-8 lg:grid-cols-[0.84fr_1fr] lg:items-center">
           <div className={styles.portraitFrame}>
             <MediaSurface
               src={settings.aboutPage.founderImageSrc}
@@ -337,7 +298,12 @@ export default async function AboutPage({
       </section>
 
       <section className={`${styles.splitSection} ${styles.reveal} mt-12`} style={revealStyle(440)}>
-        <div className="grid gap-8 lg:grid-cols-[0.8fr_1fr] lg:items-center">
+        <div className="grid gap-8 lg:grid-cols-[1fr_0.84fr] lg:items-center">
+          <article className={styles.narrativePanel}>
+            <SectionHeader title={familyTitle} />
+            <div className={`${styles.richText} mt-5`} dangerouslySetInnerHTML={{ __html: familyBodyHtml }} />
+          </article>
+
           <div className={styles.portraitFrame}>
             <MediaSurface
               src={settings.aboutPage.familyImageSrc}
@@ -345,10 +311,6 @@ export default async function AboutPage({
               className="h-full w-full"
             />
           </div>
-          <article className={styles.narrativePanel}>
-            <SectionHeader title={familyTitle} />
-            <div className={`${styles.richText} mt-5`} dangerouslySetInnerHTML={{ __html: familyBodyHtml }} />
-          </article>
         </div>
       </section>
     </div>
