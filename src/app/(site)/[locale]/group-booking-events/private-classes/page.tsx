@@ -236,9 +236,11 @@ export default async function PrivateClassesPage({
                     ))}
                   </div>
 
-                  <div>
-                    <h4 className="text-sm font-semibold text-[color:var(--text)]">{isArabic ? "يشمل" : "Includes"}</h4>
-                    <ul className="mt-2 space-y-2.5">
+                  <details className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/35 px-3 py-2.5">
+                    <summary className="cursor-pointer text-sm font-semibold text-[color:var(--text)]">
+                      {isArabic ? "يشمل" : "Includes"}
+                    </summary>
+                    <ul className="mt-3 space-y-2.5">
                       {pkg.includes.map((item) => (
                         <li key={item} className="flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
                           <FiCheckCircle className={`mt-0.5 size-4 shrink-0 ${isCookingClass ? "text-teal" : "text-coral"}`} />
@@ -246,7 +248,7 @@ export default async function PrivateClassesPage({
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </details>
                 </div>
               </article>
             );
