@@ -37,7 +37,7 @@ export interface ClassWithTrainer extends ClassPublic {
  */
 export async function findManyClasses(options: {
   category?: ClassCategoryType;
-  status?: ClassStatus;
+  status?: ClassStatus | ClassStatus[];
   trainerId?: string;
   limit?: number;
 }): Promise<ClassWithTrainer[]> {
@@ -52,8 +52,13 @@ export async function findManyClasses(options: {
     values.push(options.category);
   }
   if (options.status) {
-    conditions.push(`c.status = $${paramIndex++}`);
-    values.push(options.status);
+    if (Array.isArray(options.status)) {
+      conditions.push(`c.status = ANY($${paramIndex++})`);
+      values.push(options.status);
+    } else {
+      conditions.push(`c.status = $${paramIndex++}`);
+      values.push(options.status);
+    }
   }
   if (options.trainerId) {
     conditions.push(`c.trainer_id = $${paramIndex++}`);

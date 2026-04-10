@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { updateClass } from '@/lib/db/classes';
 import { notifyPhotographerDashboardUsers } from '@/lib/photographerNotifications';
+import { notifyRepeatRequestersForPublishedClass } from '@/lib/db/classRepeatRequests';
 
 const VALID_STATUSES = ['PUBLISHED', 'DRAFT', 'CANCELLED', 'COMPLETED'] as const;
 type AllowedStatus = (typeof VALID_STATUSES)[number];
@@ -41,6 +42,11 @@ export async function PATCH(
         title: 'New Class Published',
         message: `A new class "${updatedClass.title}" has been published and may need photography coverage.`,
         data: { classId, classTitle: updatedClass.title },
+      }).catch(() => {});
+
+      void notifyRepeatRequestersForPublishedClass({
+        classId,
+        locale: 'en',
       }).catch(() => {});
     }
 

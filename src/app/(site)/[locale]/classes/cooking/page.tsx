@@ -1,15 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { FiArrowRight, FiBookOpen, FiCalendar, FiUser } from "react-icons/fi";
 import { GiChefToque } from "react-icons/gi";
 import { HiOutlineBanknotes } from "react-icons/hi2";
 
 import { findManyClasses } from "@/lib/db/classes";
+import { getClassRepeatRequestSummaries } from "@/lib/db/classRepeatRequests";
 import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
 import ClassListingHeader from "@/components/site/ClassListingHeader";
+import RequestRepeatButton from "@/components/site/RequestRepeatButton";
+import { getUserById } from "@/lib/db/users";
 
 const DISPLAY_TIMEZONE = "Asia/Muscat";
 
@@ -27,7 +31,9 @@ type ClassWithSessions = {
   durationMinutes: number | null;
   trainer: { id: string; fullName: string; profileImage: string | null } | null;
   startDateTime: Date | null;
+  endDateTime: Date | null;
   seatsAvailable: number;
+  status: string;
 };
 
 function ClassCard({
@@ -37,6 +43,9 @@ function ClassCard({
   subCategoryLabel,
   formatDate,
   formatTime,
+  isEnded,
+  repeatRequestsCount,
+  requestedByCurrentUser,
 }: {
   cls: ClassWithSessions;
   locale: Locale;
@@ -44,12 +53,17 @@ function ClassCard({
   subCategoryLabel: string;
   formatDate: (date: Date | string) => string;
   formatTime: (date: Date | string) => string;
+  isEnded: boolean;
+  repeatRequestsCount: number;
+  requestedByCurrentUser: boolean;
 }) {
   const title = locale === "ar" && cls.titleAr ? cls.titleAr : cls.title;
   const trainerName = cls.trainer?.fullName ?? null;
   const datetimeText = cls.startDateTime
     ? `${formatDate(cls.startDateTime)} · ${formatTime(cls.startDateTime)}`
-    : t.noUpcomingSessions;
+    : isEnded
+      ? t.workshopEnded
+      : t.noUpcomingSessions;
   const priceText = formatAmountWithCurrency(cls.price, cls.currency);
 
   return (
@@ -100,13 +114,22 @@ function ClassCard({
             <HiOutlineBanknotes className="size-6 shrink-0 text-emerald-600" />
             {priceText}
           </p>
-          <Link
-            href={`/${locale}/classes/${cls.slug}`}
-            className="inline-flex w-full items-center justify-center gap-1 bg-[color:var(--primary)] px-4 py-3 text-sm font-extrabold uppercase tracking-wide text-[color:var(--primary-foreground)] transition hover:brightness-95"
-          >
-            {t.bookNow}
-            <FiArrowRight className="size-3.5" />
-          </Link>
+          {isEnded ? (
+            <RequestRepeatButton
+              classId={cls.id}
+              locale={locale}
+              initialCount={repeatRequestsCount}
+              initialRequested={requestedByCurrentUser}
+            />
+          ) : (
+            <Link
+              href={`/${locale}/classes/${cls.slug}`}
+              className="inline-flex w-full items-center justify-center gap-1 bg-[color:var(--primary)] px-4 py-3 text-sm font-extrabold uppercase tracking-wide text-[color:var(--primary-foreground)] transition hover:brightness-95"
+            >
+              {t.bookNow}
+              <FiArrowRight className="size-3.5" />
+            </Link>
+          )}
         </div>
       </div>
     </article>
@@ -130,10 +153,13 @@ export default async function CookingClassesPage({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
   const isArabic = locale === "ar";
   const pageSettings = await getPublicSitePageSettings("classes_cooking");
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get("noon_session")?.value;
+  const currentUser = sessionId ? await getUserById(sessionId) : null;
 
   const classes = await findManyClasses({
     category: ClassCategory.COOKING,
-    status: "PUBLISHED",
+    status: ["PUBLISHED", "COMPLETED"],
   });
 
   const classesWithSessions: ClassWithSessions[] = classes.map((cls) => ({
@@ -150,8 +176,15 @@ export default async function CookingClassesPage({
     durationMinutes: cls.durationMinutes as number | null,
     trainer: cls.trainer ? { id: cls.trainer.id, fullName: cls.trainer.fullName, profileImage: cls.trainer.profileImage } : null,
     startDateTime: cls.startDateTime ?? null,
+    endDateTime: cls.endDateTime ?? null,
     seatsAvailable: cls.seatsTotal - (cls.seatsBooked ?? 0),
+    status: cls.status,
   }));
+
+  const repeatSummaries = await getClassRepeatRequestSummaries(
+    classesWithSessions.map((cls) => cls.id),
+    currentUser?.id ?? null
+  );
 
   const t: Record<string, string> = {
     title: isArabic ? "دروس الطبخ" : "Cooking Classes",
@@ -168,9 +201,13 @@ export default async function CookingClassesPage({
     noClasses: isArabic
       ? "لا توجد دروس طبخ منشورة حالياً."
       : "No published cooking classes right now.",
+    activeClasses: isArabic ? "الورش النشطة" : "Active Workshops",
+    endedClasses: isArabic ? "ورش منتهية" : "Ended Workshops",
+    endedSubtitle: isArabic ? "يمكنك طلب إعادة أي ورشة انتهت." : "You can request any ended workshop to be repeated.",
     duration: isArabic ? "المدة" : "Duration",
     minutes: isArabic ? "دقيقة" : "min",
     noUpcomingSessions: isArabic ? "لا توجد مواعيد قادمة حالياً." : "No upcoming sessions yet.",
+    workshopEnded: isArabic ? "انتهت الورشة" : "Workshop ended",
     backToClasses: isArabic ? "العودة إلى الدورات" : "Back to classes",
   };
 
@@ -195,6 +232,18 @@ export default async function CookingClassesPage({
     });
   };
 
+  const now = Date.now();
+  const activeClasses = classesWithSessions.filter(
+    (cls) => cls.status === "PUBLISHED" && (!cls.endDateTime || new Date(cls.endDateTime).getTime() >= now)
+  );
+  const endedClasses = classesWithSessions
+    .filter((cls) => cls.status === "COMPLETED" || (cls.endDateTime && new Date(cls.endDateTime).getTime() < now))
+    .sort((a, b) => {
+      const aTime = a.endDateTime ? new Date(a.endDateTime).getTime() : 0;
+      const bTime = b.endDateTime ? new Date(b.endDateTime).getTime() : 0;
+      return bTime - aTime;
+    });
+
   return (
     <div className="route-sharp pb-14">
       <ClassListingHeader
@@ -214,21 +263,56 @@ export default async function CookingClassesPage({
             <p className="text-base text-[color:var(--text-muted)]">{t.noClasses}</p>
           </div>
         ) : (
-          <section>
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {classesWithSessions.map((cls) => (
-                <ClassCard
-                  key={cls.id}
-                  cls={cls}
-                  locale={locale}
-                  t={t}
-                  subCategoryLabel={getSubCategoryLabel(cls.subCategory, t)}
-                  formatDate={formatDate}
-                  formatTime={formatTime}
-                />
-              ))}
-            </div>
-          </section>
+          <div className="space-y-10">
+            {activeClasses.length > 0 ? (
+              <section className="space-y-4">
+                <div>
+                  <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.activeClasses}</h2>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                  {activeClasses.map((cls) => (
+                    <ClassCard
+                      key={cls.id}
+                      cls={cls}
+                      locale={locale}
+                      t={t}
+                      subCategoryLabel={getSubCategoryLabel(cls.subCategory, t)}
+                      formatDate={formatDate}
+                      formatTime={formatTime}
+                      isEnded={false}
+                      repeatRequestsCount={repeatSummaries[cls.id]?.requestsCount ?? 0}
+                      requestedByCurrentUser={repeatSummaries[cls.id]?.requestedByCurrentUser ?? false}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            {endedClasses.length > 0 ? (
+              <section className="space-y-4">
+                <div>
+                  <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.endedClasses}</h2>
+                  <p className="mt-1 text-sm text-[color:var(--text-muted)]">{t.endedSubtitle}</p>
+                </div>
+                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                  {endedClasses.map((cls) => (
+                    <ClassCard
+                      key={cls.id}
+                      cls={cls}
+                      locale={locale}
+                      t={t}
+                      subCategoryLabel={getSubCategoryLabel(cls.subCategory, t)}
+                      formatDate={formatDate}
+                      formatTime={formatTime}
+                      isEnded
+                      repeatRequestsCount={repeatSummaries[cls.id]?.requestsCount ?? 0}
+                      requestedByCurrentUser={repeatSummaries[cls.id]?.requestedByCurrentUser ?? false}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </div>
         )}
       </div>
     </div>
