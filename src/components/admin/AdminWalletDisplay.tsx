@@ -221,19 +221,19 @@ export function AdminWalletDisplay({ locale, userId }: AdminWalletDisplayProps) 
       )}
 
       {/* Main Wallet Button */}
-      <div className="relative">
+      <div className="relative max-w-full">
         <button
           onClick={() => setShowDropdown(!showDropdown)}
-          className="noon-btn-teal flex items-center gap-2 px-4 py-2 shadow-sm transition-all hover:shadow-md"
+          className="noon-btn-teal flex max-w-full items-center gap-2 px-3 py-2 text-sm shadow-sm transition-all hover:shadow-md sm:px-4"
         >
-          <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
           </svg>
-          <span className="font-medium">
+          <span className="min-w-0 truncate font-medium">
             {formatAmountWithCurrency(wallet.balance, wallet.currency)}
           </span>
           <svg
-            className={`size-4 transition-transform ${showDropdown ? "rotate-180" : ""}`}
+            className={`size-4 shrink-0 transition-transform ${showDropdown ? "rotate-180" : ""}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

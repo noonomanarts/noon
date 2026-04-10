@@ -134,6 +134,48 @@ function formatDate(value: string | null | undefined, localeCode: string) {
   }).format(date);
 }
 
+function SectionCard({
+  icon,
+  title,
+  subtitle,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-zinc-200/80 bg-white p-4 shadow-[0_12px_38px_rgba(15,23,42,0.05)] dark:border-zinc-800/80 dark:bg-zinc-900 sm:p-6">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 sm:text-xl">{title}</h2>
+          {subtitle ? <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p> : null}
+        </div>
+      </div>
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
+function DetailTile({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{label}</p>
+      <div className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100 sm:text-base">{value}</div>
+    </div>
+  );
+}
+
 export default function AdminClassDetailsPage({
   params,
 }: {
@@ -299,13 +341,18 @@ export default function AdminClassDetailsPage({
   const reviewCount = classData.reviews?.length ?? 0;
   const bookingsCount = classData._count?.bookings ?? 0;
   const isUpcoming = classData.startDateTime ? new Date(classData.startDateTime).getTime() >= Date.now() : false;
+  const availability = classData.seatsTotal - (classData.seatsBooked ?? 0);
 
   return (
-    <div className="space-y-6">
-      <div className="overflow-hidden rounded-[2rem] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="bg-[linear-gradient(135deg,color-mix(in_oklab,var(--noon-teal)_14%,white),white_55%,color-mix(in_oklab,var(--noon-teal-strong)_10%,white))] p-6 dark:bg-[linear-gradient(135deg,rgba(23,176,173,0.16),rgba(9,15,20,0.9))] md:p-8">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-            <div className="max-w-3xl">
+    <div className="space-y-6 pb-8">
+      <div className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)] dark:border-zinc-800/80 dark:bg-zinc-900">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--noon-teal)]/45 to-transparent" />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[color:var(--noon-teal)]/10 blur-3xl dark:bg-[color:var(--noon-teal)]/15" />
+        <div className="pointer-events-none absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-amber-300/10 blur-3xl dark:bg-amber-300/10" />
+
+        <div className="relative p-5 sm:p-6 lg:p-8">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_360px] xl:items-start">
+            <div className="max-w-4xl">
               <Link
                 href={`/${locale}/admin/classes`}
                 className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
@@ -314,53 +361,133 @@ export default function AdminClassDetailsPage({
                 {t.back}
               </Link>
 
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                  classData.status === 'PUBLISHED'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                    : classData.status === 'DRAFT'
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                      : classData.status === 'COMPLETED'
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                        : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
+                }`}>
+                  {formatStatus(classData.status, isArabic)}
+                </span>
+                <span className="inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-300">
+                  {formatCategory(classData.category, isArabic)}
+                </span>
+                <span className="inline-flex items-center rounded-full border border-zinc-200 bg-white/80 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-300">
+                  {formatSubCategory(classData.subCategory, isArabic)}
+                </span>
+              </div>
+
               <h1 className="mt-4 text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 md:text-4xl">
                 {displayTitle}
               </h1>
+
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600 dark:text-zinc-300 sm:text-base">
+                {isArabic
+                  ? 'عرض إداري شامل لمراجعة المحتوى، حالة النشر، الجاهزية للحجز، والبيانات التشغيلية الخاصة بالصف.'
+                  : 'A complete administrative view for reviewing class content, publishing status, booking readiness, and operational details.'}
+              </p>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-xl border border-zinc-200/80 bg-white/85 p-4 dark:border-zinc-700/80 dark:bg-zinc-900/80">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.bookings}</span>
+                    <IoPeopleOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
+                  </div>
+                  <p className="mt-3 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{bookingsCount}</p>
+                </div>
+                <div className="rounded-xl border border-zinc-200/80 bg-white/85 p-4 dark:border-zinc-700/80 dark:bg-zinc-900/80">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{isArabic ? 'التاريخ' : 'Date'}</span>
+                    <IoCalendarOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
+                  </div>
+                  <p className="mt-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100 sm:text-base">
+                    {classData.startDateTime ? formatDateTime(classData.startDateTime, localeCode) : '—'}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-zinc-200/80 bg-white/85 p-4 dark:border-zinc-700/80 dark:bg-zinc-900/80">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.occupancy}</span>
+                    <IoTimeOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
+                  </div>
+                  <p className="mt-3 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{classData.seatsBooked ?? 0} / {classData.seatsTotal}</p>
+                </div>
+                <div className="rounded-xl border border-zinc-200/80 bg-white/85 p-4 dark:border-zinc-700/80 dark:bg-zinc-900/80">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.averageRating}</span>
+                    <IoStar className="h-4 w-4 text-amber-500" />
+                  </div>
+                  <p className="mt-3 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{reviewAverage ? reviewAverage.toFixed(1) : '—'}</p>
+                </div>
+              </div>
             </div>
 
-            <div className="flex w-full flex-col gap-3 xl:w-auto xl:min-w-[340px]">
-              <Link
-                href={`/${locale}/admin/classes/${classId}/edit`}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <IoCreateOutline className="h-4 w-4" />
-                {t.edit}
-              </Link>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-2xl border border-zinc-200/80 bg-white/88 p-4 shadow-sm backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-950/85 sm:p-5">
+              <div className="flex flex-col gap-3.5">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{isArabic ? 'إجراءات سريعة' : 'Quick actions'}</p>
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    {isArabic ? 'أهم العمليات المتكررة لهذا الصف من مكان واحد.' : 'Frequent class operations collected in one place.'}
+                  </p>
+                </div>
                 <Link
-                  href={`/${locale}/admin/calendar`}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[color:var(--noon-teal)]/35 bg-white px-3 text-xs font-semibold text-[color:var(--noon-teal-strong)] transition hover:bg-[color:var(--noon-teal)]/5 dark:border-[color:var(--noon-teal)]/40 dark:bg-zinc-950"
+                  href={`/${locale}/admin/classes/${classId}/edit`}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 >
-                  <IoGlobeOutline className="h-4 w-4" />
-                  {t.calendar}
+                  <IoCreateOutline className="h-4 w-4" />
+                  {t.edit}
                 </Link>
-                <Link
-                  href={`/${locale}/classes/${classData.slug}`}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                  target="_blank"
-                >
-                  <IoEyeOutline className="h-4 w-4" />
-                  {t.publicPage}
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handleStatusChange(classData.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED')}
-                  disabled={statusLoading}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[color:var(--noon-teal)] px-3 text-xs font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <IoCheckmarkCircle className="h-4 w-4" />
-                  {classData.status === 'PUBLISHED' ? t.moveToDraft : t.publish}
-                </button>
-                <Link
-                  href={`/${locale}/admin/classes/${classId}/enrollment-wallet`}
-                  className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[color:var(--noon-teal)]/35 bg-white px-3 text-xs font-semibold text-[color:var(--noon-teal-strong)] transition hover:bg-[color:var(--noon-teal)]/5 dark:border-[color:var(--noon-teal)]/40 dark:bg-zinc-950"
-                >
-                  <IoWalletOutline className="h-4 w-4" />
-                  {t.enrollmentWallet}
-                </Link>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href={`/${locale}/admin/calendar`}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[color:var(--noon-teal)]/35 bg-white px-3 text-xs font-semibold text-[color:var(--noon-teal-strong)] transition hover:bg-[color:var(--noon-teal)]/5 dark:border-[color:var(--noon-teal)]/40 dark:bg-zinc-950"
+                  >
+                    <IoGlobeOutline className="h-4 w-4" />
+                    {t.calendar}
+                  </Link>
+                  <Link
+                    href={`/${locale}/classes/${classData.slug}`}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    target="_blank"
+                  >
+                    <IoEyeOutline className="h-4 w-4" />
+                    {t.publicPage}
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleStatusChange(classData.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED')}
+                    disabled={statusLoading}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[color:var(--noon-teal)] px-3 text-xs font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <IoCheckmarkCircle className="h-4 w-4" />
+                    {classData.status === 'PUBLISHED' ? t.moveToDraft : t.publish}
+                  </button>
+                  <Link
+                    href={`/${locale}/admin/classes/${classId}/enrollment-wallet`}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-[color:var(--noon-teal)]/35 bg-white px-3 text-xs font-semibold text-[color:var(--noon-teal-strong)] transition hover:bg-[color:var(--noon-teal)]/5 dark:border-[color:var(--noon-teal)]/40 dark:bg-zinc-950"
+                  >
+                    <IoWalletOutline className="h-4 w-4" />
+                    {t.enrollmentWallet}
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="rounded-xl bg-zinc-50 p-3 dark:bg-zinc-900">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.slug}</p>
+                    <p className="mt-2 truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{classData.slug}</p>
+                  </div>
+                  <div className="rounded-xl bg-zinc-50 p-3 dark:bg-zinc-900">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.price}</p>
+                    <p className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{formatMoney(classData.price, classData.currency)}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -379,115 +506,45 @@ export default function AdminClassDetailsPage({
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{t.bookings}</span>
-            <IoPeopleOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />
-          </div>
-          <p className="mt-4 text-3xl font-bold text-zinc-900 dark:text-zinc-100">{bookingsCount}</p>
-        </div>
-        <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{isArabic ? 'التاريخ' : 'Date'}</span>
-            <IoCalendarOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />
-          </div>
-          <p className="mt-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">
-            {classData.startDateTime ? formatDateTime(classData.startDateTime, localeCode) : '—'}
-          </p>
-        </div>
-        <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{t.seats}</span>
-            <IoTimeOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />
-          </div>
-          <p className="mt-4 text-3xl font-bold text-zinc-900 dark:text-zinc-100">
-            {classData.seatsBooked ?? 0} / {classData.seatsTotal}
-          </p>
-        </div>
-        <div className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{t.averageRating}</span>
-            <IoStar className="h-5 w-5 text-amber-500" />
-          </div>
-          <p className="mt-4 text-3xl font-bold text-zinc-900 dark:text-zinc-100">
-            {reviewAverage ? reviewAverage.toFixed(1) : '—'}
-          </p>
-        </div>
-      </div>
-
       <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.3fr)_minmax(340px,0.7fr)]">
         <div className="space-y-6">
-          <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--noon-teal)]/10 text-[color:var(--noon-teal)]">
-                <IoSparklesOutline className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{t.overview}</h2>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">{displayTitle}</p>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl bg-zinc-50 p-5 dark:bg-zinc-950/50">
+          <SectionCard
+            icon={<IoSparklesOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />}
+            title={t.overview}
+            subtitle={displayTitle}
+          >
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-5 dark:border-zinc-800 dark:bg-zinc-950/50">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500 dark:text-zinc-400">{t.englishContent}</p>
-                <h3 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-100">{classData.title}</h3>
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-zinc-600 dark:text-zinc-300">{classData.description}</p>
+                <h3 className="mt-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{classData.title}</h3>
+                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{classData.description}</p>
               </div>
-              <div className="rounded-2xl bg-zinc-50 p-5 dark:bg-zinc-950/50">
+              <div dir="rtl" className="rounded-2xl border border-zinc-200/80 bg-zinc-50/80 p-5 text-right dark:border-zinc-800 dark:bg-zinc-950/50">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500 dark:text-zinc-400">{t.arabicContent}</p>
-                <h3 className="mt-3 text-base font-semibold text-zinc-900 dark:text-zinc-100">{classData.titleAr || '—'}</h3>
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-zinc-600 dark:text-zinc-300">{classData.descriptionAr || '—'}</p>
+                <h3 className="mt-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{classData.titleAr || '—'}</h3>
+                <p className="mt-3 whitespace-pre-line text-sm leading-8 text-zinc-600 dark:text-zinc-300">{classData.descriptionAr || '—'}</p>
               </div>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.category}</p>
-                <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{formatCategory(classData.category, isArabic)}</p>
-              </div>
-              <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.subCategory}</p>
-                <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{formatSubCategory(classData.subCategory, isArabic)}</p>
-              </div>
-              <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.duration}</p>
-                <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{formatDurationClock(classData.durationMinutes)}</p>
-              </div>
-              <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.price}</p>
-                <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{formatMoney(classData.price, classData.currency)}</p>
-              </div>
-              <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.seats}</p>
-                <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{classData.seatsTotal}</p>
-              </div>
-              <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.availability}</p>
-                <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{classData.seatsAvailable}</p>
-              </div>
-              <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.createdAt}</p>
-                <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{formatDate(classData.createdAt, localeCode)}</p>
-              </div>
-              <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.updatedAt}</p>
-                <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{formatDate(classData.updatedAt, localeCode)}</p>
-              </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <DetailTile label={t.category} value={formatCategory(classData.category, isArabic)} />
+              <DetailTile label={t.subCategory} value={formatSubCategory(classData.subCategory, isArabic)} />
+              <DetailTile label={t.duration} value={formatDurationClock(classData.durationMinutes)} />
+              <DetailTile label={t.price} value={formatMoney(classData.price, classData.currency)} />
+              <DetailTile label={t.seats} value={classData.seatsTotal} />
+              <DetailTile label={t.availability} value={classData.seatsAvailable} />
+              <DetailTile label={t.createdAt} value={formatDate(classData.createdAt, localeCode)} />
+              <DetailTile label={t.updatedAt} value={formatDate(classData.updatedAt, localeCode)} />
             </div>
-          </section>
+          </SectionCard>
 
-          <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--noon-teal)]/10 text-[color:var(--noon-teal)]">
-                <IoCalendarOutline className="h-5 w-5" />
-              </div>
-              <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{t.schedule}</h2>
-            </div>
+          <SectionCard
+            icon={<IoCalendarOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />}
+            title={t.schedule}
+          >
 
             {classData.startDateTime ? (
-              <div className="mt-5 rounded-3xl border border-[color:var(--noon-teal)]/20 bg-[color:var(--noon-teal)]/5 p-5 dark:bg-[color:var(--noon-teal)]/10">
+              <div className="rounded-2xl border border-[color:var(--noon-teal)]/20 bg-[color:var(--noon-teal)]/5 p-5 dark:bg-[color:var(--noon-teal)]/10">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--noon-teal-strong)]">
                   {isUpcoming ? (isArabic ? 'قادم' : 'Upcoming') : (isArabic ? 'منتهي' : 'Past')}
                 </p>
@@ -500,48 +557,32 @@ export default function AdminClassDetailsPage({
                   </p>
                 ) : null}
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl bg-white/80 p-4 dark:bg-zinc-950/60">
-                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.seats}</p>
-                    <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{classData.seatsTotal}</p>
-                  </div>
-                  <div className="rounded-2xl bg-white/80 p-4 dark:bg-zinc-950/60">
-                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{isArabic ? 'محجوز' : 'Booked'}</p>
-                    <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{classData.seatsBooked ?? 0}</p>
-                  </div>
-                  <div className="rounded-2xl bg-white/80 p-4 dark:bg-zinc-950/60">
-                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.availability}</p>
-                    <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{classData.seatsTotal - (classData.seatsBooked ?? 0)}</p>
-                  </div>
+                  <DetailTile label={t.seats} value={classData.seatsTotal} />
+                  <DetailTile label={isArabic ? 'محجوز' : 'Booked'} value={classData.seatsBooked ?? 0} />
+                  <DetailTile label={t.availability} value={availability} />
                 </div>
               </div>
             ) : (
-              <div className="mt-5 rounded-2xl border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+              <div className="rounded-2xl border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                 {isArabic ? 'لم يتم تحديد تاريخ ووقت بعد.' : 'No date and time set yet.'}
               </div>
             )}
-          </section>
+          </SectionCard>
 
-          <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
-                <IoStar className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{t.reviews}</h2>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  {reviewCount} {isArabic ? 'تقييم مرئي' : 'visible reviews'}
-                </p>
-              </div>
-            </div>
+          <SectionCard
+            icon={<IoStar className="h-5 w-5 text-amber-500" />}
+            title={t.reviews}
+            subtitle={`${reviewCount} ${isArabic ? 'تقييم مرئي' : 'visible reviews'}`}
+          >
 
             {reviewCount === 0 ? (
-              <div className="mt-5 rounded-2xl border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+              <div className="rounded-2xl border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                 {t.noReviews}
               </div>
             ) : (
-              <div className="mt-5 space-y-3">
+              <div className="space-y-3">
                 {classData.reviews?.slice(0, 5).map((review) => (
-                  <div key={review.id} className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+                  <div key={review.id} className="rounded-2xl border border-zinc-200/80 p-4 dark:border-zinc-800/80">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <div className="flex items-center gap-2">
@@ -564,27 +605,22 @@ export default function AdminClassDetailsPage({
                 ))}
               </div>
             )}
-          </section>
+          </SectionCard>
         </div>
 
         <div className="space-y-6">
-          <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--noon-teal)]/10 text-[color:var(--noon-teal)]">
-                <IoImageOutline className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{t.media}</h2>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">{(classData.images?.length ?? 0) + (classData.image ? 1 : 0)} assets</p>
-              </div>
-            </div>
+          <SectionCard
+            icon={<IoImageOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />}
+            title={t.media}
+            subtitle={`${(classData.images?.length ?? 0) + (classData.image ? 1 : 0)} assets`}
+          >
 
             {classData.image ? (
-              <div className="mt-5 overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-800">
+              <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800">
                 <img src={classData.image} alt={classData.title} className="aspect-[3/4] w-full object-cover" />
               </div>
             ) : (
-              <div className="mt-5 rounded-2xl border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+              <div className="rounded-2xl border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                 {t.noImage}
               </div>
             )}
@@ -600,21 +636,16 @@ export default function AdminClassDetailsPage({
             ) : (
               <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{t.noGallery}</p>
             )}
-          </section>
+          </SectionCard>
 
-          <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--noon-teal)]/10 text-[color:var(--noon-teal)]">
-                <IoPeopleOutline className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{t.trainer}</h2>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">{classData.trainer?.email || t.noTrainer}</p>
-              </div>
-            </div>
+          <SectionCard
+            icon={<IoPeopleOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />}
+            title={t.trainer}
+            subtitle={classData.trainer?.email || t.noTrainer}
+          >
 
             {classData.trainer ? (
-              <div className="mt-5 rounded-3xl border border-zinc-200 p-5 dark:border-zinc-800">
+              <div className="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
                 <div className="flex items-center gap-4">
                   {classData.trainer.profileImage ? (
                     <img
@@ -634,24 +665,19 @@ export default function AdminClassDetailsPage({
                 </div>
               </div>
             ) : (
-              <div className="mt-5 rounded-2xl border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+              <div className="rounded-2xl border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                 {t.noTrainer}
               </div>
             )}
-          </section>
+          </SectionCard>
 
-          <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-                <IoPricetagOutline className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">{t.meta}</h2>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.slug}</p>
-              </div>
-            </div>
+          <SectionCard
+            icon={<IoPricetagOutline className="h-5 w-5" />}
+            title={t.meta}
+            subtitle={t.slug}
+          >
 
-            <div className="mt-5 space-y-4">
+            <div className="space-y-4">
               <div className="rounded-2xl bg-zinc-50 p-4 dark:bg-zinc-950/50">
                 <p className="text-xs uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">{t.slug}</p>
                 <p className="mt-2 break-all font-semibold text-zinc-900 dark:text-zinc-100">{classData.slug}</p>
@@ -678,7 +704,7 @@ export default function AdminClassDetailsPage({
                 </div>
               </div>
             ) : null}
-          </section>
+          </SectionCard>
         </div>
       </div>
 

@@ -316,8 +316,8 @@ export default async function AdminLayout({
           {/* Main Content */}
           <main className="flex flex-1 flex-col overflow-hidden">
             {/* Top Bar */}
-            <header className="flex h-16 items-center justify-between border-b border-zinc-200 bg-white px-6 dark:border-zinc-800 dark:bg-zinc-900" dir={dir}>
-              <div className="flex items-center gap-4">
+            <header className="flex h-16 items-center justify-between gap-2 border-b border-zinc-200 bg-white px-3 dark:border-zinc-800 dark:bg-zinc-900 sm:gap-3 sm:px-4 lg:px-6" dir={dir}>
+              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                 <MobileSidebar
                   menuItems={menuItems}
                   user={{
@@ -335,13 +335,12 @@ export default async function AdminLayout({
                   }}
                   onLogoutAction={handleLogout}
                 />
-                <div className={locale === "ar" ? "text-right" : "text-left"}>
-                  <h1 className="text-lg font-semibold text-zinc-900 dark:text-white">{t.dashboard}</h1>
-                </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <AdminWalletDisplay locale={locale} userId={user.id} />
+              <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2 lg:gap-3">
+                <div className="min-w-0 max-w-[9.75rem] sm:max-w-none">
+                  <AdminWalletDisplay locale={locale} userId={user.id} />
+                </div>
 
                 <LocaleSwitcher
                   currentLocale={locale}
@@ -353,7 +352,7 @@ export default async function AdminLayout({
 
                 <Link
                   href={`/${locale}`}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                  className="inline-flex shrink-0 items-center rounded-lg px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:text-sm"
                 >
                   {t.viewSite}
                 </Link>

@@ -235,9 +235,9 @@ export default async function WorkerLayout({
       {/* Main Content */}
       <div className="flex flex-1 flex-col">
         {/* Top Header */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-900 lg:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-zinc-200 bg-white px-3 dark:border-zinc-800 dark:bg-zinc-900 sm:gap-3 sm:px-4 lg:px-6">
           {/* Mobile Menu */}
-          <div className="flex items-center gap-3 lg:hidden">
+          <div className="flex min-w-0 items-center gap-3 lg:hidden">
             <MobileSidebar
               menuItems={menuItems.map((s) => ({
                 section: s.section,
@@ -266,7 +266,7 @@ export default async function WorkerLayout({
           </div>
 
           {/* Right side */}
-          <div className="flex flex-1 items-center justify-end gap-3">
+          <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-3">
             <LocaleSwitcher currentLocale={locale} />
             <AdminNotificationCenter locale={locale} />
             <AdminProfileMenu
