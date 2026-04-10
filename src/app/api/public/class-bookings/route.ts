@@ -20,6 +20,7 @@ type ParticipantPayload = {
   fullName: string;
   dateOfBirth: string;
   preferredLanguage: 'en' | 'ar';
+  isFreePartner?: boolean;
 };
 
 function calculateAgeFromDateString(dateOfBirth: string, today: Date): number {
@@ -37,7 +38,7 @@ function parseSafeString(value: unknown, maxLength = 255): string {
   return value.trim().slice(0, maxLength);
 }
 
-function parseParticipants(value: unknown): ParticipantPayload[] {
+function parseParticipants(value: unknown, isFreePartner = false): ParticipantPayload[] {
   if (!Array.isArray(value)) return [];
 
   const participants: ParticipantPayload[] = [];
@@ -71,6 +72,7 @@ function parseParticipants(value: unknown): ParticipantPayload[] {
       fullName: normalizedFullName,
       dateOfBirth,
       preferredLanguage: preferredLanguage as 'en' | 'ar',
+      isFreePartner,
     });
 
     if (participants.length >= 10) break;
@@ -169,6 +171,8 @@ export async function POST(request: NextRequest) {
   const termsAccepted = body.termsAccepted === true;
   const specialRequests = parseSafeString(body.specialRequests, 3000);
   const participants = parseParticipants(body.participants);
+  const freePartners = parseParticipants(body.freePartners, true);
+  const storedParticipants = [...participants, ...freePartners];
 
   if (!UUID_PATTERN.test(classId)) {
     return NextResponse.json({ error: 'Invalid class identifier' }, { status: 400 });
@@ -239,9 +243,12 @@ export async function POST(request: NextRequest) {
       if (ages.some((age) => age < 5)) {
         throw new ApiError('Children under 5 are not accepted in this workshop.', 400);
       }
-      const hasChildNeedingPartner = ages.some((age) => age >= 5 && age <= 9);
-      const hasTenOrAbovePartner = ages.some((age) => age >= 10);
-      if (hasChildNeedingPartner && (participants.length < 2 || !hasTenOrAbovePartner)) {
+      const childrenNeedingPartnerCount = ages.filter((age) => age >= 5 && age <= 9).length;
+      const partnerAges = freePartners.map((participant) => calculateAgeFromDateString(participant.dateOfBirth, today));
+      if (childrenNeedingPartnerCount > 0 && (
+        freePartners.length < childrenNeedingPartnerCount
+        || partnerAges.some((age) => age < 10)
+      )) {
         throw new ApiError('Children aged 5-9 must be registered with a 10+ partner, and both names must be provided.', 400);
       }
     }
@@ -312,7 +319,7 @@ export async function POST(request: NextRequest) {
       client,
       userId: user.id,
       classId,
-      participants,
+      participants: storedParticipants,
       numberOfParticipants,
       totalAmount,
       currency: bookingCurrency,

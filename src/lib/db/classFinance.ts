@@ -434,6 +434,9 @@ async function getParticipantRows(classId: string, db: Queryable): Promise<Class
 
     rawParticipants.forEach((participant, index) => {
       const item = participant && typeof participant === 'object' ? (participant as Record<string, unknown>) : {};
+      if (item.isFreePartner === true) {
+        return;
+      }
       rows.push({
         bookingId,
         bookingNumber,

@@ -14,6 +14,10 @@ type Participant = {
   preferredLanguage: 'en' | 'ar';
 };
 
+type ParticipantWithPartner = Participant & {
+  partner: Participant | null;
+};
+
 type SavedParticipant = {
   id: string;
   label: string | null;
@@ -55,19 +59,29 @@ type BookingResult = {
   };
 };
 
-function emptyParticipant(): Participant {
+function emptyParticipant(): ParticipantWithPartner {
   return {
     fullName: '',
     dateOfBirth: '',
     preferredLanguage: 'en',
+    partner: null,
   };
 }
 
-function buildSelfParticipant(user: CurrentUserLite): Participant {
+function buildSelfParticipant(user: CurrentUserLite): ParticipantWithPartner {
   return {
     fullName: user.fullName.trim(),
     dateOfBirth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : '',
     preferredLanguage: user.preferredLanguage === 'ARABIC' ? 'ar' : 'en',
+    partner: null,
+  };
+}
+
+function emptyPartner(): Participant {
+  return {
+    fullName: '',
+    dateOfBirth: '',
+    preferredLanguage: 'en',
   };
 }
 
@@ -149,7 +163,8 @@ export default function ClassBookingClient({
   const selfDefaultParticipant = useMemo(() => buildSelfParticipant(currentUser), [currentUser]);
   const [bookingFor, setBookingFor] = useState<RegistrationType>('self');
   const [otherCount, setOtherCount] = useState(1);
-  const [otherParticipants, setOtherParticipants] = useState<Participant[]>([emptyParticipant()]);
+  const [selfPartner, setSelfPartner] = useState<Participant | null>(null);
+  const [otherParticipants, setOtherParticipants] = useState<ParticipantWithPartner[]>([emptyParticipant()]);
   const [savedList, setSavedList] = useState<SavedParticipant[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [specialRequests, setSpecialRequests] = useState('');
@@ -166,17 +181,25 @@ export default function ClassBookingClient({
 
   const selfIncluded = bookingFor === 'self' || bookingFor === 'both';
   const othersIncluded = bookingFor === 'other' || bookingFor === 'both';
-  const totalParticipants = (selfIncluded ? 1 : 0) + (othersIncluded ? otherCount : 0);
-  const allParticipants: Participant[] = useMemo(() => {
-    const list: Participant[] = [];
+  const paidParticipants = (selfIncluded ? 1 : 0) + (othersIncluded ? otherCount : 0);
+  const allParticipants: ParticipantWithPartner[] = useMemo(() => {
+    const list: ParticipantWithPartner[] = [];
     if (selfIncluded) list.push(selfDefaultParticipant);
     if (othersIncluded) list.push(...otherParticipants.slice(0, otherCount));
     return list;
   }, [selfIncluded, othersIncluded, selfDefaultParticipant, otherParticipants, otherCount]);
+  const payableParticipants = allParticipants.map(({ fullName, dateOfBirth, preferredLanguage }) => ({
+    fullName,
+    dateOfBirth,
+    preferredLanguage,
+  }));
+  const freePartners = allParticipants
+    .map((participant) => participant.partner)
+    .filter((partner): partner is Participant => Boolean(partner));
 
   const maxOthersAllowed = Math.max(0, Math.min(10, seatsAvailable) - (selfIncluded ? 1 : 0));
   const otherOptionMax = Math.max(1, maxOthersAllowed);
-  const totalAmount = Number((classData.price * totalParticipants).toFixed(3));
+  const totalAmount = Number((classData.price * paidParticipants).toFixed(3));
   const hasEnoughBalance = (wallet?.balance ?? 0) >= totalAmount;
   const isMomKid = classData.subCategory === 'MOM_AND_KID';
   const terms = getTerms(locale, isMomKid);
@@ -191,6 +214,23 @@ export default function ClassBookingClient({
       })
     : null;
 
+  const calculateAge = useCallback((dateOfBirth: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return calculateAgeFromDateString(dateOfBirth, today);
+  }, []);
+
+  const needsFreePartner = useCallback(
+    (dateOfBirth: string) => {
+      if (!dateOfBirth) return false;
+      const dob = new Date(`${dateOfBirth}T00:00:00`);
+      if (Number.isNaN(dob.getTime())) return false;
+      const age = calculateAge(dateOfBirth);
+      return age >= 5 && age <= 9;
+    },
+    [calculateAge]
+  );
+
   const t = {
     title: isArabic ? 'إتمام حجز الدورة' : 'Complete Class Booking',
     subtitle: isArabic ? 'حدد المشاركين وأكد الشروط ثم ادفع من المحفظة.' : 'Set participants, accept terms, then pay with wallet.',
@@ -199,9 +239,12 @@ export default function ClassBookingClient({
     self: isArabic ? 'أنا أحضر هذه الدورة' : 'I am attending this class',
     other: isArabic ? 'أسجل نيابة عن شخص آخر' : 'I am registering on behalf of someone else',
     both: isArabic ? 'أنا أحضر وأسجل أيضاً نيابة عن شخص آخر' : 'I am attending this class and registering on behalf of someone else',
+    momKidOther: isArabic ? 'أسجل أطفالي' : "I'm registering my kids",
     participantsCount: isArabic ? 'عدد المشاركين الإضافيين' : 'Number of Participants',
+    participantsCountMomKid: isArabic ? 'عدد المشاركين' : 'Number of Participants',
     participants: isArabic ? 'بيانات المشاركين' : 'Participants Details',
     participant: isArabic ? 'مشارك' : 'Participant',
+    partnerDetails: isArabic ? 'بيانات الشريك المجاني' : 'Free Partner Details',
     fullName: isArabic ? 'الاسم الكامل' : 'Full Name',
     dateOfBirth: isArabic ? 'تاريخ الميلاد' : 'Date of Birth',
     preferredLanguage: isArabic ? 'اللغة المفضلة' : 'Preferred Language',
@@ -223,14 +266,15 @@ export default function ClassBookingClient({
     noSeats: isArabic ? 'المقاعد ممتلئة حالياً.' : 'This class is currently full.',
     insufficient: isArabic ? 'رصيد المحفظة المستخدم داخل الموقع غير كافٍ لإتمام الدفع.' : 'Your website wallet balance is insufficient for this payment.',
     yourDetails: isArabic ? 'بياناتك (تلقائية)' : 'Your Details (auto-filled)',
+    yourPartnerDetails: isArabic ? 'بيانات الشريك المجاني' : 'Free Partner Details',
     selectSaved: isArabic ? 'اختر مشارك محفوظ...' : 'Select saved participant...',
     newParticipant: isArabic ? 'مشارك جديد' : 'New participant',
     ageTooYoung: isArabic
       ? `عمر أحد المشاركين أقل من الحد الأدنى المطلوب (${classData.minimumAge ?? 0} سنة).`
       : `A participant is below the minimum age requirement (${classData.minimumAge ?? 0} years).`,
     momKidPolicy: isArabic
-      ? 'سياسة العمر: من عمر 10 سنوات فأكثر يمكن التسجيل منفرداً. الأعمار 5-9 تتطلب شريكاً بعمر 10+ مع تسجيل الاسمين. أقل من 5 سنوات غير مسموح.'
-      : 'Age policy: 10+ can register alone. Ages 5-9 require a 10+ partner and both names must be registered. Under 5 is not accepted.',
+      ? 'من عمر 10 سنوات فأكثر يمكنه العمل بمفرده. الأطفال من 5 إلى 9 سنوات يحتاجون شريكاً مجانياً، ويجب تسجيل الاسمين. الأطفال أقل من 5 سنوات غير مقبولين.'
+      : 'Anyone aged 10+ can work alone. Children aged 5-9 need one free partner, and both names must be registered. Children under 5 are not accepted.',
     momKidUnderFive: isArabic
       ? 'لا نقبل الأطفال أقل من 5 سنوات في هذه الورشة.'
       : 'Children under 5 are not accepted in this workshop.',
@@ -279,13 +323,33 @@ export default function ClassBookingClient({
     void loadSavedParticipants();
   }, [loadSavedParticipants]);
 
+  useEffect(() => {
+    if (isMomKid && bookingFor === 'both') {
+      setBookingFor('other');
+    }
+  }, [bookingFor, isMomKid]);
+
+  useEffect(() => {
+    if (!selfIncluded || !isMomKid || !needsFreePartner(selfDefaultParticipant.dateOfBirth)) {
+      setSelfPartner(null);
+    }
+  }, [isMomKid, needsFreePartner, selfDefaultParticipant.dateOfBirth, selfIncluded]);
+
   /* Keep otherParticipants array in sync with otherCount */
   useEffect(() => {
     setOtherParticipants((prev) => {
-      const next: Participant[] = Array.from({ length: otherCount }, (_, i) => prev[i] ?? emptyParticipant());
+      const next: ParticipantWithPartner[] = Array.from({ length: otherCount }, (_, i) => {
+        const current = prev[i] ?? emptyParticipant();
+        return needsFreePartner(current.dateOfBirth)
+          ? current
+          : {
+              ...current,
+              partner: null,
+            };
+      });
       return next;
     });
-  }, [otherCount]);
+  }, [needsFreePartner, otherCount]);
 
   /* Clamp otherCount when seats change */
   useEffect(() => {
@@ -322,10 +386,18 @@ export default function ClassBookingClient({
   const updateOtherParticipant = (index: number, key: keyof Participant, value: string) => {
     setOtherParticipants((prev) => {
       const next = [...prev];
-      next[index] = {
-        ...next[index],
+      const current = next[index] ?? emptyParticipant();
+      const updated = {
+        ...current,
         [key]: value,
       };
+      next[index] =
+        key === 'dateOfBirth' && !needsFreePartner(String(value))
+          ? {
+              ...updated,
+              partner: null,
+            }
+          : updated;
       return next;
     });
   };
@@ -337,9 +409,32 @@ export default function ClassBookingClient({
         fullName: saved.fullName,
         dateOfBirth: saved.dateOfBirth,
         preferredLanguage: saved.preferredLanguage,
+        partner: prev[index]?.partner ?? null,
       };
       return next;
     });
+  };
+
+  const updateOtherPartner = (index: number, key: keyof Participant, value: string) => {
+    setOtherParticipants((prev) => {
+      const next = [...prev];
+      const current = next[index] ?? emptyParticipant();
+      next[index] = {
+        ...current,
+        partner: {
+          ...(current.partner ?? emptyPartner()),
+          [key]: value,
+        },
+      };
+      return next;
+    });
+  };
+
+  const setSelfPartnerValue = (key: keyof Participant, value: string) => {
+    setSelfPartner((prev) => ({
+      ...(prev ?? emptyPartner()),
+      [key]: value,
+    }));
   };
 
   const validateParticipants = (): boolean => {
@@ -347,7 +442,7 @@ export default function ClassBookingClient({
       setError(t.noSeats);
       return false;
     }
-    if (totalParticipants > seatsAvailable) {
+    if (paidParticipants > seatsAvailable) {
       setError(t.seatsError);
       return false;
     }
@@ -376,16 +471,36 @@ export default function ClassBookingClient({
     }
 
     if (isMomKid) {
-      const ages = allParticipants.map((participant) => calculateAgeFromDateString(participant.dateOfBirth, new Date()));
-      if (ages.some((age) => age < 5)) {
-        setError(t.momKidUnderFive);
-        return false;
-      }
-      const hasChildNeedingPartner = ages.some((age) => age >= 5 && age <= 9);
-      const hasTenOrAbovePartner = ages.some((age) => age >= 10);
-      if (hasChildNeedingPartner && (allParticipants.length < 2 || !hasTenOrAbovePartner)) {
-        setError(t.momKidPartnerRequired);
-        return false;
+      for (const participant of allParticipants) {
+        const age = calculateAge(participant.dateOfBirth);
+        if (age < 5) {
+          setError(t.momKidUnderFive);
+          return false;
+        }
+        if (age >= 5 && age <= 9) {
+          const partner = participant.partner;
+          if (
+            !partner
+            || partner.fullName.trim().length === 0
+            || partner.dateOfBirth.trim().length === 0
+          ) {
+            setError(t.momKidPartnerRequired);
+            return false;
+          }
+
+          const partnerDob = new Date(`${partner.dateOfBirth}T00:00:00`);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (Number.isNaN(partnerDob.getTime()) || partnerDob.getTime() > today.getTime()) {
+            setError(t.invalidDob);
+            return false;
+          }
+
+          if (calculateAge(partner.dateOfBirth) < 10) {
+            setError(t.momKidPartnerRequired);
+            return false;
+          }
+        }
       }
     }
 
@@ -417,8 +532,9 @@ export default function ClassBookingClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           classId: classData.id,
-          numberOfParticipants: totalParticipants,
-          participants: allParticipants,
+          numberOfParticipants: paidParticipants,
+          participants: payableParticipants,
+          freePartners,
           termsAccepted,
           specialRequests,
         }),
@@ -516,8 +632,8 @@ export default function ClassBookingClient({
             <div className="mt-4 grid gap-2">
               {([
                 { value: 'self' as RegistrationType, label: t.self },
-                { value: 'other' as RegistrationType, label: t.other },
-                { value: 'both' as RegistrationType, label: t.both },
+                { value: 'other' as RegistrationType, label: isMomKid ? t.momKidOther : t.other },
+                ...(isMomKid ? [] : [{ value: 'both' as RegistrationType, label: t.both }]),
               ]).map((opt) => (
                 <label
                   key={opt.value}
@@ -541,7 +657,9 @@ export default function ClassBookingClient({
             {/* Participant count selector – shown only when registering others */}
             {othersIncluded && (
               <label className="mt-4 block text-sm">
-                <span className="mb-1 block text-[color:var(--text)]">{t.participantsCount}</span>
+                <span className="mb-1 block text-[color:var(--text)]">
+                  {isMomKid ? t.participantsCountMomKid : t.participantsCount}
+                </span>
                 <select
                   value={otherCount}
                   onChange={(event) => setOtherCount(Number(event.target.value))}
@@ -609,6 +727,44 @@ export default function ClassBookingClient({
                       </select>
                     </label>
                   </div>
+                  {isMomKid && needsFreePartner(selfDefaultParticipant.dateOfBirth) ? (
+                    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20">
+                      <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">{t.yourPartnerDetails}</p>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <label className="text-sm">
+                          <span className="mb-1.5 block text-[color:var(--text)]">{t.fullName}</span>
+                          <input
+                            value={selfPartner?.fullName ?? ''}
+                            onChange={(event) => setSelfPartnerValue('fullName', event.target.value)}
+                            placeholder={t.fullName}
+                            autoComplete="name"
+                            className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                          />
+                        </label>
+                        <label className="text-sm">
+                          <span className="mb-1.5 block text-[color:var(--text)]">{t.dateOfBirth}</span>
+                          <input
+                            type="date"
+                            value={selfPartner?.dateOfBirth ?? ''}
+                            onChange={(event) => setSelfPartnerValue('dateOfBirth', event.target.value)}
+                            max={new Date().toISOString().split('T')[0]}
+                            className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                          />
+                        </label>
+                        <label className="text-sm">
+                          <span className="mb-1.5 block text-[color:var(--text)]">{t.preferredLanguage}</span>
+                          <select
+                            value={selfPartner?.preferredLanguage ?? 'en'}
+                            onChange={(event) => setSelfPartnerValue('preferredLanguage', event.target.value)}
+                            className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                          >
+                            <option value="en">{isArabic ? 'الإنجليزية' : 'English'}</option>
+                            <option value="ar">{isArabic ? 'العربية' : 'Arabic'}</option>
+                          </select>
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               )}
 
@@ -673,6 +829,44 @@ export default function ClassBookingClient({
                       </select>
                     </label>
                   </div>
+                  {isMomKid && needsFreePartner(participant.dateOfBirth) ? (
+                    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20">
+                      <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">{t.partnerDetails}</p>
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                        <label className="text-sm">
+                          <span className="mb-1.5 block text-[color:var(--text)]">{t.fullName}</span>
+                          <input
+                            value={participant.partner?.fullName ?? ''}
+                            onChange={(event) => updateOtherPartner(index, 'fullName', event.target.value)}
+                            placeholder={t.fullName}
+                            autoComplete="name"
+                            className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                          />
+                        </label>
+                        <label className="text-sm">
+                          <span className="mb-1.5 block text-[color:var(--text)]">{t.dateOfBirth}</span>
+                          <input
+                            type="date"
+                            value={participant.partner?.dateOfBirth ?? ''}
+                            onChange={(event) => updateOtherPartner(index, 'dateOfBirth', event.target.value)}
+                            max={new Date().toISOString().split('T')[0]}
+                            className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                          />
+                        </label>
+                        <label className="text-sm">
+                          <span className="mb-1.5 block text-[color:var(--text)]">{t.preferredLanguage}</span>
+                          <select
+                            value={participant.partner?.preferredLanguage ?? 'en'}
+                            onChange={(event) => updateOtherPartner(index, 'preferredLanguage', event.target.value)}
+                            className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                          >
+                            <option value="en">{isArabic ? 'الإنجليزية' : 'English'}</option>
+                            <option value="ar">{isArabic ? 'العربية' : 'Arabic'}</option>
+                          </select>
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -713,8 +907,8 @@ export default function ClassBookingClient({
               <span className="max-w-[180px] text-right font-semibold">{classDateLabel ?? '-'}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span>{t.participantsCount}</span>
-              <span className="font-semibold">{totalParticipants}</span>
+              <span>{isMomKid ? t.participantsCountMomKid : t.participantsCount}</span>
+              <span className="font-semibold">{paidParticipants}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>{t.walletBalance}</span>
