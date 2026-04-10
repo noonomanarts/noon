@@ -530,6 +530,22 @@ export async function sendWhatsAppTextViaManagedSession(input: {
     return { ok: false, status: 400, body: 'WhatsApp send API URL is not configured.' };
   }
 
+  const preflight = await fetchWahaSessionDetails(settings, activeSession).catch(() => null);
+  if (preflight && preflight.status !== 'ready' && preflight.status !== 'authenticated') {
+    return {
+      ok: false,
+      status: 409,
+      body: `WhatsApp session "${activeSession}" is ${preflight.status}.`,
+      diagnostics: {
+        sessionId: activeSession,
+        status: preflight.status,
+        hasClient: false,
+        hasWid: false,
+        updatedAt: preflight.updatedAt,
+      },
+    };
+  }
+
   const phoneDigits = chatId.replace(/@c\.us$/, '');
   const sendTargets = [
     { chatId },

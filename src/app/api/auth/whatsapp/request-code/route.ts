@@ -90,10 +90,20 @@ export async function POST(request: Request) {
     });
 
     if (!sendResult.ok) {
+      const sessionStatus = sendResult.diagnostics?.status;
+      const sessionId = sendResult.diagnostics?.sessionId;
+      const details = [
+        sendResult.body.slice(0, 300),
+        sessionId ? `session=${sessionId}` : null,
+        sessionStatus ? `status=${sessionStatus}` : null,
+      ]
+        .filter(Boolean)
+        .join(' | ');
+
       return NextResponse.json(
         {
           error: `Failed to send WhatsApp code (${sendResult.status}).`,
-          details: sendResult.body.slice(0, 300),
+          details,
         },
         { status: 502 }
       );

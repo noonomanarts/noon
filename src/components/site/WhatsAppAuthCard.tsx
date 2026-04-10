@@ -175,10 +175,13 @@ export default function WhatsAppAuthCard({
       const payload = (await response.json().catch(() => ({}))) as {
         verificationId?: string;
         error?: string;
+        details?: string;
       };
 
       if (!response.ok || !payload.verificationId) {
-        throw new Error(payload.error || 'Failed to send verification code.');
+        throw new Error(
+          [payload.error, payload.details].filter(Boolean).join(' ') || 'Failed to send verification code.'
+        );
       }
 
       setVerificationId(payload.verificationId);
