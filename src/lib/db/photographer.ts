@@ -1,10 +1,27 @@
 import { pool } from './pool';
-import type { TaskPriority, TaskStatus } from './types';
+import type { TaskPriority, TaskStatus, UserRole } from './types';
+
+export const PHOTOGRAPHER_DASHBOARD_ROLES = ['PHOTOGRAPHER', 'SOCIAL_MEDIA_ADMIN'] as const;
+export type PhotographerDashboardRole = (typeof PHOTOGRAPHER_DASHBOARD_ROLES)[number];
+
+export interface PhotographerDashboardUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: PhotographerDashboardRole;
+  profileImage: string | null;
+}
+
+export function isPhotographerDashboardRole(role: UserRole | null | undefined): role is PhotographerDashboardRole {
+  return role === 'PHOTOGRAPHER' || role === 'SOCIAL_MEDIA_ADMIN';
+}
 
 // ── Task types ──────────────────────────────────────────
 export interface PhotographerTaskPublic {
   id: string;
   photographerUserId: string;
+  photographerName: string;
+  photographerRole: PhotographerDashboardRole;
   assignedByUserId: string;
   assignedByName: string;
   title: string;
@@ -71,9 +88,60 @@ export async function listPhotographerTasks(
   const offset = options?.offset ?? 0;
 
   const result = await pool.query(
-    `SELECT pt.*, u.full_name AS assigned_by_name
+    `SELECT pt.*, u.full_name AS assigned_by_name, pu.full_name AS photographer_name, pu.role AS photographer_role
      FROM photographer_tasks pt
      LEFT JOIN users u ON u.id = pt.assigned_by_user_id
+     JOIN users pu ON pu.id = pt.photographer_user_id
+     WHERE ${where}
+     ORDER BY
+       CASE pt.priority WHEN 'URGENT' THEN 0 WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END,
+       CASE pt.status WHEN 'IN_PROGRESS' THEN 0 WHEN 'PENDING' THEN 1 ELSE 2 END,
+       pt.due_date ASC NULLS LAST,
+       pt.created_at DESC
+     LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
+    [...params, limit, offset]
+  );
+
+  return {
+    tasks: result.rows.map(mapTaskRow),
+    total: countResult.rows[0]?.total ?? 0,
+  };
+}
+
+export async function listPhotographerTasksForUsers(
+  photographerUserIds: string[],
+  options?: { status?: TaskStatus; limit?: number; offset?: number }
+): Promise<{ tasks: PhotographerTaskPublic[]; total: number }> {
+  const normalizedUserIds = Array.from(new Set(photographerUserIds.filter(Boolean)));
+  if (normalizedUserIds.length === 0) {
+    return { tasks: [], total: 0 };
+  }
+
+  const conditions = ['pt.photographer_user_id = ANY($1::uuid[])'];
+  const params: unknown[] = [normalizedUserIds];
+  let paramIdx = 2;
+
+  if (options?.status) {
+    conditions.push(`pt.status = $${paramIdx}`);
+    params.push(options.status);
+    paramIdx++;
+  }
+
+  const where = conditions.join(' AND ');
+
+  const countResult = await pool.query(
+    `SELECT COUNT(*)::int AS total FROM photographer_tasks pt WHERE ${where}`,
+    params
+  );
+
+  const limit = options?.limit ?? 50;
+  const offset = options?.offset ?? 0;
+
+  const result = await pool.query(
+    `SELECT pt.*, u.full_name AS assigned_by_name, pu.full_name AS photographer_name, pu.role AS photographer_role
+     FROM photographer_tasks pt
+     LEFT JOIN users u ON u.id = pt.assigned_by_user_id
+     JOIN users pu ON pu.id = pt.photographer_user_id
      WHERE ${where}
      ORDER BY
        CASE pt.priority WHEN 'URGENT' THEN 0 WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END,
@@ -92,9 +160,10 @@ export async function listPhotographerTasks(
 
 export async function getPhotographerTask(taskId: string): Promise<PhotographerTaskPublic | null> {
   const result = await pool.query(
-    `SELECT pt.*, u.full_name AS assigned_by_name
+    `SELECT pt.*, u.full_name AS assigned_by_name, pu.full_name AS photographer_name, pu.role AS photographer_role
      FROM photographer_tasks pt
      LEFT JOIN users u ON u.id = pt.assigned_by_user_id
+     JOIN users pu ON pu.id = pt.photographer_user_id
      WHERE pt.id = $1`,
     [taskId]
   );
@@ -140,6 +209,7 @@ export async function createPhotographerTask(data: {
 export async function updatePhotographerTask(
   taskId: string,
   data: {
+    photographerUserId?: string;
     title?: string;
     titleAr?: string | null;
     description?: string | null;
@@ -156,6 +226,7 @@ export async function updatePhotographerTask(
   let idx = 1;
 
   const fields: Array<[string, unknown]> = [
+    ['photographer_user_id', data.photographerUserId],
     ['title', data.title],
     ['title_ar', data.titleAr],
     ['description', data.description],
@@ -403,12 +474,35 @@ export async function getPhotographerStats(photographerUserId: string): Promise<
   };
 }
 
+export async function listPhotographerDashboardUsers(): Promise<PhotographerDashboardUser[]> {
+  const result = await pool.query(
+    `SELECT id, full_name, email, role, profile_image
+     FROM users
+     WHERE status = 'ACTIVE'
+       AND role = ANY($1::user_role[])
+     ORDER BY
+       CASE role WHEN 'PHOTOGRAPHER' THEN 0 ELSE 1 END,
+       full_name ASC`,
+    [PHOTOGRAPHER_DASHBOARD_ROLES]
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id as string,
+    fullName: row.full_name as string,
+    email: row.email as string,
+    role: row.role as PhotographerDashboardRole,
+    profileImage: row.profile_image as string | null,
+  }));
+}
+
 // ── Helpers ──
 
 function mapTaskRow(row: Record<string, unknown>): PhotographerTaskPublic {
   return {
     id: row.id as string,
     photographerUserId: row.photographer_user_id as string,
+    photographerName: (row.photographer_name as string) ?? 'Photographer',
+    photographerRole: (row.photographer_role as PhotographerDashboardRole) ?? 'PHOTOGRAPHER',
     assignedByUserId: row.assigned_by_user_id as string,
     assignedByName: (row.assigned_by_name as string) ?? 'Admin',
     title: row.title as string,

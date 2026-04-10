@@ -2,8 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/db/users";
 import { isLocale, type Locale } from "@/lib/locale";
-import { listPhotographerTasks } from "@/lib/db/photographer";
-import { pool } from "@/lib/db/pool";
+import { listPhotographerDashboardUsers, listPhotographerTasksForUsers } from "@/lib/db/photographer";
 import AdminPhotographerTasksClient from "./AdminPhotographerTasksClient";
 
 export default async function AdminPhotographerTasksPage({
@@ -21,22 +20,17 @@ export default async function AdminPhotographerTasksPage({
   const currentUser = await getUserById(sessionId);
   if (!currentUser || currentUser.role !== "ADMIN") redirect(`/${locale}/account`);
 
-  // Find photographer user
-  const photographerResult = await pool.query(
-    `SELECT id, full_name, email, profile_image FROM users WHERE role = 'SOCIAL_MEDIA_ADMIN' AND status = 'ACTIVE' LIMIT 1`
-  );
-  const photographer = photographerResult.rows[0] ?? null;
+  const dashboardUsers = await listPhotographerDashboardUsers();
 
-  let tasks: Awaited<ReturnType<typeof listPhotographerTasks>> = { tasks: [], total: 0 };
-  if (photographer) {
-    tasks = await listPhotographerTasks(photographer.id, { limit: 200 });
+  let tasks: Awaited<ReturnType<typeof listPhotographerTasksForUsers>> = { tasks: [], total: 0 };
+  if (dashboardUsers.length > 0) {
+    tasks = await listPhotographerTasksForUsers(dashboardUsers.map((user) => user.id), { limit: 200 });
   }
 
   return (
     <AdminPhotographerTasksClient
       locale={locale}
-      photographerExists={!!photographer}
-      photographerName={photographer?.full_name ?? ""}
+      dashboardUsers={dashboardUsers}
       initialTasks={tasks.tasks}
       initialTotal={tasks.total}
     />

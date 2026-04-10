@@ -36,7 +36,7 @@ export function AccountSidebar({ locale, role }: AccountSidebarProps) {
           },
         ]
       : []),
-    ...(role === 'SOCIAL_MEDIA_ADMIN'
+    ...(role === 'SOCIAL_MEDIA_ADMIN' || role === 'PHOTOGRAPHER'
       ? [
           {
             key: 'photographer-dashboard',

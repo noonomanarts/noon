@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserById } from '@/lib/db/users';
-import { getPhotographerStats } from '@/lib/db/photographer';
+import { getPhotographerStats, isPhotographerDashboardRole } from '@/lib/db/photographer';
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -9,7 +9,7 @@ export async function GET() {
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== 'SOCIAL_MEDIA_ADMIN') {
+  if (!user || !isPhotographerDashboardRole(user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

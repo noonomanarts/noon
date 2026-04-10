@@ -244,7 +244,7 @@ export async function POST(request: Request) {
 
     const redirectTo = userRole === 'ADMIN'
       ? '/admin'
-      : userRole === 'SOCIAL_MEDIA_ADMIN'
+      : userRole === 'SOCIAL_MEDIA_ADMIN' || userRole === 'PHOTOGRAPHER'
         ? '/photographer'
         : '/account';
 

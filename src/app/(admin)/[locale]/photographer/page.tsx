@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/db/users";
 import { isLocale, type Locale } from "@/lib/locale";
-import { getPhotographerStats, getPhotographerSchedule, listPhotographerTasks } from "@/lib/db/photographer";
+import { getPhotographerStats, getPhotographerSchedule, isPhotographerDashboardRole, listPhotographerTasks } from "@/lib/db/photographer";
 import PhotographerDashboardClient from "./PhotographerDashboardClient";
 
 export default async function PhotographerDashboardPage({
@@ -18,7 +18,7 @@ export default async function PhotographerDashboardPage({
   if (!sessionId) redirect(`/${locale}/login`);
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "SOCIAL_MEDIA_ADMIN") redirect(`/${locale}/account`);
+  if (!user || !isPhotographerDashboardRole(user.role)) redirect(`/${locale}/account`);
 
   const now = new Date();
   const weekEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);

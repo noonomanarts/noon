@@ -8,6 +8,7 @@ import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
 import AdminNotificationCenter from "@/components/admin/AdminNotificationCenter";
 import MobileSidebar from "@/components/admin/MobileSidebar";
 import OverlayScrollArea from "@/components/site/OverlayScrollArea";
+import { isPhotographerDashboardRole } from "@/lib/db/photographer";
 import {
   FiGrid,
   FiCalendar,
@@ -48,7 +49,7 @@ export default async function PhotographerLayout({
   }
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "SOCIAL_MEDIA_ADMIN") {
+  if (!user || !isPhotographerDashboardRole(user.role)) {
     redirect(`/${locale}/account`);
   }
 

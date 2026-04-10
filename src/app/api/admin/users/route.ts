@@ -11,6 +11,7 @@ const mapRole = (value: string | null): UserRole | undefined => {
   if (normalized === "CUSTOMER") return "CUSTOMER";
   if (normalized === "EMPLOYEE") return "EMPLOYEE";
   if (normalized === "SOCIAL_MEDIA_ADMIN") return "SOCIAL_MEDIA_ADMIN";
+  if (normalized === "PHOTOGRAPHER") return "PHOTOGRAPHER";
   if (normalized === "USER") return "CUSTOMER";
   return undefined;
 };

@@ -5,12 +5,13 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { getUploadRootDir } from "@/lib/uploadStorage";
 
-function mapFormRole(value: string): "ADMIN" | "TRAINER" | "CUSTOMER" | "EMPLOYEE" | "SOCIAL_MEDIA_ADMIN" {
+function mapFormRole(value: string): "ADMIN" | "TRAINER" | "CUSTOMER" | "EMPLOYEE" | "SOCIAL_MEDIA_ADMIN" | "PHOTOGRAPHER" {
   const normalized = value.trim().toUpperCase();
   if (normalized === "ADMIN") return "ADMIN";
   if (normalized === "TRAINER") return "TRAINER";
   if (normalized === "EMPLOYEE") return "EMPLOYEE";
   if (normalized === "SOCIAL_MEDIA_ADMIN") return "SOCIAL_MEDIA_ADMIN";
+  if (normalized === "PHOTOGRAPHER") return "PHOTOGRAPHER";
   return "CUSTOMER";
 }
 

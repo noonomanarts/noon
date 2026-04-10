@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserById } from '@/lib/db/users';
-import { listPhotographerTasks, updatePhotographerTask } from '@/lib/db/photographer';
+import { getPhotographerTask, isPhotographerDashboardRole, listPhotographerTasks, updatePhotographerTask } from '@/lib/db/photographer';
 import type { TaskStatus } from '@/lib/db/types';
 
 export async function GET(request: Request) {
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== 'SOCIAL_MEDIA_ADMIN') {
+  if (!user || !isPhotographerDashboardRole(user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -34,7 +34,7 @@ export async function PATCH(request: Request) {
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== 'SOCIAL_MEDIA_ADMIN') {
+  if (!user || !isPhotographerDashboardRole(user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -50,10 +50,12 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Invalid status. Allowed: PENDING, IN_PROGRESS, COMPLETED' }, { status: 400 });
   }
 
-  const task = await updatePhotographerTask(taskId, { status });
-  if (!task) {
+  const existingTask = await getPhotographerTask(taskId);
+  if (!existingTask || existingTask.photographerUserId !== user.id) {
     return NextResponse.json({ error: 'Task not found' }, { status: 404 });
   }
+
+  const task = await updatePhotographerTask(taskId, { status });
 
   return NextResponse.json({ task });
 }

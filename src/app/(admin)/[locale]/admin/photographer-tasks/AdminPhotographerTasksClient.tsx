@@ -15,12 +15,11 @@ import {
   FiAlertTriangle,
   FiCamera,
 } from "react-icons/fi";
-import type { PhotographerTaskPublic } from "@/lib/db/photographer";
+import type { PhotographerDashboardUser, PhotographerTaskPublic } from "@/lib/db/photographer";
 
 type Props = {
   locale: "en" | "ar";
-  photographerExists: boolean;
-  photographerName: string;
+  dashboardUsers: PhotographerDashboardUser[];
   initialTasks: PhotographerTaskPublic[];
   initialTotal: number;
 };
@@ -43,12 +42,12 @@ const statusConfig: Record<string, { bg: string; icon: typeof FiCircle; label: s
 
 export default function AdminPhotographerTasksClient({
   locale,
-  photographerExists,
-  photographerName,
+  dashboardUsers,
   initialTasks,
   initialTotal,
 }: Props) {
   const isRTL = locale === "ar";
+  const photographerExists = dashboardUsers.length > 0;
   const [tasks, setTasks] = useState(initialTasks);
   const [filter, setFilter] = useState<FilterStatus>("ALL");
   const [showForm, setShowForm] = useState(false);
@@ -57,6 +56,7 @@ export default function AdminPhotographerTasksClient({
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Form state
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState(dashboardUsers[0]?.id ?? "");
   const [formTitle, setFormTitle] = useState("");
   const [formTitleAr, setFormTitleAr] = useState("");
   const [formDescription, setFormDescription] = useState("");
@@ -68,12 +68,14 @@ export default function AdminPhotographerTasksClient({
 
   const t = {
     title: isRTL ? "مهام المصور" : "Photographer Tasks",
-    subtitle: isRTL ? `إدارة المهام المخصصة لـ ${photographerName}` : `Manage tasks assigned to ${photographerName}`,
+    subtitle: isRTL ? "إدارة المهام المخصصة لفريق التصوير" : "Manage tasks assigned to the photographer dashboard",
     noPhotographer: isRTL
-      ? 'لا يوجد مستخدم بدور "مدير السوشيال ميديا". أنشئ مستخدمًا بدور Social Media Admin أولاً.'
-      : 'No user with the "Social Media Admin" role found. Create a user with the SOCIAL_MEDIA_ADMIN role first.',
+      ? 'لا يوجد مستخدم نشط بدور مصور أو مدير سوشيال ميديا. أنشئ مستخدمًا بدور Photographer أو Social Media Admin أولاً.'
+      : 'No active photographer dashboard user found. Create a user with the PHOTOGRAPHER or SOCIAL_MEDIA_ADMIN role first.',
     addTask: isRTL ? "إضافة مهمة" : "Add Task",
     editTask: isRTL ? "تعديل مهمة" : "Edit Task",
+    assigneeLabel: isRTL ? "تعيين إلى" : "Assign To",
+    assigneeColumn: isRTL ? "المكلّف" : "Assigned To",
     all: isRTL ? "الكل" : "All",
     pending: isRTL ? "معلقة" : "Pending",
     inProgress: isRTL ? "قيد التنفيذ" : "In Progress",
@@ -114,6 +116,7 @@ export default function AdminPhotographerTasksClient({
   }), [tasks]);
 
   function resetForm() {
+    setSelectedAssigneeId(dashboardUsers[0]?.id ?? "");
     setFormTitle("");
     setFormTitleAr("");
     setFormDescription("");
@@ -127,6 +130,7 @@ export default function AdminPhotographerTasksClient({
   }
 
   function openEditForm(task: PhotographerTaskPublic) {
+    setSelectedAssigneeId(task.photographerUserId);
     setFormTitle(task.title);
     setFormTitleAr(task.titleAr ?? "");
     setFormDescription(task.description ?? "");
@@ -150,6 +154,7 @@ export default function AdminPhotographerTasksClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             taskId: editingTask.id,
+            photographerUserId: selectedAssigneeId || undefined,
             title: formTitle.trim(),
             titleAr: formTitleAr.trim() || null,
             description: formDescription.trim() || null,
@@ -172,6 +177,7 @@ export default function AdminPhotographerTasksClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title: formTitle.trim(),
+            photographerUserId: selectedAssigneeId || undefined,
             titleAr: formTitleAr.trim() || undefined,
             description: formDescription.trim() || undefined,
             descriptionAr: formDescriptionAr.trim() || undefined,
@@ -190,7 +196,7 @@ export default function AdminPhotographerTasksClient({
     } finally {
       setSaving(false);
     }
-  }, [formTitle, formTitleAr, formDescription, formDescriptionAr, formPriority, formDueDate, formNotes, formNotesAr, editingTask]);
+  }, [editingTask, formDescription, formDescriptionAr, formDueDate, formNotes, formNotesAr, formPriority, formTitle, formTitleAr, selectedAssigneeId]);
 
   const handleDelete = useCallback(async (taskId: string) => {
     if (!confirm(t.confirmDelete)) return;
@@ -300,6 +306,24 @@ export default function AdminPhotographerTasksClient({
             </div>
 
             <div className="space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                  {t.assigneeLabel}
+                </label>
+                <select
+                  value={selectedAssigneeId}
+                  onChange={(e) => setSelectedAssigneeId(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                >
+                  {dashboardUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.fullName} ({user.role === "PHOTOGRAPHER" ? "Photographer" : "Social Media Admin"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
@@ -458,6 +482,9 @@ export default function AdminPhotographerTasksClient({
                   {t.statusLabel}
                 </th>
                 <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                  {t.assigneeColumn}
+                </th>
+                <th className="px-4 py-3 text-start text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                   {t.dueDateLabel}
                 </th>
                 <th className="px-4 py-3 text-end text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400" />
@@ -500,6 +527,9 @@ export default function AdminPhotographerTasksClient({
                         <option value="COMPLETED">{isRTL ? "مكتملة" : "Completed"}</option>
                         <option value="CANCELLED">{isRTL ? "ملغاة" : "Cancelled"}</option>
                       </select>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
+                      <span className="font-medium text-zinc-700 dark:text-zinc-200">{task.photographerName}</span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {task.dueDate ? (

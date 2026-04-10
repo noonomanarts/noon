@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { updateClass } from '@/lib/db/classes';
-import { createNotification } from '@/lib/db/notifications';
+import { notifyPhotographerDashboardUsers } from '@/lib/photographerNotifications';
 
 const VALID_STATUSES = ['PUBLISHED', 'DRAFT', 'CANCELLED', 'COMPLETED'] as const;
 type AllowedStatus = (typeof VALID_STATUSES)[number];
@@ -36,8 +36,7 @@ export async function PATCH(
 
     // Notify photographer when class is published
     if (nextStatus === 'PUBLISHED') {
-      createNotification({
-        recipientRole: 'SOCIAL_MEDIA_ADMIN',
+      void notifyPhotographerDashboardUsers({
         type: 'PHOTOGRAPHER_CLASS_PUBLISHED',
         title: 'New Class Published',
         message: `A new class "${updatedClass.title}" has been published and may need photography coverage.`,

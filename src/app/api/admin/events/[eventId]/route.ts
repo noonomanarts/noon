@@ -8,7 +8,7 @@ import {
   updateEventBooking,
 } from '@/lib/db/events';
 import { query } from '@/lib/db/pool';
-import { createNotification } from '@/lib/db/notifications';
+import { notifyPhotographerDashboardUsers } from '@/lib/photographerNotifications';
 import {
   addMinutes,
   buildEventCalendarTitle,
@@ -223,8 +223,7 @@ export async function PUT(request: NextRequest, props: Params) {
         : eventType === 'PRIVATE_CLASS'
           ? 'Private Class'
           : 'Birthday Party';
-      createNotification({
-        recipientRole: 'SOCIAL_MEDIA_ADMIN',
+      void notifyPhotographerDashboardUsers({
         type: 'PHOTOGRAPHER_EVENT_CONFIRMED',
         title: 'Event Confirmed',
         message: `${eventLabel} for "${updatedEvent.fullName}" (${updatedEvent.companyOrGroupName || 'N/A'}) has been confirmed on ${selectedDate}.`,

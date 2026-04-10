@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { addMinutes, findCalendarOccupancy } from '@/lib/calendar';
 import { createCalendarEvent, findCalendarEvents } from '@/lib/db/events';
 import { getUserById } from '@/lib/db/users';
-import { createNotification } from '@/lib/db/notifications';
+import { notifyPhotographerDashboardUsers } from '@/lib/photographerNotifications';
 import type { CalendarEventType } from '@/lib/db/types';
 
 const ALLOWED_TYPES = new Set<CalendarEventType>([
@@ -226,8 +226,7 @@ export async function POST(request: NextRequest) {
     // Notify photographer about new meetings/appointments
     if (type === 'APPOINTMENT' || type === 'SCHEDULER') {
       const dateStr = new Date(startDateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      createNotification({
-        recipientRole: 'SOCIAL_MEDIA_ADMIN',
+      void notifyPhotographerDashboardUsers({
         type: 'PHOTOGRAPHER_MEETING_SCHEDULED',
         title: 'New Meeting Scheduled',
         message: `Meeting "${title}" scheduled for ${dateStr}.`,

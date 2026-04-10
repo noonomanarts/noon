@@ -3,19 +3,12 @@ import { cookies } from 'next/headers';
 import { getUserById } from '@/lib/db/users';
 import {
   createPhotographerTask,
-  listPhotographerTasks,
+  listPhotographerDashboardUsers,
+  listPhotographerTasksForUsers,
   updatePhotographerTask,
   deletePhotographerTask,
 } from '@/lib/db/photographer';
 import { createNotification } from '@/lib/db/notifications';
-import { pool } from '@/lib/db/pool';
-
-async function getPhotographerUserId(): Promise<string | null> {
-  const result = await pool.query(
-    `SELECT id FROM users WHERE role = 'SOCIAL_MEDIA_ADMIN' AND status = 'ACTIVE' LIMIT 1`
-  );
-  return result.rows[0]?.id ?? null;
-}
 
 export async function GET(request: Request) {
   const cookieStore = await cookies();
@@ -27,8 +20,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const photographerId = await getPhotographerUserId();
-  if (!photographerId) {
+  const photographerUsers = await listPhotographerDashboardUsers();
+  if (photographerUsers.length === 0) {
     return NextResponse.json({ tasks: [], total: 0 });
   }
 
@@ -37,7 +30,7 @@ export async function GET(request: Request) {
   const limit = Math.min(Math.max(Number(url.searchParams.get('limit') ?? 50), 1), 200);
   const offset = Math.max(Number(url.searchParams.get('offset') ?? 0), 0);
 
-  const result = await listPhotographerTasks(photographerId, {
+  const result = await listPhotographerTasksForUsers(photographerUsers.map((item) => item.id), {
     status: status as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | undefined,
     limit,
     offset,
@@ -57,19 +50,23 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, titleAr, description, descriptionAr, priority, dueDate, notes, notesAr } = body;
+  const { photographerUserId, title, titleAr, description, descriptionAr, priority, dueDate, notes, notesAr } = body;
 
   if (!title || typeof title !== 'string' || title.trim().length === 0) {
     return NextResponse.json({ error: 'Title is required' }, { status: 400 });
   }
 
-  const photographerId = await getPhotographerUserId();
-  if (!photographerId) {
-    return NextResponse.json({ error: 'No photographer user found. Create a user with SOCIAL_MEDIA_ADMIN role first.' }, { status: 400 });
+  const photographerUsers = await listPhotographerDashboardUsers();
+  if (photographerUsers.length === 0) {
+    return NextResponse.json({ error: 'No photographer dashboard user found. Create a user with PHOTOGRAPHER or SOCIAL_MEDIA_ADMIN role first.' }, { status: 400 });
   }
 
+  const assignee =
+    photographerUsers.find((item) => item.id === photographerUserId) ??
+    photographerUsers[0];
+
   const task = await createPhotographerTask({
-    photographerUserId: photographerId,
+    photographerUserId: assignee.id,
     assignedByUserId: user.id,
     title: title.trim(),
     titleAr: titleAr?.trim() || undefined,
@@ -83,11 +80,11 @@ export async function POST(request: Request) {
 
   // Notify photographer
   await createNotification({
-    recipientUserId: photographerId,
+    recipientUserId: assignee.id,
     type: 'PHOTOGRAPHER_TASK_ASSIGNED',
     title: 'New Task Assigned',
     message: `You have a new task: "${title.trim()}"${dueDate ? ` — Due: ${new Date(dueDate).toLocaleDateString()}` : ''}`,
-    data: { taskId: task.id, priority },
+    data: { taskId: task.id, priority, photographerUserId: assignee.id },
   });
 
   return NextResponse.json({ task }, { status: 201 });
@@ -108,6 +105,14 @@ export async function PUT(request: Request) {
 
   if (!taskId) {
     return NextResponse.json({ error: 'taskId is required' }, { status: 400 });
+  }
+
+  if (updates.photographerUserId) {
+    const photographerUsers = await listPhotographerDashboardUsers();
+    const isValidAssignee = photographerUsers.some((item) => item.id === updates.photographerUserId);
+    if (!isValidAssignee) {
+      return NextResponse.json({ error: 'Invalid photographer assignee' }, { status: 400 });
+    }
   }
 
   const task = await updatePhotographerTask(taskId, updates);
