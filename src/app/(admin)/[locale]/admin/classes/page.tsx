@@ -16,6 +16,8 @@ import {
   IoCheckmark,
   IoWarning,
   IoCopy,
+  IoChevronBack,
+  IoChevronForward,
 } from 'react-icons/io5';
 import { 
   MdSearch,
@@ -24,6 +26,7 @@ import {
 import { 
   BiSolidBookAlt,
 } from 'react-icons/bi';
+import { FiMoreVertical } from 'react-icons/fi';
 import { HiSparkles } from 'react-icons/hi';
 
 interface Trainer {
@@ -62,6 +65,11 @@ interface Stats {
 }
 
 export default function AdminClassesPage() {
+  const ITEMS_PER_PAGE = 10;
+  const ACTIONS_MENU_WIDTH = 176;
+  const ACTIONS_MENU_HEIGHT = 188;
+  const ACTIONS_MENU_GAP = 8;
+  const VIEWPORT_PADDING = 12;
   const params = useParams();
   const locale = params.locale as string;
   const [classes, setClasses] = useState<ClassItem[]>([]);
@@ -76,12 +84,21 @@ export default function AdminClassesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [openActionsMenuId, setOpenActionsMenuId] = useState<string | null>(null);
+  const [actionsMenuPosition, setActionsMenuPosition] = useState<{ top: number; left: number; placement: 'top' | 'bottom' } | null>(null);
   const [deleteModal, setDeleteModal] = useState<{isOpen: boolean; classId: string; title: string}>({
     isOpen: false,
     classId: '',
     title: ''
   });
+  const totalPages = Math.max(1, Math.ceil(filteredClasses.length / ITEMS_PER_PAGE));
+  const paginatedClasses = filteredClasses.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  function formatCategoryLabel(value: string) {
+    return value.replaceAll('_', ' ');
+  }
 
   function formatClassDateTime(classItem: ClassItem) {
     const startValue = classItem.startDateTime || classItem.sessions?.[0]?.startDateTime || null;
@@ -129,6 +146,58 @@ export default function AdminClassesPage() {
     filterClasses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, categoryFilter, statusFilter, classes]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, statusFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.class-actions-menu')) {
+        setOpenActionsMenuId(null);
+        setActionsMenuPosition(null);
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setOpenActionsMenuId(null);
+        setActionsMenuPosition(null);
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!openActionsMenuId) return;
+
+    function handleViewportChange() {
+      setOpenActionsMenuId(null);
+      setActionsMenuPosition(null);
+    }
+
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('scroll', handleViewportChange, true);
+
+    return () => {
+      window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('scroll', handleViewportChange, true);
+    };
+  }, [openActionsMenuId]);
 
   async function fetchClasses() {
     try {
@@ -180,7 +249,41 @@ export default function AdminClassesPage() {
   }
 
   async function handleDelete(classId: string, title: string) {
+    setOpenActionsMenuId(null);
+    setActionsMenuPosition(null);
     setDeleteModal({ isOpen: true, classId, title });
+  }
+
+  function toggleActionsMenu(classId: string, trigger: HTMLButtonElement) {
+    if (openActionsMenuId === classId) {
+      setOpenActionsMenuId(null);
+      setActionsMenuPosition(null);
+      return;
+    }
+
+    const rect = trigger.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom - VIEWPORT_PADDING;
+    const spaceAbove = rect.top - VIEWPORT_PADDING;
+    const placement: 'top' | 'bottom' =
+      spaceBelow < ACTIONS_MENU_HEIGHT && spaceAbove > spaceBelow ? 'top' : 'bottom';
+    const left = Math.min(
+      Math.max(VIEWPORT_PADDING, rect.right - ACTIONS_MENU_WIDTH),
+      window.innerWidth - ACTIONS_MENU_WIDTH - VIEWPORT_PADDING,
+    );
+    const rawTop = placement === 'top'
+      ? rect.top - ACTIONS_MENU_HEIGHT - ACTIONS_MENU_GAP
+      : rect.bottom + ACTIONS_MENU_GAP;
+    const top = Math.min(
+      Math.max(VIEWPORT_PADDING, rawTop),
+      window.innerHeight - ACTIONS_MENU_HEIGHT - VIEWPORT_PADDING,
+    );
+
+    setOpenActionsMenuId(classId);
+    setActionsMenuPosition({
+      top,
+      left,
+      placement,
+    });
   }
 
   async function confirmDelete() {
@@ -378,7 +481,9 @@ export default function AdminClassesPage() {
       </div>
 
       {/* Classes Table */}
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/95 shadow-[0_22px_70px_rgba(15,23,42,0.08)] ring-1 ring-black/[0.03] backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900/95 dark:ring-white/[0.03]">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal/40 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-16 bg-gradient-to-b from-zinc-100/70 to-transparent dark:from-white/[0.03]" />
         {isLoading ? (
           <div className="flex h-64 items-center justify-center">
             <div className="text-center">
@@ -387,38 +492,148 @@ export default function AdminClassesPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
+          <>
+            <div className="lg:hidden">
+              {paginatedClasses.length === 0 ? (
+                <div className="px-4 py-12 text-center">
+                  <div className="inline-flex flex-col items-center">
+                    <div className="rounded-full bg-zinc-100 p-4 dark:bg-zinc-800">
+                      <BiSolidBookAlt className="h-8 w-8 text-zinc-400" />
+                    </div>
+                    <p className="mt-3 text-sm font-medium text-zinc-900 dark:text-white">
+                      {searchQuery || categoryFilter !== 'ALL' || statusFilter !== 'ALL'
+                        ? 'No classes match your filters'
+                        : 'No classes found'}
+                    </p>
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+                      {searchQuery || categoryFilter !== 'ALL' || statusFilter !== 'ALL'
+                        ? 'Try adjusting your search or filters'
+                        : 'Create your first class to get started'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 p-3 sm:p-4">
+                  {paginatedClasses.map((classItem) => {
+                    const scheduledAt = formatClassDateTime(classItem);
+
+                    return (
+                      <article
+                        key={`mobile-${classItem.id}`}
+                        className="rounded-xl border border-zinc-200/80 bg-white p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] dark:border-zinc-700/80 dark:bg-zinc-900/90"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`rounded-lg p-2.5 ${
+                            classItem.category === 'COOKING'
+                              ? 'bg-coral/10 text-coral'
+                              : 'bg-purple/10 text-purple'
+                          }`}>
+                            {classItem.category === 'COOKING' ? (
+                              <GiCookingPot className="h-5 w-5" />
+                            ) : (
+                              <GiPalette className="h-5 w-5" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-base font-semibold text-zinc-900 dark:text-white">{classItem.title}</div>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              <span className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                {formatCategoryLabel(classItem.category)}
+                              </span>
+                              <span className="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-1 text-[11px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                                {formatCategoryLabel(classItem.subCategory)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="class-actions-menu relative">
+                            <button
+                              type="button"
+                              onClick={(event) => toggleActionsMenu(classItem.id, event.currentTarget)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-white"
+                              aria-label="Open actions menu"
+                              aria-expanded={openActionsMenuId === classItem.id}
+                            >
+                              <FiMoreVertical className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                          <div className="rounded-lg bg-zinc-50 px-3 py-2.5 dark:bg-zinc-800/70">
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Trainer</div>
+                            <div className="mt-1 truncate text-sm font-medium text-zinc-900 dark:text-white">{classItem.trainer?.fullName || '—'}</div>
+                          </div>
+                          <div className="rounded-lg bg-zinc-50 px-3 py-2.5 dark:bg-zinc-800/70">
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Price</div>
+                            <div className="mt-1 whitespace-nowrap text-sm font-semibold text-zinc-900 dark:text-white">{classItem.price} {classItem.currency}</div>
+                          </div>
+                          <div className="rounded-lg bg-zinc-50 px-3 py-2.5 dark:bg-zinc-800/70">
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Date</div>
+                            <div className="mt-1 whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-white">{scheduledAt.date}</div>
+                            <div className="mt-0.5 whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">{scheduledAt.time}</div>
+                          </div>
+                          <div className="rounded-lg bg-zinc-50 px-3 py-2.5 dark:bg-zinc-800/70">
+                            <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Status</div>
+                            <div className="mt-1 flex items-center gap-2">
+                              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                                classItem.status === 'PUBLISHED'
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                  : classItem.status === 'DRAFT'
+                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                    : 'bg-zinc-100 text-zinc-800 dark:bg-zinc-700 dark:text-zinc-300'
+                              }`}>
+                                {classItem.status}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 flex items-center justify-between rounded-lg border border-zinc-200/80 bg-zinc-50/80 px-3 py-2.5 dark:border-zinc-700/80 dark:bg-zinc-800/60">
+                          <div className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Bookings</div>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                            <HiSparkles className="h-3 w-3" />
+                            {classItem._count.bookings}
+                          </span>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="hidden overflow-x-auto lg:block">
+            <table className="w-full min-w-[1180px]">
+              <thead className="border-b border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                     Class
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                     Category
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                     Trainer
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                     Date
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                     Price
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                     Bookings
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                  <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {filteredClasses.length === 0 ? (
+                {paginatedClasses.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center">
                       <div className="inline-flex flex-col items-center">
@@ -448,7 +663,7 @@ export default function AdminClassesPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredClasses.map((classItem) => {
+                  paginatedClasses.map((classItem) => {
                     const scheduledAt = formatClassDateTime(classItem);
 
                     return (
@@ -466,43 +681,42 @@ export default function AdminClassesPage() {
                               <GiPalette className="h-5 w-5" />
                             )}
                           </div>
-                          <div>
-                            <div className="font-semibold text-zinc-900 dark:text-white">{classItem.title}</div>
-                            <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-500">{classItem.slug}</div>
+                          <div className="min-w-0">
+                            <div className="max-w-[240px] truncate whitespace-nowrap font-semibold text-zinc-900 dark:text-white">{classItem.title}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-200">
-                          {classItem.category.replace('_', ' ')}
+                        <div className="whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-zinc-200">
+                          {formatCategoryLabel(classItem.category)}
                         </div>
-                        <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-500">
-                          {classItem.subCategory.replace('_', ' ')}
+                        <div className="mt-0.5 whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-500">
+                          {formatCategoryLabel(classItem.subCategory)}
                         </div>
                       </td>
                       <td className="px-4 py-4 text-sm text-zinc-700 dark:text-zinc-300">
-                        {classItem.trainer?.fullName || '—'}
+                        <div className="max-w-[160px] truncate whitespace-nowrap">{classItem.trainer?.fullName || '—'}</div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="text-sm font-medium text-zinc-900 dark:text-zinc-200">
+                        <div className="whitespace-nowrap text-sm font-medium text-zinc-900 dark:text-zinc-200">
                           {scheduledAt.date}
                         </div>
-                        <div className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-500">
+                        <div className="mt-0.5 whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-500">
                           {scheduledAt.time}
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="text-sm font-semibold text-zinc-900 dark:text-white">
+                        <div className="whitespace-nowrap text-sm font-semibold text-zinc-900 dark:text-white">
                           {classItem.price} {classItem.currency}
                         </div>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
                           <HiSparkles className="h-3 w-3" />
                           {classItem._count.bookings}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-4 whitespace-nowrap">
                         <button
                           onClick={() => toggleStatus(classItem.id, classItem.status)}
                           className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all hover:shadow-sm ${
@@ -519,38 +733,15 @@ export default function AdminClassesPage() {
                         </button>
                       </td>
                       <td className="px-4 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
-                            href={`/${locale}/admin/classes/${classItem.id}`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
-                            title="View Details"
-                          >
-                            <IoEye className="h-4 w-4" />
-                            View
-                          </Link>
-                          <Link
-                            href={`/${locale}/admin/classes/${classItem.id}/edit`}
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
-                            title="Edit Class"
-                          >
-                            <IoPencil className="h-4 w-4" />
-                            Edit
-                          </Link>
+                        <div className="class-actions-menu relative flex justify-end">
                           <button
-                            onClick={() => void duplicateClass(classItem.id)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:hover:bg-amber-900/30"
-                            title="Duplicate Class"
+                            type="button"
+                            onClick={(event) => toggleActionsMenu(classItem.id, event.currentTarget)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-white"
+                            aria-label="Open actions menu"
+                            aria-expanded={openActionsMenuId === classItem.id}
                           >
-                            <IoCopy className="h-4 w-4" />
-                            Duplicate
-                          </button>
-                          <button
-                            onClick={() => handleDelete(classItem.id, classItem.title)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
-                            title="Delete Class"
-                          >
-                            <IoTrash className="h-4 w-4" />
-                            Delete
+                            <FiMoreVertical className="h-4 w-4" />
                           </button>
                         </div>
                       </td>
@@ -559,14 +750,129 @@ export default function AdminClassesPage() {
                 )}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </div>
 
+      {openActionsMenuId && actionsMenuPosition ? (
+        <div
+          className="class-actions-menu fixed z-[160] w-44 overflow-hidden rounded-xl border border-zinc-200/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] ring-1 ring-black/5 backdrop-blur-sm dark:border-zinc-700/80 dark:bg-zinc-900"
+          style={{ top: actionsMenuPosition.top, left: actionsMenuPosition.left }}
+        >
+          <div className="py-2">
+            <Link
+              href={`/${locale}/admin/classes/${openActionsMenuId}`}
+              onClick={() => {
+                setOpenActionsMenuId(null);
+                setActionsMenuPosition(null);
+              }}
+              className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-blue-700 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/30"
+            >
+              <IoEye className="h-4 w-4" />
+              View
+            </Link>
+            <Link
+              href={`/${locale}/admin/classes/${openActionsMenuId}/edit`}
+              onClick={() => {
+                setOpenActionsMenuId(null);
+                setActionsMenuPosition(null);
+              }}
+              className="flex items-center gap-2 px-3 py-2.5 text-sm font-medium text-emerald-700 transition hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+            >
+              <IoPencil className="h-4 w-4" />
+              Edit
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                const classId = openActionsMenuId;
+                setOpenActionsMenuId(null);
+                setActionsMenuPosition(null);
+                void duplicateClass(classId);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-amber-700 transition hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30"
+            >
+              <IoCopy className="h-4 w-4" />
+              Duplicate
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const classItem = classes.find((item) => item.id === openActionsMenuId);
+                if (!classItem) return;
+                void handleDelete(classItem.id, classItem.title);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-red-700 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+            >
+              <IoTrash className="h-4 w-4" />
+              Delete
+            </button>
+          </div>
+          <div
+            className={`pointer-events-none absolute right-4 h-3 w-3 rotate-45 border-zinc-200/80 bg-white dark:border-zinc-700/80 dark:bg-zinc-900 ${
+              actionsMenuPosition.placement === 'top'
+                ? '-bottom-[7px] border-b border-r'
+                : '-top-[7px] border-l border-t'
+            }`}
+          />
+        </div>
+      ) : null}
+
       {/* Results Summary */}
       {!isLoading && filteredClasses.length > 0 && (
-        <div className="text-center text-sm text-zinc-600 dark:text-zinc-400">
-          Showing {filteredClasses.length} of {classes.length} classes
+        <div className="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-sm text-zinc-600 dark:text-zinc-400">
+            Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredClasses.length)} of {filteredClasses.length} classes
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={currentPage === 1}
+              className="inline-flex h-9 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+            >
+              <IoChevronBack className="h-4 w-4" />
+              Prev
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, index) => index + 1)
+                .filter((page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+                .map((page, index, pages) => {
+                  const previousPage = pages[index - 1];
+                  const showGap = previousPage && page - previousPage > 1;
+
+                  return (
+                    <div key={page} className="flex items-center gap-1">
+                      {showGap ? <span className="px-1 text-sm text-zinc-400">...</span> : null}
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(page)}
+                        className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-sm font-semibold transition ${
+                          page === currentPage
+                            ? 'bg-teal text-white shadow-sm'
+                            : 'border border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    </div>
+                  );
+                })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={currentPage === totalPages}
+              className="inline-flex h-9 items-center gap-1 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+            >
+              Next
+              <IoChevronForward className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
