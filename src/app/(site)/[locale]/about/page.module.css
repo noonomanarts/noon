@@ -6,21 +6,7 @@
   padding: 0;
 }
 
-.kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: 1px solid var(--border);
-  padding: 0.35rem 0.7rem;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-
 .heroTitle {
-  margin-top: 1rem;
   max-width: 18ch;
   font-size: clamp(2rem, 5vw, 4.15rem);
   font-weight: 700;
@@ -70,28 +56,26 @@
   transform: scale(1.02);
 }
 
-.quoteStrip {
+.splitSection {
   border: 1px solid var(--border);
-  background: transparent;
-  padding: 0.85rem 1rem;
+  background: color-mix(in oklab, var(--surface) 86%, white 14%);
+  padding: clamp(1.1rem, 1.9vw, 1.8rem);
 }
 
-.panel {
+.portraitFrame {
+  overflow: hidden;
   border: 1px solid var(--border);
-  background: transparent;
-  padding: clamp(1rem, 1.6vw, 1.5rem);
+  background: var(--muted);
+  aspect-ratio: 3 / 4;
+  min-height: 20rem;
 }
 
-.highlightPanel {
-  background: transparent;
+.portraitFrame :global(div) {
+  transform: scale(1.01);
 }
 
-.sectionLabel {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-subtle);
+.narrativePanel {
+  padding-inline: clamp(0rem, 0.8vw, 0.6rem);
 }
 
 .richText {
@@ -118,83 +102,74 @@
   color: var(--text);
 }
 
-.founderImage {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  background: var(--muted);
-  width: 100%;
-  aspect-ratio: 1 / 1;
+.inlineQuote {
+  margin-top: 1.25rem;
+  border-inline-start: 3px solid color-mix(in oklab, var(--noon-coral) 65%, var(--border));
+  padding-inline-start: 1rem;
+  font-size: 1.02rem;
+  line-height: 1.9;
+  color: var(--text);
 }
 
-.programCard {
-  border: 1px solid var(--border);
-  background: transparent;
-  padding: 1rem;
-  min-height: 10rem;
+.offerSection {
   position: relative;
+  overflow: hidden;
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}
+
+.offerBackground {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+.offerOverlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(0, 0, 0, 0.42);
+}
+
+.offerCard {
+  border: 1px solid var(--border);
+  background: #ffffff;
+  padding: 1.5rem;
+  min-height: 11rem;
   transition: transform 180ms ease, border-color 180ms ease;
 }
 
-.programCard::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 0.35rem;
-  height: 100%;
-  background: linear-gradient(180deg, var(--noon-teal), var(--noon-coral));
-}
-
-.programCard:hover {
+.offerCard:hover {
   transform: translateY(-2px);
   border-color: color-mix(in oklab, var(--noon-teal) 30%, var(--border));
 }
 
-.teamCard {
+.trainerProfileCard {
+  display: block;
   border: 1px solid var(--border);
-  background: transparent;
+  background: color-mix(in oklab, var(--surface) 88%, white 12%);
   padding: 0.75rem;
+  text-decoration: none;
   transition: transform 180ms ease, border-color 180ms ease;
 }
 
-.teamCard:hover {
+.trainerProfileCard:hover {
   transform: translateY(-2px);
   border-color: color-mix(in oklab, var(--noon-teal) 26%, var(--border));
 }
 
-.teamImageWrap {
+.trainerPortrait {
   width: 100%;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 3 / 4;
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--muted);
-}
-
-.trainerCard {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  border: 1px solid var(--border);
-  background: transparent;
-  padding: 0.75rem;
-  transition: transform 180ms ease, border-color 180ms ease;
-}
-
-.trainerCard:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in oklab, var(--noon-coral) 32%, var(--border));
-}
-
-.familyShell {
-  border: 1px solid var(--border);
-  background: transparent;
-  padding: clamp(1.1rem, 1.8vw, 1.7rem);
-}
-
-.familyImage {
-  border: 1px solid var(--border);
-  background: var(--muted);
-  overflow: hidden;
 }
 
 .reveal {
@@ -217,16 +192,25 @@
     text-wrap: pretty;
   }
 
-  .programCard {
+  .portraitFrame {
+    min-height: 16rem;
+  }
+
+  .offerCard {
     min-height: 0;
+  }
+}
+
+@media (max-width: 1024px) {
+  .offerBackground {
+    background-attachment: scroll;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .reveal,
-  .programCard,
-  .teamCard,
-  .trainerCard {
+  .offerCard,
+  .trainerProfileCard {
     animation: none;
     transition: none;
     opacity: 1;

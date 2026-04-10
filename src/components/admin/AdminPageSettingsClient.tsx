@@ -117,9 +117,8 @@ export default function AdminPageSettingsClient({
   const [uploadingPartnerLogoIndex, setUploadingPartnerLogoIndex] = useState<number | null>(null);
   const [uploadingUpcomingImageIndex, setUploadingUpcomingImageIndex] = useState<number | null>(null);
   const [uploadingWhyNoonBackground, setUploadingWhyNoonBackground] = useState(false);
-  const [uploadingAboutMediaKey, setUploadingAboutMediaKey] = useState<"hero" | "founder" | "family" | null>(null);
-  const [uploadingAboutTeamImageIndex, setUploadingAboutTeamImageIndex] = useState<number | null>(null);
-  const [uploadingAboutTrainerImageIndex, setUploadingAboutTrainerImageIndex] = useState<number | null>(null);
+  const [uploadingAboutMediaKey, setUploadingAboutMediaKey] = useState<"about" | "founder" | "family" | "whatWeDo" | null>(null);
+  const [uploadingAboutHeroSlideIndex, setUploadingAboutHeroSlideIndex] = useState<number | null>(null);
   const [uploadingShopHeaderImage, setUploadingShopHeaderImage] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -442,9 +441,23 @@ export default function AdminPageSettingsClient({
     contactSuccessMessageAr: isArabic ? "رسالة نجاح الإرسال (AR)" : "Success Message (AR)",
     aboutSection: isArabic ? "إعدادات صفحة من نحن" : "About Page Settings",
     aboutHint: isArabic
-      ? "تحكم كامل في محتوى صفحة من نحن: الأقسام، الصور، الفريق، والمدربين."
-      : "Full control over About page content: sections, media, team, and trainers.",
-    aboutHeroImage: isArabic ? "صورة الهيدر" : "Hero Image",
+      ? "أدر صفحة من نحن بالكامل: سلايد الهيدر، صورة قسم التعريف، محتوى المؤسس، ماذا نقدم، قسم المدربين، وقسم العائلة الكبيرة."
+      : "Manage the full About page: hero slideshow, intro section image, founder content, What We Offer cards, trainers section, and Bigger Noon Family.",
+    aboutHeroSection: isArabic ? "سلايد الهيدر" : "Hero Slideshow",
+    aboutHeroSectionHint: isArabic
+      ? "أضف أكثر من صورة، غيّر ترتيبها، وحدد سرعة الانتقال. سيتم عرض أول صورة تلقائياً إذا كانت هناك صورة واحدة فقط."
+      : "Add multiple slides, reorder them, and control autoplay speed. If only one image exists, it will show as a static hero visual.",
+    aboutHeroSlides: isArabic ? "صور السلايدشو" : "Slideshow Images",
+    aboutHeroSlidesEmpty: isArabic ? "لا توجد صور حالياً. أضف صورة أو ارفع ملفاً." : "No slides yet. Add an image path or upload a file.",
+    aboutHeroSlidePath: isArabic ? "مسار الصورة" : "Image Path",
+    aboutHeroAddSlide: isArabic ? "إضافة صورة" : "Add Slide",
+    aboutHeroRemoveSlide: isArabic ? "حذف الصورة" : "Remove Slide",
+    aboutHeroAutoplay: isArabic ? "سرعة السلايدشو (ms)" : "Slideshow Speed (ms)",
+    aboutHeroPreview: isArabic ? "معاينة السلايد الأولى" : "First Slide Preview",
+    aboutHeroUploadFailed: isArabic ? "فشل رفع صورة سلايد الهيدر." : "Failed to upload About hero slide.",
+    aboutHeroUploadDone: isArabic ? "تم رفع صورة سلايد الهيدر بنجاح." : "About hero slide uploaded successfully.",
+    aboutSectionImage: isArabic ? "صورة قسم التعريف" : "About Section Image",
+    aboutSectionContent: isArabic ? "قسم التعريف" : "About Intro Section",
     aboutTitleEn: isArabic ? "عنوان عن نون (EN)" : "About Title (EN)",
     aboutTitleAr: isArabic ? "عنوان عن نون (AR)" : "About Title (AR)",
     aboutBodyEn: isArabic ? "نص عن نون (EN - Markdown)" : "About Body (EN - Markdown)",
@@ -468,36 +481,26 @@ export default function AdminPageSettingsClient({
     aboutWhatWeDoSection: isArabic ? "قسم ماذا نقدم" : "What We Do Section",
     aboutWhatWeDoTitleEn: isArabic ? "عنوان القسم (EN)" : "Section Title (EN)",
     aboutWhatWeDoTitleAr: isArabic ? "عنوان القسم (AR)" : "Section Title (AR)",
+    aboutWhatWeDoBackground: isArabic ? "صورة خلفية القسم" : "Section Background Image",
+    aboutWhatWeDoHint: isArabic
+      ? "هذا القسم يعمل مثل Why Noon في الصفحة الرئيسية: صورة ثابتة في الخلفية وأربع بطاقات فوقها."
+      : "This section mirrors the homepage Why Noon area: a fixed background image with four cards on top.",
+    aboutWhatWeDoMax: isArabic ? "الحد الأقصى 4 بطاقات" : "Maximum 4 cards",
+    aboutWhatWeDoTitleColor: isArabic ? "لون عنوان القسم" : "Section Title Color",
+    aboutWhatWeDoCardTitleColor: isArabic ? "لون عنوان البطاقة" : "Card Title Color",
+    aboutWhatWeDoCardTextColor: isArabic ? "لون نص البطاقة" : "Card Text Color",
     aboutFeatureItem: isArabic ? "عنصر" : "Item",
     aboutFeatureTextEn: isArabic ? "النص (EN)" : "Text (EN)",
     aboutFeatureTextAr: isArabic ? "النص (AR)" : "Text (AR)",
     aboutFeatureAdd: isArabic ? "إضافة عنصر" : "Add Item",
     aboutFeatureRemove: isArabic ? "حذف العنصر" : "Remove Item",
     aboutFeatureEmpty: isArabic ? "لا توجد عناصر حالياً." : "No items yet.",
-    aboutTeamSection: isArabic ? "قسم الفريق" : "Team Section",
-    aboutTeamTitleEn: isArabic ? "عنوان الفريق (EN)" : "Team Title (EN)",
-    aboutTeamTitleAr: isArabic ? "عنوان الفريق (AR)" : "Team Title (AR)",
-    aboutTeamMember: isArabic ? "عضو فريق" : "Team Member",
-    aboutTeamNameEn: isArabic ? "الاسم (EN)" : "Name (EN)",
-    aboutTeamNameAr: isArabic ? "الاسم (AR)" : "Name (AR)",
-    aboutTeamRoleEn: isArabic ? "الوظيفة (EN)" : "Role (EN)",
-    aboutTeamRoleAr: isArabic ? "الوظيفة (AR)" : "Role (AR)",
-    aboutTeamImage: isArabic ? "صورة العضو" : "Member Image",
-    aboutTeamAdd: isArabic ? "إضافة عضو" : "Add Member",
-    aboutTeamRemove: isArabic ? "حذف العضو" : "Remove Member",
-    aboutTeamEmpty: isArabic ? "لا يوجد أعضاء حالياً." : "No team members yet.",
     aboutTrainersSection: isArabic ? "قسم المدربين" : "Trainers Section",
     aboutTrainersTitleEn: isArabic ? "عنوان المدربين (EN)" : "Trainers Title (EN)",
     aboutTrainersTitleAr: isArabic ? "عنوان المدربين (AR)" : "Trainers Title (AR)",
-    aboutTrainersCtaEn: isArabic ? "نص زر المدربين (EN)" : "Trainers CTA (EN)",
-    aboutTrainersCtaAr: isArabic ? "نص زر المدربين (AR)" : "Trainers CTA (AR)",
-    aboutTrainerCard: isArabic ? "بطاقة مدرب" : "Trainer Card",
-    aboutTrainerNameEn: isArabic ? "اسم المدرب (EN)" : "Trainer Name (EN)",
-    aboutTrainerNameAr: isArabic ? "اسم المدرب (AR)" : "Trainer Name (AR)",
-    aboutTrainerImage: isArabic ? "صورة المدرب" : "Trainer Image",
-    aboutTrainerAdd: isArabic ? "إضافة مدرب" : "Add Trainer",
-    aboutTrainerRemove: isArabic ? "حذف المدرب" : "Remove Trainer",
-    aboutTrainerEmpty: isArabic ? "لا يوجد مدربون حالياً." : "No trainer cards yet.",
+    aboutTrainersHint: isArabic
+      ? "هذا القسم يسحب المدربين النشطين تلقائياً من لوحة المدربين. عند إضافة أي مدرب وتفعيله سيظهر اسمه وصورته هنا مباشرة."
+      : "This section pulls active trainers automatically from the Trainers dashboard. As soon as a trainer is added and activated, their name and photo appear here automatically.",
     moveUp: isArabic ? "أعلى" : "Up",
     moveDown: isArabic ? "أسفل" : "Down",
     routeTemplate: isArabic ? "قالب المسار" : "Route Template",
@@ -632,6 +635,56 @@ export default function AdminPageSettingsClient({
         classListingHero: {
           ...prev.classListingHero,
           slideImages: next,
+        },
+      };
+    });
+  };
+
+  const setAboutHeroSlide = (index: number, value: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      aboutPage: {
+        ...prev.aboutPage,
+        heroSlideImages: prev.aboutPage.heroSlideImages.map((item, itemIndex) =>
+          itemIndex === index ? value : item
+        ),
+      },
+    }));
+  };
+
+  const addAboutHeroSlide = () => {
+    setSettings((prev) => ({
+      ...prev,
+      aboutPage: {
+        ...prev.aboutPage,
+        heroSlideImages: [...prev.aboutPage.heroSlideImages, ""],
+      },
+    }));
+  };
+
+  const removeAboutHeroSlide = (index: number) => {
+    setSettings((prev) => ({
+      ...prev,
+      aboutPage: {
+        ...prev.aboutPage,
+        heroSlideImages: prev.aboutPage.heroSlideImages.filter((_, itemIndex) => itemIndex !== index),
+      },
+    }));
+  };
+
+  const moveAboutHeroSlide = (index: number, direction: -1 | 1) => {
+    setSettings((prev) => {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= prev.aboutPage.heroSlideImages.length) return prev;
+      const next = [...prev.aboutPage.heroSlideImages];
+      const [item] = next.splice(index, 1);
+      next.splice(targetIndex, 0, item);
+
+      return {
+        ...prev,
+        aboutPage: {
+          ...prev.aboutPage,
+          heroSlideImages: next,
         },
       };
     });
@@ -939,114 +992,6 @@ export default function AdminPageSettingsClient({
     });
   };
 
-  const setAboutTeamMember = (
-    index: number,
-    field: keyof SitePageSettings["aboutPage"]["teamMembers"][number],
-    value: string
-  ) => {
-    setSettings((prev) => ({
-      ...prev,
-      aboutPage: {
-        ...prev.aboutPage,
-        teamMembers: prev.aboutPage.teamMembers.map((item, itemIndex) =>
-          itemIndex === index ? { ...item, [field]: value } : item
-        ),
-      },
-    }));
-  };
-
-  const addAboutTeamMember = () => {
-    setSettings((prev) => ({
-      ...prev,
-      aboutPage: {
-        ...prev.aboutPage,
-        teamMembers: [
-          ...prev.aboutPage.teamMembers,
-          { nameEn: "", nameAr: "", roleEn: "", roleAr: "", imageSrc: "" },
-        ],
-      },
-    }));
-  };
-
-  const removeAboutTeamMember = (index: number) => {
-    setSettings((prev) => ({
-      ...prev,
-      aboutPage: {
-        ...prev.aboutPage,
-        teamMembers: prev.aboutPage.teamMembers.filter((_, itemIndex) => itemIndex !== index),
-      },
-    }));
-  };
-
-  const moveAboutTeamMember = (index: number, direction: -1 | 1) => {
-    setSettings((prev) => {
-      const targetIndex = index + direction;
-      if (targetIndex < 0 || targetIndex >= prev.aboutPage.teamMembers.length) return prev;
-      const next = [...prev.aboutPage.teamMembers];
-      const [item] = next.splice(index, 1);
-      next.splice(targetIndex, 0, item);
-      return {
-        ...prev,
-        aboutPage: {
-          ...prev.aboutPage,
-          teamMembers: next,
-        },
-      };
-    });
-  };
-
-  const setAboutTrainerHighlight = (
-    index: number,
-    field: keyof SitePageSettings["aboutPage"]["trainerHighlights"][number],
-    value: string
-  ) => {
-    setSettings((prev) => ({
-      ...prev,
-      aboutPage: {
-        ...prev.aboutPage,
-        trainerHighlights: prev.aboutPage.trainerHighlights.map((item, itemIndex) =>
-          itemIndex === index ? { ...item, [field]: value } : item
-        ),
-      },
-    }));
-  };
-
-  const addAboutTrainerHighlight = () => {
-    setSettings((prev) => ({
-      ...prev,
-      aboutPage: {
-        ...prev.aboutPage,
-        trainerHighlights: [...prev.aboutPage.trainerHighlights, { nameEn: "", nameAr: "", imageSrc: "" }],
-      },
-    }));
-  };
-
-  const removeAboutTrainerHighlight = (index: number) => {
-    setSettings((prev) => ({
-      ...prev,
-      aboutPage: {
-        ...prev.aboutPage,
-        trainerHighlights: prev.aboutPage.trainerHighlights.filter((_, itemIndex) => itemIndex !== index),
-      },
-    }));
-  };
-
-  const moveAboutTrainerHighlight = (index: number, direction: -1 | 1) => {
-    setSettings((prev) => {
-      const targetIndex = index + direction;
-      if (targetIndex < 0 || targetIndex >= prev.aboutPage.trainerHighlights.length) return prev;
-      const next = [...prev.aboutPage.trainerHighlights];
-      const [item] = next.splice(index, 1);
-      next.splice(targetIndex, 0, item);
-      return {
-        ...prev,
-        aboutPage: {
-          ...prev.aboutPage,
-          trainerHighlights: next,
-        },
-      };
-    });
-  };
 
   const uploadAsset = async (file: File, folder: string, fallbackError: string): Promise<string> => {
     const formData = new FormData();
@@ -1205,27 +1150,33 @@ export default function AdminPageSettingsClient({
     }
   };
 
-  const handleAboutMediaUpload = async (
-    target: "hero" | "founder" | "family",
-    file: File | null
-  ) => {
+  const handleAboutMediaUpload = async (target: "about" | "founder" | "family" | "whatWeDo", file: File | null) => {
     if (!file) return;
     setUploadingAboutMediaKey(target);
     setError(null);
     setInfo(null);
 
     try {
-      const folder = target === "hero" ? "about-hero" : target === "founder" ? "about-founder" : "about-family";
+      const folder =
+        target === "about"
+          ? "about-section"
+          : target === "founder"
+            ? "about-founder"
+            : target === "family"
+              ? "about-family"
+              : "about-what-we-do";
       const url = await uploadAsset(file, folder, t.aboutUploadFailed);
       setSettings((prev) => ({
         ...prev,
         aboutPage: {
           ...prev.aboutPage,
-          ...(target === "hero"
-            ? { heroImageSrc: url }
+          ...(target === "about"
+            ? { aboutImageSrc: url }
             : target === "founder"
               ? { founderImageSrc: url }
-              : { familyImageSrc: url }),
+              : target === "family"
+                ? { familyImageSrc: url }
+                : { whatWeDoBackgroundImageSrc: url }),
         },
       }));
       setInfo(t.aboutUploadDone);
@@ -1236,53 +1187,28 @@ export default function AdminPageSettingsClient({
     }
   };
 
-  const handleAboutTeamImageUpload = async (index: number, file: File | null) => {
+  const handleAboutHeroSlideUpload = async (index: number, file: File | null) => {
     if (!file) return;
-    setUploadingAboutTeamImageIndex(index);
+    setUploadingAboutHeroSlideIndex(index);
     setError(null);
     setInfo(null);
 
     try {
-      const url = await uploadAsset(file, "about-team", t.aboutUploadFailed);
+      const url = await uploadAsset(file, "about-hero", t.aboutHeroUploadFailed);
       setSettings((prev) => ({
         ...prev,
         aboutPage: {
           ...prev.aboutPage,
-          teamMembers: prev.aboutPage.teamMembers.map((item, itemIndex) =>
-            itemIndex === index ? { ...item, imageSrc: url } : item
+          heroSlideImages: prev.aboutPage.heroSlideImages.map((item, itemIndex) =>
+            itemIndex === index ? url : item
           ),
         },
       }));
-      setInfo(t.aboutUploadDone);
+      setInfo(t.aboutHeroUploadDone);
     } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : t.aboutUploadFailed);
+      setError(uploadError instanceof Error ? uploadError.message : t.aboutHeroUploadFailed);
     } finally {
-      setUploadingAboutTeamImageIndex(null);
-    }
-  };
-
-  const handleAboutTrainerImageUpload = async (index: number, file: File | null) => {
-    if (!file) return;
-    setUploadingAboutTrainerImageIndex(index);
-    setError(null);
-    setInfo(null);
-
-    try {
-      const url = await uploadAsset(file, "about-trainers", t.aboutUploadFailed);
-      setSettings((prev) => ({
-        ...prev,
-        aboutPage: {
-          ...prev.aboutPage,
-          trainerHighlights: prev.aboutPage.trainerHighlights.map((item, itemIndex) =>
-            itemIndex === index ? { ...item, imageSrc: url } : item
-          ),
-        },
-      }));
-      setInfo(t.aboutUploadDone);
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : t.aboutUploadFailed);
-    } finally {
-      setUploadingAboutTrainerImageIndex(null);
+      setUploadingAboutHeroSlideIndex(null);
     }
   };
 
@@ -1974,30 +1900,158 @@ export default function AdminPageSettingsClient({
             <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.aboutSection}</h2>
             <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.aboutHint}</p>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1 text-sm md:col-span-2">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutHeroImage}</span>
-                <div className="flex gap-2">
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-700 dark:bg-zinc-800/40">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.aboutHeroSection}</h3>
+                <button
+                  type="button"
+                  onClick={addAboutHeroSlide}
+                  className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                >
+                  <FiPlus className="size-4" />
+                  {t.aboutHeroAddSlide}
+                </button>
+              </div>
+              <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.aboutHeroSectionHint}</p>
+
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem] md:items-start">
+                <label className="space-y-1 text-sm">
+                  <span className="text-zinc-600 dark:text-zinc-300">{t.aboutHeroAutoplay}</span>
                   <input
-                    value={settings.aboutPage.heroImageSrc}
+                    type="number"
+                    min={2000}
+                    max={12000}
+                    step={100}
+                    value={settings.aboutPage.heroAutoplayMs}
                     onChange={(event) =>
                       setSettings((prev) => ({
                         ...prev,
-                        aboutPage: { ...prev.aboutPage, heroImageSrc: event.target.value },
+                        aboutPage: {
+                          ...prev.aboutPage,
+                          heroAutoplayMs: Number.parseInt(event.target.value || String(defaults.aboutPage.heroAutoplayMs), 10),
+                        },
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </label>
+
+                <div>
+                  <span className="mb-1 block text-sm text-zinc-600 dark:text-zinc-300">{t.aboutHeroPreview}</span>
+                  <div
+                    className="aspect-[3/4] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 bg-cover bg-center dark:border-zinc-700 dark:bg-zinc-800"
+                    style={{
+                      backgroundImage: settings.aboutPage.heroSlideImages[0]?.trim()
+                        ? `url("${settings.aboutPage.heroSlideImages[0].trim()}")`
+                        : undefined,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{t.aboutHeroSlides}</div>
+                {settings.aboutPage.heroSlideImages.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-zinc-300 px-4 py-6 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                    {t.aboutHeroSlidesEmpty}
+                  </div>
+                ) : (
+                  settings.aboutPage.heroSlideImages.map((slide, index) => (
+                    <div key={`about-hero-slide-${index}`} className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+                      <div className="flex flex-wrap items-start gap-3 md:flex-nowrap">
+                        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-zinc-100 dark:bg-zinc-800">
+                          {slide.trim() ? (
+                            <div
+                              className="h-full w-full bg-cover bg-center"
+                              style={{ backgroundImage: `url("${slide.trim()}")` }}
+                            />
+                          ) : null}
+                        </div>
+
+                        <div className="flex-1 space-y-3">
+                          <label className="block space-y-1 text-sm">
+                            <span className="text-zinc-600 dark:text-zinc-300">{t.aboutHeroSlidePath}</span>
+                            <input
+                              value={slide}
+                              onChange={(event) => setAboutHeroSlide(index, event.target.value)}
+                              className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                            />
+                          </label>
+
+                          <div className="flex flex-wrap gap-2">
+                            <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                              <FiUpload className="size-3.5" />
+                              {uploadingAboutHeroSlideIndex === index ? t.aboutUploading : t.aboutUpload}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                disabled={uploadingAboutHeroSlideIndex !== null}
+                                onChange={(event) => {
+                                  void handleAboutHeroSlideUpload(index, event.target.files?.[0] ?? null);
+                                  event.currentTarget.value = "";
+                                }}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => moveAboutHeroSlide(index, -1)}
+                              disabled={index === 0}
+                              className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                            >
+                              <FiArrowUp className="size-3.5" />
+                              {t.moveUp}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveAboutHeroSlide(index, 1)}
+                              disabled={index === settings.aboutPage.heroSlideImages.length - 1}
+                              className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                            >
+                              <FiArrowDown className="size-3.5" />
+                              {t.moveDown}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeAboutHeroSlide(index)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-300 dark:hover:bg-rose-950/30"
+                            >
+                              <FiTrash2 className="size-3.5" />
+                              {t.aboutHeroRemoveSlide}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="space-y-1 text-sm md:col-span-2">
+                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutSectionImage}</span>
+                <div className="flex gap-2">
+                  <input
+                    value={settings.aboutPage.aboutImageSrc}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        aboutPage: { ...prev.aboutPage, aboutImageSrc: event.target.value },
                       }))
                     }
                     className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                   />
                   <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
                     <FiUpload className="size-3.5" />
-                    {uploadingAboutMediaKey === "hero" ? t.aboutUploading : t.aboutUpload}
+                    {uploadingAboutMediaKey === "about" ? t.aboutUploading : t.aboutUpload}
                     <input
                       type="file"
                       accept="image/*"
                       className="hidden"
                       disabled={uploadingAboutMediaKey !== null}
                       onChange={(event) => {
-                        void handleAboutMediaUpload("hero", event.target.files?.[0] ?? null);
+                        void handleAboutMediaUpload("about", event.target.files?.[0] ?? null);
                         event.currentTarget.value = "";
                       }}
                     />
@@ -2268,12 +2322,14 @@ export default function AdminPageSettingsClient({
               <button
                 type="button"
                 onClick={addAboutFeatureItem}
+                disabled={settings.aboutPage.whatWeDoItems.length >= 4}
                 className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
               >
                 <FiPlus className="size-3.5" />
                 {t.aboutFeatureAdd}
               </button>
             </div>
+            <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.aboutWhatWeDoHint}</p>
 
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1 text-sm">
@@ -2302,7 +2358,116 @@ export default function AdminPageSettingsClient({
                   className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                 />
               </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutWhatWeDoTitleColor}</span>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={normalizeHexColor(settings.aboutPage.whatWeDoTitleColor, "#ffffff")}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        aboutPage: { ...prev.aboutPage, whatWeDoTitleColor: event.target.value },
+                      }))
+                    }
+                    className="h-11 w-14 rounded-lg border border-zinc-300 bg-transparent p-1 dark:border-zinc-700"
+                  />
+                  <input
+                    value={settings.aboutPage.whatWeDoTitleColor}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        aboutPage: { ...prev.aboutPage, whatWeDoTitleColor: event.target.value },
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+              </label>
+              <label className="space-y-1 text-sm md:col-span-2">
+                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutWhatWeDoBackground}</span>
+                <div className="flex gap-2">
+                  <input
+                    value={settings.aboutPage.whatWeDoBackgroundImageSrc}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        aboutPage: { ...prev.aboutPage, whatWeDoBackgroundImageSrc: event.target.value },
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                    <FiUpload className="size-3.5" />
+                    {uploadingAboutMediaKey === "whatWeDo" ? t.aboutUploading : t.aboutUpload}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingAboutMediaKey !== null}
+                      onChange={(event) => {
+                        void handleAboutMediaUpload("whatWeDo", event.target.files?.[0] ?? null);
+                        event.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutWhatWeDoCardTitleColor}</span>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={normalizeHexColor(settings.aboutPage.whatWeDoCardTitleColor, "#111827")}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        aboutPage: { ...prev.aboutPage, whatWeDoCardTitleColor: event.target.value },
+                      }))
+                    }
+                    className="h-11 w-14 rounded-lg border border-zinc-300 bg-transparent p-1 dark:border-zinc-700"
+                  />
+                  <input
+                    value={settings.aboutPage.whatWeDoCardTitleColor}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        aboutPage: { ...prev.aboutPage, whatWeDoCardTitleColor: event.target.value },
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutWhatWeDoCardTextColor}</span>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={normalizeHexColor(settings.aboutPage.whatWeDoCardTextColor, "#52525b")}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        aboutPage: { ...prev.aboutPage, whatWeDoCardTextColor: event.target.value },
+                      }))
+                    }
+                    className="h-11 w-14 rounded-lg border border-zinc-300 bg-transparent p-1 dark:border-zinc-700"
+                  />
+                  <input
+                    value={settings.aboutPage.whatWeDoCardTextColor}
+                    onChange={(event) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        aboutPage: { ...prev.aboutPage, whatWeDoCardTextColor: event.target.value },
+                      }))
+                    }
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  />
+                </div>
+              </label>
             </div>
+
+            <div className="mt-3 text-xs font-medium text-zinc-500 dark:text-zinc-400">{t.aboutWhatWeDoMax}</div>
 
             <div className="mt-4 space-y-3">
               {settings.aboutPage.whatWeDoItems.length === 0 ? (
@@ -2368,157 +2533,8 @@ export default function AdminPageSettingsClient({
           </section>
 
           <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.aboutTeamSection}</h2>
-              <button
-                type="button"
-                onClick={addAboutTeamMember}
-                className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <FiPlus className="size-3.5" />
-                {t.aboutTeamAdd}
-              </button>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1 text-sm">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutTeamTitleEn}</span>
-                <input
-                  value={settings.aboutPage.teamTitleEn}
-                  onChange={(event) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      aboutPage: { ...prev.aboutPage, teamTitleEn: event.target.value },
-                    }))
-                  }
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutTeamTitleAr}</span>
-                <input
-                  value={settings.aboutPage.teamTitleAr}
-                  onChange={(event) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      aboutPage: { ...prev.aboutPage, teamTitleAr: event.target.value },
-                    }))
-                  }
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-              </label>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              {settings.aboutPage.teamMembers.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                  {t.aboutTeamEmpty}
-                </div>
-              ) : null}
-              {settings.aboutPage.teamMembers.map((item, index) => (
-                <div
-                  key={`about-team-${index}`}
-                  className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-800/40"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {t.aboutTeamMember} {index + 1}
-                    </h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => moveAboutTeamMember(index, -1)}
-                        disabled={index === 0}
-                        className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                      >
-                        <FiArrowUp className="size-3.5" />
-                        {t.moveUp}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveAboutTeamMember(index, 1)}
-                        disabled={index === settings.aboutPage.teamMembers.length - 1}
-                        className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                      >
-                        <FiArrowDown className="size-3.5" />
-                        {t.moveDown}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeAboutTeamMember(index)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-800/70 dark:text-rose-300 dark:hover:bg-rose-900/20"
-                      >
-                        <FiTrash2 className="size-3.5" />
-                        {t.aboutTeamRemove}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <input
-                      value={item.nameEn}
-                      onChange={(event) => setAboutTeamMember(index, "nameEn", event.target.value)}
-                      placeholder={t.aboutTeamNameEn}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                    />
-                    <input
-                      value={item.nameAr}
-                      onChange={(event) => setAboutTeamMember(index, "nameAr", event.target.value)}
-                      placeholder={t.aboutTeamNameAr}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                    />
-                    <input
-                      value={item.roleEn}
-                      onChange={(event) => setAboutTeamMember(index, "roleEn", event.target.value)}
-                      placeholder={t.aboutTeamRoleEn}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                    />
-                    <input
-                      value={item.roleAr}
-                      onChange={(event) => setAboutTeamMember(index, "roleAr", event.target.value)}
-                      placeholder={t.aboutTeamRoleAr}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      value={item.imageSrc}
-                      onChange={(event) => setAboutTeamMember(index, "imageSrc", event.target.value)}
-                      placeholder={t.aboutTeamImage}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                    />
-                    <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
-                      <FiUpload className="size-3.5" />
-                      {uploadingAboutTeamImageIndex === index ? t.aboutUploading : t.aboutUpload}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={uploadingAboutTeamImageIndex !== null}
-                        onChange={(event) => {
-                          void handleAboutTeamImageUpload(index, event.target.files?.[0] ?? null);
-                          event.currentTarget.value = "";
-                        }}
-                      />
-                    </label>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.aboutTrainersSection}</h2>
-              <button
-                type="button"
-                onClick={addAboutTrainerHighlight}
-                className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <FiPlus className="size-3.5" />
-                {t.aboutTrainerAdd}
-              </button>
-            </div>
-
+            <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.aboutTrainersSection}</h2>
+            <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{t.aboutTrainersHint}</p>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1 text-sm">
                 <span className="text-zinc-600 dark:text-zinc-300">{t.aboutTrainersTitleEn}</span>
@@ -2546,116 +2562,6 @@ export default function AdminPageSettingsClient({
                   className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                 />
               </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutTrainersCtaEn}</span>
-                <input
-                  value={settings.aboutPage.trainersCtaEn}
-                  onChange={(event) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      aboutPage: { ...prev.aboutPage, trainersCtaEn: event.target.value },
-                    }))
-                  }
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-              </label>
-              <label className="space-y-1 text-sm">
-                <span className="text-zinc-600 dark:text-zinc-300">{t.aboutTrainersCtaAr}</span>
-                <input
-                  value={settings.aboutPage.trainersCtaAr}
-                  onChange={(event) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      aboutPage: { ...prev.aboutPage, trainersCtaAr: event.target.value },
-                    }))
-                  }
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                />
-              </label>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              {settings.aboutPage.trainerHighlights.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-300 p-4 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                  {t.aboutTrainerEmpty}
-                </div>
-              ) : null}
-              {settings.aboutPage.trainerHighlights.map((item, index) => (
-                <div
-                  key={`about-trainer-${index}`}
-                  className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-800/40"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      {t.aboutTrainerCard} {index + 1}
-                    </h3>
-                    <div className="flex flex-wrap gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => moveAboutTrainerHighlight(index, -1)}
-                        disabled={index === 0}
-                        className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                      >
-                        <FiArrowUp className="size-3.5" />
-                        {t.moveUp}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveAboutTrainerHighlight(index, 1)}
-                        disabled={index === settings.aboutPage.trainerHighlights.length - 1}
-                        className="inline-flex items-center gap-1 rounded-lg border border-zinc-300 px-2 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                      >
-                        <FiArrowDown className="size-3.5" />
-                        {t.moveDown}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeAboutTrainerHighlight(index)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-800/70 dark:text-rose-300 dark:hover:bg-rose-900/20"
-                      >
-                        <FiTrash2 className="size-3.5" />
-                        {t.aboutTrainerRemove}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="grid gap-2 md:grid-cols-2">
-                    <input
-                      value={item.nameEn}
-                      onChange={(event) => setAboutTrainerHighlight(index, "nameEn", event.target.value)}
-                      placeholder={t.aboutTrainerNameEn}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                    />
-                    <input
-                      value={item.nameAr}
-                      onChange={(event) => setAboutTrainerHighlight(index, "nameAr", event.target.value)}
-                      placeholder={t.aboutTrainerNameAr}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      value={item.imageSrc}
-                      onChange={(event) => setAboutTrainerHighlight(index, "imageSrc", event.target.value)}
-                      placeholder={t.aboutTrainerImage}
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                    />
-                    <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-zinc-300 px-2.5 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800">
-                      <FiUpload className="size-3.5" />
-                      {uploadingAboutTrainerImageIndex === index ? t.aboutUploading : t.aboutUpload}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={uploadingAboutTrainerImageIndex !== null}
-                        onChange={(event) => {
-                          void handleAboutTrainerImageUpload(index, event.target.files?.[0] ?? null);
-                          event.currentTarget.value = "";
-                        }}
-                      />
-                    </label>
-                  </div>
-                </div>
-              ))}
             </div>
           </section>
         </>

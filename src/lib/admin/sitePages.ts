@@ -174,6 +174,9 @@ export type AboutTrainerHighlightSettings = {
 
 export type AboutPageSettings = {
   heroImageSrc: string;
+  heroSlideImages: string[];
+  heroAutoplayMs: number;
+  aboutImageSrc: string;
   aboutTitleEn: string;
   aboutTitleAr: string;
   aboutBodyEn: string;
@@ -187,6 +190,10 @@ export type AboutPageSettings = {
   founderImageSrc: string;
   whatWeDoTitleEn: string;
   whatWeDoTitleAr: string;
+  whatWeDoBackgroundImageSrc: string;
+  whatWeDoTitleColor: string;
+  whatWeDoCardTitleColor: string;
+  whatWeDoCardTextColor: string;
   whatWeDoItems: AboutFeatureItemSettings[];
   teamTitleEn: string;
   teamTitleAr: string;
@@ -935,7 +942,7 @@ function sanitizeAboutFeatures(
   fallback: AboutFeatureItemSettings[]
 ): AboutFeatureItemSettings[] {
   const list = Array.isArray(value) ? value : fallback;
-  const normalized = list.slice(0, 40).map((candidate) => {
+  const normalized = list.slice(0, 4).map((candidate) => {
     const source = candidate && typeof candidate === "object" ? (candidate as Partial<AboutFeatureItemSettings>) : {};
     return {
       textEn: toSafeString(source.textEn, 240),
@@ -1090,6 +1097,9 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
     page.key === "about"
       ? {
           heroImageSrc: "/images/cooking.png",
+          heroSlideImages: ["/images/cooking.png"],
+          heroAutoplayMs: 4200,
+          aboutImageSrc: "/images/cooking.png",
           aboutTitleEn: "About Noon",
           aboutTitleAr: "عن نون",
           aboutBodyEn:
@@ -1107,6 +1117,10 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
           founderImageSrc: "/images/logo-noon.png",
           whatWeDoTitleEn: "What We Do",
           whatWeDoTitleAr: "ماذا نقدم",
+          whatWeDoBackgroundImageSrc: "/images/art.png",
+          whatWeDoTitleColor: "#ffffff",
+          whatWeDoCardTitleColor: "#111827",
+          whatWeDoCardTextColor: "#52525b",
           whatWeDoItems: [
             { textEn: "Expert-led, hands-on classes", textAr: "دورات عملية بقيادة خبراء" },
             { textEn: "Arts & crafts workshops for all levels", textAr: "ورش فنون وحرف لجميع المستويات" },
@@ -1168,6 +1182,9 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
         }
       : {
           heroImageSrc: "",
+          heroSlideImages: [],
+          heroAutoplayMs: 4200,
+          aboutImageSrc: "",
           aboutTitleEn: "",
           aboutTitleAr: "",
           aboutBodyEn: "",
@@ -1181,6 +1198,10 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
           founderImageSrc: "",
           whatWeDoTitleEn: "",
           whatWeDoTitleAr: "",
+          whatWeDoBackgroundImageSrc: "",
+          whatWeDoTitleColor: "#ffffff",
+          whatWeDoCardTitleColor: "#111827",
+          whatWeDoCardTextColor: "#52525b",
           whatWeDoItems: [],
           teamTitleEn: "",
           teamTitleAr: "",
@@ -1428,6 +1449,8 @@ export function sanitizeSitePageSettings(
     (legacyMediaSrc && legacyMediaType === "video" ? legacyMediaSrc : defaults.homeHero.backgroundVideoSrc);
   const selectedBackgroundSrc = backgroundMediaType === "video" ? backgroundVideoSrc : backgroundImageSrc;
   const classListingSlides = toStringArray(source.classListingHero?.slideImages, 10, 500);
+  const aboutHeroSlides = toStringArray(source.aboutPage?.heroSlideImages, 10, 500);
+  const aboutLegacyHero = toSafeString(source.aboutPage?.heroImageSrc, 500);
 
   return {
     visibility: toVisibility(source.visibility, defaults.visibility),
@@ -1578,7 +1601,23 @@ export function sanitizeSitePageSettings(
         toSafeString(source.contactPage?.successMessageAr, 500) || defaults.contactPage.successMessageAr,
     },
     aboutPage: {
-      heroImageSrc: toSafeString(source.aboutPage?.heroImageSrc, 500) || defaults.aboutPage.heroImageSrc,
+      heroImageSrc: aboutLegacyHero || defaults.aboutPage.heroImageSrc,
+      heroSlideImages:
+        aboutHeroSlides.length > 0
+          ? aboutHeroSlides
+          : aboutLegacyHero
+            ? [aboutLegacyHero]
+            : defaults.aboutPage.heroSlideImages,
+      heroAutoplayMs: toNumberInRange(
+        source.aboutPage?.heroAutoplayMs,
+        defaults.aboutPage.heroAutoplayMs,
+        2000,
+        12000
+      ),
+      aboutImageSrc:
+        toSafeString(source.aboutPage?.aboutImageSrc, 500) ||
+        aboutLegacyHero ||
+        defaults.aboutPage.aboutImageSrc,
       aboutTitleEn: toSafeString(source.aboutPage?.aboutTitleEn, 180) || defaults.aboutPage.aboutTitleEn,
       aboutTitleAr: toSafeString(source.aboutPage?.aboutTitleAr, 180) || defaults.aboutPage.aboutTitleAr,
       aboutBodyEn: toSafeString(source.aboutPage?.aboutBodyEn, 4000) || defaults.aboutPage.aboutBodyEn,
@@ -1599,6 +1638,21 @@ export function sanitizeSitePageSettings(
         toSafeString(source.aboutPage?.whatWeDoTitleEn, 180) || defaults.aboutPage.whatWeDoTitleEn,
       whatWeDoTitleAr:
         toSafeString(source.aboutPage?.whatWeDoTitleAr, 180) || defaults.aboutPage.whatWeDoTitleAr,
+      whatWeDoBackgroundImageSrc:
+        toSafeString(source.aboutPage?.whatWeDoBackgroundImageSrc, 500) ||
+        defaults.aboutPage.whatWeDoBackgroundImageSrc,
+      whatWeDoTitleColor: toHexColor(
+        source.aboutPage?.whatWeDoTitleColor,
+        defaults.aboutPage.whatWeDoTitleColor
+      ),
+      whatWeDoCardTitleColor: toHexColor(
+        source.aboutPage?.whatWeDoCardTitleColor,
+        defaults.aboutPage.whatWeDoCardTitleColor
+      ),
+      whatWeDoCardTextColor: toHexColor(
+        source.aboutPage?.whatWeDoCardTextColor,
+        defaults.aboutPage.whatWeDoCardTextColor
+      ),
       whatWeDoItems: sanitizeAboutFeatures(source.aboutPage?.whatWeDoItems, defaults.aboutPage.whatWeDoItems),
       teamTitleEn: toSafeString(source.aboutPage?.teamTitleEn, 180) || defaults.aboutPage.teamTitleEn,
       teamTitleAr: toSafeString(source.aboutPage?.teamTitleAr, 180) || defaults.aboutPage.teamTitleAr,

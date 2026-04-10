@@ -1,7 +1,9 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 
+import ClassHeaderSlideshow from "@/components/site/ClassHeaderSlideshow";
 import { getDefaultSitePageSettings, getSitePageByKey } from "@/lib/admin/sitePages";
+import { findTrainers } from "@/lib/db/trainers";
 import { getReadableTextColor, resolveHeaderColor } from "@/lib/headerBranding";
 import { isLocale, type Locale } from "@/lib/locale";
 import { markdownToSafeHtml } from "@/lib/markdown";
@@ -39,22 +41,46 @@ function MediaSurface({
   );
 }
 
-function SectionHeader({
-  label,
-  title,
-  subtitle,
-}: {
-  label: string;
-  title: string;
-  subtitle?: string;
-}) {
+function SectionHeader({ title }: { title: string }) {
   return (
-    <header className="space-y-2">
-      <p className={styles.sectionLabel}>{label}</p>
+    <header>
       <h2 className="text-2xl font-semibold tracking-tight text-[color:var(--text)] sm:text-3xl">{title}</h2>
-      {subtitle ? <p className="max-w-2xl text-sm leading-7 text-[color:var(--text-muted)]">{subtitle}</p> : null}
     </header>
   );
+}
+
+function formatOfferCard(item: string, locale: Locale) {
+  const normalized = item.trim();
+  const punctuation = locale === "ar" ? ["،", ":", "-", "("] : [":", ",", "-", "("];
+
+  for (const marker of punctuation) {
+    const index = normalized.indexOf(marker);
+    if (index > 0) {
+      const title = normalized.slice(0, index).trim();
+      const description = normalized
+        .slice(index + 1)
+        .replace(/^\)+/, "")
+        .trim();
+
+      if (title && description) {
+        return { title, description };
+      }
+    }
+  }
+
+  const words = normalized.split(/\s+/).filter(Boolean);
+  if (words.length >= 6) {
+    const splitIndex = locale === "ar" ? 3 : 2;
+    return {
+      title: words.slice(0, splitIndex).join(" "),
+      description: words.slice(splitIndex).join(" "),
+    };
+  }
+
+  return {
+    title: normalized,
+    description: locale === "ar" ? "جزء من تجربة نون العملية والإبداعية." : "Part of the hands-on Noon experience.",
+  };
 }
 
 function revealStyle(delay: number): CSSProperties {
@@ -74,6 +100,7 @@ export default async function AboutPage({
   const fallbackPage = getSitePageByKey("about");
   const fallbackSettings = fallbackPage ? getDefaultSitePageSettings(fallbackPage) : null;
   const settings = resolvedSettings ?? fallbackSettings;
+  const liveTrainers = await findTrainers({ activeOnly: true });
 
   if (!settings) return null;
 
@@ -104,34 +131,19 @@ export default async function AboutPage({
 
   const whatWeDoTitle =
     pick(settings.aboutPage.whatWeDoTitleEn, settings.aboutPage.whatWeDoTitleAr) ||
-    (isArabic ? "ماذا نقدم" : "What We Do");
+    (isArabic ? "ماذا نقدم" : "What We Offer");
   const whatWeDoItems = settings.aboutPage.whatWeDoItems
     .map((item) => pick(item.textEn, item.textAr))
-    .filter(Boolean);
-
-  const teamTitle =
-    pick(settings.aboutPage.teamTitleEn, settings.aboutPage.teamTitleAr) ||
-    (isArabic ? "فريق نون" : "The Noon Team");
-  const teamMembers = settings.aboutPage.teamMembers
-    .map((item) => ({
-      name: pick(item.nameEn, item.nameAr),
-      role: pick(item.roleEn, item.roleAr),
-      imageSrc: item.imageSrc,
-    }))
-    .filter((item) => item.name || item.role || item.imageSrc);
+    .filter(Boolean)
+    .slice(0, 4);
+  const whatWeDoBackgroundImage = settings.aboutPage.whatWeDoBackgroundImageSrc.trim();
+  const whatWeDoTitleColor = settings.aboutPage.whatWeDoTitleColor;
+  const whatWeDoCardTitleColor = settings.aboutPage.whatWeDoCardTitleColor;
+  const whatWeDoCardTextColor = settings.aboutPage.whatWeDoCardTextColor;
 
   const trainersTitle =
     pick(settings.aboutPage.trainersTitleEn, settings.aboutPage.trainersTitleAr) ||
     (isArabic ? "مدربو نون" : "Noon Trainers");
-  const trainersCta =
-    pick(settings.aboutPage.trainersCtaEn, settings.aboutPage.trainersCtaAr) ||
-    (isArabic ? "عرض جميع المدربين" : "View all trainers");
-  const trainerHighlights = settings.aboutPage.trainerHighlights
-    .map((item) => ({
-      name: pick(item.nameEn, item.nameAr),
-      imageSrc: item.imageSrc,
-    }))
-    .filter((item) => item.name || item.imageSrc);
 
   const familyTitle =
     pick(settings.aboutPage.familyTitleEn, settings.aboutPage.familyTitleAr) ||
@@ -139,6 +151,15 @@ export default async function AboutPage({
   const familyBodyHtml = markdownToSafeHtml(
     pick(settings.aboutPage.familyBodyEn, settings.aboutPage.familyBodyAr)
   );
+  const heroSlides = settings.aboutPage.heroSlideImages.filter((item) => item.trim().length > 0);
+  const resolvedHeroSlides =
+    heroSlides.length > 0
+      ? heroSlides
+      : settings.aboutPage.heroImageSrc.trim()
+        ? [settings.aboutPage.heroImageSrc.trim()]
+        : [];
+  const aboutImageSrc =
+    settings.aboutPage.aboutImageSrc.trim() || resolvedHeroSlides[0] || settings.aboutPage.heroImageSrc.trim();
 
   const stats = [
     {
@@ -146,35 +167,30 @@ export default async function AboutPage({
       label: isArabic ? "مجالات الخبرة" : "Experience Areas",
     },
     {
-      value: String(Math.max(teamMembers.length, 1)).padStart(2, "0"),
-      label: isArabic ? "أعضاء الفريق" : "Core Team",
+      value: String(Math.max(liveTrainers.length, 1)).padStart(2, "0"),
+      label: isArabic ? "مدربون نشطون" : "Active Trainers",
     },
     {
-      value: String(Math.max(trainerHighlights.length, 1)).padStart(2, "0"),
-      label: isArabic ? "مدربون مميزون" : "Featured Trainers",
+      value: "15+",
+      label: isArabic ? "شركاء ومستقلون" : "Extended Creative Crew",
     },
   ];
 
   const ui = {
-    ourStory: isArabic ? "قصتنا" : "Our Story",
-    discoverTeam: isArabic ? "اكتشف الفريق" : "Discover the Team",
-    signaturePrograms: isArabic ? "برامجنا" : "Signature Programs",
-    studioPeople: isArabic ? "أشخاص الاستوديو" : "Studio People",
-    trainersLabel: isArabic ? "مدربونا" : "Our Trainers",
-    familyLabel: isArabic ? "مجتمع نون" : "Noon Community",
     viewClasses: isArabic ? "استعرض الدورات" : "Explore Classes",
-    teamPlaceholder: isArabic ? "يتم تحديث أعضاء الفريق قريباً." : "Team profiles are being updated.",
     trainersPlaceholder: isArabic
-      ? "سيتم عرض بطاقات المدربين المميزين هنا قريباً."
-      : "Featured trainer cards will appear here soon.",
+      ? "ستظهر ملفات المدربين هنا بمجرد إضافتهم وتفعيلهم."
+      : "Trainer profiles will appear here as soon as they are added and activated.",
   };
 
   return (
-    <div className={`${styles.aboutPage} relative mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:pt-12`} dir={isArabic ? "rtl" : "ltr"}>
+    <div
+      className={`${styles.aboutPage} relative mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:pt-12`}
+      dir={isArabic ? "rtl" : "ltr"}
+    >
       <section className={`${styles.heroShell} ${styles.reveal}`} style={revealStyle(50)}>
         <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
           <div>
-            <p className={styles.kicker}>{ui.ourStory}</p>
             <h1 className={styles.heroTitle}>{heading}</h1>
             {intro ? <p className={styles.heroIntro}>{intro}</p> : null}
 
@@ -186,169 +202,153 @@ export default async function AboutPage({
               >
                 {ui.viewClasses}
               </Link>
-              <Link
-                href={`/${locale}/about#team`}
-                className="inline-flex items-center border border-[color:var(--border)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--text-subtle)]"
-              >
-                {ui.discoverTeam}
-              </Link>
             </div>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {stats.map((item) => (
                 <article key={item.label} className={styles.metricTile}>
                   <p className="text-2xl font-semibold leading-none text-[color:var(--text)]">{item.value}</p>
-                  <p className="mt-2 text-xs uppercase tracking-[0.14em] text-[color:var(--text-subtle)]">{item.label}</p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.14em] text-[color:var(--text-subtle)]">
+                    {item.label}
+                  </p>
                 </article>
               ))}
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className={styles.heroImageFrame}>
-              <MediaSurface
-                src={settings.aboutPage.heroImageSrc}
-                fallbackLabel={isArabic ? "صورة الغلاف" : "Hero image"}
-                className="h-full w-full"
+          <div>
+            <div className="mx-auto w-full max-w-[15rem] sm:max-w-[18rem] lg:ms-auto lg:max-w-[20rem]">
+              <ClassHeaderSlideshow
+                key={`${locale}-${resolvedHeroSlides.join("|")}`}
+                images={resolvedHeroSlides}
+                alt={heading}
+                intervalMs={settings.aboutPage.heroAutoplayMs}
+                indicatorColor={headerColor}
+                isRTL={isArabic}
               />
             </div>
-            {founderQuote ? (
-              <blockquote className={styles.quoteStrip}>
-                <span className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-subtle)]">
-                  {isArabic ? "رؤية المؤسس" : "Founder Vision"}
-                </span>
-                <p className="mt-2 text-sm leading-7 text-[color:var(--text)]">“{founderQuote}”</p>
-              </blockquote>
-            ) : null}
           </div>
         </div>
       </section>
 
-      <section className="mt-10 grid gap-5 lg:grid-cols-2">
-        <article className={`${styles.panel} ${styles.reveal}`} style={revealStyle(120)}>
-          <SectionHeader label={ui.ourStory} title={aboutTitle} />
-          <div className={`${styles.richText} mt-4`} dangerouslySetInnerHTML={{ __html: aboutBodyHtml }} />
-        </article>
-
-        <article className={`${styles.panel} ${styles.highlightPanel} ${styles.reveal}`} style={revealStyle(200)}>
-          <SectionHeader label={isArabic ? "المؤسس" : "Founder"} title={founderTitle} />
-          <div className="mt-4 grid gap-5 sm:grid-cols-[112px_1fr] sm:items-start">
-            <div className={styles.founderImage}>
-              <MediaSurface
-                src={settings.aboutPage.founderImageSrc}
-                fallbackLabel={isArabic ? "المؤسس" : "Founder"}
-                className="h-full w-full"
-              />
-            </div>
-            <div className={styles.richText} dangerouslySetInnerHTML={{ __html: founderBodyHtml }} />
+      <section className={`${styles.splitSection} ${styles.reveal} mt-12`} style={revealStyle(120)}>
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_1fr] lg:items-center">
+          <div className={styles.portraitFrame}>
+            <MediaSurface
+              src={aboutImageSrc}
+              fallbackLabel={isArabic ? "صورة عن نون" : "About Noon image"}
+              className="h-full w-full"
+            />
           </div>
-        </article>
+          <article className={styles.narrativePanel}>
+            <SectionHeader title={aboutTitle} />
+            <div className={`${styles.richText} mt-5`} dangerouslySetInnerHTML={{ __html: aboutBodyHtml }} />
+          </article>
+        </div>
       </section>
 
-      <section className={`${styles.reveal} mt-12`} style={revealStyle(280)}>
-        <SectionHeader
-          label={ui.signaturePrograms}
-          title={whatWeDoTitle}
-          subtitle={
-            isArabic
-              ? "المحاور الأساسية التي تشكل تجربة نون التعليمية والإبداعية."
-              : "The core pillars shaping Noon learning and creative experiences."
-          }
-        />
-
-        {whatWeDoItems.length > 0 ? (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {whatWeDoItems.map((item, index) => (
-              <article key={`${item}-${index}`} className={styles.programCard}>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--text-subtle)]">
-                  {(index + 1).toString().padStart(2, "0")}
-                </p>
-                <p className="mt-3 text-sm leading-7 text-[color:var(--text)]">{item}</p>
-              </article>
-            ))}
+      <section className={`${styles.splitSection} ${styles.reveal} mt-12`} style={revealStyle(200)}>
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_1fr] lg:items-center">
+          <div className={styles.portraitFrame}>
+            <MediaSurface
+              src={settings.aboutPage.founderImageSrc}
+              fallbackLabel={isArabic ? "المؤسس" : "Founder"}
+              className="h-full w-full"
+            />
           </div>
+          <article className={styles.narrativePanel}>
+            <SectionHeader title={founderTitle} />
+            <div className={`${styles.richText} mt-5`} dangerouslySetInnerHTML={{ __html: founderBodyHtml }} />
+            {founderQuote ? <blockquote className={styles.inlineQuote}>“{founderQuote}”</blockquote> : null}
+          </article>
+        </div>
+      </section>
+
+      <section className={`${styles.offerSection} ${styles.reveal} mt-12`} style={revealStyle(280)}>
+        {whatWeDoBackgroundImage ? (
+          <div
+            className={styles.offerBackground}
+            style={{ backgroundImage: `url("${whatWeDoBackgroundImage}")` }}
+            aria-hidden="true"
+          />
         ) : null}
-      </section>
+        <div className={styles.offerOverlay} aria-hidden="true" />
 
-      <section id="team" className={`${styles.reveal} mt-12`} style={revealStyle(360)}>
-        <SectionHeader label={ui.studioPeople} title={teamTitle} />
-
-        {teamMembers.length > 0 ? (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {teamMembers.map((member, index) => (
-              <article key={`${member.name}-${index}`} className={styles.teamCard}>
-                <div className={styles.teamImageWrap}>
-                  <MediaSurface
-                    src={member.imageSrc}
-                    fallbackLabel={isArabic ? "فريق" : "Team"}
-                    className="h-full w-full"
-                  />
-                </div>
-                <div className="mt-3 border-t border-[color:var(--border)] pt-3">
-                  <p className="text-sm font-semibold text-[color:var(--text)]">{member.name}</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.1em] text-[color:var(--text-muted)]">{member.role}</p>
-                </div>
-              </article>
-            ))}
+        <div className="relative mx-auto w-full max-w-7xl px-4 py-16 sm:py-20 lg:px-8">
+          <div className="mb-8 flex justify-center">
+            <div className="w-full max-w-3xl text-center">
+              <h2
+                className="text-2xl font-semibold tracking-tight sm:text-3xl"
+                style={{ color: whatWeDoTitleColor }}
+              >
+                {whatWeDoTitle}
+              </h2>
+            </div>
           </div>
-        ) : (
-          <div className="mt-6 border border-[color:var(--border)] p-6 text-sm text-[color:var(--text-muted)]">
-            {ui.teamPlaceholder}
-          </div>
-        )}
-      </section>
 
-      <section className={`${styles.reveal} mt-12`} style={revealStyle(440)}>
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <SectionHeader label={ui.trainersLabel} title={trainersTitle} />
-          <Link
-            href={`/${locale}/trainers`}
-            className="inline-flex items-center border border-[color:var(--border)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:border-[color:var(--text-subtle)]"
-          >
-            {trainersCta}
-          </Link>
+          {whatWeDoItems.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {whatWeDoItems.map((item, index) => {
+                const offer = formatOfferCard(item, locale);
+
+                return (
+                  <article key={`${item}-${index}`} className={styles.offerCard}>
+                    <p className="text-lg font-semibold leading-tight" style={{ color: whatWeDoCardTitleColor }}>
+                      {offer.title}
+                    </p>
+                    <p className="mt-3 text-sm leading-7" style={{ color: whatWeDoCardTextColor }}>
+                      {offer.description}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
+      </section>
 
-        {trainerHighlights.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {trainerHighlights.map((trainer, index) => (
-              <article key={`${trainer.name}-${index}`} className={styles.trainerCard}>
-                <div className="h-16 w-16 shrink-0 border border-[color:var(--border)] bg-[color:var(--muted)]">
+      <section id="trainers" className={`${styles.reveal} mt-12`} style={revealStyle(360)}>
+        <SectionHeader title={trainersTitle} />
+
+        {liveTrainers.length > 0 ? (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {liveTrainers.map((trainer) => (
+              <Link
+                key={String(trainer.id)}
+                href={`/${locale}/trainers/${trainer.id}`}
+                className={styles.trainerProfileCard}
+              >
+                <div className={styles.trainerPortrait}>
                   <MediaSurface
-                    src={trainer.imageSrc}
+                    src={typeof trainer.profileImage === "string" ? trainer.profileImage : ""}
                     fallbackLabel={isArabic ? "مدرب" : "Trainer"}
                     className="h-full w-full"
                   />
                 </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--text-subtle)]">
-                    {isArabic ? "مدرب" : "Trainer"}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{trainer.name}</p>
-                </div>
-              </article>
+                <p className="mt-4 text-lg font-semibold text-[color:var(--text)]">{trainer.fullName}</p>
+              </Link>
             ))}
           </div>
         ) : (
-          <div className="border border-[color:var(--border)] p-6 text-sm text-[color:var(--text-muted)]">
+          <div className="mt-6 border border-[color:var(--border)] p-6 text-sm text-[color:var(--text-muted)]">
             {ui.trainersPlaceholder}
           </div>
         )}
       </section>
 
-      <section className={`${styles.familyShell} ${styles.reveal} mt-12`} style={revealStyle(520)}>
-        <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-          <div className={styles.familyImage}>
+      <section className={`${styles.splitSection} ${styles.reveal} mt-12`} style={revealStyle(440)}>
+        <div className="grid gap-8 lg:grid-cols-[0.8fr_1fr] lg:items-center">
+          <div className={styles.portraitFrame}>
             <MediaSurface
               src={settings.aboutPage.familyImageSrc}
               fallbackLabel={isArabic ? "عائلة نون" : "Noon family"}
-              className="aspect-[4/3] w-full"
+              className="h-full w-full"
             />
           </div>
-          <div>
-            <SectionHeader label={ui.familyLabel} title={familyTitle} />
-            <div className={`${styles.richText} mt-4`} dangerouslySetInnerHTML={{ __html: familyBodyHtml }} />
-          </div>
+          <article className={styles.narrativePanel}>
+            <SectionHeader title={familyTitle} />
+            <div className={`${styles.richText} mt-5`} dangerouslySetInnerHTML={{ __html: familyBodyHtml }} />
+          </article>
         </div>
       </section>
     </div>
