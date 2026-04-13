@@ -65,7 +65,6 @@ export default async function Header({ locale }: { locale: Locale }) {
     competition: locale === "ar" ? "مسابقة الطبخ" : "Cooking competition",
     privateClasses: locale === "ar" ? "دروس خاصة" : "Private classes",
     birthday: locale === "ar" ? "حفلات أعياد الميلاد" : "Birthday parties",
-    recommends: locale === "ar" ? "توصيات" : "Recommends",
     contact: locale === "ar" ? "تواصل" : "Contact",
     joinUs: locale === "ar" ? "انضم إلينا" : "Join Us",
     login: locale === "ar" ? "تسجيل الدخول" : "Login",
@@ -123,7 +122,6 @@ export default async function Header({ locale }: { locale: Locale }) {
             </NavLink>
           </Dropdown>
 
-          <NavLink href={`/${locale}/noon-recommends`} variant="top" tone={navTone}>{t.recommends}</NavLink>
           <NavLink href={`/${locale}/about`} variant="top" tone={navTone}>{t.about}</NavLink>
           <NavLink href={`/${locale}/contact`} variant="top" tone={navTone}>{t.contact}</NavLink>
           <NavLink href={`/${locale}/join-us`} variant="top" tone={navTone}>{t.joinUs}</NavLink>
@@ -188,7 +186,6 @@ export default async function Header({ locale }: { locale: Locale }) {
               <NavLink href={`/${locale}/group-booking-events/birthday-parties`} tone={navTone}>
                 {t.birthday}
               </NavLink>
-              <NavLink href={`/${locale}/noon-recommends`} tone={navTone}>{t.recommends}</NavLink>
               <NavLink href={`/${locale}/about`} tone={navTone}>{t.about}</NavLink>
               <NavLink href={`/${locale}/contact`} tone={navTone}>{t.contact}</NavLink>
               <NavLink href={`/${locale}/join-us`} tone={navTone}>{t.joinUs}</NavLink>

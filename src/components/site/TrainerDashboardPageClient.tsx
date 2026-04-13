@@ -926,8 +926,6 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
         )}
       </section>
 
-      {/* TODO: Suggested Workshops section hidden for now - will be implemented later */}
-      {false && (
       <section className="space-y-4 rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
         <div>
           <h3 className="text-lg font-semibold text-[color:var(--text)]">
@@ -1191,7 +1189,6 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
           </div>
         )}
       </section>
-      )}
     </div>
   );
 }
