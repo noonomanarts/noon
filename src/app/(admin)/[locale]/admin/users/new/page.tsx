@@ -4,6 +4,24 @@ import { useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+interface WorkerPermissions {
+  can_restock: boolean;
+  can_print_labels: boolean;
+  can_record_sales: boolean;
+  can_manage_orders: boolean;
+  can_print_bills: boolean;
+}
+
+type FormRole = "admin" | "trainer" | "user" | "employee" | "social_media_admin" | "worker" | "photographer";
+
+const defaultWorkerPermissions: WorkerPermissions = {
+  can_restock: false,
+  can_print_labels: false,
+  can_record_sales: false,
+  can_manage_orders: false,
+  can_print_bills: false,
+};
+
 export default function NewUserPage({
   params,
 }: {
@@ -18,10 +36,11 @@ export default function NewUserPage({
     phone: "",
     password: "",
     confirmPassword: "",
-    role: "user" as "admin" | "trainer" | "user" | "employee" | "social_media_admin",
+    role: "user" as FormRole,
     dob: "",
     preferredLanguage: "en" as "en" | "ar",
   });
+  const [workerPermissions, setWorkerPermissions] = useState<WorkerPermissions>(defaultWorkerPermissions);
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,11 +63,19 @@ export default function NewUserPage({
     employee: locale === "ar" ? "موظف" : "Employee",
     trainer: locale === "ar" ? "مدرب" : "Trainer",
     user: locale === "ar" ? "مستخدم" : "User",
+    worker: locale === "ar" ? "عامل" : "Worker",
+    photographer: locale === "ar" ? "مصور" : "Photographer",
     english: locale === "ar" ? "الإنجليزية" : "English",
     arabic: locale === "ar" ? "العربية" : "Arabic",
     cancel: locale === "ar" ? "إلغاء" : "Cancel",
     createUser: locale === "ar" ? "إنشاء المستخدم" : "Create User",
     creating: locale === "ar" ? "جارٍ الإنشاء..." : "Creating...",
+    workerPermissions: locale === "ar" ? "صلاحيات العامل" : "Worker Permissions",
+    canRestock: locale === "ar" ? "إضافة مخزون" : "Add Restock",
+    canPrintLabels: locale === "ar" ? "طباعة الملصقات" : "Print Labels",
+    canRecordSales: locale === "ar" ? "تسجيل المبيعات" : "Record Sales",
+    canManageOrders: locale === "ar" ? "إدارة الطلبات" : "Manage Orders",
+    canPrintBills: locale === "ar" ? "طباعة الفواتير" : "Print Bills",
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -85,6 +112,7 @@ export default function NewUserPage({
           role: formData.role,
           dob: formData.dob,
           preferredLanguage: formData.preferredLanguage,
+          workerPermissions: formData.role === "worker" ? workerPermissions : undefined,
         }),
       });
 
@@ -226,6 +254,8 @@ export default function NewUserPage({
                 <option value="user">{t.user}</option>
                 <option value="trainer">{t.trainer}</option>
                 <option value="employee">{t.employee}</option>
+                <option value="worker">{t.worker}</option>
+                <option value="photographer">{t.photographer}</option>
                 <option value="social_media_admin">{t.socialMediaAdmin}</option>
                 <option value="admin">{t.admin}</option>
               </select>
@@ -245,6 +275,86 @@ export default function NewUserPage({
             </div>
           </div>
         </div>
+
+        {formData.role === "worker" && (
+          <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              {t.workerPermissions}
+            </h2>
+            <div className="space-y-3">
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={workerPermissions.can_restock}
+                  onChange={(e) =>
+                    setWorkerPermissions((prev) => ({
+                      ...prev,
+                      can_restock: e.target.checked,
+                    }))
+                  }
+                  className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">{t.canRestock}</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={workerPermissions.can_print_labels}
+                  onChange={(e) =>
+                    setWorkerPermissions((prev) => ({
+                      ...prev,
+                      can_print_labels: e.target.checked,
+                    }))
+                  }
+                  className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">{t.canPrintLabels}</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={workerPermissions.can_record_sales}
+                  onChange={(e) =>
+                    setWorkerPermissions((prev) => ({
+                      ...prev,
+                      can_record_sales: e.target.checked,
+                    }))
+                  }
+                  className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">{t.canRecordSales}</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={workerPermissions.can_manage_orders}
+                  onChange={(e) =>
+                    setWorkerPermissions((prev) => ({
+                      ...prev,
+                      can_manage_orders: e.target.checked,
+                    }))
+                  }
+                  className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">{t.canManageOrders}</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={workerPermissions.can_print_bills}
+                  onChange={(e) =>
+                    setWorkerPermissions((prev) => ({
+                      ...prev,
+                      can_print_bills: e.target.checked,
+                    }))
+                  }
+                  className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">{t.canPrintBills}</span>
+              </label>
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-3">

@@ -8,6 +8,18 @@ import type { User, UserRole, UserStatus, Gender, PreferredLanguage, UserPublic 
 
 let usersWhatsappColumnReady = false;
 
+export class UserMutationError extends Error {
+  code: "EMAIL_EXISTS" | "PHONE_EXISTS" | "UPDATE_FAILED";
+  causeMessage?: string;
+
+  constructor(code: "EMAIL_EXISTS" | "PHONE_EXISTS" | "UPDATE_FAILED", message: string, causeMessage?: string) {
+    super(message);
+    this.name = "UserMutationError";
+    this.code = code;
+    this.causeMessage = causeMessage;
+  }
+}
+
 async function ensureUsersWhatsAppColumn(): Promise<void> {
   if (usersWhatsappColumnReady) return;
 
@@ -449,84 +461,87 @@ export async function updateUserWithPassword(
   id: string,
   data: Partial<Omit<User, 'id' | 'password' | 'created_at'>> & { password?: string }
 ): Promise<UserPublic | null> {
+  await ensureUsersWhatsAppColumn();
+
+  // If email is changing, check if it already exists
+  if (data.email) {
+    const normalizedNewEmail = data.email.toLowerCase().trim();
+    const existingUser = await getUserByEmail(normalizedNewEmail);
+
+    if (existingUser && existingUser.id !== id) {
+      throw new UserMutationError("EMAIL_EXISTS", "Email already exists");
+    }
+
+    data.email = normalizedNewEmail;
+  }
+
+  // If phone is changing, check if it already exists using normalized digits.
+  if (data.phone_number) {
+    const normalizedPhone = data.phone_number.trim();
+    const existingPhone = await getUserByPhoneNormalized(normalizedPhone);
+
+    if (existingPhone && existingPhone.id !== id) {
+      throw new UserMutationError("PHONE_EXISTS", "Phone number already exists");
+    }
+
+    data.phone_number = normalizedPhone;
+  }
+
+  const updates: string[] = [];
+  const values: unknown[] = [];
+  let paramIndex = 1;
+
+  if (data.email !== undefined) {
+    updates.push(`email = $${paramIndex++}`);
+    values.push(data.email);
+  }
+  if (data.password) {
+    const passwordHash = await hashPassword(data.password);
+    updates.push(`password = $${paramIndex++}`);
+    values.push(passwordHash);
+  }
+  if (data.role !== undefined) {
+    updates.push(`role = $${paramIndex++}`);
+    values.push(data.role);
+  }
+  if (data.status !== undefined) {
+    updates.push(`status = $${paramIndex++}`);
+    values.push(data.status);
+  }
+  if (data.full_name !== undefined) {
+    updates.push(`full_name = $${paramIndex++}`);
+    values.push(data.full_name);
+  }
+  if (data.phone_number !== undefined) {
+    updates.push(`phone_number = $${paramIndex++}`);
+    values.push(data.phone_number);
+  }
+  if (data.date_of_birth !== undefined) {
+    updates.push(`date_of_birth = $${paramIndex++}`);
+    values.push(data.date_of_birth);
+  }
+  if (data.gender !== undefined) {
+    updates.push(`gender = $${paramIndex++}`);
+    values.push(data.gender);
+  }
+  if (data.preferred_language !== undefined) {
+    updates.push(`preferred_language = $${paramIndex++}`);
+    values.push(data.preferred_language);
+  }
+  if (data.profile_image !== undefined) {
+    updates.push(`profile_image = $${paramIndex++}`);
+    values.push(data.profile_image);
+  }
+
+  if (updates.length === 0) {
+    return await getUserById(id);
+  }
+
+  updates.push(`updated_at = $${paramIndex++}`);
+  values.push(new Date());
+  values.push(id);
+
   try {
-    await ensureUsersWhatsAppColumn();
-
-    // If email is changing, check if it already exists
-    if (data.email) {
-      const normalizedNewEmail = data.email.toLowerCase().trim();
-      const existingUser = await getUserByEmail(normalizedNewEmail);
-      
-      if (existingUser && existingUser.id !== id) {
-        return null;
-      }
-      
-      data.email = normalizedNewEmail;
-    }
-
-    // If phone is changing, check if it already exists
-    if (data.phone_number) {
-      const existingPhone = await getUserByPhone(data.phone_number);
-      
-      if (existingPhone && existingPhone.id !== id) {
-        return null;
-      }
-    }
-
-    const updates: string[] = [];
-    const values: unknown[] = [];
-    let paramIndex = 1;
-
-    if (data.email !== undefined) {
-      updates.push(`email = $${paramIndex++}`);
-      values.push(data.email);
-    }
-    if (data.password) {
-      const passwordHash = await hashPassword(data.password);
-      updates.push(`password = $${paramIndex++}`);
-      values.push(passwordHash);
-    }
-    if (data.role !== undefined) {
-      updates.push(`role = $${paramIndex++}`);
-      values.push(data.role);
-    }
-    if (data.status !== undefined) {
-      updates.push(`status = $${paramIndex++}`);
-      values.push(data.status);
-    }
-    if (data.full_name !== undefined) {
-      updates.push(`full_name = $${paramIndex++}`);
-      values.push(data.full_name);
-    }
-    if (data.phone_number !== undefined) {
-      updates.push(`phone_number = $${paramIndex++}`);
-      values.push(data.phone_number);
-    }
-    if (data.date_of_birth !== undefined) {
-      updates.push(`date_of_birth = $${paramIndex++}`);
-      values.push(data.date_of_birth);
-    }
-    if (data.gender !== undefined) {
-      updates.push(`gender = $${paramIndex++}`);
-      values.push(data.gender);
-    }
-    if (data.preferred_language !== undefined) {
-      updates.push(`preferred_language = $${paramIndex++}`);
-      values.push(data.preferred_language);
-    }
-    if (data.profile_image !== undefined) {
-      updates.push(`profile_image = $${paramIndex++}`);
-      values.push(data.profile_image);
-    }
-
-    if (updates.length === 0) {
-      return await getUserById(id);
-    }
-
-    updates.push(`updated_at = $${paramIndex++}`);
-    values.push(new Date());
-    values.push(id);
-
     const result = await query(
       `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramIndex}
        RETURNING id, email, role, status, full_name, phone_number, date_of_birth, 
@@ -534,11 +549,46 @@ export async function updateUserWithPassword(
       values
     );
 
-    if (result.rows.length === 0) return null;
-    
+    if (result.rows.length === 0) {
+      throw new UserMutationError("UPDATE_FAILED", "User not found");
+    }
+
     return rowToUserPublic(result.rows[0]);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof UserMutationError) {
+      throw error;
+    }
+
+    const databaseError = error as {
+      code?: string;
+      detail?: string;
+      constraint?: string;
+      message?: string;
+    };
+
+    if (databaseError.code === "23505") {
+      if (databaseError.constraint?.includes("email") || databaseError.detail?.includes("email")) {
+        throw new UserMutationError("EMAIL_EXISTS", "Email already exists", databaseError.message);
+      }
+
+      if (databaseError.constraint?.includes("phone") || databaseError.detail?.includes("phone_number")) {
+        throw new UserMutationError("PHONE_EXISTS", "Phone number already exists", databaseError.message);
+      }
+    }
+
+    console.error("updateUserWithPassword failed", {
+      id,
+      code: databaseError.code,
+      constraint: databaseError.constraint,
+      detail: databaseError.detail,
+      message: databaseError.message,
+    });
+
+    throw new UserMutationError(
+      "UPDATE_FAILED",
+      databaseError.message ? `Failed to update user: ${databaseError.message}` : "Failed to update user",
+      databaseError.message
+    );
   }
 }
 

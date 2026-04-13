@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getUserById, getAllUsers, createUser } from "@/lib/db/users";
+import { upsertWorkerPermissions } from "@/lib/db/worker";
 import type { UserRole, UserStatus } from "@/lib/db/types";
 
 const mapRole = (value: string | null): UserRole | undefined => {
@@ -12,6 +13,7 @@ const mapRole = (value: string | null): UserRole | undefined => {
   if (normalized === "EMPLOYEE") return "EMPLOYEE";
   if (normalized === "SOCIAL_MEDIA_ADMIN") return "SOCIAL_MEDIA_ADMIN";
   if (normalized === "PHOTOGRAPHER") return "PHOTOGRAPHER";
+  if (normalized === "WORKER") return "WORKER";
   if (normalized === "USER") return "CUSTOMER";
   return undefined;
 };
@@ -86,6 +88,16 @@ export async function POST(request: NextRequest) {
 
     // Create user
     const role = mapRole(typeof data.role === "string" ? data.role : null) ?? "CUSTOMER";
+    const workerPermissions =
+      role === "WORKER" && data.workerPermissions && typeof data.workerPermissions === "object"
+        ? {
+            can_restock: Boolean(data.workerPermissions.can_restock),
+            can_print_labels: Boolean(data.workerPermissions.can_print_labels),
+            can_record_sales: Boolean(data.workerPermissions.can_record_sales),
+            can_manage_orders: Boolean(data.workerPermissions.can_manage_orders),
+            can_print_bills: Boolean(data.workerPermissions.can_print_bills),
+          }
+        : null;
 
     const newUser = await createUser({
       email: data.email,
@@ -102,6 +114,16 @@ export async function POST(request: NextRequest) {
         { error: "Email already exists" },
         { status: 409 }
       );
+    }
+
+    if (role === "WORKER") {
+      await upsertWorkerPermissions(newUser.id, workerPermissions ?? {
+        can_restock: false,
+        can_print_labels: false,
+        can_record_sales: false,
+        can_manage_orders: false,
+        can_print_bills: false,
+      });
     }
 
     return NextResponse.json({ user: newUser }, { status: 201 });

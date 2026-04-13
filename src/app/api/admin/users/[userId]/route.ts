@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getUserById, getUserByEmail, getUserByPhone, updateUserWithPassword, deleteUser } from "@/lib/db/users";
+import { getUserById, getUserByEmail, getUserByPhoneNormalized, updateUserWithPassword, deleteUser, UserMutationError } from "@/lib/db/users";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { getUploadRootDir } from "@/lib/uploadStorage";
 
-function mapFormRole(value: string): "ADMIN" | "TRAINER" | "CUSTOMER" | "EMPLOYEE" | "SOCIAL_MEDIA_ADMIN" | "PHOTOGRAPHER" {
+function mapFormRole(value: string): "ADMIN" | "TRAINER" | "CUSTOMER" | "EMPLOYEE" | "SOCIAL_MEDIA_ADMIN" | "PHOTOGRAPHER" | "WORKER" {
   const normalized = value.trim().toUpperCase();
   if (normalized === "ADMIN") return "ADMIN";
   if (normalized === "TRAINER") return "TRAINER";
   if (normalized === "EMPLOYEE") return "EMPLOYEE";
   if (normalized === "SOCIAL_MEDIA_ADMIN") return "SOCIAL_MEDIA_ADMIN";
   if (normalized === "PHOTOGRAPHER") return "PHOTOGRAPHER";
+  if (normalized === "WORKER") return "WORKER";
   return "CUSTOMER";
 }
 
@@ -98,7 +99,7 @@ export async function PUT(
       );
     }
 
-    const existingPhone = await getUserByPhone(normalizedPhone);
+    const existingPhone = await getUserByPhoneNormalized(normalizedPhone);
     if (existingPhone && existingPhone.id !== userId) {
       return NextResponse.json(
         { error: "Phone number already exists" },
@@ -152,15 +153,13 @@ export async function PUT(
 
     const updatedUser = await updateUserWithPassword(userId, updateData);
 
-    if (!updatedUser) {
-      return NextResponse.json(
-        { error: "Failed to update user or email already exists" },
-        { status: 400 }
-      );
-    }
-
     return NextResponse.json(updatedUser);
   } catch (error) {
+    if (error instanceof UserMutationError) {
+      const status = error.code === "UPDATE_FAILED" ? 400 : 409;
+      return NextResponse.json({ error: error.message }, { status });
+    }
+
     console.error("Error updating user:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
