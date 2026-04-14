@@ -9,7 +9,10 @@ import { MdCalendarMonth, MdAccessTime, MdPerson } from "react-icons/md";
 import ClassHeaderSlideshow from "@/components/site/ClassHeaderSlideshow";
 import RequestRepeatButton from "@/components/site/RequestRepeatButton";
 import { findClassBySlug, findClassReviews } from "@/lib/db/classes";
-import { getClassRepeatRequestSummaries } from "@/lib/db/classRepeatRequests";
+import {
+  getClassRepeatRequestSummaries,
+  type ClassRepeatRequestSummary,
+} from "@/lib/db/classRepeatRequests";
 import { findTrainerById } from "@/lib/db/trainers";
 import { getUserById } from "@/lib/db/users";
 import { ClassCategory } from "@/lib/db/types";
@@ -51,7 +54,9 @@ export default async function ClassDetailPage({
   const [reviews, trainer, repeatSummaries] = await Promise.all([
     findClassReviews(classData.id),
     classData.trainerId ? findTrainerById(classData.trainerId) : Promise.resolve(null),
-    isEnded ? getClassRepeatRequestSummaries([classData.id], currentUser?.id ?? null) : Promise.resolve({}),
+    isEnded
+      ? getClassRepeatRequestSummaries([classData.id], currentUser?.id ?? null)
+      : Promise.resolve<Record<string, ClassRepeatRequestSummary>>({}),
   ]);
 
   const seatsAvailable = Math.max(0, (classData.seatsTotal ?? 0) - (classData.seatsBooked ?? 0));
