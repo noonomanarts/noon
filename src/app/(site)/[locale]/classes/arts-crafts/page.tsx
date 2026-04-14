@@ -72,9 +72,6 @@ export default async function ArtsCraftsClassesPage({
     duration: isArabic ? "المدة" : "Duration",
     noSchedule: isArabic ? "الموعد سيُعلن قريباً" : "Schedule coming soon",
     workshopEnded: isArabic ? "انتهت الورشة" : "Workshop ended",
-    endedHint: isArabic
-      ? "يمكنك إرسال طلب لإعادة هذه الورشة عندما تصبح متاحة من جديد."
-      : "You can send a repeat request if you want this workshop back again.",
     backToClasses: isArabic ? "العودة إلى الدورات" : "Back to classes",
   };
 
@@ -263,16 +260,6 @@ export default async function ArtsCraftsClassesPage({
                             <FiUsers className="size-3.5" />
                             {cls.seatsAvailable} {t.available}
                           </span>
-                        </div>
-
-                        <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-3">
-                          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text)]">
-                            <FiCalendar className="size-3.5 text-[color:var(--primary)]" />
-                            {t.workshopEnded}
-                          </p>
-                          <p className="mt-2 text-xs leading-6 text-[color:var(--text-muted)]">
-                            {t.endedHint}
-                          </p>
                         </div>
 
                         <RequestRepeatButton

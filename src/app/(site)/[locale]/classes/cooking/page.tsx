@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { FiArrowRight, FiBookOpen, FiCalendar, FiRefreshCw, FiUser } from "react-icons/fi";
+import { FiArrowRight, FiBookOpen, FiCalendar, FiUser } from "react-icons/fi";
 import { GiChefToque } from "react-icons/gi";
 import { HiOutlineBanknotes } from "react-icons/hi2";
 
@@ -70,9 +70,7 @@ function ClassCard({
   const trainerName = cls.trainer?.fullName ?? null;
   const datetimeText = cls.startDateTime
     ? `${formatDate(cls.startDateTime)} · ${formatTime(cls.startDateTime)}`
-    : isEnded
-      ? t.workshopEnded
-      : t.noUpcomingSessions;
+    : t.noUpcomingSessions;
   const priceText = formatAmountWithCurrency(cls.price, cls.currency);
 
   return (
@@ -108,14 +106,12 @@ function ClassCard({
           <FiBookOpen className="mt-0.5 size-4 shrink-0 text-purple-500" />
           <span>{title}</span>
         </h3>
-        <p className="inline-flex items-center gap-2 text-sm font-bold text-[color:var(--text)] sm:text-base">
-          {isEnded ? (
-            <FiRefreshCw className="size-5 shrink-0 text-amber-500" />
-          ) : (
+        {!isEnded ? (
+          <p className="inline-flex items-center gap-2 text-sm font-bold text-[color:var(--text)] sm:text-base">
             <FiCalendar className="size-5 shrink-0 text-teal-500" />
-          )}
-          {datetimeText}
-        </p>
+            {datetimeText}
+          </p>
+        ) : null}
         {trainerName ? (
           <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
             <FiUser className="size-4 shrink-0 text-indigo-500" />
