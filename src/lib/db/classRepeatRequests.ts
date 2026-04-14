@@ -306,6 +306,9 @@ export async function createClassRepeatRequest(input: {
   await ensureClassRepeatRequestsTable();
 
   const classItem = await findUniqueClass({ id: input.classId });
+  if (!classItem) {
+    throw new Error('Workshop not found.');
+  }
   if (!isEndedClassForRepeatRequest(classItem)) {
     throw new Error('Repeat requests are only available for ended workshops.');
   }
@@ -540,7 +543,7 @@ async function sendRepeatAvailableWhatsApp(input: {
 }): Promise<void> {
   if (!input.phoneNumber) return;
 
-  const text = isArabic
+  const text = input.isArabic
     ? `الورشة التي طلبتِ/طلبتَ إعادتها متاحة الآن: ${input.classTitle}\nيمكنك الحجز من هنا:\n${input.classUrl}`
     : `The workshop you asked us to repeat is now available: ${input.classTitle}\nYou can book it here:\n${input.classUrl}`;
 
