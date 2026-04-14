@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { FiArrowRight, FiBookOpen, FiCalendar, FiUser } from "react-icons/fi";
+import { FiArrowRight, FiBookOpen, FiCalendar, FiRefreshCw, FiUser } from "react-icons/fi";
 import { GiChefToque } from "react-icons/gi";
 import { HiOutlineBanknotes } from "react-icons/hi2";
 
@@ -16,6 +16,15 @@ import RequestRepeatButton from "@/components/site/RequestRepeatButton";
 import { getUserById } from "@/lib/db/users";
 
 const DISPLAY_TIMEZONE = "Asia/Muscat";
+
+function getCurrentTimestamp(): number {
+  return new Date().getTime();
+}
+
+function hasWorkshopEnded(cls: { status: string; endDateTime: Date | string | null }): boolean {
+  return cls.status === "COMPLETED"
+    || (cls.endDateTime ? new Date(cls.endDateTime).getTime() < getCurrentTimestamp() : false);
+}
 
 type ClassWithSessions = {
   id: string;
@@ -100,7 +109,11 @@ function ClassCard({
           <span>{title}</span>
         </h3>
         <p className="inline-flex items-center gap-2 text-sm font-bold text-[color:var(--text)] sm:text-base">
-          <FiCalendar className="size-5 shrink-0 text-teal-500" />
+          {isEnded ? (
+            <FiRefreshCw className="size-5 shrink-0 text-amber-500" />
+          ) : (
+            <FiCalendar className="size-5 shrink-0 text-teal-500" />
+          )}
           {datetimeText}
         </p>
         {trainerName ? (
@@ -212,8 +225,6 @@ export default async function CookingClassesPage({
   };
 
   const pageTitle = (isArabic ? pageSettings?.headingAr : pageSettings?.headingEn)?.trim() || t.title;
-  const pageSubtitle = (isArabic ? pageSettings?.subheadingAr : pageSettings?.subheadingEn)?.trim() || t.subtitle;
-
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
     return d.toLocaleDateString(isArabic ? "ar-OM-u-nu-latn" : "en-OM", {
@@ -232,12 +243,11 @@ export default async function CookingClassesPage({
     });
   };
 
-  const now = Date.now();
   const activeClasses = classesWithSessions.filter(
-    (cls) => cls.status === "PUBLISHED" && (!cls.endDateTime || new Date(cls.endDateTime).getTime() >= now)
+    (cls) => cls.status === "PUBLISHED" && !hasWorkshopEnded(cls)
   );
   const endedClasses = classesWithSessions
-    .filter((cls) => cls.status === "COMPLETED" || (cls.endDateTime && new Date(cls.endDateTime).getTime() < now))
+    .filter((cls) => hasWorkshopEnded(cls))
     .sort((a, b) => {
       const aTime = a.endDateTime ? new Date(a.endDateTime).getTime() : 0;
       const bTime = b.endDateTime ? new Date(b.endDateTime).getTime() : 0;

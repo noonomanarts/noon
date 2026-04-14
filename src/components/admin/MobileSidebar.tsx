@@ -26,6 +26,7 @@ import {
   FiTag,
   FiTruck,
   FiPrinter,
+  FiRefreshCw,
 } from "react-icons/fi";
 
 const iconMap = {
@@ -50,6 +51,7 @@ const iconMap = {
   FiTag,
   FiTruck,
   FiPrinter,
+  FiRefreshCw,
 } as const;
 
 type MenuItem = {

@@ -17,6 +17,15 @@ import { getUserById } from "@/lib/db/users";
 
 const DISPLAY_TIMEZONE = "Asia/Muscat";
 
+function getCurrentTimestamp(): number {
+  return new Date().getTime();
+}
+
+function hasWorkshopEnded(cls: { status: string; endDateTime: Date | string | null }): boolean {
+  return cls.status === "COMPLETED"
+    || (cls.endDateTime ? new Date(cls.endDateTime).getTime() < getCurrentTimestamp() : false);
+}
+
 export default async function ArtsCraftsClassesPage({
   params,
 }: {
@@ -63,12 +72,13 @@ export default async function ArtsCraftsClassesPage({
     duration: isArabic ? "المدة" : "Duration",
     noSchedule: isArabic ? "الموعد سيُعلن قريباً" : "Schedule coming soon",
     workshopEnded: isArabic ? "انتهت الورشة" : "Workshop ended",
+    endedHint: isArabic
+      ? "يمكنك إرسال طلب لإعادة هذه الورشة عندما تصبح متاحة من جديد."
+      : "You can send a repeat request if you want this workshop back again.",
     backToClasses: isArabic ? "العودة إلى الدورات" : "Back to classes",
   };
 
   const pageTitle = (isArabic ? pageSettings?.headingAr : pageSettings?.headingEn)?.trim() || t.title;
-  const pageSubtitle = (isArabic ? pageSettings?.subheadingAr : pageSettings?.subheadingEn)?.trim() || t.subtitle;
-
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
     return d.toLocaleDateString(isArabic ? "ar-OM-u-nu-latn" : "en-OM", {
@@ -87,12 +97,11 @@ export default async function ArtsCraftsClassesPage({
     });
   };
 
-  const now = Date.now();
   const activeClasses = classesWithDates.filter(
-    (cls) => cls.status === "PUBLISHED" && (!cls.endDateTime || new Date(cls.endDateTime).getTime() >= now)
+    (cls) => cls.status === "PUBLISHED" && !hasWorkshopEnded(cls)
   );
   const endedClasses = classesWithDates
-    .filter((cls) => cls.status === "COMPLETED" || (cls.endDateTime && new Date(cls.endDateTime).getTime() < now))
+    .filter((cls) => hasWorkshopEnded(cls))
     .sort((a, b) => {
       const aTime = a.endDateTime ? new Date(a.endDateTime).getTime() : 0;
       const bTime = b.endDateTime ? new Date(b.endDateTime).getTime() : 0;
@@ -256,10 +265,13 @@ export default async function ArtsCraftsClassesPage({
                           </span>
                         </div>
 
-                        <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2">
-                          <p className="inline-flex items-center gap-2 text-xs font-medium text-[color:var(--text)]">
+                        <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-3">
+                          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--text)]">
                             <FiCalendar className="size-3.5 text-[color:var(--primary)]" />
-                            {cls.startDateTime ? `${formatDate(cls.startDateTime)} · ${formatTime(cls.startDateTime)}` : t.workshopEnded}
+                            {t.workshopEnded}
+                          </p>
+                          <p className="mt-2 text-xs leading-6 text-[color:var(--text-muted)]">
+                            {t.endedHint}
                           </p>
                         </div>
 

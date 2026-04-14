@@ -1,19 +1,32 @@
 import Image from "next/image";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { GiChefToque } from "react-icons/gi";
 import { HiPaintBrush, HiClock, HiUsers, HiStar, HiSparkles, HiShieldCheck } from "react-icons/hi2";
 import { MdCalendarMonth, MdAccessTime, MdPerson } from "react-icons/md";
 
 import ClassHeaderSlideshow from "@/components/site/ClassHeaderSlideshow";
+import RequestRepeatButton from "@/components/site/RequestRepeatButton";
 import { findClassBySlug, findClassReviews } from "@/lib/db/classes";
+import { getClassRepeatRequestSummaries } from "@/lib/db/classRepeatRequests";
 import { findTrainerById } from "@/lib/db/trainers";
+import { getUserById } from "@/lib/db/users";
 import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { formatDurationClock } from "@/lib/formatDuration";
 import { isLocale, type Locale } from "@/lib/locale";
 
 const DISPLAY_TIMEZONE = "Asia/Muscat";
+
+function getCurrentTimestamp(): number {
+  return new Date().getTime();
+}
+
+function hasWorkshopEnded(input: { status: string; endDateTime: Date | string | null }): boolean {
+  return input.status === "COMPLETED"
+    || (input.endDateTime ? new Date(input.endDateTime).getTime() < getCurrentTimestamp() : false);
+}
 
 export default async function ClassDetailPage({
   params,
@@ -25,13 +38,20 @@ export default async function ClassDetailPage({
   const isArabic = locale === "ar";
 
   const classData = await findClassBySlug(slug);
-  if (!classData || classData.status !== "PUBLISHED") {
+  if (!classData || (classData.status !== "PUBLISHED" && classData.status !== "COMPLETED")) {
     notFound();
   }
 
-  const [reviews, trainer] = await Promise.all([
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get("noon_session")?.value;
+  const currentUser = sessionId ? await getUserById(sessionId) : null;
+
+  const isEnded = hasWorkshopEnded(classData);
+
+  const [reviews, trainer, repeatSummaries] = await Promise.all([
     findClassReviews(classData.id),
     classData.trainerId ? findTrainerById(classData.trainerId) : Promise.resolve(null),
+    isEnded ? getClassRepeatRequestSummaries([classData.id], currentUser?.id ?? null) : Promise.resolve({}),
   ]);
 
   const seatsAvailable = Math.max(0, (classData.seatsTotal ?? 0) - (classData.seatsBooked ?? 0));
@@ -61,17 +81,27 @@ export default async function ClassDetailPage({
     dateAndTime: isArabic ? "التاريخ والوقت" : "Date and time",
     trainerSection: isArabic ? "يقود الدورة" : "Led by",
     secureSeatNow: isArabic ? "ثبّت حجزك الآن" : "Secure your seat now",
+    repeatThisWorkshop: isArabic ? "اطلب إعادة هذه الورشة" : "Request This Workshop Again",
     viewProfile: isArabic ? "عرض الملف الشخصي" : "View Profile",
     reviews: isArabic ? "التقييمات" : "Reviews",
     noReviews: isArabic ? "لا توجد تقييمات بعد" : "No reviews yet",
     perPerson: isArabic ? "للشخص" : "per person",
+    lastPublishedPrice: isArabic ? "سعر آخر طرح" : "Last Published Price",
     bookingHint:
       isArabic
         ? "أكمل حجزك خلال ثوانٍ."
         : "Complete your booking in seconds.",
+    repeatHint:
+      isArabic
+        ? "هذه الورشة انتهت حالياً. إذا رغبت بإعادتها، أرسل طلبك وسيتم أخذه في الاعتبار عند التخطيط القادم."
+        : "This workshop has already ended. Send a repeat request and the team will consider it for upcoming scheduling.",
     byVerifiedAttendees: isArabic ? "تقييمات من الحضور" : "Feedback from attendees",
     bookNow: isArabic ? "احجز الآن" : "Book Now",
     schedule: isArabic ? "الموعد" : "Schedule",
+    workshopStatus: isArabic ? "حالة الورشة" : "Workshop Status",
+    workshopEnded: isArabic ? "انتهت هذه الورشة" : "This workshop has ended",
+    noActiveSchedule:
+      isArabic ? "لا يوجد موعد نشط لهذه الورشة حالياً، ويمكنك طلب إعادتها من القسم الجانبي." : "There is no active schedule for this workshop right now. You can request a repeat from the side panel.",
     minimumAge: isArabic ? "الحد الأدنى للعمر" : "Minimum Age",
     yearsOld: isArabic ? "سنة فأكثر" : "years & above",
   };
@@ -229,7 +259,7 @@ export default async function ClassDetailPage({
                     </p>
                   </div>
                 )}
-                {classData.startDateTime ? (
+                {!isEnded && classData.startDateTime ? (
                   <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3 sm:col-span-2">
                     <p className="text-xs font-medium uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
                       {t.dateAndTime}
@@ -240,6 +270,19 @@ export default async function ClassDetailPage({
                     <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
                       <MdAccessTime className="h-4 w-4" />
                       {formatTime(classData.startDateTime)}
+                    </p>
+                  </div>
+                ) : null}
+                {isEnded ? (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20 sm:col-span-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
+                      {t.workshopStatus}
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-amber-900 dark:text-amber-100 sm:text-base">
+                      {t.workshopEnded}
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-amber-800/90 dark:text-amber-100/80">
+                      {t.noActiveSchedule}
                     </p>
                   </div>
                 ) : null}
@@ -308,8 +351,8 @@ export default async function ClassDetailPage({
           ) : null}
 
           <article className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm sm:p-7">
-            <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.schedule}</h2>
-            {classData.startDateTime ? (
+            <h2 className="text-2xl font-semibold text-[color:var(--text)]">{isEnded ? t.workshopStatus : t.schedule}</h2>
+            {!isEnded && classData.startDateTime ? (
               <div className="mt-5">
                 <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
                   <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
@@ -333,6 +376,11 @@ export default async function ClassDetailPage({
                     {t.bookNow}
                   </Link>
                 </div>
+              </div>
+            ) : isEnded ? (
+              <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">{t.workshopEnded}</p>
+                <p className="mt-2 text-sm leading-6 text-amber-800/90 dark:text-amber-100/80">{t.noActiveSchedule}</p>
               </div>
             ) : (
               <p className="mt-4 text-sm text-[color:var(--text-muted)]">{t.noSchedule}</p>
@@ -385,23 +433,34 @@ export default async function ClassDetailPage({
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm sm:p-7">
-            <h3 className="text-xl font-semibold text-[color:var(--text)]">{t.bookingCardTitle}</h3>
+            <h3 className="text-xl font-semibold text-[color:var(--text)]">{isEnded ? t.repeatThisWorkshop : t.bookingCardTitle}</h3>
 
             <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 text-center">
               <p className={`text-3xl font-semibold ${isCooking ? "text-coral" : "text-purple"}`}>
                 {formatAmountWithCurrency(classData.price, classData.currency, { locale })}
               </p>
-              <p className="mt-1 text-xs text-[color:var(--text-muted)]">{t.perPerson}</p>
+              <p className="mt-1 text-xs text-[color:var(--text-muted)]">{isEnded ? t.lastPublishedPrice : t.perPerson}</p>
             </div>
-            <p className="mt-4 text-sm leading-6 text-[color:var(--text-muted)]">{t.bookingHint}</p>
+            <p className="mt-4 text-sm leading-6 text-[color:var(--text-muted)]">{isEnded ? t.repeatHint : t.bookingHint}</p>
 
-            {classData.startDateTime && seatsAvailable > 0 ? (
+            {!isEnded && classData.startDateTime && seatsAvailable > 0 ? (
               <Link
                 href={`/${locale}/classes/${classData.slug}/book`}
                 className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
               >
                 {t.secureSeatNow}
               </Link>
+            ) : null}
+
+            {isEnded ? (
+              <div className="mt-5">
+                <RequestRepeatButton
+                  classId={classData.id}
+                  locale={locale}
+                  initialCount={repeatSummaries[classData.id]?.requestsCount ?? 0}
+                  initialRequested={repeatSummaries[classData.id]?.requestedByCurrentUser ?? false}
+                />
+              </div>
             ) : null}
           </div>
         </aside>

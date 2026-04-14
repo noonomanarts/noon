@@ -28,7 +28,9 @@ import {
   FiPackage,
   FiMessageSquare,
   FiTag,
+  FiRefreshCw,
 } from "react-icons/fi";
+import { countPendingClassRepeatRequestGroups } from '@/lib/db/classRepeatRequests';
 
 type AdminIconName =
   | "FiGrid"
@@ -47,7 +49,8 @@ type AdminIconName =
   | "FiPackage"
   | "FiMessageSquare"
   | "FiMail"
-  | "FiTag";
+  | "FiTag"
+  | "FiRefreshCw";
 
 type AdminMenuItem = {
   iconName: AdminIconName;
@@ -87,6 +90,7 @@ export default async function AdminLayout({
 
   const isSocialMediaAdmin = user.role === "SOCIAL_MEDIA_ADMIN";
   const pendingSuggestedWorkshops = isSocialMediaAdmin ? 0 : await countTrainerWorkshopSuggestionsPendingReview();
+  const pendingRepeatRequestGroups = isSocialMediaAdmin ? 0 : await countPendingClassRepeatRequestGroups();
 
   async function handleLogout() {
     "use server";
@@ -107,6 +111,7 @@ export default async function AdminLayout({
     inventory: locale === "ar" ? "المخزون" : "Inventory",
     classesEvents: locale === "ar" ? "الدورات والفعاليات" : "Classes & Events",
     classes: locale === "ar" ? "الدورات" : "Classes",
+    repeatRequests: locale === "ar" ? "طلبات إعادة الورش" : "Workshop Repeat Requests",
     timetable: locale === "ar" ? "الجدول الزمني" : "Timetable",
     events: locale === "ar" ? "الفعاليات" : "Events",
     users: locale === "ar" ? "المستخدمون" : "Users",
@@ -170,6 +175,13 @@ export default async function AdminLayout({
           section: t.classesEvents,
           items: [
             { iconName: "FiBookOpen" as const, iconColor: "text-orange-600 dark:text-orange-400", label: t.classes, href: `/${locale}/admin/classes` },
+            {
+              iconName: "FiRefreshCw" as const,
+              iconColor: "text-amber-600 dark:text-amber-400",
+              label: t.repeatRequests,
+              href: `/${locale}/admin/classes/repeat-requests`,
+              badgeCount: pendingRepeatRequestGroups,
+            },
             { iconName: "FiCalendar" as const, iconColor: "text-sky-600 dark:text-sky-400", label: t.timetable, href: `/${locale}/admin/calendar` },
             { iconName: "FiAward" as const, iconColor: "text-rose-600 dark:text-rose-400", label: t.events, href: `/${locale}/admin/events` },
           ],
@@ -269,6 +281,7 @@ export default async function AdminLayout({
                             : item.iconName === "FiTag" ? FiTag
                             : item.iconName === "FiPackage" ? FiPackage
                             : item.iconName === "FiMail" ? FiMail
+                            : item.iconName === "FiRefreshCw" ? FiRefreshCw
                             : FiBell;
                           
                           return (

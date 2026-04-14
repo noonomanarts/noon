@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   IoArrowBack,
@@ -76,11 +76,13 @@ interface Notification {
 
 export default function EditClassPage() {
   const params = useParams();
+  const pathname = usePathname();
   const router = useRouter();
   const locale = params.locale as string;
   const classId = params.classId as string;
 
   const isRTL = locale === 'ar';
+  const isRenewMode = pathname?.endsWith('/renew') ?? false;
 
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,6 +137,22 @@ export default function EditClassPage() {
   const sectionCard =
     'rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900';
 
+  const shouldRedirectToRenew = (data: {
+    slug?: string | null;
+    status?: string | null;
+    startDateTime?: string | null;
+    endDateTime?: string | null;
+  }) => {
+    return (
+      !isRenewMode &&
+      data.status === 'DRAFT' &&
+      !data.startDateTime &&
+      !data.endDateTime &&
+      typeof data.slug === 'string' &&
+      data.slug.includes('-renewal')
+    );
+  };
+
   useEffect(() => {
     void Promise.all([fetchClass(), fetchTrainers(), fetchClassFinanceSettings()]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,6 +163,11 @@ export default function EditClassPage() {
       const res = await fetch(`/api/admin/classes/${classId}`);
       if (!res.ok) throw new Error('Failed to fetch class');
       const data = await res.json();
+
+      if (shouldRedirectToRenew(data)) {
+        router.replace(`/${locale}/admin/classes/${classId}/renew`);
+        return;
+      }
       
       setFormData({
         title: data.title || '',
@@ -432,7 +455,16 @@ export default function EditClassPage() {
         throw new Error(errorData.error || 'Failed to save draft');
       }
 
-      showNotification('success', isRTL ? 'تم حفظ المسودة بنجاح!' : 'Draft saved successfully!');
+      showNotification(
+        'success',
+        isRenewMode
+          ? isRTL
+            ? 'تم حفظ صف التجديد كمسودة بنجاح!'
+            : 'Renewal class draft saved successfully!'
+          : isRTL
+          ? 'تم حفظ المسودة بنجاح!'
+          : 'Draft saved successfully!'
+      );
       setTimeout(() => {
         router.push(`/${locale}/admin/classes`);
       }, 1500);
@@ -512,7 +544,14 @@ export default function EditClassPage() {
         throw new Error(errorData.error || 'Failed to update class');
       }
 
-      showNotification('success', 'Class updated successfully!');
+      showNotification(
+        'success',
+        isRenewMode
+          ? isRTL
+            ? 'تم حفظ صف التجديد بنجاح!'
+            : 'Renewal class saved successfully!'
+          : 'Class updated successfully!'
+      );
       setTimeout(() => {
         router.push(`/${locale}/admin/classes`);
       }, 1500);
@@ -585,8 +624,15 @@ export default function EditClassPage() {
         </button>
 
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-          {isRTL ? 'تعديل الصف' : 'Edit Class'}
+          {isRenewMode ? (isRTL ? 'تجديد الصف' : 'Renew Class') : isRTL ? 'تعديل الصف' : 'Edit Class'}
         </h1>
+        {isRenewMode ? (
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            {isRTL
+              ? 'يتم إنشاء صف جديد اعتمادا على بيانات الصف السابق. حدّد الموعد الجديد ثم احفظ الصف دون تعديل السجل السابق.'
+              : 'You are creating a new class from the previous one. Set the new schedule and save this renewal without editing the original class.'}
+          </p>
+        ) : null}
       </div>
 
       {/* Form */}
@@ -1285,7 +1331,7 @@ export default function EditClassPage() {
                   : 'Saving...'}
               </span>
             ) : (
-              isRTL ? 'حفظ التغييرات' : 'Save Changes'
+              isRenewMode ? (isRTL ? 'حفظ صف التجديد' : 'Save Renewal Class') : isRTL ? 'حفظ التغييرات' : 'Save Changes'
             )}
           </button>
         </div>

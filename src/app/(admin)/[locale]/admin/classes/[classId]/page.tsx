@@ -19,6 +19,7 @@ import {
   IoWalletOutline,
   IoWarningOutline,
 } from 'react-icons/io5';
+import AdminRenewClassButton from '@/components/admin/AdminRenewClassButton';
 import ClassSettlementPanel from '@/components/admin/ClassSettlementPanel';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import { formatDurationClock } from '@/lib/formatDuration';
@@ -203,6 +204,7 @@ export default function AdminClassDetailsPage({
     enrollmentWallet: isArabic ? 'التسجيل+المحفظة' : 'Enroll+Wallet',
     publish: isArabic ? 'نشر' : 'Publish',
     moveToDraft: isArabic ? 'مسودة' : 'Draft',
+    renewClass: isArabic ? 'رينيـو الصف' : 'Renew Class',
     loading: isArabic ? 'جاري تحميل تفاصيل الصف...' : 'Loading class details...',
     notFound: isArabic ? 'تعذر العثور على هذا الصف.' : 'This class could not be found.',
     overview: isArabic ? 'نظرة عامة' : 'Overview',
@@ -477,6 +479,15 @@ export default function AdminClassDetailsPage({
                     {t.enrollmentWallet}
                   </Link>
                 </div>
+
+                {(classData.status === 'COMPLETED' || classData.status === 'CANCELLED' || !isUpcoming) ? (
+                  <AdminRenewClassButton
+                    classId={classId}
+                    locale={locale as 'en' | 'ar'}
+                    label={t.renewClass}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30"
+                  />
+                ) : null}
 
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div className="rounded-xl bg-zinc-50 p-3 dark:bg-zinc-900">

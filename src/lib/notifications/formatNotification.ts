@@ -262,6 +262,35 @@ export function formatNotificationContent(
     };
   }
 
+  if (notification.type === 'class_repeat_request_submitted') {
+    const classTitle =
+      getString(notification.data?.classTitleAr) && isArabic
+        ? getString(notification.data?.classTitleAr)
+        : getString(notification.data?.classTitle);
+    const requestsCountRaw = notification.data?.requestsCount;
+    const requestsCount =
+      typeof requestsCountRaw === 'number'
+        ? requestsCountRaw
+        : typeof requestsCountRaw === 'string'
+          ? Number(requestsCountRaw)
+          : null;
+
+    return {
+      title: isArabic ? 'طلب جديد لإعادة ورشة' : 'New Repeat Request',
+      message: isArabic
+        ? classTitle && requestsCount !== null && Number.isFinite(requestsCount)
+          ? `ورشة "${classTitle}" لديها الآن ${requestsCount} طلب${requestsCount > 1 ? 'ات' : ''} لإعادتها.`
+          : classTitle
+            ? `تم استلام طلب جديد لإعادة ورشة "${classTitle}".`
+            : 'تم استلام طلب جديد لإعادة ورشة منتهية.'
+        : classTitle && requestsCount !== null && Number.isFinite(requestsCount)
+          ? `"${classTitle}" now has ${requestsCount} repeat request${requestsCount === 1 ? '' : 's'}.`
+          : classTitle
+            ? `A new repeat request was submitted for "${classTitle}".`
+            : 'A new repeat request was submitted for an ended workshop.',
+    };
+  }
+
   return {
     title: notification.title || (isArabic ? 'إشعار' : 'Notification'),
     message: notification.message || '',
