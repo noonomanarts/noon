@@ -63,6 +63,7 @@ async function ensureShopProductsTable(): Promise<void> {
       description_en TEXT,
       description_ar TEXT,
       price DECIMAL(10, 3) NOT NULL CHECK (price >= 0),
+      cost DECIMAL(10, 3) NOT NULL DEFAULT 0 CHECK (cost >= 0),
       currency VARCHAR(10) NOT NULL DEFAULT 'OMR',
       sku VARCHAR(120) UNIQUE,
       image TEXT,
@@ -79,6 +80,7 @@ async function ensureShopProductsTable(): Promise<void> {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_products_category_sort ON shop_products(category_id, is_active, sort_order, created_at)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_products_slug ON shop_products(slug)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_products_active_featured ON shop_products(is_active, is_featured)`);
+  await pool.query(`ALTER TABLE shop_products ADD COLUMN IF NOT EXISTS cost DECIMAL(10, 3) NOT NULL DEFAULT 0`);
 
   shopProductsTableReady = true;
 }
@@ -234,6 +236,7 @@ function mapProduct(row: Record<string, unknown>): ShopProduct {
     description_en: (row.description_en as string | null) ?? null,
     description_ar: (row.description_ar as string | null) ?? null,
     price: Number(row.price ?? 0),
+    cost: Number(row.cost ?? 0),
     currency: (row.currency as string) || 'OMR',
     sku: (row.sku as string | null) ?? null,
     image: (row.image as string | null) ?? null,
@@ -576,6 +579,7 @@ export async function createShopProduct(input: {
   descriptionEn?: string | null;
   descriptionAr?: string | null;
   price: number;
+  cost?: number;
   currency?: string;
   sku?: string | null;
   image?: string | null;
@@ -603,10 +607,10 @@ export async function createShopProduct(input: {
 
   const result = await pool.query(
     `INSERT INTO shop_products
-      (category_id, slug, name_en, name_ar, description_en, description_ar, price, currency, sku, image, gallery_images,
+      (category_id, slug, name_en, name_ar, description_en, description_ar, price, cost, currency, sku, image, gallery_images,
        stock_quantity, is_active, is_featured, sort_order)
      VALUES
-      ($1, $2, $3, $4, $5, $6, $7, $8, NULLIF($9, ''), $10, $11::jsonb, $12, $13, $14, $15)
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, ''), $11, $12::jsonb, $13, $14, $15, $16)
      RETURNING *`,
     [
       input.categoryId,
@@ -616,6 +620,7 @@ export async function createShopProduct(input: {
       input.descriptionEn?.trim() || null,
       input.descriptionAr?.trim() || null,
       Number(input.price),
+      Number.isFinite(input.cost) ? Number(input.cost) : 0,
       (input.currency || 'OMR').trim().toUpperCase(),
       input.sku?.trim() || '',
       input.image?.trim() || null,
@@ -640,6 +645,7 @@ export async function updateShopProduct(
     descriptionEn?: string | null;
     descriptionAr?: string | null;
     price?: number;
+    cost?: number;
     currency?: string;
     sku?: string | null;
     image?: string | null;
@@ -692,6 +698,10 @@ export async function updateShopProduct(
   if (input.price !== undefined) {
     updates.push(`price = $${idx++}`);
     values.push(Number(input.price));
+  }
+  if (input.cost !== undefined) {
+    updates.push(`cost = $${idx++}`);
+    values.push(Number(input.cost));
   }
   if (input.currency !== undefined) {
     updates.push(`currency = $${idx++}`);

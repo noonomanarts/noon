@@ -477,6 +477,7 @@ export interface ShopProduct {
   description_en: string | null;
   description_ar: string | null;
   price: number;
+  cost: number;
   currency: string;
   sku: string | null;
   image: string | null;

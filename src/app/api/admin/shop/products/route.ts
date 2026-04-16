@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       descriptionEn?: string;
       descriptionAr?: string;
       price?: number;
+      cost?: number;
       currency?: string;
       sku?: string;
       image?: string;
@@ -73,6 +74,9 @@ export async function POST(request: NextRequest) {
     if (body.price === undefined || Number.isNaN(Number(body.price)) || Number(body.price) < 0) {
       return NextResponse.json({ error: 'Valid product price is required.' }, { status: 400 });
     }
+    if (body.cost !== undefined && (Number.isNaN(Number(body.cost)) || Number(body.cost) < 0)) {
+      return NextResponse.json({ error: 'Valid product cost is required.' }, { status: 400 });
+    }
 
     const product = await createShopProduct({
       categoryId: body.categoryId,
@@ -82,6 +86,7 @@ export async function POST(request: NextRequest) {
       descriptionEn: body.descriptionEn,
       descriptionAr: body.descriptionAr,
       price: Number(body.price),
+      cost: body.cost !== undefined ? Number(body.cost) : 0,
       currency: body.currency,
       sku: body.sku,
       image: body.image,

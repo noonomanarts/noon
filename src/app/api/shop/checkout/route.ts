@@ -7,7 +7,7 @@ import { validatePromoCode } from '@/lib/db/promoCodes';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import { getWorkersWithOrdersPermission } from '@/lib/db/worker';
 import { notifyUser } from '@/lib/notificationService';
-import { createShopSaleFinanceEntry } from '@/lib/db/finance';
+import { createShopSaleCostExpenseEntry, createShopSaleFinanceEntry } from '@/lib/db/finance';
 
 const SHIPPING_FEE = 2;
 const DELIVERY_CITY = 'Muscat';
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
 
       const productIds = cart.items.map((item) => item.productId.trim()).filter((id) => id.length > 0);
       const productResult = await client.query(
-        `SELECT p.id, p.slug, p.name_en, p.name_ar, p.image, p.price, p.currency, p.stock_quantity, p.is_active,
+        `SELECT p.id, p.slug, p.name_en, p.name_ar, p.image, p.price, p.cost, p.currency, p.stock_quantity, p.is_active,
                 c.is_active AS category_is_active
          FROM shop_products p
          JOIN shop_categories c ON c.id = p.category_id
@@ -218,6 +218,8 @@ export async function POST(request: NextRequest) {
         quantity: number;
         unitPrice: number;
         lineTotal: number;
+        unitCost: number;
+        totalCost: number;
         nameEn: string;
         nameAr: string;
         slug: string;
@@ -246,6 +248,7 @@ export async function POST(request: NextRequest) {
         }
 
         const unitPrice = Number(product.price);
+        const unitCost = Number(product.cost ?? 0);
         const lineTotal = unitPrice * requestedQty;
         subtotal += lineTotal;
 
@@ -254,6 +257,8 @@ export async function POST(request: NextRequest) {
           quantity: requestedQty,
           unitPrice,
           lineTotal,
+          unitCost,
+          totalCost: Number((unitCost * requestedQty).toFixed(3)),
           nameEn: String(product.name_en),
           nameAr: String(product.name_ar),
           slug: String(product.slug),
@@ -408,6 +413,16 @@ export async function POST(request: NextRequest) {
         orderNumber: String(orderInsert.rows[0].order_number),
         orderId,
         amount: totalAmount,
+        currency: String(walletRow.currency || 'OMR'),
+        customerName: recipientFullName,
+      });
+
+      await createShopSaleCostExpenseEntry({
+        db: client,
+        saleType: 'SHOP_ORDER',
+        referenceId: orderId,
+        referenceNumber: `Order #${String(orderInsert.rows[0].order_number)}`,
+        totalCost: Number(orderItems.reduce((sum, item) => sum + item.totalCost, 0).toFixed(3)),
         currency: String(walletRow.currency || 'OMR'),
         customerName: recipientFullName,
       });

@@ -22,6 +22,7 @@ type ShopProduct = {
   description_en: string | null;
   description_ar: string | null;
   price: number;
+  cost: number;
   currency: string;
   sku: string | null;
   image: string | null;
@@ -45,6 +46,7 @@ type EditorState = {
   descriptionEn: string;
   descriptionAr: string;
   price: string;
+  cost: string;
   currency: string;
   sku: string;
   image: string;
@@ -63,6 +65,7 @@ const emptyEditor: EditorState = {
   descriptionEn: '',
   descriptionAr: '',
   price: '',
+  cost: '0',
   currency: 'OMR',
   sku: '',
   image: '',
@@ -115,6 +118,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
     descriptionEn: isArabic ? 'الوصف (English)' : 'Description (English)',
     descriptionAr: isArabic ? 'الوصف (العربية)' : 'Description (Arabic)',
     price: isArabic ? 'السعر' : 'Price',
+    cost: isArabic ? 'التكلفة' : 'Cost',
     currency: isArabic ? 'العملة' : 'Currency',
     sku: 'SKU',
     stock: isArabic ? 'المخزون' : 'Stock quantity',
@@ -210,6 +214,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
       descriptionEn: product.description_en || '',
       descriptionAr: product.description_ar || '',
       price: String(product.price),
+      cost: String(product.cost),
       currency: product.currency,
       sku: product.sku || '',
       image: product.image || '',
@@ -295,6 +300,10 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
       setError(isArabic ? 'السعر غير صحيح.' : 'Invalid price value.');
       return;
     }
+    if (!editor.cost.trim() || Number.isNaN(Number(editor.cost)) || Number(editor.cost) < 0) {
+      setError(isArabic ? 'التكلفة غير صحيحة.' : 'Invalid cost value.');
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -309,6 +318,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
         descriptionEn: editor.descriptionEn,
         descriptionAr: editor.descriptionAr,
         price: Number(editor.price),
+        cost: Number(editor.cost),
         currency: editor.currency || 'OMR',
         sku: editor.sku,
         image: editor.image,
@@ -480,7 +490,11 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                         /{product.slug} · {isArabic ? product.category_name_ar : product.category_name_en}
                       </p>
                       <p className="text-xs text-zinc-700 dark:text-zinc-300">
-                        {formatAmountWithCurrency(product.price, product.currency)} · {isArabic ? 'المخزون' : 'Stock'}: {product.stock_quantity}
+                        {formatAmountWithCurrency(product.price, product.currency)}
+                        {' · '}
+                        {t.cost}: {formatAmountWithCurrency(product.cost, product.currency)}
+                        {' · '}
+                        {isArabic ? 'المخزون' : 'Stock'}: {product.stock_quantity}
                       </p>
                     </div>
 
@@ -574,7 +588,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
               />
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <input
                   value={editor.price}
                   onChange={(event) => setEditor((prev) => ({ ...prev, price: event.target.value }))}
@@ -582,6 +596,15 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                   min="0"
                   step="0.001"
                   placeholder={t.price}
+                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                />
+                <input
+                  value={editor.cost}
+                  onChange={(event) => setEditor((prev) => ({ ...prev, cost: event.target.value }))}
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  placeholder={t.cost}
                   className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
                 />
                 <input

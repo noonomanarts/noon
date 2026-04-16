@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import {
   addWalletCredit,
   createCalendarEvent,
@@ -22,6 +23,19 @@ import {
   isEventSlotAvailable,
   shouldCreateCleaningBlock,
 } from '@/lib/calendar';
+import { getUserById } from '@/lib/db/users';
+
+async function requireAdmin() {
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get('noon_session')?.value;
+
+  if (!sessionId) return null;
+
+  const user = await getUserById(sessionId);
+  if (!user || user.role !== 'ADMIN') return null;
+
+  return user;
+}
 
 function getPrivateClassType(event: Record<string, unknown>): 'cooking' | 'arts-crafts' | undefined {
   const preferredDish = typeof event.preferredDish === 'string' ? event.preferredDish.trim() : '';
@@ -48,6 +62,11 @@ type Params = {
 export async function GET(request: NextRequest, props: Params) {
   const params = await props.params;
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const event = await findUniqueEventBooking({ id: params.eventId });
 
     if (!event) {
@@ -84,6 +103,11 @@ export async function GET(request: NextRequest, props: Params) {
 export async function PUT(request: NextRequest, props: Params) {
   const params = await props.params;
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { bookingNumber: _, ...updateData } = body;
@@ -272,6 +296,11 @@ export async function PUT(request: NextRequest, props: Params) {
 export async function DELETE(request: NextRequest, props: Params) {
   const params = await props.params;
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const event = await findUniqueEventBooking({ id: params.eventId });
 
     if (!event) {

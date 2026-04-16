@@ -58,6 +58,7 @@ export async function PATCH(
       descriptionEn?: string | null;
       descriptionAr?: string | null;
       price?: number;
+      cost?: number;
       currency?: string;
       sku?: string | null;
       image?: string | null;
@@ -77,6 +78,9 @@ export async function PATCH(
     if (body.price !== undefined && (Number.isNaN(Number(body.price)) || Number(body.price) < 0)) {
       return NextResponse.json({ error: 'Price must be zero or more.' }, { status: 400 });
     }
+    if (body.cost !== undefined && (Number.isNaN(Number(body.cost)) || Number(body.cost) < 0)) {
+      return NextResponse.json({ error: 'Cost must be zero or more.' }, { status: 400 });
+    }
 
     const updated = await updateShopProduct(productId, {
       categoryId: body.categoryId,
@@ -86,6 +90,7 @@ export async function PATCH(
       descriptionEn: body.descriptionEn,
       descriptionAr: body.descriptionAr,
       price: body.price !== undefined ? Number(body.price) : undefined,
+      cost: body.cost !== undefined ? Number(body.cost) : undefined,
       currency: body.currency,
       sku: body.sku,
       image: body.image,

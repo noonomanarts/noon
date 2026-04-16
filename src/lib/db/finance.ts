@@ -491,11 +491,114 @@ async function seedDefaultReasons() {
       ('EXPENSE', 'Salaries', 'Team and trainer payments', 10, TRUE, TRUE),
       ('EXPENSE', 'Rent & Utilities', 'Rent, electricity, internet and utilities', 20, TRUE, TRUE),
       ('EXPENSE', 'Supplies', 'Class and operations supplies', 30, TRUE, TRUE),
+      ('EXPENSE', 'Cost of Goods Sold', 'Product cost recognized when shop inventory is sold', 32, TRUE, TRUE),
       ('EXPENSE', 'Workshop Materials', 'Inventory materials consumed by workshop execution', 35, TRUE, TRUE),
       ('EXPENSE', 'Marketing', 'Marketing and advertising costs', 40, TRUE, TRUE),
       ('EXPENSE', 'Other Expense', 'Other expenses', 999, TRUE, TRUE)
     ON CONFLICT (entry_type, name) DO NOTHING
   `);
+}
+
+async function resolveAutoFinanceReason(params: {
+  db: { query: (sql: string, values?: unknown[]) => Promise<{ rows: Array<Record<string, unknown>> }> };
+  type: AdminFinanceEntryType;
+  preferredNames: string[];
+  fallbackName: string;
+}): Promise<{ reasonId: string | null; reasonName: string; category: string }> {
+  const preferredNames = params.preferredNames.filter((value) => value.trim().length > 0);
+
+  if (preferredNames.length > 0) {
+    const preferredResult = await params.db.query(
+      `SELECT id, name
+       FROM admin_finance_reasons
+       WHERE entry_type = $1
+         AND is_archived = FALSE
+         AND name = ANY($2::text[])
+       ORDER BY CASE WHEN is_active THEN 0 ELSE 1 END,
+                array_position($2::text[], name),
+                sort_order ASC
+       LIMIT 1`,
+      [params.type, preferredNames]
+    );
+
+    const preferredRow = preferredResult.rows[0];
+    if (preferredRow) {
+      const reasonName = String(preferredRow.name || params.fallbackName);
+      return {
+        reasonId: preferredRow.id ? String(preferredRow.id) : null,
+        reasonName,
+        category: reasonName,
+      };
+    }
+  }
+
+  const fallbackResult = await params.db.query(
+    `SELECT id, name
+     FROM admin_finance_reasons
+     WHERE entry_type = $1
+       AND is_archived = FALSE
+     ORDER BY CASE WHEN is_active THEN 0 ELSE 1 END, sort_order ASC, name ASC
+     LIMIT 1`,
+    [params.type]
+  );
+
+  const fallbackRow = fallbackResult.rows[0];
+  if (!fallbackRow) {
+    return {
+      reasonId: null,
+      reasonName: params.fallbackName,
+      category: params.fallbackName,
+    };
+  }
+
+  const reasonName = String(fallbackRow.name || params.fallbackName);
+  return {
+    reasonId: fallbackRow.id ? String(fallbackRow.id) : null,
+    reasonName,
+    category: reasonName,
+  };
+}
+
+async function insertAutoFinanceEntry(params: {
+  db: { query: (sql: string, values?: unknown[]) => Promise<unknown> };
+  type: AdminFinanceEntryType;
+  title: string;
+  amount: number;
+  currency: string;
+  occurredAt: Date;
+  reason: { reasonId: string | null; reasonName: string; category: string };
+  counterparty?: string | null;
+  notes?: string | null;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  if (params.amount <= 0) {
+    return;
+  }
+
+  await params.db.query(
+    `INSERT INTO admin_finance_entries (
+       entry_type, title, category, reason_id, reason_name,
+       amount, currency, occurred_at, counterparty, notes, metadata,
+       created_by_user_id, updated_by_user_id, created_at, updated_at
+     ) VALUES (
+       $1, $2, $3, $4, $5,
+       $6, $7, $8, $9, $10, $11,
+       NULL, NULL, NOW(), NOW()
+     )`,
+    [
+      params.type,
+      params.title,
+      params.reason.category,
+      params.reason.reasonId,
+      params.reason.reasonName,
+      params.amount,
+      params.currency,
+      params.occurredAt.toISOString(),
+      params.counterparty || null,
+      params.notes || null,
+      params.metadata ?? {},
+    ]
+  );
 }
 
 export async function ensureAdminFinanceSchema(): Promise<void> {
@@ -1277,14 +1380,18 @@ type Queryable = {
  * Create a shop sale finance entry inside an existing transaction.
  * Call this when a shop order is successfully paid.
  */
-export async function createShopSaleFinanceEntry(params: {
+export async function createShopRevenueFinanceEntry(params: {
   db: Queryable;
-  orderNumber: string;
-  orderId: string;
+  saleType: 'SHOP_ORDER' | 'IN_SHOP_SALE';
+  referenceId: string;
+  referenceNumber: string;
   amount: number;
   currency: string;
   customerName?: string | null;
+  occurredAt?: Date;
 }): Promise<void> {
+  await ensureAdminFinanceSchema();
+
   if (params.amount <= 0) {
     return;
   }
@@ -1306,30 +1413,88 @@ export async function createShopSaleFinanceEntry(params: {
   const reasonId = reasonRow?.id ? String(reasonRow.id) : null;
   const reasonName = reasonRow?.name ? String(reasonRow.name) : 'Shop Sales';
 
-  await params.db.query(
-    `INSERT INTO admin_finance_entries (
-       entry_type, title, category, reason_id, reason_name,
-       amount, currency, occurred_at, counterparty, notes, metadata,
-       created_by_user_id, updated_by_user_id, created_at, updated_at
-     ) VALUES (
-       'INCOME', $1, $2, $3, $4,
-       $5, $6, NOW(), $7, $8, $9,
-       NULL, NULL, NOW(), NOW()
-     )`,
-    [
-      `Shop sale: Order #${params.orderNumber}`,
-      reasonName,
+  await insertAutoFinanceEntry({
+    db: params.db,
+    type: 'INCOME',
+    title: `Shop sale: ${params.referenceNumber}`,
+    amount: params.amount,
+    currency: params.currency,
+    occurredAt: params.occurredAt ?? new Date(),
+    reason: {
       reasonId,
       reasonName,
-      params.amount,
-      params.currency,
-      params.customerName || null,
-      'Auto-generated from shop checkout.',
-      JSON.stringify({
-        source: 'SHOP_ORDER',
-        orderId: params.orderId,
-        orderNumber: params.orderNumber,
-      }),
-    ]
-  );
+      category: reasonName,
+    },
+    counterparty: params.customerName || null,
+    notes: params.saleType === 'SHOP_ORDER'
+      ? 'Auto-generated from shop checkout.'
+      : 'Auto-generated from in-shop sale.',
+    metadata: {
+      source: params.saleType,
+      referenceId: params.referenceId,
+      referenceNumber: params.referenceNumber,
+      component: 'SALE_REVENUE',
+    },
+  });
+}
+
+export async function createShopSaleFinanceEntry(params: {
+  db: Queryable;
+  orderNumber: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+  customerName?: string | null;
+}): Promise<void> {
+  await createShopRevenueFinanceEntry({
+    db: params.db,
+    saleType: 'SHOP_ORDER',
+    referenceId: params.orderId,
+    referenceNumber: `Order #${params.orderNumber}`,
+    amount: params.amount,
+    currency: params.currency,
+    customerName: params.customerName,
+  });
+}
+
+export async function createShopSaleCostExpenseEntry(params: {
+  db: Queryable;
+  saleType: 'SHOP_ORDER' | 'IN_SHOP_SALE';
+  referenceId: string;
+  referenceNumber: string;
+  totalCost: number;
+  currency: string;
+  customerName?: string | null;
+  occurredAt?: Date;
+}): Promise<void> {
+  await ensureAdminFinanceSchema();
+
+  if (params.totalCost <= 0) {
+    return;
+  }
+
+  const expenseReason = await resolveAutoFinanceReason({
+    db: params.db,
+    type: 'EXPENSE',
+    preferredNames: ['Cost of Goods Sold', 'Supplies', 'Other Expense'],
+    fallbackName: 'Cost of Goods Sold',
+  });
+
+  await insertAutoFinanceEntry({
+    db: params.db,
+    type: 'EXPENSE',
+    title: `Shop sale cost: ${params.referenceNumber}`,
+    amount: params.totalCost,
+    currency: params.currency,
+    occurredAt: params.occurredAt ?? new Date(),
+    reason: expenseReason,
+    counterparty: params.customerName || null,
+    notes: 'Auto-generated product cost for a completed shop sale.',
+    metadata: {
+      source: params.saleType,
+      referenceId: params.referenceId,
+      referenceNumber: params.referenceNumber,
+      component: 'PRODUCT_COST',
+    },
+  });
 }

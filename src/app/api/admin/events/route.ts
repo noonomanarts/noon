@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { findManyEventBookings, createEventBooking } from '@/lib/db/events';
 import { getUserByEmail, getUserById } from '@/lib/db/users';
 import { isValidEmail, isValidPhone } from '@/lib/forms/eventBooking';
@@ -24,6 +25,18 @@ const EVENT_STATUSES = new Set([
 const PACKAGE_TYPES = new Set(['STANDARD', 'PREMIUM']);
 const PRIVATE_CLASS_TYPES = new Set(['cooking', 'arts-crafts']);
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+async function requireAdmin() {
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get('noon_session')?.value;
+
+  if (!sessionId) return null;
+
+  const user = await getUserById(sessionId);
+  if (!user || user.role !== 'ADMIN') return null;
+
+  return user;
+}
 
 function parseSafeString(value: unknown, maxLength = 255): string {
   if (typeof value !== 'string') return '';
@@ -61,6 +74,11 @@ function toMoney(value: number): number {
 // GET: List all event bookings
 export async function GET(request: NextRequest) {
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const eventType = searchParams.get('eventType');
     const status = searchParams.get('status');
@@ -117,6 +135,11 @@ export async function GET(request: NextRequest) {
 // POST: Create event booking (manual by admin)
 export async function POST(request: NextRequest) {
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== 'object') {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });

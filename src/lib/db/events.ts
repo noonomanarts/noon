@@ -370,7 +370,7 @@ export async function updateEventBooking(
     adminNotes: string;
   }>
 ): Promise<Record<string, unknown> | null> {
-  await ensureEventBookingsDiscountColumn();
+  await ensureEventBookingsWorkflowColumns();
 
   const updates: string[] = [];
   const values: unknown[] = [];

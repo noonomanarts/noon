@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:migrate": "node scripts/migrate.js",
+    "db:migrate": "node scripts/run-migrations.js",
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {

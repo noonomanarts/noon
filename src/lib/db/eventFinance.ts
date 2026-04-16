@@ -732,8 +732,8 @@ async function upsertSettlementRow(params: {
        created_at,
        updated_at
      ) VALUES (
-       $1, $2, $3, $4, $5, $6, $7, $8,
-       CASE WHEN $2 = 'CLOSED' THEN NOW() ELSE NULL END,
+       $1, $2::varchar(20), $3, $4, $5, $6, $7, $8,
+       CASE WHEN $2::varchar(20) = 'CLOSED' THEN NOW() ELSE NULL END,
        NOW(), NOW()
      )
      ON CONFLICT (event_booking_id) DO UPDATE SET
