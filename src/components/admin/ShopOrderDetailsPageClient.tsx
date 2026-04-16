@@ -140,6 +140,8 @@ export default function ShopOrderDetailsPageClient({
     openGoogleMaps: isArabic ? 'فتح في خرائط Google' : 'Open in Google Maps',
     mapPreview: isArabic ? 'معاينة الموقع' : 'Location Preview',
     noLocation: isArabic ? 'لم يتم حفظ لوكيشن لهذا الطلب.' : 'No location was saved for this order.',
+    print: isArabic ? 'طباعة الفيش' : 'Print Receipt',
+    exactLocationRequired: isArabic ? 'لوكيشن التوصيل الدقيق محفوظ مع هذا الطلب.' : 'The exact delivery location is saved with this order.',
   };
 
   const statusLabelMap: Record<ShopOrderStatus, { en: string; ar: string }> = {
@@ -240,13 +242,24 @@ export default function ShopOrderDetailsPageClient({
         >
           ← {t.back}
         </Link>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass[order.status]}`}>
-          {statusLabelMap[order.status][locale]}
-        </span>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/${locale}/admin/shop/orders/${order.id}/print`}
+            className="inline-flex rounded-lg bg-[color:var(--noon-teal)] px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            {t.print}
+          </Link>
+          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass[order.status]}`}>
+            {statusLabelMap[order.status][locale]}
+          </span>
+        </div>
       </div>
 
       <div>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title} #{order.order_number}</h1>
+        {hasDeliveryLocation ? (
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{t.exactLocationRequired}</p>
+        ) : null}
       </div>
 
       {error && (

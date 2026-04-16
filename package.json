@@ -11,6 +11,7 @@
     "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@types/qrcode": "^1.5.6",
     "bcryptjs": "^3.0.3",
     "embla-carousel": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
@@ -21,6 +22,7 @@
     "overlayscrollbars": "^2.13.0",
     "overlayscrollbars-react": "^0.5.6",
     "pg": "^8.13.0",
+    "qrcode": "^1.5.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-icons": "^5.5.0",
