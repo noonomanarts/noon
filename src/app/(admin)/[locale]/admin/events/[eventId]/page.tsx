@@ -33,6 +33,21 @@ type EventDetails = {
   specialRequests: string | null;
   totalAmount: number | null;
   currency: string | null;
+  gifts: {
+    items?: Array<{
+      id: string;
+      nameEn?: string;
+      nameAr?: string;
+      unitPrice?: number;
+      price?: number;
+      scope?: string;
+      pricingRule?: string;
+      pricingNoteEn?: string;
+      pricingNoteAr?: string;
+    }>;
+    estimatedTotal?: number;
+    deferredCount?: number;
+  } | null;
   paymentStatus: string | null;
   paymentMethod: string | null;
   createdAt: string;
@@ -84,6 +99,7 @@ export default function AdminEventDetailsPage({
     eventInfo: isAr ? "معلومات الفعالية" : "Event Information",
     contactInfo: isAr ? "بيانات التواصل" : "Contact Information",
     paymentInfo: isAr ? "بيانات الدفع" : "Payment Information",
+    giftsInfo: isAr ? "إضافات الهدايا" : "Gift Add-ons",
     calendarInfo: isAr ? "جدولة التقويم" : "Calendar Scheduling",
     notes: isAr ? "الملاحظات" : "Notes",
     notSet: isAr ? "غير محدد" : "Not set",
@@ -103,6 +119,15 @@ export default function AdminEventDetailsPage({
     total: isAr ? "الإجمالي" : "Total",
     paymentStatus: isAr ? "حالة الدفع" : "Payment Status",
     paymentMethod: isAr ? "طريقة الدفع" : "Payment Method",
+    giftScope: isAr ? "النطاق" : "Scope",
+    giftUnitPrice: isAr ? "سعر الهدية الواحدة" : "Unit Price",
+    giftCalculatedPrice: isAr ? "السعر الحالي" : "Current Price",
+    giftDeferred: isAr ? "تسعير لاحق" : "Deferred Pricing",
+    giftAllParticipants: isAr ? "لجميع المشاركين" : "For All Participants",
+    giftWinningTeam: isAr ? "للفريق الفائز" : "For Winning Team",
+    giftEstimatedTotal: isAr ? "إجمالي الهدايا المحتسب" : "Calculated Gift Total",
+    yes: isAr ? "نعم" : "Yes",
+    no: isAr ? "لا" : "No",
     createdAt: isAr ? "تاريخ الإنشاء" : "Created At",
     updatedAt: isAr ? "آخر تحديث" : "Updated At",
     specialRequests: isAr ? "الطلبات الخاصة" : "Special Requests",
@@ -314,6 +339,33 @@ export default function AdminEventDetailsPage({
           <p><strong>{t.paymentMethod}:</strong> {event.paymentMethod || t.notSet}</p>
         </div>
       </section>
+
+      {event.gifts?.items?.length ? (
+        <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.giftsInfo}</h2>
+          <div className="space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
+            {event.gifts.items.map((gift) => (
+              <div key={`${gift.id}-${gift.scope}`} className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+                <p className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {(isAr ? gift.nameAr : gift.nameEn) || gift.nameEn || gift.nameAr || t.notSet}
+                </p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <p><strong>{t.giftScope}:</strong> {gift.scope === 'WINNING_TEAM' ? t.giftWinningTeam : t.giftAllParticipants}</p>
+                  <p><strong>{t.giftUnitPrice}:</strong> {gift.unitPrice !== undefined ? `${gift.unitPrice} ${event.currency || 'OMR'}` : t.notSet}</p>
+                  <p><strong>{t.giftCalculatedPrice}:</strong> {gift.price !== undefined ? `${gift.price} ${event.currency || 'OMR'}` : t.notSet}</p>
+                  <p><strong>{t.giftDeferred}:</strong> {gift.pricingRule === 'DEFERRED' ? t.yes : t.no}</p>
+                </div>
+                {gift.pricingRule === 'DEFERRED' && (gift.pricingNoteEn || gift.pricingNoteAr) ? (
+                  <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                    {isAr ? gift.pricingNoteAr : gift.pricingNoteEn}
+                  </p>
+                ) : null}
+              </div>
+            ))}
+            <p><strong>{t.giftEstimatedTotal}:</strong> {event.gifts.estimatedTotal !== undefined ? `${event.gifts.estimatedTotal} ${event.currency || 'OMR'}` : t.notSet}</p>
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.notes}</h2>

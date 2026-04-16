@@ -184,6 +184,7 @@ export default async function AdminLayout({
             },
             { iconName: "FiCalendar" as const, iconColor: "text-sky-600 dark:text-sky-400", label: t.timetable, href: `/${locale}/admin/calendar` },
             { iconName: "FiAward" as const, iconColor: "text-rose-600 dark:text-rose-400", label: t.events, href: `/${locale}/admin/events` },
+            { iconName: "FiTag" as const, iconColor: "text-fuchsia-600 dark:text-fuchsia-400", label: locale === "ar" ? "إضافات الهدايا" : "Gift Add-ons", href: `/${locale}/admin/events/gift-addons` },
           ],
         },
         {

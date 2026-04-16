@@ -72,6 +72,7 @@ export default function AdminEventsPage() {
     allStatuses: isAr ? "جميع الحالات" : "All Statuses",
     allTypes: isAr ? "جميع الأنواع" : "All Types",
     newEvent: isAr ? "فعالية جديدة" : "New Event",
+    giftAddons: isAr ? "إضافات الهدايا" : "Gift Add-ons",
     refresh: isAr ? "تحديث" : "Refresh",
     noEvents: isAr ? "لا توجد فعاليات" : "No events found",
     contact: isAr ? "التواصل" : "Contact",
@@ -173,6 +174,13 @@ export default function AdminEventsPage() {
           >
             <MdRefresh className={`h-5 w-5 ${isLoading ? "animate-spin" : ""}`} />
             {t.refresh}
+          </button>
+          <button
+            onClick={() => router.push(`/${locale}/admin/events/gift-addons`)}
+            className="flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2 font-medium text-zinc-700 transition-all hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          >
+            <MdAdd className="h-5 w-5" />
+            {t.giftAddons}
           </button>
           <button
             onClick={() => router.push(`/${locale}/admin/events/new`)}

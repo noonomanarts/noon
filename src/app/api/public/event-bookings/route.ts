@@ -19,6 +19,7 @@ import {
   getPrivateCookingClassTotal,
   getStandardCompetitionTotal,
 } from '@/lib/competitionPricing';
+import { resolveEventGiftSelections } from '@/lib/eventGiftAddOns';
 
 const EVENT_TYPES = new Set(['COOKING_COMPETITION', 'PRIVATE_CLASS', 'BIRTHDAY_PARTY']);
 const PACKAGE_TYPES = new Set(['STANDARD', 'PREMIUM']);
@@ -33,35 +34,6 @@ function parseSafeString(value: unknown, maxLength = 255): string {
 function parseParticipantCount(value: unknown): number {
   const parsed = Number(value);
   return Number.isInteger(parsed) ? parsed : NaN;
-}
-
-function sanitizeGifts(value: unknown): Array<{
-  id: string;
-  name: string;
-  price: number;
-  scope?: string;
-}> {
-  if (!Array.isArray(value)) return [];
-
-  const sanitized: Array<{ id: string; name: string; price: number; scope?: string }> = [];
-
-  for (const item of value) {
-    if (!item || typeof item !== 'object') continue;
-    const candidate = item as Record<string, unknown>;
-    const id = parseSafeString(candidate.id, 80);
-    const name = parseSafeString(candidate.name, 200);
-    const scope = parseSafeString(candidate.scope, 80);
-    const price = Number(candidate.price);
-
-    if (!id || !name || !Number.isFinite(price) || price < 0) {
-      continue;
-    }
-
-    sanitized.push({ id, name, price, scope: scope || undefined });
-    if (sanitized.length >= 20) break;
-  }
-
-  return sanitized;
 }
 
 function validateParticipantsByEvent(
@@ -101,7 +73,6 @@ export async function POST(request: NextRequest) {
     const preferredDish = parseSafeString(body.preferredDish, 255) || undefined;
     const preferredLanguage = parseSafeString(body.preferredLanguage, 20);
     const numberOfParticipants = parseParticipantCount(body.numberOfParticipants);
-    const sanitizedGifts = sanitizeGifts(body.gifts);
     const childAge = parseParticipantCount(body.childAge);
 
     // Validation
@@ -167,6 +138,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const resolvedGifts = await resolveEventGiftSelections({
+      value: body.gifts,
+      eventType: eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY',
+      participantCount: numberOfParticipants,
+    });
+
     if (eventType === 'BIRTHDAY_PARTY' && (!Number.isInteger(childAge) || childAge < 10)) {
       return NextResponse.json(
         { error: 'Birthday party age is required and minimum age is 10' },
@@ -216,7 +193,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const giftsTotal = sanitizedGifts.reduce((sum, gift) => sum + gift.price, 0);
+    const giftsTotal = resolvedGifts.estimatedTotal;
 
     // Keep amount as preliminary estimate; admin can update final pricing later.
     let totalAmount: number | undefined;
@@ -318,7 +295,14 @@ export async function POST(request: NextRequest) {
       packageType,
       numberOfParticipants,
       numberOfGroups,
-      gifts: sanitizedGifts.length > 0 ? { items: sanitizedGifts } : undefined,
+      gifts:
+        resolvedGifts.items.length > 0
+          ? {
+              items: resolvedGifts.items,
+              estimatedTotal: resolvedGifts.estimatedTotal,
+              deferredCount: resolvedGifts.deferredCount,
+            }
+          : undefined,
       fullName,
       email,
       phoneNumber,

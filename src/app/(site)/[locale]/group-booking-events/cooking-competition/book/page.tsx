@@ -19,6 +19,8 @@ import {
   getStandardCompetitionPricePerPerson,
   getStandardCompetitionTotal,
 } from '@/lib/competitionPricing';
+import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import type { EventGiftAddOn, EventGiftSelection } from '@/lib/eventGiftAddOnTypes';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -29,12 +31,7 @@ interface BookingData {
   
   // Step 2
   packageType?: 'STANDARD' | 'PREMIUM';
-  gifts?: Array<{
-    id: string;
-    name: string;
-    price: number;
-    scope: 'ALL_PARTICIPANTS' | 'WINNING_TEAM';
-  }>;
+  gifts?: EventGiftSelection[];
   
   // Step 3
   fullName?: string;
@@ -44,30 +41,6 @@ interface BookingData {
   numberOfParticipants?: number;
   specialRequests?: string;
 }
-
-const giftOptions = [
-  {
-    id: '1',
-    name: 'Premium Gift Box',
-    nameAr: 'صندوق هدايا فاخر',
-    price: 150,
-    image: '/images/gift-1.jpg',
-  },
-  {
-    id: '2',
-    name: 'Branded Apron Set',
-    nameAr: 'طقم مريول مميز',
-    price: 200,
-    image: '/images/gift-2.jpg',
-  },
-  {
-    id: '3',
-    name: 'Culinary Tools Kit',
-    nameAr: 'طقم أدوات الطهي',
-    price: 300,
-    image: '/images/gift-3.jpg',
-  },
-];
 
 function isValidCompetitionParticipants(value: number, packageType: 'STANDARD' | 'PREMIUM' = 'STANDARD'): boolean {
   const minParticipants = packageType === 'PREMIUM' ? 6 : 8;
@@ -85,6 +58,9 @@ export default function CookingCompetitionBookingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [bookingNumber, setBookingNumber] = useState<string | null>(null);
+  const [giftOptions, setGiftOptions] = useState<EventGiftAddOn[]>([]);
+  const [giftInfoMessage, setGiftInfoMessage] = useState<string | null>(null);
+  const [giftsLoading, setGiftsLoading] = useState(true);
 
   useEffect(() => {
     const packageFromUrl = searchParams.get('package')?.toLowerCase();
@@ -117,6 +93,65 @@ export default function CookingCompetitionBookingPage() {
       };
     });
   }, [searchParams]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadGiftOptions = async () => {
+      setGiftsLoading(true);
+      try {
+        const response = await fetch('/api/public/event-gift-addons?eventType=COOKING_COMPETITION', {
+          cache: 'no-store',
+        });
+        const payload = (await response.json().catch(() => ({}))) as { items?: EventGiftAddOn[]; error?: string };
+        if (!response.ok) {
+          throw new Error(payload.error || 'Failed to load gift add-ons');
+        }
+        if (!ignore) {
+          setGiftOptions(Array.isArray(payload.items) ? payload.items : []);
+        }
+      } catch (loadError) {
+        if (!ignore) {
+          setGiftOptions([]);
+          setError(loadError instanceof Error ? loadError.message : 'Failed to load gift add-ons');
+        }
+      } finally {
+        if (!ignore) {
+          setGiftsLoading(false);
+        }
+      }
+    };
+
+    void loadGiftOptions();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    setBookingData((prev) => {
+      if (!prev.gifts?.length) return prev;
+
+      const participantCount = Number(prev.numberOfParticipants);
+      const recalculated = prev.gifts.map((gift) =>
+        gift.pricingRule === 'PER_PARTICIPANT'
+          ? {
+              ...gift,
+              price: Number((gift.unitPrice * participantCount).toFixed(3)),
+            }
+          : gift
+      );
+
+      const changed = recalculated.some((gift, index) => gift.price !== prev.gifts?.[index]?.price);
+      if (!changed) return prev;
+
+      return {
+        ...prev,
+        gifts: recalculated,
+      };
+    });
+  }, [bookingData.numberOfParticipants]);
 
   const t = {
     title: locale === 'ar' ? 'حجز مسابقة الطبخ' : 'Book Cooking Competition',
@@ -161,6 +196,11 @@ export default function CookingCompetitionBookingPage() {
     forWinningTeam: locale === 'ar' ? 'للفريق الفائز فقط' : 'For Winning Team Only',
     addToBooking: locale === 'ar' ? 'أضف للحجز' : 'Add to Booking',
     selected: locale === 'ar' ? 'محدد' : 'Selected',
+    priceForOneGift: locale === 'ar' ? 'لكل هدية' : 'Per gift',
+    giftsUnavailable: locale === 'ar' ? 'لا توجد إضافات هدايا معرفة حالياً.' : 'No gift add-ons are configured right now.',
+    winningTeamNotice: locale === 'ar' ? 'سعر هدية الفريق الفائز يُحدد لاحقاً.' : 'Winning team gift total is added later.',
+    immediateGiftTotal: locale === 'ar' ? 'إجمالي الهدايا الفوري' : 'Immediate Gifts Total',
+    deferredGiftNote: locale === 'ar' ? 'هدايا الفريق الفائز غير مشمولة في الإجمالي التقديري.' : 'Winning team gifts are not included in the estimated total yet.',
     standardSubtitle: locale === 'ar' ? 'تجربة رائعة للفرق' : 'Great team experience',
     premiumSubtitle: locale === 'ar' ? 'تجربة لا تُنسى' : 'Unforgettable experience',
     popular: locale === 'ar' ? 'الأفضل' : 'POPULAR',
@@ -235,6 +275,7 @@ export default function CookingCompetitionBookingPage() {
       ? getStandardCompetitionTotal(participantsCount)
       : null;
   const giftsAmount = (bookingData.gifts || []).reduce((sum, gift) => sum + gift.price, 0);
+  const deferredGiftSelections = (bookingData.gifts || []).filter((gift) => gift.pricingRule === 'DEFERRED');
   const estimatedTotalAmount =
     bookingData.packageType && packageBaseAmount !== null
       ? packageBaseAmount + giftsAmount
@@ -263,6 +304,11 @@ export default function CookingCompetitionBookingPage() {
   const participantsRangeMessage =
     bookingData.packageType === 'PREMIUM' ? t.participantsRangePremium : t.participantsRangeStandard;
   const participantsMin = bookingData.packageType === 'PREMIUM' ? 6 : 8;
+  const formatMoney = (value: number | null | undefined) =>
+    formatAmountWithCurrency(value, 'OMR', {
+      locale,
+      maxFractionDigits: 3,
+    });
 
   const validateStep = (stepToValidate: 1 | 2 | 3): boolean => {
     if (stepToValidate === 1) {
@@ -382,7 +428,7 @@ export default function CookingCompetitionBookingPage() {
     }
   };
 
-  const toggleGift = (gift: typeof giftOptions[0], scope: 'ALL_PARTICIPANTS' | 'WINNING_TEAM') => {
+  const toggleGift = (gift: EventGiftAddOn, scope: 'ALL_PARTICIPANTS' | 'WINNING_TEAM') => {
     const currentGifts = bookingData.gifts || [];
     const existingIndex = currentGifts.findIndex(
       g => g.id === gift.id && g.scope === scope
@@ -393,19 +439,45 @@ export default function CookingCompetitionBookingPage() {
         ...bookingData,
         gifts: currentGifts.filter((_, i) => i !== existingIndex),
       });
+      setGiftInfoMessage(null);
     } else {
+      const participantCount = Number(bookingData.numberOfParticipants) || 0;
+      const nextGift: EventGiftSelection = scope === 'ALL_PARTICIPANTS'
+        ? {
+            id: gift.id,
+            scope,
+            nameEn: gift.nameEn,
+            nameAr: gift.nameAr,
+            descriptionEn: gift.descriptionEn,
+            descriptionAr: gift.descriptionAr,
+            image: gift.image,
+            unitPrice: gift.unitPrice,
+            price: Number((gift.unitPrice * participantCount).toFixed(3)),
+            pricingRule: 'PER_PARTICIPANT',
+          }
+        : {
+            id: gift.id,
+            scope,
+            nameEn: gift.nameEn,
+            nameAr: gift.nameAr,
+            descriptionEn: gift.descriptionEn,
+            descriptionAr: gift.descriptionAr,
+            image: gift.image,
+            unitPrice: gift.unitPrice,
+            price: 0,
+            pricingRule: 'DEFERRED',
+            pricingNoteEn: 'Final gift total will be added later based on the number of participants in the winning team.',
+            pricingNoteAr: 'سيتم إضافة إجمالي سعر الهدية لاحقاً بناءً على عدد المشاركين في الفريق الفائز.',
+          };
+
       setBookingData({
         ...bookingData,
         gifts: [
           ...currentGifts,
-          {
-            id: gift.id,
-            name: locale === 'ar' ? gift.nameAr : gift.name,
-            price: gift.price,
-            scope,
-          },
+          nextGift,
         ],
       });
+      setGiftInfoMessage(scope === 'WINNING_TEAM' ? t.winningTeamNotice : null);
     }
   };
 
@@ -522,28 +594,101 @@ export default function CookingCompetitionBookingPage() {
                   <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{participantsRangeMessage}</p>
                 </div>
 
+                <div className="rounded-2xl border border-[color:var(--border)] p-6 dark:border-zinc-700" style={{ background: 'var(--noon-yellow-gradient)' }}>
+                  <h3 className="mb-4 text-xl font-bold text-[color:var(--text)]">{t.giftAddons}</h3>
+                  {giftInfoMessage ? (
+                    <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-200">
+                      {giftInfoMessage}
+                    </div>
+                  ) : null}
+                  {giftsLoading ? (
+                    <p className="text-sm text-zinc-700 dark:text-zinc-200">Loading...</p>
+                  ) : giftOptions.length === 0 ? (
+                    <p className="text-sm text-zinc-700 dark:text-zinc-200">{t.giftsUnavailable}</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {giftOptions.map((gift) => (
+                        <div
+                          key={gift.id}
+                          className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-800/80"
+                        >
+                          <div className="flex items-start gap-6">
+                            <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30">
+                              <div className="flex h-full w-full items-center justify-center">
+                                <BiSolidGift className="h-12 w-12 text-yellow" />
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="mb-2 text-lg font-bold text-[color:var(--text)] dark:text-white">
+                                {(locale === 'ar' ? gift.nameAr : gift.nameEn) || gift.nameEn || gift.nameAr}
+                              </h4>
+                              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                {(locale === 'ar' ? gift.descriptionAr : gift.descriptionEn) || gift.descriptionEn || gift.descriptionAr || '--'}
+                              </p>
+                              <p className="mt-3 text-2xl font-bold text-coral">
+                                {formatMoney(gift.unitPrice)}
+                              </p>
+                              <p className="mb-4 text-xs font-medium uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">
+                                {t.priceForOneGift}
+                              </p>
+                              <div className="flex flex-wrap gap-3">
+                                <button
+                                  onClick={() => toggleGift(gift, 'ALL_PARTICIPANTS')}
+                                  className={`group flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                                    bookingData.gifts?.some(
+                                      g => g.id === gift.id && g.scope === 'ALL_PARTICIPANTS'
+                                    )
+                                      ? 'text-white shadow-lg'
+                                      : 'border-2 bg-[color:var(--surface)] text-zinc-700 hover:shadow-md dark:bg-zinc-800 dark:text-zinc-200'
+                                  }`}
+                                  style={bookingData.gifts?.some(
+                                    g => g.id === gift.id && g.scope === 'ALL_PARTICIPANTS'
+                                  ) ? { background: 'var(--noon-teal-gradient)' } : { borderColor: 'var(--noon-teal)' }}
+                                >
+                                  <MdGroup className="h-5 w-5" />
+                                  {t.forAllParticipants}
+                                </button>
+                                <button
+                                  onClick={() => toggleGift(gift, 'WINNING_TEAM')}
+                                  className={`group flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+                                    bookingData.gifts?.some(
+                                      g => g.id === gift.id && g.scope === 'WINNING_TEAM'
+                                    )
+                                      ? 'text-white shadow-lg'
+                                      : 'border-2 bg-[color:var(--surface)] text-zinc-700 hover:shadow-md dark:bg-zinc-800 dark:text-zinc-200'
+                                  }`}
+                                  style={bookingData.gifts?.some(
+                                    g => g.id === gift.id && g.scope === 'WINNING_TEAM'
+                                  ) ? { background: 'var(--noon-purple-gradient)' } : { borderColor: 'var(--noon-purple)' }}
+                                >
+                                  <IoTrophy className="h-5 w-5" />
+                                  {t.forWinningTeam}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/40 p-4 dark:border-zinc-700">
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-semibold text-[color:var(--text)]">{t.perPersonRate}</span>
                     <span className="font-semibold text-[color:var(--text-muted)]">
-                      {packageRate !== null ? `${packageRate} OMR` : '--'}
+                      {packageRate !== null ? formatMoney(packageRate) : '--'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-semibold text-[color:var(--text)]">{t.baseAmount}</span>
                     <span className="font-semibold text-[color:var(--text-muted)]">
-                      {packageBaseAmount !== null ? `${packageBaseAmount} OMR` : '--'}
+                      {packageBaseAmount !== null ? formatMoney(packageBaseAmount) : '--'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-semibold text-[color:var(--text)]">{t.giftsAmount}</span>
-                    <span className="font-semibold text-[color:var(--text-muted)]">{giftsAmount} OMR</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 rounded-lg bg-[color:var(--surface)] px-3 py-2 text-sm dark:bg-zinc-800">
-                    <span className="font-semibold text-[color:var(--text)]">{t.estimatedTotal}</span>
-                    <span className="font-bold text-coral">
-                      {estimatedTotalAmount !== null ? `${estimatedTotalAmount} OMR` : '--'}
-                    </span>
+                    <span className="font-semibold text-[color:var(--text-muted)]">{formatMoney(giftsAmount)}</span>
                   </div>
                 </div>
               </div>
@@ -577,7 +722,7 @@ export default function CookingCompetitionBookingPage() {
                           <td className="px-4 py-2.5 text-[color:var(--text-muted)]">
                             {tier.minParticipants}-{tier.maxParticipants}
                           </td>
-                          <td className="px-4 py-2.5 font-semibold text-[color:var(--text)]">{tier.pricePerPerson} OMR</td>
+                          <td className="px-4 py-2.5 font-semibold text-[color:var(--text)]">{formatMoney(tier.pricePerPerson)}</td>
                         </tr>
                       );
                     })}
@@ -647,66 +792,29 @@ export default function CookingCompetitionBookingPage() {
               </p>
             </div>
 
-            {/* Gift Add-ons */}
-            <div className="rounded-2xl border border-[color:var(--border)] p-8 dark:border-zinc-700" style={{ background: 'var(--noon-yellow-gradient)' }}>
-              <h3 className="mb-6 text-2xl font-bold text-[color:var(--text)]">{t.giftAddons}</h3>
-              <div className="space-y-4">
-                {giftOptions.map((gift) => (
-                  <div 
-                    key={gift.id} 
-                    className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-800/80"
-                  >
-                    <div className="flex items-start gap-6">
-                      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30">
-                        <div className="flex h-full w-full items-center justify-center">
-                          <BiSolidGift className="h-12 w-12 text-yellow" />
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="mb-2 text-lg font-bold text-[color:var(--text)] dark:text-white">
-                          {locale === 'ar' ? gift.nameAr : gift.name}
-                        </h4>
-                        <p className="mb-4 text-2xl font-bold text-coral">
-                          {gift.price} OMR
-                        </p>
-                        <div className="flex flex-wrap gap-3">
-                          <button
-                            onClick={() => toggleGift(gift, 'ALL_PARTICIPANTS')}
-                            className={`group flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
-                              bookingData.gifts?.some(
-                                g => g.id === gift.id && g.scope === 'ALL_PARTICIPANTS'
-                              )
-                                ? 'text-white shadow-lg'
-                                : 'border-2 bg-[color:var(--surface)] text-zinc-700 hover:shadow-md dark:bg-zinc-800 dark:text-zinc-200'
-                            }`}
-                            style={bookingData.gifts?.some(
-                              g => g.id === gift.id && g.scope === 'ALL_PARTICIPANTS'
-                            ) ? { background: 'var(--noon-teal-gradient)' } : { borderColor: 'var(--noon-teal)' }}
-                          >
-                            <MdGroup className="h-5 w-5" />
-                            {t.forAllParticipants}
-                          </button>
-                          <button
-                            onClick={() => toggleGift(gift, 'WINNING_TEAM')}
-                            className={`group flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
-                              bookingData.gifts?.some(
-                                g => g.id === gift.id && g.scope === 'WINNING_TEAM'
-                              )
-                                ? 'text-white shadow-lg'
-                                : 'border-2 bg-[color:var(--surface)] text-zinc-700 hover:shadow-md dark:bg-zinc-800 dark:text-zinc-200'
-                            }`}
-                            style={bookingData.gifts?.some(
-                              g => g.id === gift.id && g.scope === 'WINNING_TEAM'
-                            ) ? { background: 'var(--noon-purple-gradient)' } : { borderColor: 'var(--noon-purple)' }}
-                          >
-                            <IoTrophy className="h-5 w-5" />
-                            {t.forWinningTeam}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+            <div className="rounded-2xl border-2 border-coral/20 bg-coral/5 p-6 dark:border-coral/30 dark:bg-coral/10">
+              <h3 className="mb-4 flex items-center gap-2 text-xl font-bold text-[color:var(--text)] dark:text-white">
+                <MdCalculate className="h-6 w-6 text-coral" />
+                {t.estimatedTotal}
+              </h3>
+              <div className="space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold text-[color:var(--text)]">{t.baseAmount}</span>
+                  <span>{packageBaseAmount !== null ? formatMoney(packageBaseAmount) : '--'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold text-[color:var(--text)]">{t.immediateGiftTotal}</span>
+                  <span>{formatMoney(giftsAmount)}</span>
+                </div>
+                {deferredGiftSelections.length > 0 ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-200">
+                    {t.deferredGiftNote}
                   </div>
-                ))}
+                ) : null}
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 text-base font-bold text-coral dark:bg-zinc-800">
+                  <span>{t.estimatedTotal}</span>
+                  <span>{estimatedTotalAmount !== null ? formatMoney(estimatedTotalAmount) : '--'}</span>
+                </div>
               </div>
             </div>
 
@@ -834,11 +942,12 @@ export default function CookingCompetitionBookingPage() {
                 <div className="flex items-center gap-2">
                   <MdCalculate className="h-4 w-4 text-teal" />
                   <strong>{t.summaryEstimate}:</strong>{' '}
-                  {estimatedTotalAmount !== null ? `${estimatedTotalAmount} OMR` : '--'}
+                  {estimatedTotalAmount !== null ? formatMoney(estimatedTotalAmount) : '--'}
                 </div>
                 {bookingData.gifts && bookingData.gifts.length > 0 && (
                   <div>
-                    <strong>{t.summaryGifts}:</strong> {bookingData.gifts.map(g => g.name).join(', ')}
+                    <strong>{t.summaryGifts}:</strong>{' '}
+                    {bookingData.gifts.map((gift) => `${locale === 'ar' ? gift.nameAr : gift.nameEn} (${gift.scope === 'ALL_PARTICIPANTS' ? t.forAllParticipants : t.forWinningTeam})`).join(', ')}
                   </div>
                 )}
               </div>

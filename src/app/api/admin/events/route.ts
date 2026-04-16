@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { findManyEventBookings, createEventBooking } from '@/lib/db/events';
 import { getUserByEmail, getUserById } from '@/lib/db/users';
 import { isValidEmail, isValidPhone } from '@/lib/forms/eventBooking';
+import { resolveEventGiftSelections } from '@/lib/eventGiftAddOns';
 
 const EVENT_TYPES = new Set(['COOKING_COMPETITION', 'PRIVATE_CLASS', 'BIRTHDAY_PARTY']);
 const EVENT_STATUSES = new Set([
@@ -24,33 +25,6 @@ function parseSafeString(value: unknown, maxLength = 255): string {
 function parseParticipantCount(value: unknown): number {
   const parsed = Number(value);
   return Number.isInteger(parsed) ? parsed : NaN;
-}
-
-function sanitizeGifts(value: unknown): Array<{
-  id: string;
-  name: string;
-  price: number;
-  scope?: string;
-}> {
-  if (!Array.isArray(value)) return [];
-
-  const sanitized: Array<{ id: string; name: string; price: number; scope?: string }> = [];
-
-  for (const item of value) {
-    if (!item || typeof item !== 'object') continue;
-    const candidate = item as Record<string, unknown>;
-    const id = parseSafeString(candidate.id, 80);
-    const name = parseSafeString(candidate.name, 200);
-    const scope = parseSafeString(candidate.scope, 80);
-    const price = Number(candidate.price);
-
-    if (!id || !name || !Number.isFinite(price) || price < 0) continue;
-
-    sanitized.push({ id, name, price, scope: scope || undefined });
-    if (sanitized.length >= 20) break;
-  }
-
-  return sanitized;
 }
 
 function validateParticipantsByEvent(
@@ -147,7 +121,6 @@ export async function POST(request: NextRequest) {
     const specialRequests = parseSafeString(row.specialRequests, 3000) || undefined;
     const numberOfParticipants = parseParticipantCount(row.numberOfParticipants);
     const numberOfGroupsRaw = parseParticipantCount(row.numberOfGroups);
-    const gifts = sanitizeGifts(row.gifts);
     const totalAmountRaw = row.totalAmount;
 
     if (!eventType || !selectedDateRaw || !selectedTime || !fullName || !email || !phoneNumber) {
@@ -189,6 +162,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const gifts = await resolveEventGiftSelections({
+      value: row.gifts,
+      eventType: eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY',
+      participantCount: numberOfParticipants,
+    });
 
     if (!isValidEmail(email)) {
       return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
@@ -234,7 +213,14 @@ export async function POST(request: NextRequest) {
       packageType,
       numberOfParticipants,
       numberOfGroups,
-      gifts: gifts.length > 0 ? { items: gifts } : undefined,
+      gifts:
+        gifts.items.length > 0
+          ? {
+              items: gifts.items,
+              estimatedTotal: gifts.estimatedTotal,
+              deferredCount: gifts.deferredCount,
+            }
+          : undefined,
       fullName,
       email,
       phoneNumber,
