@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { isLocale, type Locale } from '@/lib/locale';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -613,10 +614,20 @@ export default function CookingCompetitionBookingPage() {
                           className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)]/80 p-6 shadow-sm backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-800/80"
                         >
                           <div className="flex items-start gap-6">
-                            <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30">
-                              <div className="flex h-full w-full items-center justify-center">
-                                <BiSolidGift className="h-12 w-12 text-yellow" />
-                              </div>
+                            <div className="relative h-28 w-32 flex-shrink-0 overflow-hidden rounded-xl border border-[color:var(--border)] bg-white dark:border-zinc-700 dark:bg-zinc-900 sm:h-32 sm:w-40">
+                              {gift.image ? (
+                                <Image
+                                  src={gift.image}
+                                  alt={(locale === 'ar' ? gift.nameAr : gift.nameEn) || gift.nameEn || gift.nameAr || t.giftAddons}
+                                  fill
+                                  className="object-contain p-2"
+                                  sizes="(max-width: 640px) 128px, 160px"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30">
+                                  <BiSolidGift className="h-12 w-12 text-yellow" />
+                                </div>
+                              )}
                             </div>
                             <div className="flex-1">
                               <h4 className="mb-2 text-lg font-bold text-[color:var(--text)] dark:text-white">

@@ -160,8 +160,8 @@ export default function ClassSettlementPanel({
   const t = {
     title: isArabic ? 'إدارة إغلاق الكلاس والتسوية' : 'Class Closure & Settlement',
     subtitle: isArabic
-      ? 'من هنا تراجع المشتركين، تضيف المصاريف، ثم تغلق الكلاس وتوزع الحصص على المحافظ.'
-      : 'Review participants, record expenses, then close the class and distribute the payouts to wallets.',
+      ? 'من هنا تراجع المشتركين، تضيف المصاريف، ثم تغلق الورشة ليتم تسجيل المستحقات والحسابات والمخزون تلقائياً.'
+      : 'Review participants, record expenses, then close the workshop to post payouts, finance entries, and inventory usage automatically.',
     loading: isArabic ? 'جاري تحميل بيانات التسوية...' : 'Loading settlement data...',
     participants: isArabic ? 'المشاركون المسجلون' : 'Registered Participants',
     expenses: isArabic ? 'تكلفة المواد' : 'Material Costs',
@@ -169,8 +169,8 @@ export default function ClassSettlementPanel({
     manualExpenses: isArabic ? 'مصاريف يدوية إضافية' : 'Manual Material Costs',
     notes: isArabic ? 'ملاحظات الإدارة' : 'Admin Notes',
     saveDraft: isArabic ? 'حفظ المسودة' : 'Save Draft',
-    closingAction: isArabic ? 'إغلاق الكلاس وتحويل المستحقات' : 'Close Class & Payout',
-    closingDone: isArabic ? 'تم إغلاق الكلاس وتحويل المستحقات.' : 'Class closed and payouts transferred.',
+    closingAction: isArabic ? 'إغلاق الورشة واعتماد التسوية' : 'Close Workshop & Post Settlement',
+    closingDone: isArabic ? 'تم إغلاق الورشة واعتماد التسوية تلقائياً.' : 'Workshop closed and settlement entries were posted automatically.',
     saved: isArabic ? 'تم حفظ مسودة التسوية.' : 'Settlement draft saved.',
     addExpense: isArabic ? 'إضافة تكلفة مواد' : 'Add Material Cost',
     expenseTitle: isArabic ? 'اسم المادة / التكلفة' : 'Material / Cost Title',
@@ -223,10 +223,14 @@ export default function ClassSettlementPanel({
     negativeNoonFee: isArabic
       ? 'رسوم نون أصبحت سالبة. راجع تكاليف المواد أو الإيراد قبل الإغلاق.'
       : 'Noon fee is negative. Review material costs or revenue before closing.',
+    closingEffectsTitle: isArabic ? 'ما الذي سيحدث عند الإغلاق؟' : 'What happens on close?',
+    closingEffects: isArabic
+      ? 'سيتم إضافة أتعاب المدرب إلى المصروفات ومحفظة المدرب، وإضافة رسوم نون إلى الأرباح، وتسجيل تكاليف المواد اليدوية وتكاليف المخزون ضمن المصروفات، مع خصم الكميات المستخدمة من المخزون.'
+      : 'Trainer fee is added to expenses and the trainer wallet, Noon fee is added to profit, manual material costs and inventory usage costs are added to expenses, and used inventory quantities are deducted from stock.',
     reprocessWallet: isArabic ? 'إعادة معالجة المستحقات والحسابات' : 'Reprocess Wallet & Finance Entries',
     reprocessHint: isArabic
-      ? 'إذا لم يتم تحويل المستحقات أو تسجيل الإيرادات/المصروفات عند إغلاق هذا الورشة، اضغط هنا لإعادة المعالجة.'
-      : 'If wallet credits or finance entries (trainer expense / Noon income) were not recorded when this class was closed, click here to reprocess them.',
+      ? 'إذا لم يتم تسجيل المحفظة أو الأرباح أو المصروفات أو حركة المخزون عند إغلاق هذه الورشة، اضغط هنا لإعادة المعالجة.'
+      : 'If wallet, profit, expense, or inventory-related settlement entries were not recorded when this workshop was closed, click here to reprocess them.',
     reprocessDone: isArabic ? 'تمت إعادة المعالجة بنجاح.' : 'Reprocessing completed successfully.',
     reprocessNone: isArabic ? 'جميع المستحقات والحسابات مسجلة بالفعل.' : 'All wallet credits and finance entries are already processed.',
   };
@@ -1012,6 +1016,16 @@ export default function ClassSettlementPanel({
                 {t.insufficientStock}
               </div>
             ) : null}
+
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-900/20">
+              <div className="flex items-start gap-3">
+                <IoReceiptOutline className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-700 dark:text-amber-300" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">{t.closingEffectsTitle}</p>
+                  <p className="mt-1 text-sm leading-6 text-amber-800 dark:text-amber-300">{t.closingEffects}</p>
+                </div>
+              </div>
+            </div>
 
             {canEdit ? (
               <div className="mt-5 flex flex-col gap-3">

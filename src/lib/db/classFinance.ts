@@ -108,6 +108,7 @@ export type ClassSettlementSnapshot = {
 
 type FinanceClassRow = {
   id: string;
+  title: string;
   trainerId: string | null;
   trainerName: string | null;
   category: 'COOKING' | 'ARTS_CRAFTS';
@@ -268,6 +269,7 @@ export async function ensureClassFinanceSchema(): Promise<void> {
 async function getClassFinanceRow(classId: string, db: Queryable): Promise<FinanceClassRow | null> {
   const result = await db.query(
     `SELECT c.id,
+            c.title,
             c.category,
             c.currency,
             c.duration_minutes,
@@ -292,6 +294,7 @@ async function getClassFinanceRow(classId: string, db: Queryable): Promise<Finan
 
   return {
     id: String(row.id),
+    title: String(row.title || 'Workshop'),
     trainerId: row.trainer_id ? String(row.trainer_id) : null,
     trainerName: row.trainer_name ? String(row.trainer_name) : null,
     category: String(row.category) === 'ARTS_CRAFTS' ? 'ARTS_CRAFTS' : 'COOKING',
@@ -865,6 +868,11 @@ async function insertAutoFinanceEntry(params: {
   );
 }
 
+function buildWorkshopFinanceTitle(workshopTitle: string | null | undefined, classId: string): string {
+  const normalizedTitle = typeof workshopTitle === 'string' ? workshopTitle.trim() : '';
+  return normalizedTitle || `Workshop ${classId}`;
+}
+
 export async function saveClassSettlementDraft(args: {
   classId: string;
   adminUserId: string;
@@ -1063,6 +1071,7 @@ export async function closeClassSettlement(args: {
     }
 
     const settledAt = new Date().toISOString();
+    const workshopFinanceTitle = buildWorkshopFinanceTitle(financeRow.title, args.classId);
 
     const trainerCredit =
       snapshot.summary.trainerFeeAmount > 0
@@ -1072,7 +1081,7 @@ export async function closeClassSettlement(args: {
             amount: snapshot.summary.trainerFeeAmount,
             currency: snapshot.currency,
             type: 'CLASS_SETTLEMENT_TRAINER',
-            reason: `Trainer payout for class ${args.classId}`,
+            reason: `Trainer payout for ${workshopFinanceTitle}`,
           })
         : { transactionId: null };
 
@@ -1084,7 +1093,7 @@ export async function closeClassSettlement(args: {
             amount: snapshot.summary.noonFeeAmount,
             currency: snapshot.currency,
             type: 'CLASS_SETTLEMENT_NOON_SHARE',
-            reason: `Noon fee for class ${args.classId}`,
+            reason: `Noon fee for ${workshopFinanceTitle}`,
           })
         : { transactionId: null };
 
@@ -1109,14 +1118,14 @@ export async function closeClassSettlement(args: {
     await insertAutoFinanceEntry({
       db: client,
       type: 'EXPENSE',
-      title: `Trainer salary for workshop ${args.classId}`,
+      title: workshopFinanceTitle,
       amount: snapshot.summary.trainerFeeAmount,
       currency: snapshot.currency,
       occurredAtIso: settledAt,
       createdByUserId: args.adminUserId,
       reason: trainerSalaryReason,
       counterparty: snapshot.trainer.fullName,
-      notes: 'Auto-generated from workshop close settlement.',
+      notes: 'Trainer fee auto-generated from workshop close settlement.',
       metadata: {
         source: 'CLASS_SETTLEMENT_CLOSE',
         classId: args.classId,
@@ -1128,20 +1137,47 @@ export async function closeClassSettlement(args: {
     await insertAutoFinanceEntry({
       db: client,
       type: 'INCOME',
-      title: `Noon net profit from workshop ${args.classId}`,
+      title: workshopFinanceTitle,
       amount: snapshot.summary.noonFeeAmount,
       currency: snapshot.currency,
       occurredAtIso: settledAt,
       createdByUserId: args.adminUserId,
       reason: netProfitReason,
       counterparty: 'Noon',
-      notes: 'Auto-generated from workshop close settlement.',
+      notes: 'Noon fee auto-generated from workshop close settlement.',
       metadata: {
         source: 'CLASS_SETTLEMENT_CLOSE',
         classId: args.classId,
         component: 'NOON_NET_PROFIT',
       },
     });
+
+    for (const expense of expenses) {
+      if (expense.amount <= 0) {
+        continue;
+      }
+
+      await insertAutoFinanceEntry({
+        db: client,
+        type: 'EXPENSE',
+        title: workshopFinanceTitle,
+        amount: expense.amount,
+        currency: snapshot.currency,
+        occurredAtIso: settledAt,
+        createdByUserId: args.adminUserId,
+        reason: inventoryMaterialsReason,
+        notes: expense.notes
+          ? `Material cost: ${expense.title}. ${expense.notes}`
+          : `Material cost: ${expense.title}.`,
+        metadata: {
+          source: 'CLASS_SETTLEMENT_CLOSE',
+          classId: args.classId,
+          component: 'MANUAL_MATERIAL_COST',
+          expenseItemId: expense.id,
+          expenseTitle: expense.title,
+        },
+      });
+    }
 
     for (const usageItem of postedInventoryUsageItems) {
       if (usageItem.status !== 'POSTED' || usageItem.totalCost <= 0) {
@@ -1151,13 +1187,13 @@ export async function closeClassSettlement(args: {
       await insertAutoFinanceEntry({
         db: client,
         type: 'EXPENSE',
-        title: `Workshop material usage: ${usageItem.itemName}`,
+        title: workshopFinanceTitle,
         amount: usageItem.totalCost,
         currency: snapshot.currency,
         occurredAtIso: settledAt,
         createdByUserId: args.adminUserId,
         reason: inventoryMaterialsReason,
-        notes: `Auto-generated from workshop close settlement (${usageItem.quantity.toFixed(3)} ${usageItem.itemUnit}).`,
+        notes: `Inventory material usage: ${usageItem.itemName} (${usageItem.quantity.toFixed(3)} ${usageItem.itemUnit}).`,
         metadata: {
           source: 'CLASS_SETTLEMENT_CLOSE',
           classId: args.classId,
@@ -1218,7 +1254,7 @@ export async function reprocessSettlementWalletCredits(args: {
     await client.query('BEGIN');
 
     const settlementResult = await client.query(
-      `SELECT cs.*, c.trainer_id, c.currency, u.full_name AS trainer_name
+      `SELECT cs.*, c.trainer_id, c.currency, c.title, u.full_name AS trainer_name
        FROM class_settlements cs
        JOIN classes c ON c.id = cs.class_id
        LEFT JOIN users u ON u.id = c.trainer_id
@@ -1237,6 +1273,10 @@ export async function reprocessSettlementWalletCredits(args: {
     }
 
     const trainerId = row.trainer_id ? String(row.trainer_id) : null;
+    const workshopFinanceTitle = buildWorkshopFinanceTitle(
+      typeof row.title === 'string' ? row.title : null,
+      args.classId
+    );
     const currency = String(row.currency || 'OMR');
     const trainerPayoutAmount = toMoney(row.trainer_payout_amount);
     const noonFeeAmount = toMoney(row.noon_fee_amount);
@@ -1253,7 +1293,7 @@ export async function reprocessSettlementWalletCredits(args: {
         amount: trainerPayoutAmount,
         currency,
         type: 'CLASS_SETTLEMENT_TRAINER',
-        reason: `Trainer payout for class ${args.classId} (reprocessed)`,
+        reason: `Trainer payout for ${workshopFinanceTitle} (reprocessed)`,
       });
       trainerWalletTransactionId = credit.transactionId;
       trainerCredited = true;
@@ -1266,7 +1306,7 @@ export async function reprocessSettlementWalletCredits(args: {
         amount: noonFeeAmount,
         currency,
         type: 'CLASS_SETTLEMENT_NOON_SHARE',
-        reason: `Noon fee for class ${args.classId} (reprocessed)`,
+        reason: `Noon fee for ${workshopFinanceTitle} (reprocessed)`,
       });
       adminShareWalletTransactionId = credit.transactionId;
       adminCredited = true;
@@ -1276,15 +1316,38 @@ export async function reprocessSettlementWalletCredits(args: {
     const settledAt = row.settled_at ? new Date(row.settled_at).toISOString() : new Date().toISOString();
     const trainerName = row.trainer_name ? String(row.trainer_name) : 'Trainer';
 
+    const [manualExpenses, inventoryUsageItems, inventoryMaterialsReason] = await Promise.all([
+      getExpenseItems(args.classId, client),
+      listClassInventoryUsageItems(args.classId, client),
+      resolveAutoFinanceReason({
+        db: client,
+        type: 'EXPENSE',
+        preferredNames: ['Workshop Materials', 'Supplies', 'Other Expense'],
+      }),
+    ]);
+
     // Check if finance entries already exist for this class from a previous close
     const existingEntries = await client.query(
-      `SELECT entry_type, metadata->>'component' AS component
+      `SELECT entry_type,
+              metadata->>'component' AS component,
+              metadata->>'expenseItemId' AS expense_item_id,
+              metadata->>'inventoryUsageId' AS inventory_usage_id
        FROM admin_finance_entries
        WHERE metadata->>'source' = 'CLASS_SETTLEMENT_CLOSE'
          AND metadata->>'classId' = $1`,
       [args.classId]
     );
     const existingComponents = new Set(existingEntries.rows.map((r: Record<string, unknown>) => String(r.component)));
+    const existingManualExpenseIds = new Set(
+      existingEntries.rows
+        .map((r: Record<string, unknown>) => (r.expense_item_id ? String(r.expense_item_id) : null))
+        .filter((value): value is string => Boolean(value))
+    );
+    const existingInventoryUsageIds = new Set(
+      existingEntries.rows
+        .map((r: Record<string, unknown>) => (r.inventory_usage_id ? String(r.inventory_usage_id) : null))
+        .filter((value): value is string => Boolean(value))
+    );
 
     let trainerExpenseCreated = false;
     let noonIncomeCreated = false;
@@ -1299,14 +1362,14 @@ export async function reprocessSettlementWalletCredits(args: {
       await insertAutoFinanceEntry({
         db: client,
         type: 'EXPENSE',
-        title: `Trainer salary for workshop ${args.classId}`,
+        title: workshopFinanceTitle,
         amount: trainerPayoutAmount,
         currency,
         occurredAtIso: settledAt,
         createdByUserId: args.adminUserId,
         reason: trainerSalaryReason,
         counterparty: trainerName,
-        notes: 'Auto-generated from reprocess wallet credits.',
+        notes: 'Trainer fee auto-generated from settlement reprocess.',
         metadata: {
           source: 'CLASS_SETTLEMENT_CLOSE',
           classId: args.classId,
@@ -1327,14 +1390,14 @@ export async function reprocessSettlementWalletCredits(args: {
       await insertAutoFinanceEntry({
         db: client,
         type: 'INCOME',
-        title: `Noon net profit from workshop ${args.classId}`,
+        title: workshopFinanceTitle,
         amount: noonFeeAmount,
         currency,
         occurredAtIso: settledAt,
         createdByUserId: args.adminUserId,
         reason: netProfitReason,
         counterparty: 'Noon',
-        notes: 'Auto-generated from reprocess wallet credits.',
+        notes: 'Noon fee auto-generated from settlement reprocess.',
         metadata: {
           source: 'CLASS_SETTLEMENT_CLOSE',
           classId: args.classId,
@@ -1342,6 +1405,60 @@ export async function reprocessSettlementWalletCredits(args: {
         },
       });
       noonIncomeCreated = true;
+    }
+
+    for (const expense of manualExpenses) {
+      if (expense.amount <= 0 || existingManualExpenseIds.has(expense.id)) {
+        continue;
+      }
+
+      await insertAutoFinanceEntry({
+        db: client,
+        type: 'EXPENSE',
+        title: workshopFinanceTitle,
+        amount: expense.amount,
+        currency,
+        occurredAtIso: settledAt,
+        createdByUserId: args.adminUserId,
+        reason: inventoryMaterialsReason,
+        notes: expense.notes
+          ? `Material cost: ${expense.title}. ${expense.notes}`
+          : `Material cost: ${expense.title}.`,
+        metadata: {
+          source: 'CLASS_SETTLEMENT_CLOSE',
+          classId: args.classId,
+          component: 'MANUAL_MATERIAL_COST',
+          expenseItemId: expense.id,
+          expenseTitle: expense.title,
+        },
+      });
+    }
+
+    for (const usageItem of inventoryUsageItems) {
+      if (usageItem.status !== 'POSTED' || usageItem.totalCost <= 0 || existingInventoryUsageIds.has(usageItem.id)) {
+        continue;
+      }
+
+      await insertAutoFinanceEntry({
+        db: client,
+        type: 'EXPENSE',
+        title: workshopFinanceTitle,
+        amount: usageItem.totalCost,
+        currency,
+        occurredAtIso: settledAt,
+        createdByUserId: args.adminUserId,
+        reason: inventoryMaterialsReason,
+        notes: `Inventory material usage: ${usageItem.itemName} (${usageItem.quantity.toFixed(3)} ${usageItem.itemUnit}).`,
+        metadata: {
+          source: 'CLASS_SETTLEMENT_CLOSE',
+          classId: args.classId,
+          component: 'INVENTORY_MATERIAL_USAGE',
+          inventoryUsageId: usageItem.id,
+          inventoryItemId: usageItem.inventoryItemId,
+          quantity: usageItem.quantity,
+          unitCost: usageItem.unitCost,
+        },
+      });
     }
 
     if (trainerCredited || adminCredited) {
