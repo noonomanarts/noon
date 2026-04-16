@@ -50,6 +50,9 @@ export const defaultBookingCalendarSettings: BookingCalendarSettings = {
 };
 
 const MUSCAT_OFFSET_MINUTES = 4 * 60;
+const PUBLIC_EVENT_START_HOUR = 10;
+const NIGHT_WORKSHOP_START_HOUR = 18;
+const NIGHT_WORKSHOP_TYPES = new Set<CalendarEventType>(['CLASS', 'PRIVATE_SESSION', 'COMPETITION', 'BIRTHDAY_PARTY']);
 
 export const EVENT_BOOKING_RULES: Record<EventType, EventBookingRule> = {
   COOKING_COMPETITION: {
@@ -103,6 +106,15 @@ export function toMuscatDateKey(value: Date): string {
 
 export function addMinutes(date: Date, minutes: number): Date {
   return new Date(date.getTime() + minutes * 60_000);
+}
+
+function getMuscatMinutesOfDay(value: Date): number {
+  const shifted = new Date(value.getTime() + MUSCAT_OFFSET_MINUTES * 60_000);
+  return shifted.getUTCHours() * 60 + shifted.getUTCMinutes();
+}
+
+function getNextMuscatDateKey(dateKey: string): string {
+  return toMuscatDateKey(addMinutes(createMuscatDateTime(dateKey, '00:00'), 24 * 60));
 }
 
 export function eventBookingToCalendarType(eventType: EventType): CalendarEventType {
@@ -210,6 +222,21 @@ export async function getEventAvailability(input: {
     startDateTime: rangeStart,
     endDateTime: rangeEnd,
   });
+  const publicStartHour = Math.max(settings.startHour, PUBLIC_EVENT_START_HOUR);
+  const nextDayBlockedKeys = new Set<string>();
+
+  occupancy.forEach((item) => {
+    if (!NIGHT_WORKSHOP_TYPES.has(item.type)) {
+      return;
+    }
+
+    const workshopStart = new Date(item.startDateTime);
+    if (getMuscatMinutesOfDay(workshopStart) < NIGHT_WORKSHOP_START_HOUR * 60) {
+      return;
+    }
+
+    nextDayBlockedKeys.add(getNextMuscatDateKey(toMuscatDateKey(workshopStart)));
+  });
 
   const leadTimeMs = settings.leadTimeHours * 60 * 60 * 1000;
   const days: PublicAvailabilityDay[] = [];
@@ -217,10 +244,15 @@ export async function getEventAvailability(input: {
   for (let dayOffset = 0; dayOffset < horizonDays; dayOffset += 1) {
     const date = addMinutes(rangeStart, dayOffset * 24 * 60);
     const dateKey = toMuscatDateKey(date);
+
+    if (nextDayBlockedKeys.has(dateKey)) {
+      continue;
+    }
+
     const slots: PublicAvailabilitySlot[] = [];
 
     for (
-      let minutes = settings.startHour * 60;
+      let minutes = publicStartHour * 60;
       minutes + durationMinutes <= settings.endHour * 60;
       minutes += settings.slotIntervalMinutes
     ) {
