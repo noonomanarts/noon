@@ -1,9 +1,17 @@
 import { pool } from './pool';
-import type { ShopCategory, ShopOrder, ShopOrderItem, ShopOrderStatusHistory, ShopProduct, ShopOrderStatus } from './types';
+import type {
+  ShopCategory,
+  ShopOrder,
+  ShopOrderItem,
+  ShopOrderStatusHistory,
+  ShopProduct,
+  ShopOrderStatus,
+  ShopProductReview,
+} from './types';
 
-let shopCategoriesTableReady = false;
-let shopProductsTableReady = false;
-let shopOrdersTablesReady = false;
+let shopCategoriesTableReady: Promise<void> | null = null;
+let shopProductsTableReady: Promise<void> | null = null;
+let shopOrdersTablesReady: Promise<void> | null = null;
 
 function normalizeSlug(input: string): string {
   return input
@@ -16,81 +24,109 @@ function normalizeSlug(input: string): string {
 }
 
 async function ensureShopCategoriesTable(): Promise<void> {
-  if (shopCategoriesTableReady) return;
+  if (shopCategoriesTableReady) return shopCategoriesTableReady;
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS shop_categories (
-      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-      slug VARCHAR(120) NOT NULL UNIQUE,
-      name_en VARCHAR(180) NOT NULL,
-      name_ar VARCHAR(180) NOT NULL,
-      description_en TEXT,
-      description_ar TEXT,
-      image TEXT,
-      is_active BOOLEAN NOT NULL DEFAULT TRUE,
-      sort_order INTEGER NOT NULL DEFAULT 0,
-      created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-    )
-  `);
+  shopCategoriesTableReady = (async () => {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS shop_categories (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        slug VARCHAR(120) NOT NULL UNIQUE,
+        name_en VARCHAR(180) NOT NULL,
+        name_ar VARCHAR(180) NOT NULL,
+        description_en TEXT,
+        description_ar TEXT,
+        image TEXT,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      )
+    `);
 
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_categories_active_sort ON shop_categories(is_active, sort_order, created_at)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_categories_slug ON shop_categories(slug)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_categories_active_sort ON shop_categories(is_active, sort_order, created_at)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_categories_slug ON shop_categories(slug)`);
 
-  await pool.query(`
-    INSERT INTO shop_categories (slug, name_en, name_ar, description_en, description_ar, sort_order)
-    VALUES
-      ('sweets', 'Sweets', 'الحلويات', 'Delightful desserts and sweet selections from Butter and Butter.', 'تشكيلة حلويات مميزة من Butter and Butter.', 1),
-      ('raw-materials', 'Raw Materials', 'المواد الخام', 'Core baking and cooking ingredients trusted in Noon classes.', 'مكونات أساسية للخبز والطبخ معتمدة في ورش نون.', 2)
-    ON CONFLICT (slug) DO NOTHING
-  `);
+    await pool.query(`
+      INSERT INTO shop_categories (slug, name_en, name_ar, description_en, description_ar, sort_order)
+      VALUES
+        ('sweets', 'Sweets', 'الحلويات', 'Delightful desserts and sweet selections from Butter and Butter.', 'تشكيلة حلويات مميزة من Butter and Butter.', 1),
+        ('raw-materials', 'Raw Materials', 'المواد الخام', 'Core baking and cooking ingredients trusted in Noon classes.', 'مكونات أساسية للخبز والطبخ معتمدة في ورش نون.', 2)
+      ON CONFLICT (slug) DO NOTHING
+    `);
+  })().catch((error) => {
+    shopCategoriesTableReady = null;
+    throw error;
+  });
 
-  shopCategoriesTableReady = true;
+  return shopCategoriesTableReady;
 }
 
 async function ensureShopProductsTable(): Promise<void> {
-  if (shopProductsTableReady) return;
+  if (shopProductsTableReady) return shopProductsTableReady;
 
-  await ensureShopCategoriesTable();
+  shopProductsTableReady = (async () => {
+    await ensureShopCategoriesTable();
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS shop_products (
-      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-      category_id UUID NOT NULL REFERENCES shop_categories(id) ON DELETE RESTRICT,
-      slug VARCHAR(160) NOT NULL UNIQUE,
-      name_en VARCHAR(220) NOT NULL,
-      name_ar VARCHAR(220) NOT NULL,
-      description_en TEXT,
-      description_ar TEXT,
-      price DECIMAL(10, 3) NOT NULL CHECK (price >= 0),
-      cost DECIMAL(10, 3) NOT NULL DEFAULT 0 CHECK (cost >= 0),
-      currency VARCHAR(10) NOT NULL DEFAULT 'OMR',
-      sku VARCHAR(120) UNIQUE,
-      image TEXT,
-      gallery_images JSONB NOT NULL DEFAULT '[]'::jsonb,
-      stock_quantity INTEGER NOT NULL DEFAULT 0,
-      is_active BOOLEAN NOT NULL DEFAULT TRUE,
-      is_featured BOOLEAN NOT NULL DEFAULT FALSE,
-      sort_order INTEGER NOT NULL DEFAULT 0,
-      created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-    )
-  `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS shop_products (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        category_id UUID NOT NULL REFERENCES shop_categories(id) ON DELETE RESTRICT,
+        slug VARCHAR(160) NOT NULL UNIQUE,
+        name_en VARCHAR(220) NOT NULL,
+        name_ar VARCHAR(220) NOT NULL,
+        description_en TEXT,
+        description_ar TEXT,
+        price DECIMAL(10, 3) NOT NULL CHECK (price >= 0),
+        cost DECIMAL(10, 3) NOT NULL DEFAULT 0 CHECK (cost >= 0),
+        currency VARCHAR(10) NOT NULL DEFAULT 'OMR',
+        sku VARCHAR(120) UNIQUE,
+        image TEXT,
+        gallery_images JSONB NOT NULL DEFAULT '[]'::jsonb,
+        stock_quantity INTEGER NOT NULL DEFAULT 0,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+      )
+    `);
 
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_products_category_sort ON shop_products(category_id, is_active, sort_order, created_at)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_products_slug ON shop_products(slug)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_products_active_featured ON shop_products(is_active, is_featured)`);
-  await pool.query(`ALTER TABLE shop_products ADD COLUMN IF NOT EXISTS cost DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_products_category_sort ON shop_products(category_id, is_active, sort_order, created_at)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_products_slug ON shop_products(slug)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_products_active_featured ON shop_products(is_active, is_featured)`);
+    await pool.query(`ALTER TABLE shop_products ADD COLUMN IF NOT EXISTS cost DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS shop_product_reviews (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        product_id UUID NOT NULL REFERENCES shop_products(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        comment TEXT,
+        is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+        is_visible BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        CONSTRAINT shop_product_reviews_product_user_unique UNIQUE (product_id, user_id)
+      )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_product_reviews_product_id ON shop_product_reviews(product_id, created_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_product_reviews_user_id ON shop_product_reviews(user_id, created_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_product_reviews_visible ON shop_product_reviews(product_id, is_visible, created_at DESC)`);
+  })().catch((error) => {
+    shopProductsTableReady = null;
+    throw error;
+  });
 
-  shopProductsTableReady = true;
+  return shopProductsTableReady;
 }
 
 async function ensureShopOrdersTables(): Promise<void> {
-  if (shopOrdersTablesReady) return;
+  if (shopOrdersTablesReady) return shopOrdersTablesReady;
 
-  await ensureShopProductsTable();
+  shopOrdersTablesReady = (async () => {
+    await ensureShopProductsTable();
 
-  await pool.query(`
+    await pool.query(`
     CREATE TABLE IF NOT EXISTS shop_orders (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
       order_number VARCHAR(30) UNIQUE NOT NULL,
@@ -199,14 +235,18 @@ async function ensureShopOrdersTables(): Promise<void> {
     )
   `);
 
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_user_id ON shop_orders(user_id)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_created_at ON shop_orders(created_at DESC)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_order_number ON shop_orders(order_number)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(status)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_order_items_order_id ON shop_order_items(order_id)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_order_status_history_order_id ON shop_order_status_history(order_id, created_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_user_id ON shop_orders(user_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_created_at ON shop_orders(created_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_order_number ON shop_orders(order_number)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(status)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_order_items_order_id ON shop_order_items(order_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_order_status_history_order_id ON shop_order_status_history(order_id, created_at DESC)`);
+  })().catch((error) => {
+    shopOrdersTablesReady = null;
+    throw error;
+  });
 
-  shopOrdersTablesReady = true;
+  return shopOrdersTablesReady;
 }
 
 function mapCategory(row: Record<string, unknown>): ShopCategory {
@@ -311,6 +351,23 @@ function mapShopOrderStatusHistory(row: Record<string, unknown>): ShopOrderStatu
     changed_by_user_id: (row.changed_by_user_id as string | null) ?? null,
     note: (row.note as string | null) ?? null,
     created_at: new Date(row.created_at as string),
+  };
+}
+
+function mapProductReview(row: Record<string, unknown>): ShopProductReview & {
+  user_full_name: string | null;
+} {
+  return {
+    id: String(row.id),
+    product_id: String(row.product_id),
+    user_id: String(row.user_id),
+    rating: Number(row.rating ?? 0),
+    comment: row.comment ? String(row.comment) : null,
+    is_verified: Boolean(row.is_verified),
+    is_visible: Boolean(row.is_visible),
+    created_at: new Date(String(row.created_at)),
+    updated_at: new Date(String(row.updated_at)),
+    user_full_name: row.user_full_name ? String(row.user_full_name) : null,
   };
 }
 
@@ -842,6 +899,156 @@ export async function getShopProductBySlugForPublic(slug: string): Promise<
     category_name_en: result.rows[0].category_name_en as string,
     category_name_ar: result.rows[0].category_name_ar as string,
     category_slug: result.rows[0].category_slug as string,
+  };
+}
+
+export async function listShopProductReviewsForPublic(productId: string, limit = 20): Promise<
+  Array<
+    ShopProductReview & {
+      user_full_name: string | null;
+    }
+  >
+> {
+  await ensureShopProductsTable();
+
+  const normalizedLimit = Math.max(1, Math.min(50, Math.trunc(limit)));
+  const result = await pool.query(
+    `SELECT r.*, u.full_name AS user_full_name
+     FROM shop_product_reviews r
+     INNER JOIN users u ON u.id = r.user_id
+     WHERE r.product_id = $1
+       AND r.is_visible = TRUE
+     ORDER BY r.created_at DESC
+     LIMIT $2`,
+    [productId, normalizedLimit]
+  );
+
+  return result.rows.map((row) => mapProductReview(row));
+}
+
+export async function getShopProductReviewSummary(productId: string): Promise<{
+  averageRating: number | null;
+  reviewsCount: number;
+}> {
+  await ensureShopProductsTable();
+
+  const result = await pool.query(
+    `SELECT
+       COUNT(*)::int AS reviews_count,
+       ROUND(AVG(rating)::numeric, 2)::float8 AS average_rating
+     FROM shop_product_reviews
+     WHERE product_id = $1
+       AND is_visible = TRUE`,
+    [productId]
+  );
+
+  const row = result.rows[0];
+  return {
+    averageRating: row?.average_rating == null ? null : Number(row.average_rating),
+    reviewsCount: Number(row?.reviews_count ?? 0),
+  };
+}
+
+export async function getShopProductReviewForUser(productId: string, userId: string): Promise<(
+  ShopProductReview & {
+    user_full_name: string | null;
+  }
+) | null> {
+  await ensureShopProductsTable();
+
+  const result = await pool.query(
+    `SELECT r.*, u.full_name AS user_full_name
+     FROM shop_product_reviews r
+     INNER JOIN users u ON u.id = r.user_id
+     WHERE r.product_id = $1
+       AND r.user_id = $2
+     LIMIT 1`,
+    [productId, userId]
+  );
+
+  return result.rows[0] ? mapProductReview(result.rows[0]) : null;
+}
+
+export async function hasUserPurchasedShopProduct(userId: string, productId: string): Promise<boolean> {
+  await ensureShopOrdersTables();
+
+  const result = await pool.query(
+    `SELECT EXISTS (
+       SELECT 1
+       FROM shop_orders o
+       INNER JOIN shop_order_items oi ON oi.order_id = o.id
+       WHERE o.user_id = $1
+         AND oi.product_id = $2
+         AND o.status <> 'CANCELLED'
+     ) AS has_purchased`,
+    [userId, productId]
+  );
+
+  return Boolean(result.rows[0]?.has_purchased);
+}
+
+export async function createOrUpdateShopProductReview(input: {
+  productId: string;
+  userId: string;
+  rating: number;
+  comment?: string | null;
+}): Promise<
+  (ShopProductReview & { user_full_name: string | null }) & {
+    summary: {
+      averageRating: number | null;
+      reviewsCount: number;
+    };
+  }
+> {
+  await ensureShopOrdersTables();
+
+  const normalizedRating = Math.trunc(Number(input.rating));
+  if (!Number.isFinite(normalizedRating) || normalizedRating < 1 || normalizedRating > 5) {
+    throw new Error('Rating must be between 1 and 5.');
+  }
+
+  const comment = typeof input.comment === 'string' ? input.comment.trim().slice(0, 1000) : '';
+
+  const [product, hasPurchased] = await Promise.all([
+    getShopProductById(input.productId),
+    hasUserPurchasedShopProduct(input.userId, input.productId),
+  ]);
+
+  if (!product) {
+    throw new Error('Product not found.');
+  }
+
+  if (!hasPurchased) {
+    throw new Error('Only customers who ordered this product can leave a review.');
+  }
+
+  const result = await pool.query(
+    `INSERT INTO shop_product_reviews (
+       product_id, user_id, rating, comment, is_verified, is_visible, created_at, updated_at
+     ) VALUES (
+       $1, $2, $3, $4, TRUE, TRUE, NOW(), NOW()
+     )
+     ON CONFLICT (product_id, user_id)
+     DO UPDATE SET
+       rating = EXCLUDED.rating,
+       comment = EXCLUDED.comment,
+       is_verified = TRUE,
+       is_visible = TRUE,
+       updated_at = NOW()
+     RETURNING *`,
+    [input.productId, input.userId, normalizedRating, comment || null]
+  );
+
+  const [review, summary, userResult] = await Promise.all([
+    Promise.resolve(mapProductReview(result.rows[0])),
+    getShopProductReviewSummary(input.productId),
+    pool.query(`SELECT full_name FROM users WHERE id = $1 LIMIT 1`, [input.userId]),
+  ]);
+
+  return {
+    ...review,
+    user_full_name: userResult.rows[0]?.full_name ? String(userResult.rows[0].full_name) : null,
+    summary,
   };
 }
 

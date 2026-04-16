@@ -4,12 +4,18 @@ import { FiArrowLeft, FiBox, FiChevronRight, FiInfo } from "react-icons/fi";
 
 import {
   getShopProductBySlugForPublic,
+  getShopProductReviewForUser,
+  getShopProductReviewSummary,
+  hasUserPurchasedShopProduct,
   listRelatedShopProductsForPublic,
+  listShopProductReviewsForPublic,
 } from "@/lib/db/shop";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { isLocale, type Locale } from "@/lib/locale";
+import { getCurrentUser } from "@/lib/session";
 import ProductMediaGallery from "@/components/site/ProductMediaGallery";
 import ProductPurchasePanel from "@/components/site/ProductPurchasePanel";
+import ShopProductReviewsSection from "@/components/site/ShopProductReviewsSection";
 import ShopProductCard from "@/components/site/ShopProductCard";
 
 export default async function ShopProductDetailsPage({
@@ -27,11 +33,19 @@ export default async function ShopProductDetailsPage({
     notFound();
   }
 
-  const relatedProducts = await listRelatedShopProductsForPublic({
-    categoryId: product.category_id,
-    excludeProductId: product.id,
-    limit: 4,
-  });
+  const currentUser = await getCurrentUser();
+
+  const [relatedProducts, reviews, reviewSummary, viewerReview, viewerCanReview] = await Promise.all([
+    listRelatedShopProductsForPublic({
+      categoryId: product.category_id,
+      excludeProductId: product.id,
+      limit: 4,
+    }),
+    listShopProductReviewsForPublic(product.id),
+    getShopProductReviewSummary(product.id),
+    currentUser ? getShopProductReviewForUser(product.id, currentUser.id) : Promise.resolve(null),
+    currentUser ? hasUserPurchasedShopProduct(currentUser.id, product.id) : Promise.resolve(false),
+  ]);
 
   const t = {
     stock: isArabic ? "المخزون" : "Stock",
@@ -63,6 +77,14 @@ export default async function ShopProductDetailsPage({
     product.image,
     ...product.gallery_images,
   ].filter((item): item is string => Boolean(item && item.trim()));
+  const serializedReviews = reviews.map((review) => ({
+    ...review,
+    created_at: review.created_at.toISOString(),
+  }));
+  const serializedViewerReview = viewerReview ? {
+    ...viewerReview,
+    created_at: viewerReview.created_at.toISOString(),
+  } : null;
 
   return (
     <div className="route-sharp relative overflow-x-clip pb-16">
@@ -134,6 +156,18 @@ export default async function ShopProductDetailsPage({
               </div>
             </div>
           </div>
+
+          <ShopProductReviewsSection
+            productId={product.id}
+            locale={locale}
+            isAuthenticated={Boolean(currentUser)}
+            canReview={viewerCanReview}
+            loginHref={`/${locale}/login?next=${encodeURIComponent(`/${locale}/shop/product/${product.slug}`)}`}
+            initialReviews={serializedReviews}
+            initialAverageRating={reviewSummary.averageRating}
+            initialReviewsCount={reviewSummary.reviewsCount}
+            initialViewerReview={serializedViewerReview}
+          />
 
           {relatedProducts.length > 0 ? (
             <section className="space-y-4">

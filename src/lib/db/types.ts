@@ -490,6 +490,18 @@ export interface ShopProduct {
   updated_at: Date;
 }
 
+export interface ShopProductReview {
+  id: string;
+  product_id: string;
+  user_id: string;
+  rating: number;
+  comment: string | null;
+  is_verified: boolean;
+  is_visible: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export type ShopOrderStatus =
   | 'PAID'
   | 'PROCESSING'
