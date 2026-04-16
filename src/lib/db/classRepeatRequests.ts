@@ -3,6 +3,7 @@ import { findUniqueClass } from './classes';
 import { notifyRole, notifyUser } from '@/lib/notificationService';
 import { getUserById } from './users';
 import { sendEmail } from '@/lib/email/emailClient';
+import { sendUserWhatsAppTemplate } from '@/lib/whatsapp/transactionNotifications';
 import { sendWhatsAppText } from '@/lib/whatsappClient';
 
 let classRepeatRequestsReady: Promise<void> | null = null;
@@ -535,24 +536,6 @@ export async function sendManualRepeatRequestUpdate(input: {
   };
 }
 
-async function sendRepeatAvailableWhatsApp(input: {
-  phoneNumber: string | null | undefined;
-  isArabic: boolean;
-  classTitle: string;
-  classUrl: string;
-}): Promise<void> {
-  if (!input.phoneNumber) return;
-
-  const text = input.isArabic
-    ? `الورشة التي طلبتِ/طلبتَ إعادتها متاحة الآن: ${input.classTitle}\nيمكنك الحجز من هنا:\n${input.classUrl}`
-    : `The workshop you asked us to repeat is now available: ${input.classTitle}\nYou can book it here:\n${input.classUrl}`;
-
-  await sendWhatsAppText({
-    phoneNumber: input.phoneNumber,
-    text,
-  });
-}
-
 async function sendRepeatAvailableEmail(input: {
   email: string | null | undefined;
   fullName: string | null | undefined;
@@ -681,19 +664,21 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
         },
       }).catch(() => {});
 
-      await sendRepeatAvailableWhatsApp({
-        phoneNumber: user?.phoneNumber,
-        isArabic,
-        classTitle,
-        classUrl,
+      await sendUserWhatsAppTemplate({
+        userId: row.user_id,
+        key: 'class_repeat_available',
+        vars: {
+          classTitle,
+          classUrl,
+        },
       }).catch(() => {});
 
       await sendRepeatAvailableEmail({
         email: user?.email,
         fullName: user?.fullName,
-        isArabic,
         classTitle,
         classUrl,
+        isArabic,
       }).catch(() => {});
     })
   );

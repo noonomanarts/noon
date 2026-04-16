@@ -390,6 +390,9 @@ export function sanitizeFooterAdminSettings(input: Partial<FooterAdminSettings> 
 export type WhatsAppTransactionTemplateKey =
   | 'login_success'
   | 'class_booking_paid'
+  | 'class_reminder'
+  | 'class_review_request'
+  | 'class_repeat_available'
   | 'event_booking_paid'
   | 'wallet_topup_paid'
   | 'wallet_deposit'
@@ -427,6 +430,21 @@ export const defaultWhatsAppTransactionTemplatesSettings: WhatsAppTransactionTem
       enabled: true,
       en: 'Hi {{name}}, your class booking is confirmed. Paid {{amount}} {{currency}} for {{classTitle}}. Wallet balance: {{balance}} {{currency}}.',
       ar: 'مرحباً {{name}}، تم تأكيد حجزك للكلاس. تم دفع {{amount}} {{currency}} لـ {{classTitle}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
+    },
+    class_reminder: {
+      enabled: true,
+      en: 'Hi {{name}}, this is a reminder that your workshop {{classTitle}} starts in 24 hours. Date: {{classDate}}. Time: {{classTime}}. {{classUrl}}',
+      ar: 'مرحباً {{name}}، هذا تذكير بأن ورشتك {{classTitle}} تبدأ بعد 24 ساعة. التاريخ: {{classDate}}. الوقت: {{classTime}}. {{classUrl}}',
+    },
+    class_review_request: {
+      enabled: true,
+      en: 'Hi {{name}}, your workshop {{classTitle}} has just finished. We would love your feedback. You can reply to this message with your review, or open the workshop page here: {{classUrl}}',
+      ar: 'مرحباً {{name}}، انتهت الآن ورشة {{classTitle}}. يسعدنا جداً سماع رأيك. يمكنك الرد على هذه الرسالة بمراجعتك، أو فتح صفحة الورشة من هنا: {{classUrl}}',
+    },
+    class_repeat_available: {
+      enabled: true,
+      en: 'Hi {{name}}, the workshop you asked us to repeat is now available again: {{classTitle}}. Book here: {{classUrl}}',
+      ar: 'مرحباً {{name}}، الورشة التي طلبت إعادتها أصبحت متاحة مرة أخرى: {{classTitle}}. احجز من هنا: {{classUrl}}',
     },
     event_booking_paid: {
       enabled: true,

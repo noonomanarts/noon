@@ -10,6 +10,9 @@ import type { Locale } from '@/lib/locale';
 const TEMPLATE_KEYS: WhatsAppTransactionTemplateKey[] = [
   'login_success',
   'class_booking_paid',
+  'class_reminder',
+  'class_review_request',
+  'class_repeat_available',
   'event_booking_paid',
   'shop_purchase_paid',
   'wallet_topup_paid',
@@ -42,6 +45,9 @@ export default function AdminWhatsAppTemplatesPageClient({
     () => ({
       login_success: { en: 'Login success', ar: 'نجاح تسجيل الدخول' },
       class_booking_paid: { en: 'Class booking paid', ar: 'دفع حجز كلاس' },
+      class_reminder: { en: 'Workshop reminder', ar: 'تذكير الورشة' },
+      class_review_request: { en: 'Workshop review request', ar: 'طلب تقييم الورشة' },
+      class_repeat_available: { en: 'Repeat request available again', ar: 'توفر الورشة المطلوبة مجدداً' },
       event_booking_paid: { en: 'Event booking paid', ar: 'دفع حجز فعالية' },
       shop_purchase_paid: { en: 'Shop purchase paid', ar: 'دفع شراء من المتجر' },
       wallet_topup_paid: { en: 'Wallet top-up paid', ar: 'نجاح شحن المحفظة' },
@@ -62,15 +68,15 @@ export default function AdminWhatsAppTemplatesPageClient({
   const t = {
     title: isArabic ? 'تمبليتات رسائل واتساب التلقائية' : 'WhatsApp Automatic Message Templates',
     hint: isArabic
-      ? 'عدّل نصوص رسائل واتساب التي تُرسل تلقائياً في النظام، بما فيها رسائل الدخول والعمليات المختلفة.'
-      : 'Edit the WhatsApp messages sent automatically across the system, including login and transaction events.',
+      ? 'عدّل نصوص رسائل واتساب التي تُرسل تلقائياً في النظام، بما فيها تذكير الورش وطلبات التقييم. يمكنك لصق الإيموجي مباشرة داخل الرسالة.'
+      : 'Edit the WhatsApp messages sent automatically across the system, including workshop reminders and review requests. You can paste emojis directly into the message.',
     globalEnable: isArabic ? 'تفعيل الرسائل التلقائية' : 'Enable automatic messages',
     eventEnable: isArabic ? 'تفعيل هذا الحدث' : 'Enable this event',
     messageEn: isArabic ? 'النص (English)' : 'Message (English)',
     messageAr: isArabic ? 'النص (Arabic)' : 'Message (Arabic)',
     placeholders: isArabic
-      ? 'المتغيرات المتاحة: {{name}} {{amount}} {{currency}} {{balance}} {{availableBalance}} {{reference}} {{bookingNumber}} {{orderNumber}} {{classTitle}}'
-      : 'Available placeholders: {{name}} {{amount}} {{currency}} {{balance}} {{availableBalance}} {{reference}} {{bookingNumber}} {{orderNumber}} {{classTitle}}',
+      ? 'المتغيرات المتاحة: {{name}} {{amount}} {{currency}} {{balance}} {{availableBalance}} {{reference}} {{bookingNumber}} {{orderNumber}} {{classTitle}} {{classDate}} {{classTime}} {{classUrl}}'
+      : 'Available placeholders: {{name}} {{amount}} {{currency}} {{balance}} {{availableBalance}} {{reference}} {{bookingNumber}} {{orderNumber}} {{classTitle}} {{classDate}} {{classTime}} {{classUrl}}',
     save: isArabic ? 'حفظ التمبليتات' : 'Save Templates',
     saving: isArabic ? 'جارٍ الحفظ...' : 'Saving...',
     saved: isArabic ? 'تم حفظ التمبليتات بنجاح.' : 'Templates saved successfully.',

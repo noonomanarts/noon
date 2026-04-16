@@ -38,16 +38,16 @@ async function sendConfiguredUserWhatsAppTemplate(input: {
   userId: string;
   key: WhatsAppTransactionTemplateKey;
   vars?: TemplateVariables;
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     const user = await getUserById(input.userId);
-    if (!user?.phoneNumber) return;
+    if (!user?.phoneNumber) return false;
 
     const settings = await getTemplateSettings();
-    if (!settings.enabled) return;
+    if (!settings.enabled) return false;
 
     const template = settings.templates[input.key];
-    if (!template || !template.enabled) return;
+    if (!template || !template.enabled) return false;
 
     const lang = normalizeLanguage(user.preferredLanguage);
     const baseText = lang === 'ar' ? template.ar : template.en;
@@ -57,14 +57,16 @@ async function sendConfiguredUserWhatsAppTemplate(input: {
     };
 
     const text = renderTemplate(baseText, vars).trim();
-    if (!text) return;
+    if (!text) return false;
 
     await sendWhatsAppText({
       phoneNumber: user.phoneNumber,
       text,
     });
+    return true;
   } catch (error) {
     console.error('Failed to send transactional WhatsApp message:', error);
+    return false;
   }
 }
 
@@ -72,14 +74,14 @@ export async function sendUserWhatsAppTemplate(input: {
   userId: string;
   key: WhatsAppTransactionTemplateKey;
   vars?: TemplateVariables;
-}): Promise<void> {
-  await sendConfiguredUserWhatsAppTemplate(input);
+}): Promise<boolean> {
+  return sendConfiguredUserWhatsAppTemplate(input);
 }
 
 export async function sendUserTransactionWhatsApp(input: {
   userId: string;
   key: WhatsAppTransactionTemplateKey;
   vars?: TemplateVariables;
-}): Promise<void> {
-  await sendConfiguredUserWhatsAppTemplate(input);
+}): Promise<boolean> {
+  return sendConfiguredUserWhatsAppTemplate(input);
 }
