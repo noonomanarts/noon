@@ -20,8 +20,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<ProductForWorker | null>(null);
   const [quantity, setQuantity] = useState("");
-  const [unitCost, setUnitCost] = useState("");
-  const [supplierName, setSupplierName] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -35,8 +34,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
       searchProducts: isArabic ? "البحث عن المنتجات..." : "Search products...",
       currentStock: isArabic ? "المخزون الحالي" : "Current Stock",
       quantity: isArabic ? "الكمية المضافة" : "Quantity to Add",
-      unitCost: isArabic ? "تكلفة الوحدة (اختياري)" : "Unit Cost (optional)",
-      supplierName: isArabic ? "اسم المورد (اختياري)" : "Supplier Name (optional)",
+      expiryDate: isArabic ? "تاريخ الانتهاء" : "Expiry Date",
       notes: isArabic ? "ملاحظات (اختياري)" : "Notes (optional)",
       submit: isArabic ? "إضافة المخزون" : "Add Stock",
       submitting: isArabic ? "جارٍ الإضافة..." : "Adding...",
@@ -51,6 +49,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
       success: isArabic ? "تمت إضافة المخزون بنجاح!" : "Stock added successfully!",
       errorRequired: isArabic ? "يرجى إدخال الكمية" : "Please enter quantity",
       errorMin: isArabic ? "الكمية يجب أن تكون أكبر من صفر" : "Quantity must be greater than zero",
+      errorExpiryRequired: isArabic ? "يرجى إدخال تاريخ الانتهاء" : "Please enter expiry date",
     }),
     [isArabic]
   );
@@ -78,6 +77,10 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
       setError(t.errorMin);
       return;
     }
+    if (!expiryDate) {
+      setError(t.errorExpiryRequired);
+      return;
+    }
 
     setError(null);
     setSuccessMessage(null);
@@ -90,8 +93,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
         body: JSON.stringify({
           productId: selectedProduct.id,
           quantityAdded: qty,
-          unitCost: unitCost ? parseFloat(unitCost) : undefined,
-          supplierName: supplierName || undefined,
+          expiryDate,
           notes: notes || undefined,
         }),
       });
@@ -112,8 +114,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
 
       setSuccessMessage(t.success);
       setQuantity("");
-      setUnitCost("");
-      setSupplierName("");
+      setExpiryDate("");
       setNotes("");
 
       // Clear success message after 3 seconds
@@ -249,26 +250,12 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  {t.unitCost}
+                  {t.expiryDate} <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.001"
-                  value={unitCost}
-                  onChange={(e) => setUnitCost(e.target.value)}
-                  className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-white dark:focus:ring-white/10"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  {t.supplierName}
-                </label>
-                <input
-                  type="text"
-                  value={supplierName}
-                  onChange={(e) => setSupplierName(e.target.value)}
+                  type="date"
+                  value={expiryDate}
+                  onChange={(e) => setExpiryDate(e.target.value)}
                   className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-white dark:focus:ring-white/10"
                 />
               </div>
@@ -338,6 +325,15 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
                     <span className="mx-2">·</span>
                     {restock.previous_quantity} → {restock.new_quantity}
                   </p>
+                  {restock.expiry_date ? (
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {t.expiryDate}: {new Intl.DateTimeFormat(isArabic ? 'ar' : 'en', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      }).format(new Date(restock.expiry_date))}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="text-end">
                   <div className="flex items-center gap-1 text-sm text-zinc-400">

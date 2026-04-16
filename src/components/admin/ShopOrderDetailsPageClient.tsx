@@ -162,8 +162,8 @@ export default function ShopOrderDetailsPageClient({
     CANCELLED: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300',
   };
 
-  const getInitial = (fullName: string) => {
-    const trimmed = fullName.trim();
+  const getInitial = (fullName: string | null | undefined) => {
+    const trimmed = typeof fullName === 'string' ? fullName.trim() : '';
     if (!trimmed) return '?';
     return trimmed.charAt(0).toUpperCase();
   };

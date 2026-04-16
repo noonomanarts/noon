@@ -607,6 +607,7 @@ export interface StockRestock {
   quantity_added: number;
   previous_quantity: number;
   new_quantity: number;
+  expiry_date: Date | null;
   unit_cost: number | null;
   total_cost: number | null;
   supplier_name: string | null;

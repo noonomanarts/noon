@@ -13,6 +13,8 @@ import type {
   ShopProduct,
 } from './types';
 
+let stockRestocksSchemaReady = false;
+
 /**
  * Convert database numeric value to a proper JavaScript number
  */
@@ -20,6 +22,13 @@ function toMoney(value: unknown): number {
   if (value == null) return 0;
   const num = typeof value === 'number' ? value : Number(value);
   return Number.isFinite(num) ? num : 0;
+}
+
+async function ensureStockRestocksSchema(): Promise<void> {
+  if (stockRestocksSchemaReady) return;
+
+  await pool.query(`ALTER TABLE stock_restocks ADD COLUMN IF NOT EXISTS expiry_date DATE`);
+  stockRestocksSchemaReady = true;
 }
 
 // ============================================================================
@@ -93,13 +102,13 @@ export interface CreateRestockInput {
   productId: string;
   workerUserId: string;
   quantityAdded: number;
-  unitCost?: number;
-  supplierName?: string;
+  expiryDate: string;
   notes?: string;
   notesAr?: string;
 }
 
 export async function createStockRestock(input: CreateRestockInput): Promise<StockRestock> {
+  await ensureStockRestocksSchema();
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -115,7 +124,11 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
 
     const previousQuantity = Number(productResult.rows[0].stock_quantity);
     const newQuantity = previousQuantity + input.quantityAdded;
-    const totalCost = input.unitCost ? input.unitCost * input.quantityAdded : null;
+    const expiryDate = new Date(`${input.expiryDate}T00:00:00`);
+
+    if (Number.isNaN(expiryDate.getTime())) {
+      throw new Error('Invalid expiry date');
+    }
 
     // Update product stock
     await client.query(
@@ -125,8 +138,8 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
 
     // Record restock
     const restockResult = await client.query(
-      `INSERT INTO stock_restocks (product_id, worker_user_id, quantity_added, previous_quantity, new_quantity, unit_cost, total_cost, supplier_name, notes, notes_ar)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO stock_restocks (product_id, worker_user_id, quantity_added, previous_quantity, new_quantity, expiry_date, unit_cost, total_cost, supplier_name, notes, notes_ar)
+       VALUES ($1, $2, $3, $4, $5, $6, NULL, NULL, NULL, $7, $8)
        RETURNING *`,
       [
         input.productId,
@@ -134,9 +147,7 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
         input.quantityAdded,
         previousQuantity,
         newQuantity,
-        input.unitCost ?? null,
-        totalCost,
-        input.supplierName ?? null,
+        input.expiryDate,
         input.notes ?? null,
         input.notesAr ?? null,
       ]
@@ -152,6 +163,7 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
       quantity_added: Number(row.quantity_added),
       previous_quantity: Number(row.previous_quantity),
       new_quantity: Number(row.new_quantity),
+      expiry_date: row.expiry_date ? new Date(`${row.expiry_date}T00:00:00`) : null,
       unit_cost: row.unit_cost ? toMoney(row.unit_cost) : null,
       total_cost: row.total_cost ? toMoney(row.total_cost) : null,
       supplier_name: row.supplier_name,
@@ -173,6 +185,7 @@ export async function getStockRestocks(options?: {
   limit?: number;
   offset?: number;
 }): Promise<{ restocks: (StockRestock & { product_name_en: string; product_name_ar: string; worker_name: string })[]; total: number }> {
+  await ensureStockRestocksSchema();
   const conditions: string[] = [];
   const params: unknown[] = [];
   let idx = 1;
@@ -216,6 +229,7 @@ export async function getStockRestocks(options?: {
       quantity_added: Number(row.quantity_added),
       previous_quantity: Number(row.previous_quantity),
       new_quantity: Number(row.new_quantity),
+      expiry_date: row.expiry_date ? new Date(`${row.expiry_date}T00:00:00`) : null,
       unit_cost: row.unit_cost ? toMoney(row.unit_cost) : null,
       total_cost: row.total_cost ? toMoney(row.total_cost) : null,
       supplier_name: row.supplier_name,

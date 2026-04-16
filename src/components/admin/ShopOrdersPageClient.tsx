@@ -196,8 +196,8 @@ export default function ShopOrdersPageClient({ locale }: { locale: Locale }) {
     return `${shown.join('، ')} +${rest}`;
   };
 
-  const getInitial = (fullName: string) => {
-    const trimmed = fullName.trim();
+  const getInitial = (fullName: string | null | undefined) => {
+    const trimmed = typeof fullName === 'string' ? fullName.trim() : '';
     if (!trimmed) return '?';
     return trimmed.charAt(0).toUpperCase();
   };
