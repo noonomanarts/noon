@@ -232,10 +232,10 @@ export default function CookingCompetitionBookingPage() {
     specialRequests: locale === 'ar' ? 'طلبات خاصة/ملاحظات' : 'Special Requests/Notes',
     
     // Step 4
-    confirmationTitle: locale === 'ar' ? 'شكراً لطلبك!' : 'Thank You for Your Request!',
+    confirmationTitle: locale === 'ar' ? 'شكراً لطلبك!' : 'Thank you for your request!',
     confirmationMessage: locale === 'ar'
-      ? 'تم حجز الوقت المطلوب مبدئياً. سيقوم فريقنا بمراجعة التفاصيل والاتصال بك قريباً لاعتماد الموعد وإتمام الدفع.'
-      : 'Your requested slot is held temporarily. Our team will review the details and contact you shortly to approve the schedule and complete payment.',
+      ? 'سيقوم فريقنا بمراجعة التفاصيل والتواصل معك قريباً لتأكيد التوفر وإتمام الحجز.'
+      : 'Our team will review the details and contact you shortly to confirm availability and finalize your booking.',
     backToHome: locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home',
     selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
     invalidEmail: locale === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح.' : 'Please enter a valid email address.',

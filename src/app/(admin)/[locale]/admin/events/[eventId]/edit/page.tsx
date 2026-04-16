@@ -20,7 +20,9 @@ type EventDetails = {
   preferredDish: string | null;
   specialRequests: string | null;
   totalAmount: number | null;
+  paymentMethod: string | null;
   paymentStatus: string | null;
+  paymentProof: string | null;
   adminNotes: string | null;
 };
 
@@ -35,6 +37,7 @@ const statusOptions = [
 ] as const;
 
 const paymentStatusOptions = ["PENDING", "PAID", "REFUNDED", "FAILED"] as const;
+const paymentMethodOptions = ["", "ONLINE", "BANK_TRANSFER", "CASH", "WALLET"] as const;
 
 export default function AdminEditEventPage({
   params,
@@ -59,7 +62,9 @@ export default function AdminEditEventPage({
     preferredDish: "",
     specialRequests: "",
     totalAmount: "",
+    paymentMethod: "",
     paymentStatus: "PENDING",
+    paymentProof: "",
     adminNotes: "",
   });
 
@@ -81,7 +86,9 @@ export default function AdminEditEventPage({
     preferredDish: isAr ? "الطبق المفضل" : "Preferred Dish",
     specialRequests: isAr ? "الطلبات الخاصة" : "Special Requests",
     totalAmount: isAr ? "الإجمالي (OMR)" : "Total Amount (OMR)",
+    paymentMethod: isAr ? "طريقة الدفع" : "Payment Method",
     paymentStatus: isAr ? "حالة الدفع" : "Payment Status",
+    paymentProof: isAr ? "إثبات الدفع" : "Payment Proof",
     adminNotes: isAr ? "ملاحظات الإدارة" : "Admin Notes",
     required: isAr ? "يرجى تعبئة الحقول المطلوبة" : "Please fill required fields",
     saved: isAr ? "تم حفظ التعديلات" : "Changes saved successfully",
@@ -112,7 +119,9 @@ export default function AdminEditEventPage({
           preferredDish: data.preferredDish || "",
           specialRequests: data.specialRequests || "",
           totalAmount: data.totalAmount === null ? "" : String(data.totalAmount),
+          paymentMethod: data.paymentMethod || "",
           paymentStatus: data.paymentStatus || "PENDING",
+          paymentProof: data.paymentProof || "",
           adminNotes: data.adminNotes || "",
         });
       } catch (err) {
@@ -153,6 +162,7 @@ export default function AdminEditEventPage({
         preferredDish: form.preferredDish.trim() || undefined,
         specialRequests: form.specialRequests.trim() || undefined,
         totalAmount: form.totalAmount.trim() ? Number(form.totalAmount) : undefined,
+        paymentMethod: form.paymentMethod || undefined,
         paymentStatus: form.paymentStatus,
         adminNotes: form.adminNotes.trim() || undefined,
       };
@@ -325,6 +335,21 @@ export default function AdminEditEventPage({
           </label>
 
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            {t.paymentMethod}
+            <select
+              value={form.paymentMethod}
+              onChange={(e) => setForm((prev) => ({ ...prev, paymentMethod: e.target.value }))}
+              className="mt-1 w-full rounded-xl border border-zinc-300 bg-transparent px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
+            >
+              {paymentMethodOptions.map((option) => (
+                <option key={option || 'empty'} value={option}>
+                  {option || '-'}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
             {t.paymentStatus}
             <select
               value={form.paymentStatus}
@@ -338,6 +363,17 @@ export default function AdminEditEventPage({
               ))}
             </select>
           </label>
+
+          {form.paymentProof ? (
+            <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300 sm:col-span-2">
+              <span>{t.paymentProof}</span>
+              <div className="mt-1">
+                <a href={form.paymentProof} target="_blank" rel="noreferrer" className="font-semibold text-coral hover:underline">
+                  {form.paymentProof}
+                </a>
+              </div>
+            </div>
+          ) : null}
 
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 sm:col-span-2">
             {t.adminNotes}

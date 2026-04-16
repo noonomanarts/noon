@@ -355,10 +355,15 @@ export interface EventBooking {
   status: EventStatus;
   client_confirmed: boolean;
   client_confirmed_at: Date | null;
+  confirmation_token: string | null;
+  confirmation_token_expires_at: Date | null;
   digital_signature: string | null;
   agreement_accepted: boolean;
   total_amount: number | null;
   currency: string;
+  payment_gateway: string | null;
+  payment_reference: string | null;
+  payment_gateway_order_id: number | null;
   payment_method: PaymentMethod | null;
   payment_status: PaymentStatus;
   paid_at: Date | null;

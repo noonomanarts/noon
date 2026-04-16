@@ -7,16 +7,25 @@ import type { EventType, EventStatus, PackageType, PaymentStatus, CalendarEventT
 
 let eventBookingsDiscountColumnReady: Promise<void> | null = null;
 
-async function ensureEventBookingsDiscountColumn(): Promise<void> {
+async function ensureEventBookingsWorkflowColumns(): Promise<void> {
   if (eventBookingsDiscountColumnReady) {
     return eventBookingsDiscountColumnReady;
   }
 
   eventBookingsDiscountColumnReady = query(`
     ALTER TABLE event_bookings
-    ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10, 3) NOT NULL DEFAULT 0
+    ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS confirmation_token VARCHAR(120),
+    ADD COLUMN IF NOT EXISTS confirmation_token_expires_at TIMESTAMP WITH TIME ZONE,
+    ADD COLUMN IF NOT EXISTS payment_gateway VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(120),
+    ADD COLUMN IF NOT EXISTS payment_gateway_order_id BIGINT
   `)
-    .then(() => undefined)
+    .then(async () => {
+      await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_event_bookings_confirmation_token_unique ON event_bookings(confirmation_token) WHERE confirmation_token IS NOT NULL`);
+      await query(`CREATE INDEX IF NOT EXISTS idx_event_bookings_payment_reference ON event_bookings(payment_reference)`);
+      await query(`CREATE INDEX IF NOT EXISTS idx_event_bookings_payment_gateway_order_id ON event_bookings(payment_gateway_order_id)`);
+    })
     .catch((error) => {
       eventBookingsDiscountColumnReady = null;
       throw error;
@@ -39,7 +48,7 @@ export async function findManyEventBookings(options: {
   skip?: number;
   take?: number;
 }): Promise<{ events: Record<string, unknown>[]; total: number }> {
-  await ensureEventBookingsDiscountColumn();
+  await ensureEventBookingsWorkflowColumns();
 
   const conditions: string[] = [];
   const values: unknown[] = [];
@@ -125,10 +134,15 @@ export async function findManyEventBookings(options: {
     status: row.status,
     clientConfirmed: row.client_confirmed,
     clientConfirmedAt: row.client_confirmed_at,
+    confirmationToken: row.confirmation_token,
+    confirmationTokenExpiresAt: row.confirmation_token_expires_at,
     digitalSignature: row.digital_signature,
     agreementAccepted: row.agreement_accepted,
     totalAmount: row.total_amount ? parseFloat(row.total_amount) : null,
     currency: row.currency,
+    paymentGateway: row.payment_gateway,
+    paymentReference: row.payment_reference,
+    paymentGatewayOrderId: row.payment_gateway_order_id == null ? null : Number(row.payment_gateway_order_id),
     paymentMethod: row.payment_method,
     paymentStatus: row.payment_status,
     paidAt: row.paid_at,
@@ -151,9 +165,9 @@ export async function findManyEventBookings(options: {
  * Find unique event booking
  */
 export async function findUniqueEventBooking(
-  where: { id?: string; bookingNumber?: string }
+  where: { id?: string; bookingNumber?: string; confirmationToken?: string; paymentReference?: string; paymentGatewayOrderId?: number }
 ): Promise<Record<string, unknown> | null> {
-  await ensureEventBookingsDiscountColumn();
+  await ensureEventBookingsWorkflowColumns();
 
   const conditions: string[] = [];
   const values: unknown[] = [];
@@ -166,6 +180,18 @@ export async function findUniqueEventBooking(
   if (where.bookingNumber) {
     conditions.push(`e.booking_number = $${paramIndex++}`);
     values.push(where.bookingNumber);
+  }
+  if (where.confirmationToken) {
+    conditions.push(`e.confirmation_token = $${paramIndex++}`);
+    values.push(where.confirmationToken);
+  }
+  if (where.paymentReference) {
+    conditions.push(`e.payment_reference = $${paramIndex++}`);
+    values.push(where.paymentReference);
+  }
+  if (where.paymentGatewayOrderId !== undefined) {
+    conditions.push(`e.payment_gateway_order_id = $${paramIndex++}`);
+    values.push(where.paymentGatewayOrderId);
   }
 
   if (conditions.length === 0) return null;
@@ -203,10 +229,15 @@ export async function findUniqueEventBooking(
     status: row.status,
     clientConfirmed: row.client_confirmed,
     clientConfirmedAt: row.client_confirmed_at,
+    confirmationToken: row.confirmation_token,
+    confirmationTokenExpiresAt: row.confirmation_token_expires_at,
     digitalSignature: row.digital_signature,
     agreementAccepted: row.agreement_accepted,
     totalAmount: row.total_amount ? parseFloat(row.total_amount) : null,
     currency: row.currency,
+    paymentGateway: row.payment_gateway,
+    paymentReference: row.payment_reference,
+    paymentGatewayOrderId: row.payment_gateway_order_id == null ? null : Number(row.payment_gateway_order_id),
     paymentMethod: row.payment_method,
     paymentStatus: row.payment_status,
     paidAt: row.paid_at,
@@ -244,7 +275,7 @@ export async function createEventBooking(data: {
   discountAmount?: number;
   totalAmount?: number;
 }): Promise<Record<string, unknown>> {
-  await ensureEventBookingsDiscountColumn();
+  await ensureEventBookingsWorkflowColumns();
 
   const id = generateUUID();
   const now = new Date();
@@ -324,9 +355,14 @@ export async function updateEventBooking(
     discountAmount: number;
     clientConfirmed: boolean;
     clientConfirmedAt: Date;
+    confirmationToken: string | null;
+    confirmationTokenExpiresAt: Date | null;
     digitalSignature: string;
     agreementAccepted: boolean;
     totalAmount: number;
+    paymentGateway: string | null;
+    paymentReference: string | null;
+    paymentGatewayOrderId: number | null;
     paymentMethod: string;
     paymentStatus: PaymentStatus;
     paidAt: Date;
@@ -355,9 +391,14 @@ export async function updateEventBooking(
     discountAmount: 'discount_amount',
     clientConfirmed: 'client_confirmed',
     clientConfirmedAt: 'client_confirmed_at',
+    confirmationToken: 'confirmation_token',
+    confirmationTokenExpiresAt: 'confirmation_token_expires_at',
     digitalSignature: 'digital_signature',
     agreementAccepted: 'agreement_accepted',
     totalAmount: 'total_amount',
+    paymentGateway: 'payment_gateway',
+    paymentReference: 'payment_reference',
+    paymentGatewayOrderId: 'payment_gateway_order_id',
     paymentMethod: 'payment_method',
     paymentStatus: 'payment_status',
     paidAt: 'paid_at',
@@ -395,7 +436,7 @@ export async function updateEventBooking(
  * Delete event booking
  */
 export async function deleteEventBooking(id: string): Promise<boolean> {
-  await ensureEventBookingsDiscountColumn();
+  await ensureEventBookingsWorkflowColumns();
 
   const result = await query(`DELETE FROM event_bookings WHERE id = $1`, [id]);
   return (result.rowCount ?? 0) > 0;
@@ -405,7 +446,7 @@ export async function deleteEventBooking(id: string): Promise<boolean> {
  * Count event bookings
  */
 export async function countEventBookings(): Promise<number> {
-  await ensureEventBookingsDiscountColumn();
+  await ensureEventBookingsWorkflowColumns();
 
   const result = await query(`SELECT COUNT(*)::int as count FROM event_bookings`);
   return result.rows[0]?.count ?? 0;

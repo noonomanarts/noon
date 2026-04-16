@@ -8,6 +8,11 @@ import {
   updateEventBooking,
 } from '@/lib/db/events';
 import { query } from '@/lib/db/pool';
+import {
+  EVENT_BOOKING_CONFIRMATION_TOKEN_TTL_MS,
+  generateEventBookingConfirmationToken,
+  sendEventBookingCompletionRequest,
+} from '@/lib/eventBookingWorkflow';
 import { notifyPhotographerDashboardUsers } from '@/lib/photographerNotifications';
 import {
   addMinutes,
@@ -82,6 +87,18 @@ export async function PUT(request: NextRequest, props: Params) {
     const body = await request.json();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { bookingNumber: _, ...updateData } = body;
+
+    const existingEvent = await findUniqueEventBooking({ id: params.eventId });
+    if (!existingEvent) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    }
+
+    let confirmationToken: string | null = null;
+    if (updateData.status === 'PENDING_CLIENT_CONFIRMATION') {
+      confirmationToken = generateEventBookingConfirmationToken();
+      updateData.confirmationToken = confirmationToken;
+      updateData.confirmationTokenExpiresAt = new Date(Date.now() + EVENT_BOOKING_CONFIRMATION_TOKEN_TTL_MS);
+    }
 
     const updatedEvent = await updateEventBooking(params.eventId, updateData);
 
@@ -214,6 +231,16 @@ export async function PUT(request: NextRequest, props: Params) {
         `DELETE FROM calendar_events WHERE event_booking_id = $1`,
         [params.eventId]
       );
+    }
+
+    if (updateData.status === 'PENDING_CLIENT_CONFIRMATION' && confirmationToken) {
+      void sendEventBookingCompletionRequest({
+        event: updatedEvent,
+        token: confirmationToken,
+        origin: request.nextUrl.origin,
+      }).catch((notificationError) => {
+        console.error('Failed to send event completion request:', notificationError);
+      });
     }
 
     // Notify photographer when event is confirmed

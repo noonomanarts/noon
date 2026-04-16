@@ -87,7 +87,7 @@ export default function AdminEventsPage() {
     delete: isAr ? "حذف" : "Delete",
     confirmDelete: isAr ? "هل أنت متأكد من حذف هذه الفعالية؟" : "Are you sure you want to delete this event?",
     notSet: isAr ? "غير محدد" : "Not set",
-    approve: isAr ? "اعتماد الوقت" : "Approve time",
+    approve: isAr ? "إرسال رابط الإكمال" : "Send completion link",
   };
 
   const fetchEvents = useCallback(async () => {
@@ -137,7 +137,7 @@ export default function AdminEventsPage() {
         const response = await fetch(`/api/admin/events/${eventId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "CLIENT_CONFIRMED" }),
+          body: JSON.stringify({ status: "PENDING_CLIENT_CONFIRMATION" }),
         });
         if (response.ok) {
           fetchEvents();
@@ -365,7 +365,7 @@ export default function AdminEventsPage() {
                           >
                             <MdEdit className="h-5 w-5" />
                           </button>
-                          {event.status !== "CLIENT_CONFIRMED" && event.status !== "CANCELLED" ? (
+                          {event.status !== "CLIENT_CONFIRMED" && event.status !== "PENDING_CLIENT_CONFIRMATION" && event.status !== "CANCELLED" ? (
                             <button
                               onClick={() => handleApprove(event.id)}
                               className="rounded-lg p-2 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300"

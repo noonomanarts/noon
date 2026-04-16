@@ -75,10 +75,10 @@ export default function PrivateClassBookingPage() {
     numberOfParticipants: locale === 'ar' ? 'عدد المشاركين' : 'Number of Participants',
     specialRequests: locale === 'ar' ? 'طلبات خاصة' : 'Special Requests',
     
-    confirmationTitle: locale === 'ar' ? 'شكراً لطلبك!' : 'Thank You!',
+    confirmationTitle: locale === 'ar' ? 'شكراً لطلبك!' : 'Thank you for your request!',
     confirmationMessage: locale === 'ar'
-      ? 'تم استلام طلبك وحجز الوقت مبدئياً. سيقوم فريقنا بمراجعة الطلب وتأكيد الموعد معك قريباً.'
-      : 'Your request was received and the slot is held temporarily. Our team will review it and confirm the schedule with you shortly.',
+      ? 'سيقوم فريقنا بمراجعة التفاصيل والتواصل معك قريباً لتأكيد التوفر وإتمام الحجز.'
+      : 'Our team will review the details and contact you shortly to confirm availability and finalize your booking.',
     backToHome: locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home',
     selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
     dateRequired: locale === 'ar' ? 'يرجى اختيار التاريخ.' : 'Please select a date.',

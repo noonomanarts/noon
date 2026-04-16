@@ -1,8 +1,9 @@
 "use client";
 
-import { use, useEffect, useMemo, useState, useTransition } from "react";
+import { use, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import EventSettlementPanel from '@/components/admin/EventSettlementPanel';
 import {
   MdArrowBack,
   MdCheckCircle,
@@ -138,10 +139,11 @@ export default function AdminEventDetailsPage({
     reserveNote: isAr
       ? "هذا الوقت محجوز مؤقتاً من التقويم العام ولن يظهر كوقت متاح حتى تعتمدوه أو تُلغوه."
       : "This slot is temporarily held out of public availability until you approve it or cancel the request.",
-    approveSlot: isAr ? "تأكيد الوقت في التقويم" : "Approve selected time",
+    approveSlot: isAr ? "إرسال رابط إكمال الحجز" : "Send completion link",
     markReviewing: isAr ? "وضعه قيد المراجعة" : "Mark reviewing",
     slotApproved: isAr ? "الوقت معتمد" : "Time approved",
     slotPending: isAr ? "بانتظار اعتماد الإدارة" : "Awaiting admin approval",
+    linkSent: isAr ? "تم إرسال رابط الإكمال" : "Completion link sent",
   };
 
   const localeCode = isAr ? "ar-OM-u-nu-latn" : "en-OM";
@@ -165,6 +167,23 @@ export default function AdminEventDetailsPage({
         : t.notSet,
     [localeCode, t.notSet]
   );
+
+  const reloadEvent = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/admin/events/${eventId}`);
+      if (!response.ok) {
+        throw new Error(isAr ? "تعذر تحميل بيانات الحجز" : "Failed to load event booking");
+      }
+      const payload = (await response.json()) as EventDetails;
+      setEvent(payload);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : isAr ? "حدث خطأ غير متوقع" : "Unexpected error");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [eventId, isAr]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -392,6 +411,11 @@ export default function AdminEventDetailsPage({
                   <MdCheckCircle className="h-4 w-4" />
                   {t.slotApproved}
                 </span>
+              ) : event.status === "PENDING_CLIENT_CONFIRMATION" ? (
+                <span className="inline-flex items-center gap-2 rounded-xl bg-sky-100 px-3 py-2 text-sm font-semibold text-sky-800 dark:bg-sky-900/30 dark:text-sky-300">
+                  <MdScheduleSend className="h-4 w-4" />
+                  {t.linkSent}
+                </span>
               ) : (
                 <>
                   <button
@@ -405,7 +429,7 @@ export default function AdminEventDetailsPage({
                   </button>
                   <button
                     type="button"
-                    onClick={() => updateStatus("CLIENT_CONFIRMED")}
+                    onClick={() => updateStatus("PENDING_CLIENT_CONFIRMATION")}
                     disabled={isPending}
                     className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                   >
@@ -427,6 +451,8 @@ export default function AdminEventDetailsPage({
           <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.slotPending}</p>
         )}
       </section>
+
+      <EventSettlementPanel eventId={event.id} locale={locale} eventStatus={event.status} onClosed={reloadEvent} />
     </div>
   );
 }

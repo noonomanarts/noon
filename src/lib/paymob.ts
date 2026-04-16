@@ -1,5 +1,10 @@
-import type { UserPublic } from '@/lib/db/types';
 import { normalizePhoneDigits } from '@/lib/db/users';
+
+type BillingContact = {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+};
 
 type PaymobAuthResponse = {
   token: string;
@@ -191,9 +196,9 @@ function splitName(fullName: string): { firstName: string; lastName: string } {
   };
 }
 
-function buildBillingData(user: UserPublic) {
-  const { firstName, lastName } = splitName(user.fullName || '');
-  const normalizedPhone = normalizePhoneDigits(user.phoneNumber || '');
+function buildBillingData(contact: BillingContact) {
+  const { firstName, lastName } = splitName(contact.fullName || '');
+  const normalizedPhone = normalizePhoneDigits(contact.phoneNumber || '');
 
   return {
     apartment: '',
@@ -207,7 +212,7 @@ function buildBillingData(user: UserPublic) {
     city: 'Muscat',
     country: 'OMN',
     state: 'Muscat',
-    email: user.email || 'paymob@noonomanarts.com',
+    email: contact.email || 'paymob@noonomanarts.com',
     postal_code: '',
   };
 }
@@ -216,7 +221,7 @@ export async function createPaymobWalletTopupIntention(input: {
   amount: number;
   currency: string;
   reference: string;
-  user: UserPublic;
+  user: BillingContact;
   returnUrl: string;
   locale: string;
 }) {
@@ -232,6 +237,53 @@ export async function createPaymobWalletTopupIntention(input: {
       extras: {
         merchant_intention_id: input.reference,
         wallet_topup_reference: input.reference,
+        return_url: input.returnUrl,
+        locale: input.locale,
+      },
+      special_reference: input.reference,
+    }),
+  });
+
+  if (!response.client_secret) {
+    throw new Error('Paymob client secret is missing');
+  }
+
+  const checkoutUrl = new URL('unifiedcheckout/', getPaymobBaseUrl());
+  checkoutUrl.searchParams.set('publicKey', publicKey);
+  checkoutUrl.searchParams.set('clientSecret', response.client_secret);
+
+  return {
+    intentionId: response.id,
+    orderId: response.intention_order_id,
+    clientSecret: response.client_secret,
+    paymentMethodIds,
+    paymentUrl: checkoutUrl.toString(),
+    raw: response,
+  };
+}
+
+export async function createPaymobEventBookingIntention(input: {
+  amount: number;
+  currency: string;
+  reference: string;
+  customer: BillingContact;
+  returnUrl: string;
+  locale: string;
+  bookingNumber: string;
+}) {
+  const paymentMethodIds = await getPaymobPaymentMethodIds(input.currency);
+  const publicKey = getRequiredEnv('PAYMOB_PUBLIC_KEY');
+  const response = await paymobFetch<PaymobCreateIntentionResponse>('v1/intention/', {
+    method: 'POST',
+    body: JSON.stringify({
+      amount: amountToMinorUnits(input.amount, input.currency),
+      currency: input.currency.toUpperCase(),
+      payment_methods: paymentMethodIds,
+      billing_data: buildBillingData(input.customer),
+      extras: {
+        merchant_intention_id: input.reference,
+        event_booking_reference: input.reference,
+        booking_number: input.bookingNumber,
         return_url: input.returnUrl,
         locale: input.locale,
       },

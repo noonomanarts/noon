@@ -196,15 +196,46 @@ CREATE TABLE event_bookings (
   status event_status NOT NULL DEFAULT 'NEW',
   client_confirmed BOOLEAN NOT NULL DEFAULT false,
   client_confirmed_at TIMESTAMP WITH TIME ZONE,
+  confirmation_token VARCHAR(120) UNIQUE,
+  confirmation_token_expires_at TIMESTAMP WITH TIME ZONE,
   digital_signature TEXT,
   agreement_accepted BOOLEAN NOT NULL DEFAULT false,
   total_amount DECIMAL(10, 3),
   currency VARCHAR(10) NOT NULL DEFAULT 'OMR',
+  payment_gateway VARCHAR(50),
+  payment_reference VARCHAR(120),
+  payment_gateway_order_id BIGINT,
   payment_method payment_method,
   payment_status payment_status NOT NULL DEFAULT 'PENDING',
   paid_at TIMESTAMP WITH TIME ZONE,
   payment_proof VARCHAR(500),
   admin_notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE event_expense_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_booking_id UUID NOT NULL REFERENCES event_bookings(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  amount DECIMAL(10, 3) NOT NULL DEFAULT 0 CHECK (amount >= 0),
+  notes TEXT,
+  created_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE event_settlements (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_booking_id UUID NOT NULL UNIQUE REFERENCES event_bookings(id) ON DELETE CASCADE,
+  status VARCHAR(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'CLOSED')),
+  gross_revenue DECIMAL(10, 3) NOT NULL DEFAULT 0,
+  materials_cost_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+  total_costs_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+  net_profit_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
+  notes TEXT,
+  settled_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  settled_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
