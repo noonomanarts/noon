@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import { getPaymentMethodLabel } from '@/lib/paymentMethod';
 
 type WalletPayload = {
   balance: number;
@@ -162,12 +163,7 @@ export function OrderPaymentCard({
           ? t.failed
           : t.pending;
 
-  const paymentMethodLabel =
-    currentPaymentMethod === 'WALLET'
-      ? t.wallet
-      : currentPaymentMethod
-        ? currentPaymentMethod
-        : t.notSet;
+  const paymentMethodLabel = getPaymentMethodLabel(currentPaymentMethod, locale);
 
   const loadWallet = useCallback(async () => {
     if (!canPayEventOrder) {

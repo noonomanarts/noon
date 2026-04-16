@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import type { Booking, EventBooking, ShopOrder, ShopOrderItem } from '@/lib/db/types';
 import { formatPlainNumber } from '@/lib/formatNumber';
+import { getPaymentMethodLabel } from '@/lib/paymentMethod';
 
 interface OrdersSectionProps {
   bookings: Booking[];
@@ -91,11 +92,7 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
   };
 
   const getPaymentMethodText = (method: string | null | undefined) => {
-    if (method === 'WALLET') {
-      return isArabic ? 'المحفظة' : 'Wallet';
-    }
-
-    return method || (isArabic ? 'غير محدد' : 'Not set');
+    return getPaymentMethodLabel(method, locale);
   };
 
   return (

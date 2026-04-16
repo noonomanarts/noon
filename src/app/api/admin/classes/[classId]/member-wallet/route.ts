@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { pool } from '@/lib/db/pool';
+import type { PaymentMethod } from '@/lib/db/types';
 import { getUserById } from '@/lib/db/users';
 import { adminAddWalletCredit, adminDeductWalletCredit, addBonusPoints } from '@/lib/db/wallet';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
@@ -9,6 +10,7 @@ type ActionType = 'TOPUP' | 'DEDUCT' | 'ENROLL_AND_DEDUCT';
 
 type Payload = {
   action?: ActionType;
+  paymentMethod?: PaymentMethod;
   userId?: string;
   amount?: number;
   description?: string;
@@ -30,6 +32,14 @@ class ApiError extends Error {
 function normalizeText(value: unknown, maxLength: number): string {
   if (typeof value !== 'string') return '';
   return value.trim().slice(0, maxLength);
+}
+
+function normalizePaymentMethod(value: unknown): PaymentMethod {
+  if (value === 'CASH' || value === 'ONLINE' || value === 'BANK_TRANSFER' || value === 'WALLET') {
+    return value;
+  }
+
+  return 'WALLET';
 }
 
 function generateBookingNumber(): string {
@@ -65,6 +75,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
     const body = (await request.json().catch(() => ({}))) as Payload;
 
     const action = body.action;
+  const paymentMethod = normalizePaymentMethod(body.paymentMethod);
     const userId = normalizeText(body.userId, 64);
     const amount = Number(body.amount);
 
@@ -194,51 +205,56 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
         throw new ApiError('This user is already enrolled in this class', 409);
       }
 
-      let walletResult = await client.query(
-        `SELECT id, balance, available_balance, currency
-         FROM wallets
-         WHERE user_id = $1
-         FOR UPDATE`,
-        [userId]
-      );
+      let newBalance: number | null = null;
+      let newAvailable: number | null = null;
 
-      if (walletResult.rows.length === 0) {
-        walletResult = await client.query(
-          `INSERT INTO wallets (user_id, balance, available_balance, currency)
-           VALUES ($1, 0, 0, $2)
-           RETURNING id, balance, available_balance, currency`,
-          [userId, classCurrency]
+      if (paymentMethod === 'WALLET') {
+        let walletResult = await client.query(
+          `SELECT id, balance, available_balance, currency
+           FROM wallets
+           WHERE user_id = $1
+           FOR UPDATE`,
+          [userId]
+        );
+
+        if (walletResult.rows.length === 0) {
+          walletResult = await client.query(
+            `INSERT INTO wallets (user_id, balance, available_balance, currency)
+             VALUES ($1, 0, 0, $2)
+             RETURNING id, balance, available_balance, currency`,
+            [userId, classCurrency]
+          );
+        }
+
+        const wallet = walletResult.rows[0];
+        const walletBalance = Number(wallet.balance ?? 0);
+        const walletAvailable = Number(wallet.available_balance ?? wallet.balance ?? 0);
+        const walletCurrency = String(wallet.currency || classCurrency);
+
+        if (walletCurrency !== classCurrency) {
+          throw new ApiError('Wallet currency does not match class currency', 409);
+        }
+
+        if (walletBalance < amount) {
+          throw new ApiError('Insufficient wallet balance', 409);
+        }
+
+        newBalance = Number((walletBalance - amount).toFixed(3));
+        newAvailable = Number(Math.min(walletAvailable, newBalance).toFixed(3));
+
+        await client.query(
+          `INSERT INTO wallet_transactions (wallet_id, amount, type, reason, status)
+           VALUES ($1, $2, 'CLASS_BOOKING', $3, 'COMPLETED')`,
+          [wallet.id, -amount, `Admin class enrollment payment - ${String(classRow.title)}`]
+        );
+
+        await client.query(
+          `UPDATE wallets
+           SET balance = $1, available_balance = $2, updated_at = NOW()
+           WHERE id = $3`,
+          [newBalance, newAvailable, wallet.id]
         );
       }
-
-      const wallet = walletResult.rows[0];
-      const walletBalance = Number(wallet.balance ?? 0);
-      const walletAvailable = Number(wallet.available_balance ?? wallet.balance ?? 0);
-      const walletCurrency = String(wallet.currency || classCurrency);
-
-      if (walletCurrency !== classCurrency) {
-        throw new ApiError('Wallet currency does not match class currency', 409);
-      }
-
-      if (walletBalance < amount) {
-        throw new ApiError('Insufficient wallet balance', 409);
-      }
-
-      const newBalance = Number((walletBalance - amount).toFixed(3));
-      const newAvailable = Number(Math.min(walletAvailable, newBalance).toFixed(3));
-
-      await client.query(
-        `INSERT INTO wallet_transactions (wallet_id, amount, type, reason, status)
-         VALUES ($1, $2, 'CLASS_BOOKING', $3, 'COMPLETED')`,
-        [wallet.id, -amount, `Admin class enrollment payment - ${String(classRow.title)}`]
-      );
-
-      await client.query(
-        `UPDATE wallets
-         SET balance = $1, available_balance = $2, updated_at = NOW()
-         WHERE id = $3`,
-        [newBalance, newAvailable, wallet.id]
-      );
 
       const participants = [
         {
@@ -258,8 +274,8 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
                terms_accepted, terms_accepted_at, special_requests, created_at, updated_at
              ) VALUES (
                $1, $2, $3, $4::jsonb, 1,
-               $5, $6, 'CONFIRMED', 'WALLET', 'PAID', NOW(),
-               TRUE, NOW(), $7, NOW(), NOW()
+               $5, $6, 'CONFIRMED', $7, 'PAID', NOW(),
+               TRUE, NOW(), $8, NOW(), NOW()
              )
              RETURNING id, booking_number`,
             [
@@ -269,6 +285,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
               JSON.stringify(participants),
               amount,
               classCurrency,
+              paymentMethod,
               specialRequests,
             ]
           );
@@ -317,6 +334,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
           bookingNumber: bookingRow?.booking_number ?? null,
           amount,
           currency: classCurrency,
+          paymentMethod,
         },
         wallet: {
           balance: newBalance,

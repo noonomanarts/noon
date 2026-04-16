@@ -6,6 +6,7 @@ import { getBookingByIdForUser } from '@/lib/db/classes';
 import { getEventBookingByIdForUser } from '@/lib/db/events';
 import { getShopOrderByIdForUser } from '@/lib/db/shop';
 import { formatPlainNumber } from '@/lib/formatNumber';
+import { getPaymentMethodLabel } from '@/lib/paymentMethod';
 import { OrderPaymentCard } from '@/components/site/OrderPaymentCard';
 
 type ClassBookingDetails = {
@@ -216,7 +217,7 @@ export default async function AccountOrderDetailsPage({
             </div>
             <div className="rounded-2xl bg-[color:var(--muted)] p-4 text-sm">
               <p className="text-[color:var(--text-subtle)]">{t.payment}</p>
-              <p className="mt-1 font-semibold text-[color:var(--text)]">{classBooking.payment_status} {classBooking.payment_method ? `• ${classBooking.payment_method}` : ''}</p>
+              <p className="mt-1 font-semibold text-[color:var(--text)]">{classBooking.payment_status} {classBooking.payment_method ? `• ${getPaymentMethodLabel(classBooking.payment_method, locale)}` : ''}</p>
             </div>
           </div>
 
@@ -307,7 +308,7 @@ export default async function AccountOrderDetailsPage({
             </div>
             <div className="rounded-2xl bg-[color:var(--muted)] p-4 text-sm">
               <p className="text-[color:var(--text-subtle)]">{t.payment}</p>
-              <p className="mt-1 font-semibold text-[color:var(--text)]">{eventBooking.payment_status} {eventBooking.payment_method ? `• ${eventBooking.payment_method}` : ''}</p>
+              <p className="mt-1 font-semibold text-[color:var(--text)]">{eventBooking.payment_status} {eventBooking.payment_method ? `• ${getPaymentMethodLabel(eventBooking.payment_method, locale)}` : ''}</p>
             </div>
           </div>
 

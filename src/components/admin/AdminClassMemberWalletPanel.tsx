@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { getPaymentMethodLabel } from '@/lib/paymentMethod';
 
 type AdminUser = {
   id: string;
@@ -12,6 +13,7 @@ type AdminUser = {
 };
 
 type ActionKind = 'TOPUP' | 'DEDUCT' | 'ENROLL_AND_DEDUCT';
+type EnrollmentPaymentMethod = 'WALLET' | 'CASH' | 'ONLINE' | 'BANK_TRANSFER';
 
 export default function AdminClassMemberWalletPanel({
   classId,
@@ -37,6 +39,7 @@ export default function AdminClassMemberWalletPanel({
   const [query, setQuery] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
   const [action, setAction] = useState<ActionKind>('ENROLL_AND_DEDUCT');
+  const [paymentMethod, setPaymentMethod] = useState<EnrollmentPaymentMethod>('WALLET');
   const [amount, setAmount] = useState(String(classPrice || 0));
   const [description, setDescription] = useState('');
   const [participantName, setParticipantName] = useState('');
@@ -126,6 +129,7 @@ export default function AdminClassMemberWalletPanel({
     classSeats: isArabic ? 'المقاعد المتاحة' : 'Available seats',
     classPrice: isArabic ? 'سعر الكلاس' : 'Class price',
     action: isArabic ? 'العملية' : 'Action',
+    paymentMethod: isArabic ? 'طريقة الدفع' : 'Payment option',
     topup: isArabic ? 'شحن محفظة العميل' : 'Top-up customer wallet',
     deduct: isArabic ? 'خصم من المحفظة' : 'Deduct from wallet',
     enrollDeduct: isArabic ? 'تسجيل بالكلاس + خصم' : 'Enroll in class + deduct',
@@ -165,6 +169,7 @@ export default function AdminClassMemberWalletPanel({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action,
+          paymentMethod,
           userId: selectedUserId,
           amount: Number(amount),
           description,
@@ -264,6 +269,7 @@ export default function AdminClassMemberWalletPanel({
               if (next === 'ENROLL_AND_DEDUCT') {
                 setAmount(String(classPrice || 0));
                 setDescription(`Class payment: ${classTitle}`);
+                setPaymentMethod('WALLET');
               }
             }}
             className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
@@ -273,6 +279,22 @@ export default function AdminClassMemberWalletPanel({
             <option value="DEDUCT">{t.deduct}</option>
           </select>
         </label>
+
+        {action === 'ENROLL_AND_DEDUCT' ? (
+          <label className="space-y-1 text-sm">
+            <span className="text-zinc-600 dark:text-zinc-300">{t.paymentMethod}</span>
+            <select
+              value={paymentMethod}
+              onChange={(event) => setPaymentMethod(event.target.value as EnrollmentPaymentMethod)}
+              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+            >
+              <option value="WALLET">{getPaymentMethodLabel('WALLET', locale)}</option>
+              <option value="CASH">{getPaymentMethodLabel('CASH', locale)}</option>
+              <option value="ONLINE">{getPaymentMethodLabel('ONLINE', locale)}</option>
+              <option value="BANK_TRANSFER">{getPaymentMethodLabel('BANK_TRANSFER', locale)}</option>
+            </select>
+          </label>
+        ) : null}
 
         <label className="space-y-1 text-sm">
           <span className="text-zinc-600 dark:text-zinc-300">{t.amount} ({currency})</span>
