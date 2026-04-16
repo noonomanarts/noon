@@ -13,8 +13,6 @@ import BookingFormError from '@/components/site/BookingFormError';
 import PublicEventAvailabilityPicker from '@/components/site/PublicEventAvailabilityPicker';
 import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
 import {
-  PREMIUM_COMPETITION_PRICE_TIERS,
-  STANDARD_COMPETITION_PRICE_TIERS,
   getPremiumCompetitionPricePerPerson,
   getPremiumCompetitionTotal,
   getStandardCompetitionPricePerPerson,
@@ -213,9 +211,6 @@ export default function CookingCompetitionBookingPage() {
     baseAmount: locale === 'ar' ? 'المبلغ الأساسي' : 'Base Amount',
     giftsAmount: locale === 'ar' ? 'قيمة الهدايا' : 'Gifts Amount',
     estimatedTotal: locale === 'ar' ? 'الإجمالي التقديري' : 'Estimated Total',
-    priceTableTitle: locale === 'ar' ? 'جدول التسعير حسب الباقة' : 'Package Pricing Table',
-    range: locale === 'ar' ? 'العدد' : 'Range',
-    pricePerPerson: locale === 'ar' ? 'السعر/فرد' : 'Price/person',
     participantsCarryHint: locale === 'ar'
       ? 'هذه القيمة مأخوذة من الحاسبة ويمكن تعديلها.'
       : 'This value comes from the calculator and can be edited.',
@@ -704,43 +699,6 @@ export default function CookingCompetitionBookingPage() {
                 </div>
               </div>
 
-              <div className="mt-5 overflow-hidden rounded-xl border border-[color:var(--border)] dark:border-zinc-700">
-                <table className="w-full text-sm">
-                  <thead className="bg-[color:var(--muted)]/70">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.range}</th>
-                      <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.pricePerPerson}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(bookingData.packageType === 'PREMIUM'
-                      ? PREMIUM_COMPETITION_PRICE_TIERS
-                      : STANDARD_COMPETITION_PRICE_TIERS).map((tier) => {
-                      const withinMaxParticipants =
-                        tier.maxParticipants === null || participantsCount <= tier.maxParticipants;
-                      const isActive =
-                        hasValidParticipants &&
-                        tier.pricePerPerson === packageRate &&
-                        participantsCount >= tier.minParticipants &&
-                        withinMaxParticipants;
-                      return (
-                        <tr
-                          key={`${tier.minParticipants}-${tier.maxParticipants}`}
-                          className={`border-t border-[color:var(--border)] dark:border-zinc-700 ${
-                            isActive ? 'bg-teal/10' : ''
-                          }`}
-                        >
-                          <td className="px-4 py-2.5 text-[color:var(--text-muted)]">
-                            {tier.minParticipants}-{tier.maxParticipants}
-                          </td>
-                          <td className="px-4 py-2.5 font-semibold text-[color:var(--text)]">{formatMoney(tier.pricePerPerson)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-3 text-xs text-[color:var(--text-subtle)]">{t.priceTableTitle}</p>
             </div>
 
             {/* Package Summary */}
