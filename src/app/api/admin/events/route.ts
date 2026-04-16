@@ -3,6 +3,13 @@ import { findManyEventBookings, createEventBooking } from '@/lib/db/events';
 import { getUserByEmail, getUserById } from '@/lib/db/users';
 import { isValidEmail, isValidPhone } from '@/lib/forms/eventBooking';
 import { resolveEventGiftSelections } from '@/lib/eventGiftAddOns';
+import {
+  getBirthdayPartyTotal,
+  getPremiumCompetitionTotal,
+  getPrivateArtsCraftsClassTotal,
+  getPrivateCookingClassTotal,
+  getStandardCompetitionTotal,
+} from '@/lib/competitionPricing';
 
 const EVENT_TYPES = new Set(['COOKING_COMPETITION', 'PRIVATE_CLASS', 'BIRTHDAY_PARTY']);
 const EVENT_STATUSES = new Set([
@@ -15,6 +22,7 @@ const EVENT_STATUSES = new Set([
   'CANCELLED',
 ]);
 const PACKAGE_TYPES = new Set(['STANDARD', 'PREMIUM']);
+const PRIVATE_CLASS_TYPES = new Set(['cooking', 'arts-crafts']);
 const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 function parseSafeString(value: unknown, maxLength = 255): string {
@@ -30,16 +38,24 @@ function parseParticipantCount(value: unknown): number {
 function validateParticipantsByEvent(
   eventType: string,
   participants: number,
-  packageType?: 'STANDARD' | 'PREMIUM'
+  packageType?: 'STANDARD' | 'PREMIUM',
+  privateClassType?: string
 ): boolean {
   if (!Number.isInteger(participants)) return false;
   if (eventType === 'COOKING_COMPETITION') {
     const minParticipants = packageType === 'PREMIUM' ? 6 : 8;
     return participants >= minParticipants && participants <= 40;
   }
-  if (eventType === 'PRIVATE_CLASS') return participants >= 6 && participants <= 32;
+  if (eventType === 'PRIVATE_CLASS') {
+    if (privateClassType === 'arts-crafts') return participants >= 6;
+    return participants >= 6 && participants <= 32;
+  }
   if (eventType === 'BIRTHDAY_PARTY') return participants >= 1 && participants <= 40;
   return false;
+}
+
+function toMoney(value: number): number {
+  return Number(value.toFixed(3));
 }
 
 // GET: List all event bookings
@@ -113,6 +129,7 @@ export async function POST(request: NextRequest) {
     const selectedDateRaw = parseSafeString(row.selectedDate, 20);
     const selectedTime = parseSafeString(row.selectedTime, 10);
     const packageTypeRaw = parseSafeString(row.packageType, 40);
+    const classTypeRaw = parseSafeString(row.classType, 40);
     const fullName = parseSafeString(row.fullName, 255);
     const email = parseSafeString(row.email, 255).toLowerCase();
     const phoneNumber = parseSafeString(row.phoneNumber, 50);
@@ -121,7 +138,8 @@ export async function POST(request: NextRequest) {
     const specialRequests = parseSafeString(row.specialRequests, 3000) || undefined;
     const numberOfParticipants = parseParticipantCount(row.numberOfParticipants);
     const numberOfGroupsRaw = parseParticipantCount(row.numberOfGroups);
-    const totalAmountRaw = row.totalAmount;
+    const childAge = parseParticipantCount(row.childAge);
+    const discountAmountRaw = row.discountAmount;
 
     if (!eventType || !selectedDateRaw || !selectedTime || !fullName || !email || !phoneNumber) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -156,9 +174,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid package type' }, { status: 400 });
     }
 
-    if (!validateParticipantsByEvent(eventType, numberOfParticipants, packageType)) {
+    if (eventType === 'PRIVATE_CLASS' && classTypeRaw && !PRIVATE_CLASS_TYPES.has(classTypeRaw)) {
+      return NextResponse.json({ error: 'Invalid private class type' }, { status: 400 });
+    }
+
+    if (!validateParticipantsByEvent(eventType, numberOfParticipants, packageType, classTypeRaw)) {
       return NextResponse.json(
         { error: 'Invalid number of participants for this event type' },
+        { status: 400 }
+      );
+    }
+
+    if (eventType === 'BIRTHDAY_PARTY' && (!Number.isInteger(childAge) || childAge < 10)) {
+      return NextResponse.json(
+        { error: 'Birthday party age is required and minimum age is 10' },
         { status: 400 }
       );
     }
@@ -184,16 +213,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid number of groups' }, { status: 400 });
     }
 
-    const totalAmount = totalAmountRaw === undefined || totalAmountRaw === null || totalAmountRaw === ''
-      ? undefined
-      : Number(totalAmountRaw);
-    if (totalAmount !== undefined && (!Number.isFinite(totalAmount) || totalAmount < 0)) {
-      return NextResponse.json({ error: 'Invalid total amount' }, { status: 400 });
+    const discountAmount =
+      discountAmountRaw === undefined || discountAmountRaw === null || discountAmountRaw === ''
+        ? 0
+        : Number(discountAmountRaw);
+    if (!Number.isFinite(discountAmount) || discountAmount < 0) {
+      return NextResponse.json({ error: 'Invalid discount amount' }, { status: 400 });
     }
 
     let resolvedUserId: string | undefined;
     if (userId) {
-      const user = await getUserById(userId);
+      const user = (await getUserById(userId)) ?? (userId.includes('@') ? await getUserByEmail(userId) : null);
       if (!user) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
@@ -204,6 +234,41 @@ export async function POST(request: NextRequest) {
         resolvedUserId = existingUser.id;
       }
     }
+
+    const giftsTotal = gifts.estimatedTotal;
+    let calculatedBaseAmount: number | undefined;
+    if (eventType === 'COOKING_COMPETITION') {
+      calculatedBaseAmount = packageType === 'PREMIUM'
+        ? getPremiumCompetitionTotal(numberOfParticipants) ?? undefined
+        : getStandardCompetitionTotal(numberOfParticipants) ?? undefined;
+    } else if (eventType === 'PRIVATE_CLASS' && classTypeRaw === 'arts-crafts') {
+      calculatedBaseAmount = getPrivateArtsCraftsClassTotal(numberOfParticipants) ?? undefined;
+    } else if (eventType === 'PRIVATE_CLASS') {
+      calculatedBaseAmount = getPrivateCookingClassTotal(numberOfParticipants) ?? undefined;
+    } else if (eventType === 'BIRTHDAY_PARTY') {
+      calculatedBaseAmount = getBirthdayPartyTotal(numberOfParticipants) ?? undefined;
+    }
+
+    const subtotalAmount = toMoney((calculatedBaseAmount ?? 0) + giftsTotal);
+    const totalAmount = toMoney(Math.max(0, subtotalAmount - discountAmount));
+
+    const metadataParts: string[] = [];
+    if (eventType === 'PRIVATE_CLASS' && PRIVATE_CLASS_TYPES.has(classTypeRaw)) {
+      metadataParts.push(`Private class type: ${classTypeRaw}`);
+      if (classTypeRaw === 'arts-crafts' && numberOfParticipants > 12) {
+        metadataParts.push('External venue may be required; rental cost may be added later');
+      }
+    }
+    if (eventType === 'BIRTHDAY_PARTY') {
+      metadataParts.push(`Child age: ${childAge}`);
+    }
+    if (discountAmount > 0) {
+      metadataParts.push(`Discount amount: ${toMoney(discountAmount)}`);
+      metadataParts.push(`Subtotal before discount: ${subtotalAmount}`);
+    }
+    const mergedSpecialRequests = [specialRequests, metadataParts.join(' | ')]
+      .filter(Boolean)
+      .join(specialRequests ? '\n' : '') || undefined;
 
     const eventBooking = await createEventBooking({
       userId: resolvedUserId,
@@ -225,8 +290,9 @@ export async function POST(request: NextRequest) {
       email,
       phoneNumber,
       companyOrGroupName,
-      preferredDish: eventType === 'PRIVATE_CLASS' ? preferredDish : undefined,
-      specialRequests,
+      preferredDish: eventType === 'PRIVATE_CLASS' && classTypeRaw === 'cooking' ? preferredDish : undefined,
+      specialRequests: mergedSpecialRequests,
+      discountAmount: discountAmount > 0 ? toMoney(discountAmount) : 0,
       totalAmount,
     });
 

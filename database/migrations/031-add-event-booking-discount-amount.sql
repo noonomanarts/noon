@@ -1,0 +1,2 @@
+ALTER TABLE event_bookings
+  ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10, 3) NOT NULL DEFAULT 0;

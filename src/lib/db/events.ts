@@ -5,6 +5,26 @@ import { query, transaction } from "./pool";
 import { generateUUID } from "./uuid";
 import type { EventType, EventStatus, PackageType, PaymentStatus, CalendarEventType } from "./types";
 
+let eventBookingsDiscountColumnReady: Promise<void> | null = null;
+
+async function ensureEventBookingsDiscountColumn(): Promise<void> {
+  if (eventBookingsDiscountColumnReady) {
+    return eventBookingsDiscountColumnReady;
+  }
+
+  eventBookingsDiscountColumnReady = query(`
+    ALTER TABLE event_bookings
+    ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10, 3) NOT NULL DEFAULT 0
+  `)
+    .then(() => undefined)
+    .catch((error) => {
+      eventBookingsDiscountColumnReady = null;
+      throw error;
+    });
+
+  return eventBookingsDiscountColumnReady;
+}
+
 /**
  * Find many event bookings
  */
@@ -19,6 +39,8 @@ export async function findManyEventBookings(options: {
   skip?: number;
   take?: number;
 }): Promise<{ events: Record<string, unknown>[]; total: number }> {
+  await ensureEventBookingsDiscountColumn();
+
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -99,6 +121,7 @@ export async function findManyEventBookings(options: {
     companyOrGroupName: row.company_or_group_name,
     preferredDish: row.preferred_dish,
     specialRequests: row.special_requests,
+    discountAmount: row.discount_amount ? parseFloat(row.discount_amount) : 0,
     status: row.status,
     clientConfirmed: row.client_confirmed,
     clientConfirmedAt: row.client_confirmed_at,
@@ -130,6 +153,8 @@ export async function findManyEventBookings(options: {
 export async function findUniqueEventBooking(
   where: { id?: string; bookingNumber?: string }
 ): Promise<Record<string, unknown> | null> {
+  await ensureEventBookingsDiscountColumn();
+
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -174,6 +199,7 @@ export async function findUniqueEventBooking(
     companyOrGroupName: row.company_or_group_name,
     preferredDish: row.preferred_dish,
     specialRequests: row.special_requests,
+    discountAmount: row.discount_amount ? parseFloat(row.discount_amount) : 0,
     status: row.status,
     clientConfirmed: row.client_confirmed,
     clientConfirmedAt: row.client_confirmed_at,
@@ -215,8 +241,11 @@ export async function createEventBooking(data: {
   companyOrGroupName?: string;
   preferredDish?: string;
   specialRequests?: string;
+  discountAmount?: number;
   totalAmount?: number;
 }): Promise<Record<string, unknown>> {
+  await ensureEventBookingsDiscountColumn();
+
   const id = generateUUID();
   const now = new Date();
   
@@ -231,9 +260,9 @@ export async function createEventBooking(data: {
       id, booking_number, user_id, event_type, selected_date, selected_time,
       package_type, number_of_participants, number_of_groups, gifts,
       full_name, email, phone_number, company_or_group_name, preferred_dish,
-      special_requests, status, total_amount, currency, payment_status,
+      special_requests, status, discount_amount, total_amount, currency, payment_status,
       created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
     RETURNING *`,
     [
       id,
@@ -253,6 +282,7 @@ export async function createEventBooking(data: {
       data.preferredDish || null,
       data.specialRequests || null,
       'NEW',
+      data.discountAmount ?? 0,
       data.totalAmount || null,
       'OMR',
       'PENDING',
@@ -291,6 +321,7 @@ export async function updateEventBooking(
     companyOrGroupName: string;
     preferredDish: string;
     specialRequests: string;
+    discountAmount: number;
     clientConfirmed: boolean;
     clientConfirmedAt: Date;
     digitalSignature: string;
@@ -303,6 +334,8 @@ export async function updateEventBooking(
     adminNotes: string;
   }>
 ): Promise<Record<string, unknown> | null> {
+  await ensureEventBookingsDiscountColumn();
+
   const updates: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -319,6 +352,7 @@ export async function updateEventBooking(
     companyOrGroupName: 'company_or_group_name',
     preferredDish: 'preferred_dish',
     specialRequests: 'special_requests',
+    discountAmount: 'discount_amount',
     clientConfirmed: 'client_confirmed',
     clientConfirmedAt: 'client_confirmed_at',
     digitalSignature: 'digital_signature',
@@ -361,6 +395,8 @@ export async function updateEventBooking(
  * Delete event booking
  */
 export async function deleteEventBooking(id: string): Promise<boolean> {
+  await ensureEventBookingsDiscountColumn();
+
   const result = await query(`DELETE FROM event_bookings WHERE id = $1`, [id]);
   return (result.rowCount ?? 0) > 0;
 }
@@ -369,6 +405,8 @@ export async function deleteEventBooking(id: string): Promise<boolean> {
  * Count event bookings
  */
 export async function countEventBookings(): Promise<number> {
+  await ensureEventBookingsDiscountColumn();
+
   const result = await query(`SELECT COUNT(*)::int as count FROM event_bookings`);
   return result.rows[0]?.count ?? 0;
 }

@@ -351,6 +351,7 @@ export interface EventBooking {
   company_or_group_name: string | null;
   preferred_dish: string | null;
   special_requests: string | null;
+  discount_amount: number;
   status: EventStatus;
   client_confirmed: boolean;
   client_confirmed_at: Date | null;

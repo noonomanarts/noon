@@ -192,6 +192,7 @@ CREATE TABLE event_bookings (
   company_or_group_name VARCHAR(255),
   preferred_dish VARCHAR(255),
   special_requests TEXT,
+  discount_amount DECIMAL(10, 3) NOT NULL DEFAULT 0,
   status event_status NOT NULL DEFAULT 'NEW',
   client_confirmed BOOLEAN NOT NULL DEFAULT false,
   client_confirmed_at TIMESTAMP WITH TIME ZONE,
