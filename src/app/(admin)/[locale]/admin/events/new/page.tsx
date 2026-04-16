@@ -42,7 +42,7 @@ export default function AdminNewEventPage({
     save: isAr ? "إنشاء الحجز" : "Create Booking",
     saving: isAr ? "جاري الإنشاء..." : "Creating...",
     required: isAr ? "يرجى تعبئة الحقول المطلوبة" : "Please fill required fields",
-    userId: isAr ? "معرف المستخدم (UUID)" : "User ID (UUID)",
+    userId: isAr ? "معرف المستخدم الحالي (اختياري)" : "Existing User ID (optional)",
     eventType: isAr ? "نوع الفعالية" : "Event Type",
     selectedDate: isAr ? "التاريخ" : "Date",
     selectedTime: isAr ? "الوقت (HH:MM)" : "Time (HH:MM)",
@@ -63,7 +63,6 @@ export default function AdminNewEventPage({
     setError(null);
 
     if (
-      !form.userId.trim() ||
       !form.selectedDate ||
       !form.selectedTime ||
       !form.fullName.trim() ||
@@ -86,7 +85,7 @@ export default function AdminNewEventPage({
             : undefined;
 
       const payload = {
-        userId: form.userId.trim(),
+        userId: form.userId.trim() || undefined,
         eventType: form.eventType,
         selectedDate: form.selectedDate,
         selectedTime: form.selectedTime,
@@ -150,9 +149,9 @@ export default function AdminNewEventPage({
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 sm:col-span-2">
             {t.userId}
             <input
-              required
               value={form.userId}
               onChange={(e) => setForm((prev) => ({ ...prev, userId: e.target.value }))}
+              placeholder={isAr ? "اربط الحجز بحساب موجود فقط إذا لزم" : "Only fill this if you want to link an existing account"}
               className="mt-1 w-full rounded-xl border border-zinc-300 bg-transparent px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
             />
           </label>

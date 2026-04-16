@@ -252,7 +252,7 @@ export async function DELETE(request: NextRequest, props: Params) {
     }
 
     // If paid, add to wallet
-    if (event.paymentStatus === 'PAID' && event.totalAmount) {
+    if (event.paymentStatus === 'PAID' && event.totalAmount && event.userId) {
       const refundAmount = event.totalAmount as number;
       await addWalletCredit(
         event.userId as string,

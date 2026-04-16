@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findManyEventBookings, createEventBooking } from '@/lib/db/events';
-import { getUserById } from '@/lib/db/users';
+import { getUserByEmail, getUserById } from '@/lib/db/users';
 import { isValidEmail, isValidPhone } from '@/lib/forms/eventBooking';
 
 const EVENT_TYPES = new Set(['COOKING_COMPETITION', 'PRIVATE_CLASS', 'BIRTHDAY_PARTY']);
@@ -150,15 +150,7 @@ export async function POST(request: NextRequest) {
     const gifts = sanitizeGifts(row.gifts);
     const totalAmountRaw = row.totalAmount;
 
-    if (
-      !userId ||
-      !eventType ||
-      !selectedDateRaw ||
-      !selectedTime ||
-      !fullName ||
-      !email ||
-      !phoneNumber
-    ) {
+    if (!eventType || !selectedDateRaw || !selectedTime || !fullName || !email || !phoneNumber) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -198,11 +190,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await getUserById(userId);
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     if (!isValidEmail(email)) {
       return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
     }
@@ -225,8 +212,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid total amount' }, { status: 400 });
     }
 
+    let resolvedUserId: string | undefined;
+    if (userId) {
+      const user = await getUserById(userId);
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+      resolvedUserId = user.id;
+    } else {
+      const existingUser = await getUserByEmail(email);
+      if (existingUser) {
+        resolvedUserId = existingUser.id;
+      }
+    }
+
     const eventBooking = await createEventBooking({
-      userId,
+      userId: resolvedUserId,
       eventType: eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY',
       selectedDate,
       selectedTime,

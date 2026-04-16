@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createEventBooking } from '@/lib/db/events';
-import { getUserByEmail, createUser, getUserById } from '@/lib/db/users';
+import { getUserByEmail, getUserById } from '@/lib/db/users';
 import { cookies } from 'next/headers';
 import { isDateInPast, isValidEmail, isValidPhone } from '@/lib/forms/eventBooking';
 import {
@@ -208,43 +208,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If not logged in, try to find user by email or create guest entry
+    // If not logged in, link the booking to an existing account when possible.
     if (!userId) {
       const existingUser = await getUserByEmail(email);
-
       if (existingUser) {
         userId = existingUser.id;
-      } else {
-        // Create a customer account for them
-        const tempPassword = Math.random().toString(36).slice(-8);
-
-        const newUser = await createUser({
-          email,
-          password: tempPassword,
-          fullName,
-          phoneNumber,
-          role: 'CUSTOMER',
-          preferredLanguage: preferredLanguage === 'ar' ? 'ARABIC' : 'ENGLISH',
-        });
-
-        if (newUser) {
-          userId = newUser.id;
-        } else {
-          return NextResponse.json(
-            { error: 'Failed to create user account' },
-            { status: 500 }
-          );
-        }
-        
-        // TODO: Send welcome email with password
       }
-    }
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unable to resolve user account' },
-        { status: 500 }
-      );
     }
 
     const giftsTotal = sanitizedGifts.reduce((sum, gift) => sum + gift.price, 0);

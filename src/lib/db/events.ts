@@ -201,7 +201,7 @@ export async function findUniqueEventBooking(
  * Create event booking
  */
 export async function createEventBooking(data: {
-  userId: string;
+  userId?: string;
   eventType: EventType;
   selectedDate: Date;
   selectedTime: string;
@@ -238,7 +238,7 @@ export async function createEventBooking(data: {
     [
       id,
       bookingNumber,
-      data.userId,
+      data.userId || null,
       data.eventType,
       data.selectedDate,
       data.selectedTime,
