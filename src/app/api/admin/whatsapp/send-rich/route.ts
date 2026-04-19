@@ -60,6 +60,14 @@ type MessagePayload =
 
 type Body = {
   userIds?: string[];
+  /**
+   * Raw recipients by chatId (e.g. `96890000000@c.us`) or phone number.
+   * Allows broadcasting to WhatsApp contacts and manually-provided lists
+   * without requiring each recipient to be a registered user.
+   */
+  chatIds?: string[];
+  /** Optional display labels for each chatId (aligned by index). */
+  chatLabels?: string[];
   message?: MessagePayload;
   simulateTyping?: boolean;
   delayBetweenMs?: number;
@@ -200,23 +208,56 @@ export async function POST(request: Request) {
 
     const body = (await request.json().catch(() => ({}))) as Body;
     const userIds = Array.isArray(body.userIds) ? body.userIds.filter(Boolean) : [];
+    const rawChatIds = Array.isArray(body.chatIds) ? body.chatIds.filter(Boolean) : [];
+    const rawChatLabels = Array.isArray(body.chatLabels) ? body.chatLabels : [];
     const message = validateMessage(body.message);
 
-    if (userIds.length === 0) {
+    if (userIds.length === 0 && rawChatIds.length === 0) {
       return NextResponse.json({ error: 'Please select at least one recipient.' }, { status: 400 });
     }
     if (!message) {
       return NextResponse.json({ error: 'Invalid or empty message payload.' }, { status: 400 });
     }
 
-    const recipients = (
-      await query<{ id: string; full_name: string; phone_number: string | null }>(
-        `SELECT id, full_name, phone_number
-           FROM users
-          WHERE id = ANY($1::uuid[]) AND status = 'ACTIVE'`,
-        [userIds]
-      )
-    ).rows;
+    type Recipient = { id: string; name: string; chatId: string | null; error?: string };
+
+    const recipients: Recipient[] = [];
+
+    if (userIds.length > 0) {
+      const rows = (
+        await query<{ id: string; full_name: string; phone_number: string | null }>(
+          `SELECT id, full_name, phone_number
+             FROM users
+            WHERE id = ANY($1::uuid[]) AND status = 'ACTIVE'`,
+          [userIds]
+        )
+      ).rows;
+      for (const row of rows) {
+        recipients.push({
+          id: row.id,
+          name: row.full_name,
+          chatId: row.phone_number ? phoneToChatId(row.phone_number) : null,
+          error: row.phone_number ? undefined : 'Missing or invalid phone number',
+        });
+      }
+    }
+
+    for (let index = 0; index < rawChatIds.length; index++) {
+      const raw = String(rawChatIds[index] ?? '').trim();
+      if (!raw) continue;
+      const chatId = raw.includes('@') ? raw : phoneToChatId(raw);
+      const label = (rawChatLabels[index] ?? raw).toString();
+      recipients.push({
+        id: `chat:${raw}`,
+        name: label,
+        chatId,
+        error: chatId ? undefined : 'Invalid phone number',
+      });
+    }
+
+    if (recipients.length === 0) {
+      return NextResponse.json({ error: 'No valid recipients found.' }, { status: 400 });
+    }
 
     const settings = await readWahaSettings();
     const session = settings.activeSession;
@@ -236,13 +277,13 @@ export async function POST(request: Request) {
     }> = [];
 
     for (const recipient of recipients) {
-      const chatId = recipient.phone_number ? phoneToChatId(recipient.phone_number) : null;
+      const chatId = recipient.chatId;
       if (!chatId) {
         results.push({
           userId: recipient.id,
-          name: recipient.full_name,
+          name: recipient.name,
           success: false,
-          error: 'Missing or invalid phone number',
+          error: recipient.error ?? 'Missing or invalid phone number',
         });
         continue;
       }
@@ -261,11 +302,11 @@ export async function POST(request: Request) {
         }
 
         if (result.ok) {
-          results.push({ userId: recipient.id, name: recipient.full_name, success: true, status: 200 });
+          results.push({ userId: recipient.id, name: recipient.name, success: true, status: 200 });
         } else {
           results.push({
             userId: recipient.id,
-            name: recipient.full_name,
+            name: recipient.name,
             success: false,
             status: result.status,
             error: `WAHA ${result.status}: ${result.text.slice(0, 300)}`,
@@ -274,7 +315,7 @@ export async function POST(request: Request) {
       } catch (error) {
         results.push({
           userId: recipient.id,
-          name: recipient.full_name,
+          name: recipient.name,
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
         });

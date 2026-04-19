@@ -401,6 +401,61 @@ export async function checkNumberExists(
   };
 }
 
+export type WahaContact = {
+  id: string;
+  name: string;
+  number: string;
+  isMyContact: boolean;
+  isWAContact: boolean;
+  profilePictureUrl: string | null;
+};
+
+/**
+ * Fetches the full address book known by the WAHA session.
+ * Returns a normalized array regardless of the upstream shape.
+ */
+export async function getAllContacts(
+  settings: WhatsAppAdminSettings,
+  session: string
+): Promise<WahaContact[]> {
+  const result = await wahaRequest(
+    settings,
+    `/api/contacts/all?session=${encodeURIComponent(session)}`,
+    { method: 'GET', timeoutMs: 30_000 }
+  ).catch(() => null);
+  if (!result || !result.ok || !Array.isArray(result.data)) return [];
+
+  const rows = result.data as Array<Record<string, unknown>>;
+  const contacts: WahaContact[] = [];
+  for (const row of rows) {
+    const rawId = String(row.id ?? '');
+    const number = String(row.number ?? row.phone ?? rawId.replace(/@.+$/, '') ?? '').replace(/\D/g, '');
+    if (!rawId || !number) continue;
+    const id = rawId.includes('@') ? rawId : `${number}@c.us`;
+    // Skip groups / broadcasts.
+    if (id.endsWith('@g.us') || id.endsWith('@broadcast')) continue;
+
+    const name = String(
+      row.name ?? row.pushname ?? row.shortName ?? row.formattedName ?? row.verifiedName ?? number
+    ).trim();
+
+    contacts.push({
+      id,
+      name: name || number,
+      number,
+      isMyContact: Boolean(row.isMyContact ?? row.isContact ?? false),
+      isWAContact: row.isWAContact === false ? false : true,
+      profilePictureUrl:
+        typeof row.profilePictureURL === 'string' && row.profilePictureURL
+          ? row.profilePictureURL
+          : typeof row.profilePicUrl === 'string' && row.profilePicUrl
+            ? row.profilePicUrl
+            : null,
+    });
+  }
+  return contacts;
+}
+
 export async function getContactProfilePicture(
   settings: WhatsAppAdminSettings,
   session: string,
