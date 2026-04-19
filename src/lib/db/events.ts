@@ -366,7 +366,7 @@ export async function updateEventBooking(
     paymentMethod: string;
     paymentStatus: PaymentStatus;
     paidAt: Date;
-    paymentProof: string;
+    paymentProof: string | null;
     adminNotes: string;
   }>
 ): Promise<Record<string, unknown> | null> {

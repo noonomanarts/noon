@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 
 import { getUserById } from '@/lib/db/users';
 import { getAdminSettingsByKey, upsertAdminSettings } from '@/lib/db/adminSettings';
+import type { EventType } from '@/lib/db/types';
 import {
   defaultEventGiftAddOnSettings,
   sanitizeEventGiftAddOnSettings,
@@ -46,8 +47,8 @@ function normalizeSortOrder(value: unknown, fallback: number): number {
   return Math.max(0, Math.floor(parsed));
 }
 
-function normalizeAppliesTo(value: unknown) {
-  if (!Array.isArray(value)) return ['COOKING_COMPETITION'] as const;
+function normalizeAppliesTo(value: unknown): EventType[] {
+  if (!Array.isArray(value)) return ['COOKING_COMPETITION'];
 
   const items = value.filter(
     (item): item is (typeof EVENT_GIFT_ADD_ON_EVENT_TYPES)[number] =>
