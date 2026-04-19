@@ -504,6 +504,14 @@ function buildSendUrlCandidates(sendApiUrl: string): string[] {
   ]));
 }
 
+/**
+ * Sends a WhatsApp text via the managed WAHA session.
+ *
+ * Fast-path: a single POST to `/api/sendText` with the canonical payload
+ * WAHA documents. No preflight is performed — the session status is only
+ * probed when the send fails with an ambiguous 4xx/5xx, at which point we
+ * attempt one auto-restart + retry.
+ */
 export async function sendWhatsAppTextViaManagedSession(input: {
   phoneNumber: string;
   text: string;
@@ -525,143 +533,139 @@ export async function sendWhatsAppTextViaManagedSession(input: {
     return { ok: false, status: 400, body: 'No active WhatsApp session configured.' };
   }
 
-  const urls = buildSendUrlCandidates(settings.sendApiUrl);
-  if (urls.length === 0) {
+  const base = normalizeBaseUrl(settings.sendApiUrl).replace(
+    /\/(api\/)?(send[A-Za-z]+|messages\/[A-Za-z]+)$/i,
+    ''
+  );
+  if (!base) {
     return { ok: false, status: 400, body: 'WhatsApp send API URL is not configured.' };
   }
 
-  const preflight = await fetchWahaSessionDetails(settings, activeSession).catch(() => null);
-  if (preflight && preflight.status !== 'ready' && preflight.status !== 'authenticated') {
-    // Best-effort auto-restart for recoverable states (STOPPED / FAILED / STARTING).
-    // If the session is WORKING/SCAN_QR_CODE we cannot fix it automatically —
-    // an operator must rescan the QR code.
-    const recoverableStates = ['STOPPED', 'FAILED', 'STARTING', 'ERROR'];
-    const status = String(preflight.status || '').toUpperCase();
-    if (recoverableStates.includes(status)) {
-      try {
-        await restartWhatsAppSession(activeSession);
-        // Poll briefly for readiness so the send attempt below has a chance.
-        for (let i = 0; i < 6; i += 1) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-          const recheck = await fetchWahaSessionDetails(settings, activeSession).catch(() => null);
-          if (recheck && (recheck.status === 'ready' || recheck.status === 'authenticated')) {
-            break;
-          }
-        }
-      } catch (restartError) {
-        console.warn('[whatsapp] auto-restart failed:', restartError);
-      }
-    }
+  const url = `${base}/api/sendText`;
+  const payload = JSON.stringify({ session: activeSession, chatId, text });
 
-    // Re-check after the restart attempt.
-    const refreshed = await fetchWahaSessionDetails(settings, activeSession).catch(() => null);
-    if (refreshed && refreshed.status !== 'ready' && refreshed.status !== 'authenticated') {
-      return {
-        ok: false,
-        status: 409,
-        body: `WhatsApp session "${activeSession}" is ${refreshed.status}.`,
-        diagnostics: {
-          sessionId: activeSession,
-          status: refreshed.status,
-          hasClient: false,
-          hasWid: false,
-          updatedAt: refreshed.updatedAt,
-        },
-      };
+  const attempt = async (): Promise<{
+    ok: boolean;
+    status: number;
+    text: string;
+  }> => {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: buildHeaders(settings.apiCode),
+      body: payload,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(15_000),
+    });
+    const responseText = await response.text();
+    return { ok: response.ok, status: response.status, text: responseText };
+  };
+
+  // First attempt.
+  let result = await attempt().catch((error) => ({
+    ok: false,
+    status: 0,
+    text: error instanceof Error ? error.message : 'Network error',
+  }));
+
+  if (result.ok) {
+    return {
+      ok: true,
+      status: 200,
+      body: 'Message sent.',
+      diagnostics: {
+        sessionId: activeSession,
+        status: 'ready',
+        hasClient: false,
+        hasWid: false,
+        updatedAt: new Date().toISOString(),
+        attempts: 1,
+      },
+    };
+  }
+
+  // 422 from WAHA means "session is not WORKING" or validation. 5xx/0 are
+  // transient. For 4xx other than 422 the request is most likely bad input
+  // (e.g. invalid chatId) — do not restart.
+  const recoverable =
+    result.status === 0 ||
+    result.status === 408 ||
+    result.status === 409 ||
+    result.status === 422 ||
+    result.status === 429 ||
+    result.status >= 500;
+
+  if (!recoverable) {
+    return {
+      ok: false,
+      status: result.status || 502,
+      body: (result.text || 'Failed to send WhatsApp message.').slice(0, 500),
+      diagnostics: {
+        sessionId: activeSession,
+        status: 'error',
+        hasClient: false,
+        hasWid: false,
+        updatedAt: new Date().toISOString(),
+        attempts: 1,
+      },
+    };
+  }
+
+  // Lazy preflight: check session status and, if recoverable, restart + poll
+  // briefly before retrying the send once.
+  const preflight = await fetchWahaSessionDetails(settings, activeSession).catch(() => null);
+  const upperStatus = String(preflight?.status || '').toUpperCase();
+  const needsRestart =
+    !preflight ||
+    ['STOPPED', 'FAILED', 'STARTING', 'ERROR', 'DISCONNECTED'].some((state) => upperStatus.includes(state));
+
+  if (needsRestart) {
+    try {
+      await restartWhatsAppSession(activeSession);
+      for (let i = 0; i < 6; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const recheck = await fetchWahaSessionDetails(settings, activeSession).catch(() => null);
+        if (recheck && (recheck.status === 'ready' || recheck.status === 'authenticated')) {
+          break;
+        }
+      }
+    } catch (restartError) {
+      console.warn('[whatsapp] auto-restart failed:', restartError);
     }
   }
 
-  const phoneDigits = chatId.replace(/@c\.us$/, '');
-  const sendTargets = [
-    { chatId },
-    { to: chatId },
-    { phone: phoneDigits },
-    { phoneNumber: phoneDigits },
-  ];
+  result = await attempt().catch((error) => ({
+    ok: false,
+    status: 0,
+    text: error instanceof Error ? error.message : 'Network error',
+  }));
 
-  const sessionPayloads = [
-    { session: activeSession },
-    { sessionName: activeSession },
-    { name: activeSession },
-  ];
-
-  const textPayloads = [
-    { text },
-    { message: text },
-    { body: text },
-    { content: text },
-  ];
-
-  const payloads = Array.from(
-    new Map(
-      sessionPayloads.flatMap((sessionPayload) =>
-        sendTargets.flatMap((target) =>
-          textPayloads.map((textPayload) => {
-            const payload = { ...sessionPayload, ...target, ...textPayload };
-            return [JSON.stringify(payload), payload] as const;
-          })
-        )
-      )
-    ).values()
-  );
-
-  let attempts = 0;
-  let lastStatus = 502;
-  let lastBody = 'Failed to send WhatsApp message.';
-
-  const urlCandidates = Array.from(
-    new Set([
-      ...urls,
-      `${normalizeBaseUrl(settings.sendApiUrl)}/api/sessions/${encodeURIComponent(activeSession)}/messages/text`,
-      `${normalizeBaseUrl(settings.sendApiUrl)}/api/${encodeURIComponent(activeSession)}/sendText`,
-    ])
-  );
-
-  for (const url of urlCandidates) {
-    for (const payload of payloads) {
-      attempts += 1;
-      try {
-        const result = await requestJson(url, {
-          method: 'POST',
-          headers: buildHeaders(settings.apiCode),
-          body: JSON.stringify(payload),
-        });
-
-        if (result.ok) {
-          return {
-            ok: true,
-            status: 200,
-            body: 'Message sent.',
-            diagnostics: {
-              sessionId: activeSession,
-              status: 'ready',
-              hasClient: false,
-              hasWid: false,
-              updatedAt: new Date().toISOString(),
-              attempts,
-            },
-          };
-        }
-
-        lastStatus = result.status;
-        lastBody = result.text || `Request failed with status ${result.status}.`;
-      } catch (error) {
-        lastBody = error instanceof Error ? error.message : 'Failed to send WhatsApp message.';
-      }
-    }
+  if (result.ok) {
+    return {
+      ok: true,
+      status: 200,
+      body: 'Message sent.',
+      diagnostics: {
+        sessionId: activeSession,
+        status: 'ready',
+        hasClient: false,
+        hasWid: false,
+        updatedAt: new Date().toISOString(),
+        attempts: 2,
+      },
+    };
   }
 
   return {
     ok: false,
-    status: lastStatus,
-    body: lastBody.slice(0, 500),
+    status: result.status || 502,
+    body: (result.text || 'Failed to send WhatsApp message.').slice(0, 500),
     diagnostics: {
       sessionId: activeSession,
       status: 'error',
       hasClient: false,
       hasWid: false,
       updatedAt: new Date().toISOString(),
-      attempts,
+      attempts: 2,
     },
   };
 }
