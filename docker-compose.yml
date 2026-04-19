@@ -110,6 +110,30 @@ services:
       retries: 3
       start_period: 40s
 
+  # Scheduled jobs runner.
+  #
+  # Hits /api/cron/tick every minute to drain the notification outbox
+  # (email + WhatsApp + push + in-app), run calendar reminders, and
+  # dispatch class reminders. Birthday greetings run once daily at 08:00.
+  #
+  # All jobs are idempotent — re-running the tick simply processes
+  # whatever is currently due.
+  cron:
+    build:
+      context: ./docker/cron
+      dockerfile: Dockerfile
+    container_name: noon-cron
+    restart: unless-stopped
+    environment:
+      APP_URL: http://app:3000
+      CRON_SECRET: ${CRON_SECRET:-your-cron-secret-change-this}
+      TZ: ${CRON_TZ:-Asia/Muscat}
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - noon-network
+
 networks:
   noon-network:
     external: false

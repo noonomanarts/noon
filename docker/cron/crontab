@@ -1,0 +1,10 @@
+# Noon cron schedule (UTC+4 Asia/Muscat).
+#
+# Every minute: drain outbox + run calendar reminders + class WhatsApp.
+# Every day at 08:00: birthday greetings (idempotent via outbox dedupe_key).
+#
+# All jobs run against the same unified endpoint; the tick runner decides
+# which internal jobs to execute.
+
+* * * * * /usr/local/bin/tick.sh tick 2>&1
+0 8 * * * /usr/local/bin/tick.sh birthday 2>&1

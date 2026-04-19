@@ -90,6 +90,7 @@ export default function AdminEmailPageClient({
       trainer_workshop_assigned: { en: 'Trainer workshop assigned', ar: 'تعيين ورشة للمدرب' },
       welcome_email: { en: 'Welcome email', ar: 'رسالة ترحيب' },
       password_reset: { en: 'Password reset', ar: 'إعادة تعيين كلمة المرور' },
+      birthday_greeting: { en: 'Birthday greeting', ar: 'تهنئة عيد الميلاد' },
     }),
     []
   );

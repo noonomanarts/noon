@@ -1,3 +1,15 @@
+/**
+ * User-facing transactional WhatsApp API.
+ *
+ * Every send is rendered with the user's preferred language (falling back
+ * to the site default) and enqueued into the notification outbox. Delivery,
+ * retries and failure tracking are handled by the outbox worker.
+ *
+ * The functions retain their previous signatures so existing callers
+ * continue to work; they now report `true` when a row was queued
+ * successfully (template enabled, user has a phone number, etc.).
+ */
+
 import {
   defaultWhatsAppTransactionTemplatesSettings,
   getAdminSettingsByKey,
@@ -6,35 +18,19 @@ import {
   type WhatsAppTransactionTemplatesSettings,
 } from '@/lib/db/adminSettings';
 import { getUserById } from '@/lib/db/users';
-import { sendWhatsAppText } from '@/lib/whatsappClient';
+import { enqueueNotification, scheduleOutboxDrain } from '@/lib/notifications/outbox';
+import { renderTemplate, resolveUserLocale } from '@/lib/notifications/locale';
+// Import for side effect: registers EMAIL/WHATSAPP/PUSH/IN_APP dispatchers with the outbox.
+import '@/lib/notifications/dispatchers';
 
 type TemplateVariables = Record<string, string | number | null | undefined>;
-
-function normalizeLanguage(preferredLanguage: string | null | undefined): 'en' | 'ar' {
-  if (!preferredLanguage) return 'en';
-  return preferredLanguage.toUpperCase().startsWith('AR') ? 'ar' : 'en';
-}
-
-function toTextValue(value: string | number | null | undefined): string {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return Number.isInteger(value) ? String(value) : value.toFixed(3);
-  }
-  return String(value);
-}
-
-function renderTemplate(template: string, vars: TemplateVariables): string {
-  return template.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_match, key: string) => {
-    return toTextValue(vars[key]);
-  });
-}
 
 async function getTemplateSettings(): Promise<WhatsAppTransactionTemplatesSettings> {
   const saved = await getAdminSettingsByKey<WhatsAppTransactionTemplatesSettings>('whatsapp-transaction-templates');
   return sanitizeWhatsAppTransactionTemplatesSettings(saved ?? defaultWhatsAppTransactionTemplatesSettings);
 }
 
-async function sendConfiguredUserWhatsAppTemplate(input: {
+async function enqueueUserWhatsApp(input: {
   userId: string;
   key: WhatsAppTransactionTemplateKey;
   vars?: TemplateVariables;
@@ -49,8 +45,8 @@ async function sendConfiguredUserWhatsAppTemplate(input: {
     const template = settings.templates[input.key];
     if (!template || !template.enabled) return false;
 
-    const lang = normalizeLanguage(user.preferredLanguage);
-    const baseText = lang === 'ar' ? template.ar : template.en;
+    const locale = await resolveUserLocale(user.preferredLanguage);
+    const baseText = locale === 'ar' ? template.ar : template.en;
     const vars: TemplateVariables = {
       name: user.fullName,
       ...input.vars,
@@ -59,13 +55,23 @@ async function sendConfiguredUserWhatsAppTemplate(input: {
     const text = renderTemplate(baseText, vars).trim();
     if (!text) return false;
 
-    await sendWhatsAppText({
-      phoneNumber: user.phoneNumber,
-      text,
+    const row = await enqueueNotification({
+      channel: 'WHATSAPP',
+      userId: input.userId,
+      templateKey: input.key,
+      title: null,
+      body: text,
+      vars: vars as Record<string, unknown>,
+      data: { phoneNumber: user.phoneNumber },
     });
-    return true;
+
+    if (row) {
+      scheduleOutboxDrain(['WHATSAPP']);
+      return true;
+    }
+    return false;
   } catch (error) {
-    console.error('Failed to send transactional WhatsApp message:', error);
+    console.error('[whatsapp] enqueue failed:', error);
     return false;
   }
 }
@@ -75,7 +81,7 @@ export async function sendUserWhatsAppTemplate(input: {
   key: WhatsAppTransactionTemplateKey;
   vars?: TemplateVariables;
 }): Promise<boolean> {
-  return sendConfiguredUserWhatsAppTemplate(input);
+  return enqueueUserWhatsApp(input);
 }
 
 export async function sendUserTransactionWhatsApp(input: {
@@ -83,5 +89,5 @@ export async function sendUserTransactionWhatsApp(input: {
   key: WhatsAppTransactionTemplateKey;
   vars?: TemplateVariables;
 }): Promise<boolean> {
-  return sendConfiguredUserWhatsAppTemplate(input);
+  return enqueueUserWhatsApp(input);
 }

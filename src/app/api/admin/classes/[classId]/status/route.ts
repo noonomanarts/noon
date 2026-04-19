@@ -42,12 +42,16 @@ export async function PATCH(
         title: 'New Class Published',
         message: `A new class "${updatedClass.title}" has been published and may need photography coverage.`,
         data: { classId, classTitle: updatedClass.title },
-      }).catch(() => {});
+      }).catch((error) => {
+        console.error('[classes/status] notifyPhotographerDashboardUsers failed:', error);
+      });
 
       void notifyRepeatRequestersForPublishedClass({
         classId,
         locale: 'en',
-      }).catch(() => {});
+      }).catch((error) => {
+        console.error('[classes/status] notifyRepeatRequestersForPublishedClass failed:', error);
+      });
     }
 
     return NextResponse.json(updatedClass);

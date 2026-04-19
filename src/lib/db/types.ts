@@ -502,6 +502,9 @@ export interface ShopProductReview {
   updated_at: Date;
 }
 
+export type NotificationChannel = 'EMAIL' | 'WHATSAPP' | 'PUSH' | 'IN_APP';
+export type NotificationOutboxStatus = 'PENDING' | 'SENT' | 'FAILED' | 'DEAD' | 'SKIPPED';
+
 export type ShopOrderStatus =
   | 'PAID'
   | 'PROCESSING'

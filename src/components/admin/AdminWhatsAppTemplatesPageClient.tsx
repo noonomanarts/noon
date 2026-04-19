@@ -61,6 +61,15 @@ export default function AdminWhatsAppTemplatesPageClient({
       withdrawal_request_rejected: { en: 'Withdrawal rejected', ar: 'رفض السحب' },
       wallet_admin_credit: { en: 'Admin wallet credit', ar: 'إضافة رصيد بواسطة الإدارة' },
       wallet_admin_deduct: { en: 'Admin wallet deduction', ar: 'خصم رصيد بواسطة الإدارة' },
+      class_booking_cancelled: { en: 'Class booking cancelled', ar: 'إلغاء حجز الكلاس' },
+      class_cancelled_by_admin: { en: 'Class cancelled by admin', ar: 'إلغاء الكلاس من قبل الإدارة' },
+      event_booking_cancelled: { en: 'Event booking cancelled', ar: 'إلغاء حجز الفعالية' },
+      shop_order_shipped: { en: 'Shop order shipped', ar: 'شحن طلب المتجر' },
+      shop_order_delivered: { en: 'Shop order delivered', ar: 'تسليم طلب المتجر' },
+      trainer_workshop_assigned: { en: 'Trainer workshop assigned', ar: 'إسناد ورشة للمدرب' },
+      trainer_workshop_reminder: { en: 'Trainer workshop reminder', ar: 'تذكير ورشة المدرب' },
+      welcome_message: { en: 'Welcome message', ar: 'رسالة ترحيب' },
+      birthday_greeting: { en: 'Birthday greeting', ar: 'تهنئة عيد الميلاد' },
     }),
     []
   );

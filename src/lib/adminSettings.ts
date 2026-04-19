@@ -390,10 +390,13 @@ export function sanitizeFooterAdminSettings(input: Partial<FooterAdminSettings> 
 export type WhatsAppTransactionTemplateKey =
   | 'login_success'
   | 'class_booking_paid'
+  | 'class_booking_cancelled'
   | 'class_reminder'
+  | 'class_cancelled_by_admin'
   | 'class_review_request'
   | 'class_repeat_available'
   | 'event_booking_paid'
+  | 'event_booking_cancelled'
   | 'wallet_topup_paid'
   | 'wallet_deposit'
   | 'wallet_points_conversion'
@@ -405,7 +408,13 @@ export type WhatsAppTransactionTemplateKey =
   | 'withdrawal_request_rejected'
   | 'wallet_admin_credit'
   | 'wallet_admin_deduct'
-  | 'shop_purchase_paid';
+  | 'shop_purchase_paid'
+  | 'shop_order_shipped'
+  | 'shop_order_delivered'
+  | 'trainer_workshop_assigned'
+  | 'trainer_workshop_reminder'
+  | 'welcome_message'
+  | 'birthday_greeting';
 
 export type WhatsAppTransactionTemplateItem = {
   enabled: boolean;
@@ -511,6 +520,51 @@ export const defaultWhatsAppTransactionTemplatesSettings: WhatsAppTransactionTem
       en: 'Hi {{name}}, your shop order {{orderNumber}} was paid successfully. Amount: {{amount}} {{currency}}. Wallet balance: {{balance}} {{currency}}.',
       ar: 'مرحباً {{name}}، تم دفع طلب المتجر {{orderNumber}} بنجاح. المبلغ: {{amount}} {{currency}}. رصيد المحفظة الحالي: {{balance}} {{currency}}.',
     },
+    class_booking_cancelled: {
+      enabled: true,
+      en: 'Hi {{name}}, your booking for {{classTitle}} has been cancelled. A credit of {{amount}} {{currency}} has been added to your wallet.',
+      ar: 'مرحباً {{name}}، تم إلغاء حجزك لـ {{classTitle}}. تمت إضافة رصيد {{amount}} {{currency}} إلى محفظتك.',
+    },
+    class_cancelled_by_admin: {
+      enabled: true,
+      en: 'Hi {{name}}, unfortunately the class {{classTitle}} scheduled for {{classDate}} has been cancelled. A full refund of {{amount}} {{currency}} has been credited to your wallet. We apologise for the inconvenience.',
+      ar: 'مرحباً {{name}}، للأسف تم إلغاء الكلاس {{classTitle}} المقرر في {{classDate}}. تم استرداد {{amount}} {{currency}} بالكامل إلى محفظتك. نعتذر عن الإزعاج.',
+    },
+    event_booking_cancelled: {
+      enabled: true,
+      en: 'Hi {{name}}, your event booking {{bookingNumber}} has been cancelled. Please contact us if you have any questions.',
+      ar: 'مرحباً {{name}}، تم إلغاء حجز الفعالية {{bookingNumber}}. يرجى التواصل معنا إذا كان لديك أي استفسار.',
+    },
+    shop_order_shipped: {
+      enabled: true,
+      en: 'Hi {{name}}, your order {{orderNumber}} has been shipped and will arrive soon.',
+      ar: 'مرحباً {{name}}، تم شحن طلبك {{orderNumber}} وسيصل قريباً.',
+    },
+    shop_order_delivered: {
+      enabled: true,
+      en: 'Hi {{name}}, your order {{orderNumber}} has been delivered. Thank you for shopping with Noon!',
+      ar: 'مرحباً {{name}}، تم تسليم طلبك {{orderNumber}}. شكراً لتسوقك مع نون!',
+    },
+    trainer_workshop_assigned: {
+      enabled: true,
+      en: 'Hi {{name}}, you have been assigned to workshop {{classTitle}} on {{classDate}} at {{classTime}}. Please review your dashboard for details.',
+      ar: 'مرحباً {{name}}، تم تعيينك لورشة {{classTitle}} في {{classDate}} الساعة {{classTime}}. يرجى مراجعة لوحة التحكم للاطلاع على التفاصيل.',
+    },
+    trainer_workshop_reminder: {
+      enabled: true,
+      en: 'Hi {{name}}, reminder: your workshop {{classTitle}} is tomorrow at {{classTime}}. Participants: {{participantsCount}}. Please be ready.',
+      ar: 'مرحباً {{name}}، تذكير: ورشتك {{classTitle}} غداً الساعة {{classTime}}. عدد المشاركين: {{participantsCount}}. يرجى الاستعداد.',
+    },
+    welcome_message: {
+      enabled: true,
+      en: 'Welcome to Noon, {{name}}! Explore our classes, workshops and shop at {{siteUrl}}.',
+      ar: 'مرحباً بك في نون، {{name}}! اكتشف كلاساتنا وورشاتنا ومتجرنا عبر {{siteUrl}}.',
+    },
+    birthday_greeting: {
+      enabled: true,
+      en: 'Happy birthday, {{name}}! 🎉 Enjoy {{discountPercent}}% off your next class with code {{couponCode}}. Valid until {{validUntil}}.',
+      ar: 'عيد ميلاد سعيد، {{name}}! 🎉 استمتع بخصم {{discountPercent}}% على كلاسك القادم بالكود {{couponCode}}. ساري حتى {{validUntil}}.',
+    },
   },
 };
 
@@ -610,7 +664,8 @@ export type EmailTransactionTemplateKey =
   | 'trainer_workshop_reminder'
   | 'trainer_workshop_assigned'
   | 'welcome_email'
-  | 'password_reset';
+  | 'password_reset'
+  | 'birthday_greeting';
 
 export type EmailTransactionTemplateItem = {
   enabled: boolean;
@@ -802,6 +857,13 @@ export const defaultEmailTransactionTemplatesSettings: EmailTransactionTemplates
       subjectAr: 'طلب إعادة تعيين كلمة المرور - نون',
       bodyEn: `<p>Hi {{name}},</p><p>We received a request to reset your password.</p><p><a href="{{resetLink}}" style="display: inline-block; background: #14b8a6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none;">Reset Password</a></p><p>If you didn't request this, please ignore this email.</p>`,
       bodyAr: `<p>مرحباً {{name}}،</p><p>تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بك.</p><p><a href="{{resetLink}}" style="display: inline-block; background: #14b8a6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none;">إعادة تعيين كلمة المرور</a></p><p>إذا لم تطلب ذلك، يرجى تجاهل هذا البريد.</p>`,
+    },
+    birthday_greeting: {
+      enabled: true,
+      subjectEn: 'Happy Birthday from Noon, {{name}}! 🎉',
+      subjectAr: 'عيد ميلاد سعيد من نون، {{name}}! 🎉',
+      bodyEn: `<p>Happy Birthday, {{name}}!</p><p>As a gift, enjoy <strong>{{discountPercent}}% off</strong> your next class with code <code>{{couponCode}}</code> — valid until {{validUntil}}.</p><p>We can't wait to celebrate with you in the kitchen!</p>`,
+      bodyAr: `<p>عيد ميلاد سعيد، {{name}}!</p><p>كهدية منا، استمتع بخصم <strong>{{discountPercent}}%</strong> على كلاسك القادم بالكود <code>{{couponCode}}</code> — ساري حتى {{validUntil}}.</p><p>لا نطيق الانتظار للاحتفال معك!</p>`,
     },
   },
 };

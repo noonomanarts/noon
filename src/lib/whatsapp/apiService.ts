@@ -532,18 +532,43 @@ export async function sendWhatsAppTextViaManagedSession(input: {
 
   const preflight = await fetchWahaSessionDetails(settings, activeSession).catch(() => null);
   if (preflight && preflight.status !== 'ready' && preflight.status !== 'authenticated') {
-    return {
-      ok: false,
-      status: 409,
-      body: `WhatsApp session "${activeSession}" is ${preflight.status}.`,
-      diagnostics: {
-        sessionId: activeSession,
-        status: preflight.status,
-        hasClient: false,
-        hasWid: false,
-        updatedAt: preflight.updatedAt,
-      },
-    };
+    // Best-effort auto-restart for recoverable states (STOPPED / FAILED / STARTING).
+    // If the session is WORKING/SCAN_QR_CODE we cannot fix it automatically —
+    // an operator must rescan the QR code.
+    const recoverableStates = ['STOPPED', 'FAILED', 'STARTING', 'ERROR'];
+    const status = String(preflight.status || '').toUpperCase();
+    if (recoverableStates.includes(status)) {
+      try {
+        await restartWhatsAppSession(activeSession);
+        // Poll briefly for readiness so the send attempt below has a chance.
+        for (let i = 0; i < 6; i += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          const recheck = await fetchWahaSessionDetails(settings, activeSession).catch(() => null);
+          if (recheck && (recheck.status === 'ready' || recheck.status === 'authenticated')) {
+            break;
+          }
+        }
+      } catch (restartError) {
+        console.warn('[whatsapp] auto-restart failed:', restartError);
+      }
+    }
+
+    // Re-check after the restart attempt.
+    const refreshed = await fetchWahaSessionDetails(settings, activeSession).catch(() => null);
+    if (refreshed && refreshed.status !== 'ready' && refreshed.status !== 'authenticated') {
+      return {
+        ok: false,
+        status: 409,
+        body: `WhatsApp session "${activeSession}" is ${refreshed.status}.`,
+        diagnostics: {
+          sessionId: activeSession,
+          status: refreshed.status,
+          hasClient: false,
+          hasWid: false,
+          updatedAt: refreshed.updatedAt,
+        },
+      };
+    }
   }
 
   const phoneDigits = chatId.replace(/@c\.us$/, '');
