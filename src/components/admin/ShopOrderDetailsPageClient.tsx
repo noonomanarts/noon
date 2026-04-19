@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import { getPaymentMethodLabel } from '@/lib/paymentMethod';
 
 type ShopOrderStatus = 'PAID' | 'PROCESSING' | 'READY_TO_SHIP' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
 
@@ -37,9 +38,9 @@ type AdminShopOrder = {
   order_number: string;
   user_id: string;
   status: ShopOrderStatus;
-  city: string;
-  area: string;
-  street_address: string;
+  city: string | null;
+  area: string | null;
+  street_address: string | null;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   postal_code: string | null;
@@ -53,7 +54,8 @@ type AdminShopOrder = {
   shipping_fee: number;
   total_amount: number;
   currency: string;
-  payment_method: 'WALLET';
+  payment_method: 'WALLET' | 'BANK_TRANSFER' | 'PAYMENT_LINK' | 'CASH';
+  fulfillment_type: 'DELIVERY' | 'PICKUP';
   wallet_transaction_id: string | null;
   tracking_number: string | null;
   admin_notes: string | null;
@@ -331,14 +333,22 @@ export default function ShopOrderDetailsPageClient({
 
           <div className="space-y-1">
             <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">{t.address}</p>
-            <p className="text-xs text-zinc-700 dark:text-zinc-300">{order.city} - {order.area}</p>
-            <p className="text-xs text-zinc-700 dark:text-zinc-300">{order.street_address}</p>
-            {order.postal_code && <p className="text-xs text-zinc-600 dark:text-zinc-300">{order.postal_code}</p>}
+            {order.fulfillment_type === 'PICKUP' ? (
+              <p className="text-xs text-zinc-700 dark:text-zinc-300">
+                {isArabic ? 'استلام من نون' : 'Pickup from Noon'}
+              </p>
+            ) : (
+              <>
+                <p className="text-xs text-zinc-700 dark:text-zinc-300">{order.city ?? ''} - {order.area ?? ''}</p>
+                <p className="text-xs text-zinc-700 dark:text-zinc-300">{order.street_address ?? ''}</p>
+                {order.postal_code && <p className="text-xs text-zinc-600 dark:text-zinc-300">{order.postal_code}</p>}
+              </>
+            )}
           </div>
 
           <div className="space-y-1">
             <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">{t.payment}</p>
-            <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.paymentMethod}: {order.payment_method}</p>
+            <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.paymentMethod}: {getPaymentMethodLabel(order.payment_method, locale)}</p>
             <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.subtotal}: {formatAmountWithCurrency(order.subtotal, order.currency)}</p>
             {order.discount_amount > 0 ? (
               <p className="text-xs text-emerald-700 dark:text-emerald-300">{t.discount}: -{formatAmountWithCurrency(order.discount_amount, order.currency)}</p>

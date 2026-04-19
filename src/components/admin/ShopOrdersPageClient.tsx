@@ -37,9 +37,9 @@ type AdminShopOrder = {
   order_number: string;
   user_id: string;
   status: ShopOrderStatus;
-  city: string;
-  area: string;
-  street_address: string;
+  city: string | null;
+  area: string | null;
+  street_address: string | null;
   postal_code: string | null;
   recipient_full_name: string;
   recipient_phone: string;
@@ -48,7 +48,8 @@ type AdminShopOrder = {
   shipping_fee: number;
   total_amount: number;
   currency: string;
-  payment_method: 'WALLET';
+  payment_method: 'WALLET' | 'BANK_TRANSFER' | 'PAYMENT_LINK' | 'CASH';
+  fulfillment_type: 'DELIVERY' | 'PICKUP';
   wallet_transaction_id: string | null;
   tracking_number: string | null;
   admin_notes: string | null;
@@ -101,6 +102,7 @@ export default function ShopOrdersPageClient({ locale }: { locale: Locale }) {
     statusLabel: isArabic ? 'الحالة' : 'Status',
     createdAt: isArabic ? 'تاريخ الإنشاء' : 'Created at',
     openDetails: isArabic ? 'عرض التفاصيل' : 'Open details',
+    newOrder: isArabic ? 'إنشاء طلب جديد' : 'Create new order',
   };
 
   const statusLabelMap: Record<ShopOrderStatus, { en: string; ar: string }> = {
@@ -204,8 +206,14 @@ export default function ShopOrdersPageClient({ locale }: { locale: Locale }) {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
+        <Link
+          href={`/${locale}/admin/shop/orders/new`}
+          className="rounded-xl bg-[color:var(--noon-teal)] px-4 py-2 text-sm font-semibold text-white shadow hover:opacity-90"
+        >
+          + {t.newOrder}
+        </Link>
       </div>
 
       {error && (

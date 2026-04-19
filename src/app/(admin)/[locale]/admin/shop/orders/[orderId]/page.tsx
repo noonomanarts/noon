@@ -12,9 +12,9 @@ type AdminShopOrderClient = {
   order_number: string;
   user_id: string;
   status: ShopOrderStatus;
-  city: string;
-  area: string;
-  street_address: string;
+  city: string | null;
+  area: string | null;
+  street_address: string | null;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   postal_code: string | null;
@@ -28,7 +28,8 @@ type AdminShopOrderClient = {
   shipping_fee: number;
   total_amount: number;
   currency: string;
-  payment_method: 'WALLET';
+  payment_method: 'WALLET' | 'BANK_TRANSFER' | 'PAYMENT_LINK' | 'CASH';
+  fulfillment_type: 'DELIVERY' | 'PICKUP';
   wallet_transaction_id: string | null;
   tracking_number: string | null;
   admin_notes: string | null;

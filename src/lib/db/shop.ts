@@ -1,8 +1,11 @@
 import { pool } from './pool';
+import { createShopSaleCostExpenseEntry, createShopSaleFinanceEntry } from './finance';
 import type {
   ShopCategory,
   ShopOrder,
+  ShopOrderFulfillmentType,
   ShopOrderItem,
+  ShopOrderPaymentMethod,
   ShopOrderStatusHistory,
   ShopProduct,
   ShopOrderStatus,
@@ -174,6 +177,32 @@ async function ensureShopOrdersTables(): Promise<void> {
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP WITH TIME ZONE`);
   await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP WITH TIME ZONE`);
 
+  await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS fulfillment_type VARCHAR(20) NOT NULL DEFAULT 'DELIVERY'`);
+  await pool.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS created_by_admin_id UUID REFERENCES users(id) ON DELETE SET NULL`);
+  await pool.query(`ALTER TABLE shop_orders ALTER COLUMN city DROP NOT NULL`);
+  await pool.query(`ALTER TABLE shop_orders ALTER COLUMN area DROP NOT NULL`);
+  await pool.query(`ALTER TABLE shop_orders ALTER COLUMN street_address DROP NOT NULL`);
+
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'shop_orders_fulfillment_type_check'
+      ) THEN
+        ALTER TABLE shop_orders
+          ADD CONSTRAINT shop_orders_fulfillment_type_check
+          CHECK (fulfillment_type IN ('DELIVERY', 'PICKUP'));
+      END IF;
+    END $$;
+  `);
+
+  await pool.query(`ALTER TABLE shop_orders DROP CONSTRAINT IF EXISTS shop_orders_payment_method_check`);
+  await pool.query(`
+    ALTER TABLE shop_orders
+      ADD CONSTRAINT shop_orders_payment_method_check
+      CHECK (payment_method IN ('WALLET', 'BANK_TRANSFER', 'PAYMENT_LINK', 'CASH'))
+  `);
+
   await pool.query(`
     DO $$
     BEGIN
@@ -296,9 +325,9 @@ function mapShopOrder(row: Record<string, unknown>): ShopOrder {
     order_number: row.order_number as string,
     user_id: row.user_id as string,
     status: row.status as ShopOrderStatus,
-    city: row.city as string,
-    area: row.area as string,
-    street_address: row.street_address as string,
+    city: (row.city as string | null) ?? null,
+    area: (row.area as string | null) ?? null,
+    street_address: (row.street_address as string | null) ?? null,
     delivery_latitude: row.delivery_latitude !== null && row.delivery_latitude !== undefined ? Number(row.delivery_latitude) : null,
     delivery_longitude: row.delivery_longitude !== null && row.delivery_longitude !== undefined ? Number(row.delivery_longitude) : null,
     postal_code: (row.postal_code as string | null) ?? null,
@@ -312,7 +341,8 @@ function mapShopOrder(row: Record<string, unknown>): ShopOrder {
     shipping_fee: Number(row.shipping_fee ?? 0),
     total_amount: Number(row.total_amount ?? 0),
     currency: (row.currency as string) || 'OMR',
-    payment_method: 'WALLET',
+    payment_method: (row.payment_method as ShopOrderPaymentMethod | null) ?? 'WALLET',
+    fulfillment_type: (row.fulfillment_type as ShopOrderFulfillmentType | null) ?? 'DELIVERY',
     wallet_transaction_id: (row.wallet_transaction_id as string | null) ?? null,
     tracking_number: (row.tracking_number as string | null) ?? null,
     admin_notes: (row.admin_notes as string | null) ?? null,
@@ -1563,6 +1593,263 @@ export async function updateShopOrderForAdmin(input: {
       ...mapShopOrder(updatedOrderResult.rows[0]),
       items: itemsResult.rows.map((row) => mapShopOrderItem(row)),
       history: historyResult.rows.map((row) => mapShopOrderStatusHistory(row)),
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+function generateShopOrderNumber(): string {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = String(now.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(now.getUTCDate()).padStart(2, '0');
+  const random = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `SO-${y}${m}${d}-${random}`;
+}
+
+export async function createAdminShopOrder(input: {
+  createdByAdminId: string;
+  userId: string;
+  fulfillmentType: ShopOrderFulfillmentType;
+  paymentMethod: Exclude<ShopOrderPaymentMethod, 'WALLET'>;
+  items: Array<{ productId: string; quantity: number }>;
+  shippingFee?: number;
+  recipientFullName?: string;
+  recipientPhone?: string;
+  city?: string;
+  area?: string;
+  streetAddress?: string;
+  postalCode?: string;
+  notes?: string;
+  adminNotes?: string;
+}): Promise<ShopOrder & { items: ShopOrderItem[] }> {
+  await ensureShopOrdersTables();
+
+  if (!Array.isArray(input.items) || input.items.length === 0) {
+    throw new Error('At least one product is required');
+  }
+
+  if (input.fulfillmentType === 'DELIVERY') {
+    if (!input.recipientFullName?.trim() || !input.recipientPhone?.trim()) {
+      throw new Error('Recipient name and phone are required for delivery');
+    }
+    if (!input.streetAddress?.trim() || !input.area?.trim()) {
+      throw new Error('Delivery address is required');
+    }
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const userResult = await client.query(
+      `SELECT id, full_name, phone_number FROM users WHERE id = $1 LIMIT 1`,
+      [input.userId]
+    );
+    if (!userResult.rows[0]) {
+      await client.query('ROLLBACK');
+      throw new Error('Customer not found');
+    }
+    const customer = userResult.rows[0] as {
+      id: string;
+      full_name: string | null;
+      phone_number: string | null;
+    };
+
+    const productIds = input.items
+      .map((item) => item.productId.trim())
+      .filter((id) => id.length > 0);
+
+    if (productIds.length === 0) {
+      await client.query('ROLLBACK');
+      throw new Error('At least one product is required');
+    }
+
+    const productResult = await client.query(
+      `SELECT p.id, p.slug, p.name_en, p.name_ar, p.image, p.price, p.cost, p.currency, p.stock_quantity, p.is_active,
+              c.is_active AS category_is_active
+       FROM shop_products p
+       JOIN shop_categories c ON c.id = p.category_id
+       WHERE p.id = ANY($1::uuid[])
+       FOR UPDATE OF p`,
+      [productIds]
+    );
+
+    const productMap = new Map<string, (typeof productResult.rows)[number]>();
+    for (const row of productResult.rows) {
+      productMap.set(row.id as string, row);
+    }
+
+    type OrderItemRow = {
+      productId: string;
+      quantity: number;
+      unitPrice: number;
+      lineTotal: number;
+      unitCost: number;
+      totalCost: number;
+      nameEn: string;
+      nameAr: string;
+      slug: string;
+      image: string | null;
+    };
+
+    let subtotal = 0;
+    const orderItems: OrderItemRow[] = [];
+    let currency = 'OMR';
+
+    for (const requested of input.items) {
+      const product = productMap.get(requested.productId);
+      if (!product) {
+        await client.query('ROLLBACK');
+        throw new Error('A selected product is no longer available');
+      }
+      if (!product.is_active || !product.category_is_active) {
+        await client.query('ROLLBACK');
+        throw new Error(`Product is inactive: ${String(product.name_en)}`);
+      }
+
+      const qty = Math.max(1, Math.trunc(Number(requested.quantity)));
+      const stock = Number(product.stock_quantity);
+      if (!Number.isFinite(stock) || stock < qty) {
+        await client.query('ROLLBACK');
+        throw new Error(`Insufficient stock for ${String(product.name_en)}`);
+      }
+
+      const unitPrice = Number(product.price);
+      const unitCost = Number(product.cost ?? 0);
+      const lineTotal = Number((unitPrice * qty).toFixed(3));
+      subtotal += lineTotal;
+      currency = String(product.currency || currency);
+
+      orderItems.push({
+        productId: product.id as string,
+        quantity: qty,
+        unitPrice,
+        lineTotal,
+        unitCost,
+        totalCost: Number((unitCost * qty).toFixed(3)),
+        nameEn: String(product.name_en),
+        nameAr: String(product.name_ar),
+        slug: String(product.slug),
+        image: product.image ? String(product.image) : null,
+      });
+    }
+
+    subtotal = Number(subtotal.toFixed(3));
+    const shippingFee = Number(
+      Math.max(0, Number.isFinite(input.shippingFee) ? Number(input.shippingFee) : 0).toFixed(3)
+    );
+    const totalAmount = Number((subtotal + shippingFee).toFixed(3));
+
+    const orderNumber = generateShopOrderNumber();
+    const recipientFullName = (input.recipientFullName?.trim() || customer.full_name || '').trim();
+    const recipientPhone = (input.recipientPhone?.trim() || customer.phone_number || '').trim();
+
+    const orderInsert = await client.query(
+      `INSERT INTO shop_orders (
+        order_number, user_id, status, city, area, street_address, postal_code,
+        recipient_full_name, recipient_phone, notes,
+        subtotal, discount_amount, shipping_fee, total_amount, currency,
+        payment_method, fulfillment_type, admin_notes, created_by_admin_id, paid_at
+      ) VALUES (
+        $1, $2, 'PAID', $3, $4, $5, $6,
+        $7, $8, $9,
+        $10, 0, $11, $12, $13,
+        $14, $15, $16, $17, NOW()
+      ) RETURNING id, order_number`,
+      [
+        orderNumber,
+        input.userId,
+        input.fulfillmentType === 'DELIVERY' ? input.city?.trim() || 'Muscat' : null,
+        input.fulfillmentType === 'DELIVERY' ? input.area?.trim() || null : null,
+        input.fulfillmentType === 'DELIVERY' ? input.streetAddress?.trim() || null : null,
+        input.fulfillmentType === 'DELIVERY' ? input.postalCode?.trim() || null : null,
+        recipientFullName || 'Walk-in customer',
+        recipientPhone || '-',
+        input.notes?.trim() || null,
+        subtotal,
+        shippingFee,
+        totalAmount,
+        currency,
+        input.paymentMethod,
+        input.fulfillmentType,
+        input.adminNotes?.trim() || null,
+        input.createdByAdminId,
+      ]
+    );
+
+    const orderId = orderInsert.rows[0].id as string;
+
+    for (const item of orderItems) {
+      await client.query(
+        `INSERT INTO shop_order_items (
+          order_id, product_id, quantity, unit_price, line_total,
+          product_name_en, product_name_ar, product_slug, product_image
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          orderId,
+          item.productId,
+          item.quantity,
+          item.unitPrice,
+          item.lineTotal,
+          item.nameEn,
+          item.nameAr,
+          item.slug,
+          item.image,
+        ]
+      );
+
+      await client.query(
+        `UPDATE shop_products
+         SET stock_quantity = stock_quantity - $1, updated_at = NOW()
+         WHERE id = $2`,
+        [item.quantity, item.productId]
+      );
+    }
+
+    await client.query(
+      `INSERT INTO shop_order_status_history (order_id, previous_status, next_status, changed_by_user_id, note)
+       VALUES ($1, NULL, 'PAID', $2, $3)`,
+      [orderId, input.createdByAdminId, 'Order created manually by admin']
+    );
+
+    await createShopSaleFinanceEntry({
+      db: client,
+      orderNumber: String(orderInsert.rows[0].order_number),
+      orderId,
+      amount: totalAmount,
+      currency,
+      customerName: recipientFullName || customer.full_name,
+    });
+
+    await createShopSaleCostExpenseEntry({
+      db: client,
+      saleType: 'SHOP_ORDER',
+      referenceId: orderId,
+      referenceNumber: `Order #${String(orderInsert.rows[0].order_number)}`,
+      totalCost: Number(orderItems.reduce((sum, item) => sum + item.totalCost, 0).toFixed(3)),
+      currency,
+      customerName: recipientFullName || customer.full_name,
+    });
+
+    await client.query('COMMIT');
+
+    const fullOrderResult = await pool.query(
+      `SELECT * FROM shop_orders WHERE id = $1 LIMIT 1`,
+      [orderId]
+    );
+    const fullItemsResult = await pool.query(
+      `SELECT * FROM shop_order_items WHERE order_id = $1 ORDER BY created_at ASC`,
+      [orderId]
+    );
+
+    return {
+      ...mapShopOrder(fullOrderResult.rows[0]),
+      items: fullItemsResult.rows.map((row) => mapShopOrderItem(row)),
     };
   } catch (error) {
     await client.query('ROLLBACK');

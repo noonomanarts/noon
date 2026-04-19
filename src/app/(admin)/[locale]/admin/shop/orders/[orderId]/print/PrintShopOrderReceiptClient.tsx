@@ -20,9 +20,9 @@ type PrintShopOrder = {
   id: string;
   order_number: string;
   status: ShopOrderStatus;
-  city: string;
-  area: string;
-  street_address: string;
+  city: string | null;
+  area: string | null;
+  street_address: string | null;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   postal_code: string | null;
@@ -35,6 +35,7 @@ type PrintShopOrder = {
   total_amount: number;
   currency: string;
   payment_method: string;
+  fulfillment_type: 'DELIVERY' | 'PICKUP';
   paid_at: string;
   created_at: string;
   items: ShopOrderItem[];
@@ -188,9 +189,15 @@ export default function PrintShopOrderReceiptClient({
           </div>
           <div className="mt-2 border-t border-dashed border-zinc-200 pt-2">
             <p className="font-semibold">{t.address}</p>
-            <p className="mt-1">{order.city} - {order.area}</p>
-            <p>{order.street_address}</p>
-            {order.postal_code ? <p>{order.postal_code}</p> : null}
+            {order.fulfillment_type === 'PICKUP' ? (
+              <p className="mt-1">{isArabic ? 'استلام من نون' : 'Pickup from Noon'}</p>
+            ) : (
+              <>
+                <p className="mt-1">{order.city ?? ''} - {order.area ?? ''}</p>
+                <p>{order.street_address ?? ''}</p>
+                {order.postal_code ? <p>{order.postal_code}</p> : null}
+              </>
+            )}
           </div>
         </div>
 

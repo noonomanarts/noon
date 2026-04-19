@@ -510,14 +510,18 @@ export type ShopOrderStatus =
   | 'DELIVERED'
   | 'CANCELLED';
 
+export type ShopOrderPaymentMethod = 'WALLET' | 'BANK_TRANSFER' | 'PAYMENT_LINK' | 'CASH';
+
+export type ShopOrderFulfillmentType = 'DELIVERY' | 'PICKUP';
+
 export interface ShopOrder {
   id: string;
   order_number: string;
   user_id: string;
   status: ShopOrderStatus;
-  city: string;
-  area: string;
-  street_address: string;
+  city: string | null;
+  area: string | null;
+  street_address: string | null;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   postal_code: string | null;
@@ -531,7 +535,8 @@ export interface ShopOrder {
   shipping_fee: number;
   total_amount: number;
   currency: string;
-  payment_method: 'WALLET';
+  payment_method: ShopOrderPaymentMethod;
+  fulfillment_type: ShopOrderFulfillmentType;
   wallet_transaction_id: string | null;
   tracking_number: string | null;
   admin_notes: string | null;

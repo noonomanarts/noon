@@ -231,8 +231,14 @@ export default function WorkerOrdersClient({ locale, orders: initialOrders }: Pr
                     <div className="flex items-start gap-2 text-sm text-zinc-600 dark:text-zinc-400">
                       <FiMapPin className="mt-0.5 h-4 w-4 shrink-0" />
                       <span>
-                        {order.street_address}, {order.area}, {order.city}
-                        {order.postal_code && ` - ${order.postal_code}`}
+                        {order.fulfillment_type === 'PICKUP'
+                          ? (isArabic ? 'استلام من نون' : 'Pickup from Noon')
+                          : (
+                            <>
+                              {[order.street_address, order.area, order.city].filter(Boolean).join(', ')}
+                              {order.postal_code && ` - ${order.postal_code}`}
+                            </>
+                          )}
                       </span>
                     </div>
 

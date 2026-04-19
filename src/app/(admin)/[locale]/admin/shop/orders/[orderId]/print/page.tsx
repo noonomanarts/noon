@@ -11,9 +11,9 @@ type PrintShopOrder = {
   id: string;
   order_number: string;
   status: ShopOrderStatus;
-  city: string;
-  area: string;
-  street_address: string;
+  city: string | null;
+  area: string | null;
+  street_address: string | null;
   delivery_latitude: number | null;
   delivery_longitude: number | null;
   postal_code: string | null;
@@ -26,6 +26,7 @@ type PrintShopOrder = {
   total_amount: number;
   currency: string;
   payment_method: string;
+  fulfillment_type: 'DELIVERY' | 'PICKUP';
   paid_at: string;
   created_at: string;
   items: Array<{
@@ -60,6 +61,7 @@ function serializeOrder(order: Awaited<ReturnType<typeof getShopOrderForAdminByI
     total_amount: order.total_amount,
     currency: order.currency,
     payment_method: order.payment_method,
+    fulfillment_type: order.fulfillment_type,
     paid_at: order.paid_at.toISOString(),
     created_at: order.created_at.toISOString(),
     items: order.items.map((item) => ({
