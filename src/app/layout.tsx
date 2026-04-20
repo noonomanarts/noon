@@ -6,7 +6,19 @@ import LocaleSync from "@/components/site/LocaleSync";
 import OverlayScrollbarsProvider from "@/components/site/OverlayScrollbarsProvider";
 import PWARegister from "@/components/pwa/PWARegister";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
+import appleSplash from "../../public/icons/apple-splash.json";
 import "./globals.css";
+
+// Apple splash screens — read from the JSON emitted by
+// `scripts/generate-pwa-icons.js` so additions stay in sync automatically.
+type AppleSplashEntry = {
+  href: string;
+  deviceWidth: number;
+  deviceHeight: number;
+  ratio: number;
+  orientation: "portrait" | "landscape";
+};
+const APPLE_SPLASH_SCREENS = appleSplash as AppleSplashEntry[];
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://noonomanarts.com'),
@@ -15,8 +27,15 @@ export const metadata: Metadata = {
   applicationName: "Noon",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icons/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   openGraph: {
     title: "Noon - نون",
@@ -32,8 +51,12 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Noon",
+    startupImage: APPLE_SPLASH_SCREENS.map((s) => ({
+      url: s.href,
+      media: `(device-width: ${s.deviceWidth}px) and (device-height: ${s.deviceHeight}px) and (-webkit-device-pixel-ratio: ${s.ratio}) and (orientation: ${s.orientation})`,
+    })),
   },
   formatDetection: {
     telephone: false,
@@ -45,8 +68,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#14110e" },
+    { media: "(prefers-color-scheme: light)", color: "#5b2f6b" },
+    { media: "(prefers-color-scheme: dark)", color: "#5b2f6b" },
   ],
 };
 

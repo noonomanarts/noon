@@ -1,0 +1,212 @@
+[
+  {
+    "href": "/icons/splash/apple-splash-1290x2796.png",
+    "deviceWidth": 430,
+    "deviceHeight": 932,
+    "ratio": 3,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2796x1290.png",
+    "deviceWidth": 932,
+    "deviceHeight": 430,
+    "ratio": 3,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1179x2556.png",
+    "deviceWidth": 393,
+    "deviceHeight": 852,
+    "ratio": 3,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2556x1179.png",
+    "deviceWidth": 852,
+    "deviceHeight": 393,
+    "ratio": 3,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1284x2778.png",
+    "deviceWidth": 428,
+    "deviceHeight": 926,
+    "ratio": 3,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2778x1284.png",
+    "deviceWidth": 926,
+    "deviceHeight": 428,
+    "ratio": 3,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1170x2532.png",
+    "deviceWidth": 390,
+    "deviceHeight": 844,
+    "ratio": 3,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2532x1170.png",
+    "deviceWidth": 844,
+    "deviceHeight": 390,
+    "ratio": 3,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1125x2436.png",
+    "deviceWidth": 375,
+    "deviceHeight": 812,
+    "ratio": 3,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2436x1125.png",
+    "deviceWidth": 812,
+    "deviceHeight": 375,
+    "ratio": 3,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1242x2688.png",
+    "deviceWidth": 414,
+    "deviceHeight": 896,
+    "ratio": 3,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2688x1242.png",
+    "deviceWidth": 896,
+    "deviceHeight": 414,
+    "ratio": 3,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-828x1792.png",
+    "deviceWidth": 414,
+    "deviceHeight": 896,
+    "ratio": 2,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1792x828.png",
+    "deviceWidth": 896,
+    "deviceHeight": 414,
+    "ratio": 2,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1242x2208.png",
+    "deviceWidth": 414,
+    "deviceHeight": 736,
+    "ratio": 3,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2208x1242.png",
+    "deviceWidth": 736,
+    "deviceHeight": 414,
+    "ratio": 3,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-750x1334.png",
+    "deviceWidth": 375,
+    "deviceHeight": 667,
+    "ratio": 2,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1334x750.png",
+    "deviceWidth": 667,
+    "deviceHeight": 375,
+    "ratio": 2,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-640x1136.png",
+    "deviceWidth": 320,
+    "deviceHeight": 568,
+    "ratio": 2,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1136x640.png",
+    "deviceWidth": 568,
+    "deviceHeight": 320,
+    "ratio": 2,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2048x2732.png",
+    "deviceWidth": 1024,
+    "deviceHeight": 1366,
+    "ratio": 2,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2732x2048.png",
+    "deviceWidth": 1366,
+    "deviceHeight": 1024,
+    "ratio": 2,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1668x2388.png",
+    "deviceWidth": 834,
+    "deviceHeight": 1194,
+    "ratio": 2,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2388x1668.png",
+    "deviceWidth": 1194,
+    "deviceHeight": 834,
+    "ratio": 2,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1668x2224.png",
+    "deviceWidth": 834,
+    "deviceHeight": 1112,
+    "ratio": 2,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2224x1668.png",
+    "deviceWidth": 1112,
+    "deviceHeight": 834,
+    "ratio": 2,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1620x2160.png",
+    "deviceWidth": 810,
+    "deviceHeight": 1080,
+    "ratio": 2,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2160x1620.png",
+    "deviceWidth": 1080,
+    "deviceHeight": 810,
+    "ratio": 2,
+    "orientation": "landscape"
+  },
+  {
+    "href": "/icons/splash/apple-splash-1536x2048.png",
+    "deviceWidth": 768,
+    "deviceHeight": 1024,
+    "ratio": 2,
+    "orientation": "portrait"
+  },
+  {
+    "href": "/icons/splash/apple-splash-2048x1536.png",
+    "deviceWidth": 1024,
+    "deviceHeight": 768,
+    "ratio": 2,
+    "orientation": "landscape"
+  }
+]
