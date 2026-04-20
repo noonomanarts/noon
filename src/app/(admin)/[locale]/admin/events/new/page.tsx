@@ -13,6 +13,7 @@ import {
   getPrivateCookingClassTotal,
   getStandardCompetitionTotal,
 } from "@/lib/competitionPricing";
+import type { EventGiftAddOn, GiftRecipientScope } from "@/lib/eventGiftAddOnTypes";
 
 const EVENT_TYPES = ["COOKING_COMPETITION", "PRIVATE_CLASS", "BIRTHDAY_PARTY"] as const;
 const PRIVATE_CLASS_TYPES = ["cooking", "arts-crafts"] as const;
@@ -68,6 +69,9 @@ export default function AdminNewEventPage({
   const [isSaving, setIsSaving] = useState(false);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  const [giftOptions, setGiftOptions] = useState<EventGiftAddOn[]>([]);
+  const [giftsLoading, setGiftsLoading] = useState(false);
+  const [giftSelections, setGiftSelections] = useState<Record<string, GiftRecipientScope>>({});
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
     userId: "",
@@ -87,6 +91,7 @@ export default function AdminNewEventPage({
     childAge: "10",
     specialRequests: "",
     discountAmount: "",
+    giftsManualAmount: "",
   });
 
   useEffect(() => {
@@ -151,16 +156,73 @@ export default function AdminNewEventPage({
     }));
   }, [selectedCustomer]);
 
+  // Load available gift add-ons whenever the event type changes
+  useEffect(() => {
+    let ignore = false;
+    const loadGifts = async () => {
+      setGiftsLoading(true);
+      try {
+        const response = await fetch(
+          `/api/public/event-gift-addons?eventType=${encodeURIComponent(form.eventType)}`,
+          { cache: "no-store" }
+        );
+        const payload = (await response.json().catch(() => ({}))) as { items?: EventGiftAddOn[] };
+        if (!ignore) {
+          setGiftOptions(Array.isArray(payload.items) ? payload.items : []);
+          // Drop any previously selected gifts that are no longer available
+          setGiftSelections((prev) => {
+            const next: Record<string, GiftRecipientScope> = {};
+            const available = new Set((payload.items ?? []).map((item) => item.id));
+            for (const [id, scope] of Object.entries(prev)) {
+              if (available.has(id)) next[id] = scope;
+            }
+            return next;
+          });
+        }
+      } catch {
+        if (!ignore) setGiftOptions([]);
+      } finally {
+        if (!ignore) setGiftsLoading(false);
+      }
+    };
+    void loadGifts();
+    return () => {
+      ignore = true;
+    };
+  }, [form.eventType]);
+
   const participants = toPositiveInteger(form.numberOfParticipants);
   const discountAmount = Number.parseFloat(form.discountAmount) || 0;
+  const giftsManualAmount = Number.parseFloat(form.giftsManualAmount);
+  const giftsManualIsSet =
+    form.giftsManualAmount.trim() !== "" && Number.isFinite(giftsManualAmount) && giftsManualAmount >= 0;
+
+  // Auto-computed total for selected gifts based on current participants
+  const giftsComputedTotal = useMemo(() => {
+    let total = 0;
+    for (const [id, scope] of Object.entries(giftSelections)) {
+      const gift = giftOptions.find((item) => item.id === id);
+      if (!gift) continue;
+      if (scope === "ALL_PARTICIPANTS") {
+        total += gift.unitPrice * participants;
+      }
+      // WINNING_TEAM is deferred — doesn't add to estimated total
+    }
+    return Number(total.toFixed(3));
+  }, [giftSelections, giftOptions, participants]);
+
+  const giftsTotal = giftsManualIsSet ? giftsManualAmount : giftsComputedTotal;
+
   const calculatedBaseAmount = getCalculatedEventBaseAmount({
     eventType: form.eventType,
     packageType: form.packageType,
     classType: form.classType,
     participants,
   });
+  const calculatedSubtotal =
+    calculatedBaseAmount === null ? null : Number((calculatedBaseAmount + giftsTotal).toFixed(3));
   const calculatedFinalAmount =
-    calculatedBaseAmount === null ? null : Math.max(0, Number((calculatedBaseAmount - discountAmount).toFixed(3)));
+    calculatedSubtotal === null ? null : Math.max(0, Number((calculatedSubtotal - discountAmount).toFixed(3)));
   const shouldShowPackage = form.eventType === "COOKING_COMPETITION";
   const shouldShowPrivateClassType = form.eventType === "PRIVATE_CLASS";
   const shouldShowPreferredDish = form.eventType === "PRIVATE_CLASS" && form.classType === "cooking";
@@ -191,6 +253,22 @@ export default function AdminNewEventPage({
     specialRequests: isAr ? "طلبات خاصة" : "Special Requests",
     totalAmount: isAr ? "الإجمالي المحسوب" : "Calculated Total Amount",
     discountAmount: isAr ? "مبلغ الخصم" : "Discount Amount",
+    giftAddOns: isAr ? "الهدايا الإضافية" : "Gift Add-ons",
+    giftAddOnsHint: isAr
+      ? "اختر الهدايا المتاحة لهذا النوع من الفعاليات. سيُضاف إجمالي الهدايا إلى المبلغ الإجمالي."
+      : "Select the gifts available for this event type. The gifts total will be added to the booking total.",
+    giftScopeAll: isAr ? "لجميع المشاركين" : "All participants",
+    giftScopeWinning: isAr ? "للفريق الفائز" : "Winning team",
+    giftScopeDeferredNote: isAr
+      ? "سيتم احتساب السعر لاحقاً بناءً على عدد الفائزين."
+      : "Price is added later based on the winning team size.",
+    giftsTotalLabel: isAr ? "إجمالي الهدايا" : "Gifts total",
+    giftsManualAmount: isAr ? "مبلغ الهدايا (يدوي - اختياري)" : "Gifts Amount (manual override, optional)",
+    giftsManualHint: isAr
+      ? "في حال تعبئته يتم استخدامه بدلاً من الإجمالي المحسوب للهدايا."
+      : "If set, this value replaces the auto-computed gifts total.",
+    giftsLoading: isAr ? "جاري تحميل الهدايا..." : "Loading gifts...",
+    giftsEmpty: isAr ? "لا توجد هدايا متاحة لهذه الفعالية" : "No gift add-ons available for this event type",
     finalAmountHint: isAr ? "يتم احتساب السعر تلقائيًا حسب نوع الفعالية وعدد المشاركين." : "Price is calculated automatically from the selected event options and participants.",
     privateCooking: isAr ? "طبخ" : "Cooking",
     privateArtsCrafts: isAr ? "فن وأشغال يدوية" : "Arts & Crafts",
@@ -251,6 +329,8 @@ export default function AdminNewEventPage({
         childAge: form.eventType === "BIRTHDAY_PARTY" ? Number(form.childAge) : undefined,
         specialRequests: form.specialRequests.trim() || undefined,
         discountAmount: discountAmount > 0 ? discountAmount : undefined,
+        gifts: Object.entries(giftSelections).map(([id, scope]) => ({ id, scope })),
+        giftsManualAmount: giftsManualIsSet ? giftsManualAmount : undefined,
         totalAmount: calculatedFinalAmount ?? undefined,
       };
 
@@ -500,6 +580,109 @@ export default function AdminNewEventPage({
             />
           </label>
 
+          <div className="sm:col-span-2">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t.giftAddOns}</span>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                {t.giftsTotalLabel}: {formatAmountWithCurrency(giftsComputedTotal, "OMR")}
+              </span>
+            </div>
+            <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">{t.giftAddOnsHint}</p>
+            {giftsLoading ? (
+              <p className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400">
+                {t.giftsLoading}
+              </p>
+            ) : giftOptions.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50 p-3 text-xs text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400">
+                {t.giftsEmpty}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {giftOptions.map((gift) => {
+                  const selectedScope = giftSelections[gift.id];
+                  const checked = Boolean(selectedScope);
+                  const name = isAr ? gift.nameAr || gift.nameEn : gift.nameEn;
+                  const giftLineTotal =
+                    selectedScope === "ALL_PARTICIPANTS" ? Number((gift.unitPrice * participants).toFixed(3)) : 0;
+                  return (
+                    <div
+                      key={gift.id}
+                      className={`rounded-xl border p-3 transition-colors ${
+                        checked
+                          ? "border-coral bg-coral/5 dark:border-coral dark:bg-coral/10"
+                          : "border-zinc-200 dark:border-zinc-700"
+                      }`}
+                    >
+                      <label className="flex cursor-pointer items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            setGiftSelections((prev) => {
+                              const next = { ...prev };
+                              if (e.target.checked) {
+                                next[gift.id] = prev[gift.id] ?? "ALL_PARTICIPANTS";
+                              } else {
+                                delete next[gift.id];
+                              }
+                              return next;
+                            });
+                          }}
+                          className="mt-1 h-4 w-4 rounded border-zinc-300 text-coral focus:ring-coral dark:border-zinc-600"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{name}</span>
+                            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                              {formatAmountWithCurrency(gift.unitPrice, "OMR")} / {isAr ? "للشخص" : "per person"}
+                            </span>
+                          </div>
+                        </div>
+                      </label>
+                      {checked ? (
+                        <div className="mt-2 flex flex-wrap items-center gap-3 ps-7 text-xs">
+                          <label className="inline-flex items-center gap-1 text-zinc-700 dark:text-zinc-300">
+                            <input
+                              type="radio"
+                              name={`scope-${gift.id}`}
+                              checked={selectedScope === "ALL_PARTICIPANTS"}
+                              onChange={() =>
+                                setGiftSelections((prev) => ({ ...prev, [gift.id]: "ALL_PARTICIPANTS" }))
+                              }
+                              className="h-3.5 w-3.5"
+                            />
+                            {t.giftScopeAll}
+                          </label>
+                          <label className="inline-flex items-center gap-1 text-zinc-700 dark:text-zinc-300">
+                            <input
+                              type="radio"
+                              name={`scope-${gift.id}`}
+                              checked={selectedScope === "WINNING_TEAM"}
+                              onChange={() =>
+                                setGiftSelections((prev) => ({ ...prev, [gift.id]: "WINNING_TEAM" }))
+                              }
+                              className="h-3.5 w-3.5"
+                            />
+                            {t.giftScopeWinning}
+                          </label>
+                          {selectedScope === "ALL_PARTICIPANTS" ? (
+                            <span className="ms-auto text-zinc-600 dark:text-zinc-400">
+                              {formatAmountWithCurrency(giftLineTotal, "OMR")}
+                            </span>
+                          ) : (
+                            <span className="ms-auto text-zinc-500 dark:text-zinc-400">
+                              {t.giftScopeDeferredNote}
+                            </span>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
             {t.totalAmount}
             <input
@@ -521,6 +704,20 @@ export default function AdminNewEventPage({
               onChange={(e) => setForm((prev) => ({ ...prev, discountAmount: e.target.value }))}
               className="mt-1 w-full rounded-xl border border-zinc-300 bg-transparent px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
             />
+          </label>
+
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300 sm:col-span-2">
+            {t.giftsManualAmount}
+            <input
+              type="number"
+              min={0}
+              step="0.001"
+              value={form.giftsManualAmount}
+              onChange={(e) => setForm((prev) => ({ ...prev, giftsManualAmount: e.target.value }))}
+              placeholder={formatAmountWithCurrency(giftsComputedTotal, "OMR")}
+              className="mt-1 w-full rounded-xl border border-zinc-300 bg-transparent px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
+            />
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.giftsManualHint}</p>
           </label>
         </div>
 

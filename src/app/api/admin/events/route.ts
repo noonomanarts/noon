@@ -221,6 +221,17 @@ export async function POST(request: NextRequest) {
       participantCount: numberOfParticipants,
     });
 
+    // Admin may manually override the gifts total (e.g. to account for deferred
+    // winning-team gifts or arbitrary gift costs without picking from catalog).
+    let giftsManualAmount: number | null = null;
+    if (row.giftsManualAmount !== undefined && row.giftsManualAmount !== null && row.giftsManualAmount !== '') {
+      const parsed = Number(row.giftsManualAmount);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        return NextResponse.json({ error: 'Invalid gifts amount' }, { status: 400 });
+      }
+      giftsManualAmount = toMoney(parsed);
+    }
+
     if (!isValidEmail(email)) {
       return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
     }
@@ -258,7 +269,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const giftsTotal = gifts.estimatedTotal;
+    const giftsTotal = giftsManualAmount !== null ? giftsManualAmount : gifts.estimatedTotal;
     let calculatedBaseAmount: number | undefined;
     if (eventType === 'COOKING_COMPETITION') {
       calculatedBaseAmount = packageType === 'PREMIUM'
@@ -289,6 +300,9 @@ export async function POST(request: NextRequest) {
       metadataParts.push(`Discount amount: ${toMoney(discountAmount)}`);
       metadataParts.push(`Subtotal before discount: ${subtotalAmount}`);
     }
+    if (giftsManualAmount !== null) {
+      metadataParts.push(`Gifts amount (manual): ${giftsManualAmount}`);
+    }
     const mergedSpecialRequests = [specialRequests, metadataParts.join(' | ')]
       .filter(Boolean)
       .join(specialRequests ? '\n' : '') || undefined;
@@ -302,10 +316,10 @@ export async function POST(request: NextRequest) {
       numberOfParticipants,
       numberOfGroups,
       gifts:
-        gifts.items.length > 0
+        gifts.items.length > 0 || giftsManualAmount !== null
           ? {
               items: gifts.items,
-              estimatedTotal: gifts.estimatedTotal,
+              estimatedTotal: giftsManualAmount !== null ? giftsManualAmount : gifts.estimatedTotal,
               deferredCount: gifts.deferredCount,
             }
           : undefined,
