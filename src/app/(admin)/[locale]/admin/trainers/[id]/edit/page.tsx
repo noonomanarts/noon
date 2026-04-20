@@ -49,7 +49,18 @@ interface TrainerProfile {
     bookingUrl: string | null;
     description: string | null;
   }>;
+  featuredPreviousClassIds?: string[];
   isActive: boolean;
+}
+
+interface TrainerClassOption {
+  id: string;
+  slug: string;
+  title: string;
+  titleAr: string | null;
+  image: string | null;
+  startDateTime: string | null;
+  status: string;
 }
 
 interface Trainer {
@@ -60,6 +71,7 @@ interface Trainer {
   profileImage: string | null;
   status: string;
   profile: TrainerProfile | null;
+  classes?: TrainerClassOption[];
 }
 
 function toDatetimeLocal(value: string | null | undefined): string {
@@ -128,6 +140,8 @@ export default function EditTrainerPage() {
   const [featuredMediaType, setFeaturedMediaType] = useState<'IMAGE' | 'VIDEO' | 'YOUTUBE'>('IMAGE');
   const [featuredMediaUrl, setFeaturedMediaUrl] = useState('');
   const [manualUpcomingCourses, setManualUpcomingCourses] = useState<ManualUpcomingCourse[]>([]);
+  const [trainerClasses, setTrainerClasses] = useState<TrainerClassOption[]>([]);
+  const [featuredPreviousClassIds, setFeaturedPreviousClassIds] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
 
   const fetchTrainer = useCallback(async () => {
@@ -142,6 +156,7 @@ export default function EditTrainerPage() {
       
       const data = (await response.json()) as Trainer;
       setTrainer(data);
+      setTrainerClasses(Array.isArray(data.classes) ? data.classes : []);
       setFullName(data.fullName || '');
       setPhoneNumber(data.phoneNumber || '');
       setProfileImage(data.profileImage || '');
@@ -198,6 +213,11 @@ export default function EditTrainerPage() {
               }))
             : []
         );
+        setFeaturedPreviousClassIds(
+          Array.isArray(data.profile.featuredPreviousClassIds)
+            ? data.profile.featuredPreviousClassIds.filter((item): item is string => typeof item === 'string')
+            : []
+        );
         setIsActive(data.profile.isActive ?? true);
       } else {
         setBio('');
@@ -214,6 +234,7 @@ export default function EditTrainerPage() {
         setFeaturedMediaType('IMAGE');
         setFeaturedMediaUrl('');
         setManualUpcomingCourses([]);
+        setFeaturedPreviousClassIds([]);
         setIsActive(true);
       }
     } catch (error) {
@@ -398,6 +419,7 @@ export default function EditTrainerPage() {
             bookingUrl: course.bookingUrl || null,
             description: course.description || null,
           })),
+          featuredPreviousClassIds,
           isActive,
         }),
       });
@@ -1010,6 +1032,95 @@ export default function EditTrainerPage() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="mb-2 text-lg font-semibold text-zinc-900 dark:text-white">
+            Previous Classes on Public Page
+          </h2>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
+            Select which published classes appear in the &quot;Previous Classes&quot; section of this trainer&apos;s public profile page. Leave all unchecked to show every past class automatically.
+          </p>
+          {trainerClasses.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-zinc-300 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+              This trainer has no published classes yet.
+            </p>
+          ) : (
+            <>
+              <div className="mb-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFeaturedPreviousClassIds(trainerClasses.map((c) => c.id))}
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                >
+                  Select all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeaturedPreviousClassIds([])}
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                >
+                  Clear
+                </button>
+                <span className="ml-auto self-center text-xs text-zinc-500 dark:text-zinc-400">
+                  {featuredPreviousClassIds.length} selected
+                </span>
+              </div>
+              <div className="max-h-96 space-y-2 overflow-y-auto rounded-lg border border-zinc-200 p-2 dark:border-zinc-700">
+                {trainerClasses.map((cls) => {
+                  const checked = featuredPreviousClassIds.includes(cls.id);
+                  const date = cls.startDateTime ? new Date(cls.startDateTime) : null;
+                  const dateLabel = date && !Number.isNaN(date.getTime())
+                    ? date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                    : '—';
+                  return (
+                    <label
+                      key={cls.id}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg border border-transparent px-3 py-2 hover:border-zinc-200 hover:bg-zinc-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-800"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setFeaturedPreviousClassIds((prev) =>
+                            e.target.checked
+                              ? prev.includes(cls.id)
+                                ? prev
+                                : [...prev, cls.id]
+                              : prev.filter((id) => id !== cls.id)
+                          );
+                        }}
+                        className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-zinc-600"
+                      />
+                      {cls.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={cls.image}
+                          alt=""
+                          className="h-10 w-14 flex-shrink-0 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-10 w-14 flex-shrink-0 rounded bg-zinc-100 dark:bg-zinc-800" />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-zinc-900 dark:text-white">
+                          {cls.title}
+                        </div>
+                        {cls.titleAr ? (
+                          <div className="truncate text-xs text-zinc-500 dark:text-zinc-400" dir="rtl">
+                            {cls.titleAr}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="flex-shrink-0 text-xs text-zinc-500 dark:text-zinc-400">
+                        {dateLabel}
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 

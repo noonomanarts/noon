@@ -5,6 +5,7 @@ import { getUserById, updateUser } from '@/lib/db/users';
 import {
   getTrainerProfile,
   upsertTrainerProfile,
+  findTrainerClasses,
   type TrainerFeaturedMediaType,
   type TrainerManualUpcomingCoursePublic,
 } from '@/lib/db/trainers';
@@ -126,9 +127,22 @@ export async function GET(
     // Get trainer profile
     const profile = await getTrainerProfile(id);
 
+    // Get all published classes for this trainer (used by admin UI to pick
+    // which previous classes appear on the public trainer page).
+    const classes = await findTrainerClasses(id, { publishedOnly: true });
+
     return NextResponse.json({
       ...user,
       profile,
+      classes: classes.map((cls) => ({
+        id: cls.id,
+        slug: cls.slug,
+        title: cls.title,
+        titleAr: cls.titleAr,
+        image: cls.image,
+        startDateTime: cls.startDateTime ? cls.startDateTime.toISOString() : null,
+        status: cls.status,
+      })),
     });
   } catch (error) {
     console.error('Error fetching trainer:', error);
@@ -180,6 +194,13 @@ export async function PATCH(
           ? body.featuredMediaUrl.trim().slice(0, 500) || null
           : undefined;
     const manualUpcomingCourses = sanitizeManualUpcomingCourses(body.manualUpcomingCourses);
+
+    const featuredPreviousClassIds = Array.isArray(body.featuredPreviousClassIds)
+      ? (body.featuredPreviousClassIds as unknown[])
+          .filter((item): item is string => typeof item === 'string')
+          .map((item) => item.trim())
+          .filter((item) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item))
+      : undefined;
 
     if (status && !USER_STATUSES.has(status)) {
       return NextResponse.json({ error: 'Invalid user status' }, { status: 400 });
@@ -253,6 +274,7 @@ export async function PATCH(
       featuredMediaType: featuredMediaType as TrainerFeaturedMediaType | undefined,
       featuredMediaUrl,
       manualUpcomingCourses,
+      featuredPreviousClassIds,
       isActive,
     });
 

@@ -205,10 +205,16 @@ export default async function TrainerProfilePage({
     if (!cls.startDateTime) return false;
     return new Date(cls.startDateTime) > now;
   });
-  const previousClasses = classes.filter((cls) => {
-    if (!cls.startDateTime) return true;
-    return new Date(cls.startDateTime) <= now;
-  });
+
+  const featuredPreviousClassIds = trainerProfile?.featuredPreviousClassIds ?? [];
+  const previousClasses = featuredPreviousClassIds.length > 0
+    ? featuredPreviousClassIds
+        .map((id) => classes.find((cls) => cls.id === id))
+        .filter((cls): cls is NonNullable<typeof cls> => Boolean(cls))
+    : classes.filter((cls) => {
+        if (!cls.startDateTime) return true;
+        return new Date(cls.startDateTime) <= now;
+      });
 
   const t = {
     trainer: locale === "ar" ? "المدرب" : "Trainer",

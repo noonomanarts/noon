@@ -324,6 +324,7 @@ async function ensureTrainerProfilesFinanceSchema(): Promise<void> {
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS featured_media_type VARCHAR(20) NOT NULL DEFAULT 'IMAGE'`);
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS featured_media_url VARCHAR(500)`);
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS manual_upcoming_courses JSONB NOT NULL DEFAULT '[]'::jsonb`);
+    await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS featured_previous_class_ids UUID[] NOT NULL DEFAULT '{}'::uuid[]`);
 
     await query(`
       CREATE TABLE IF NOT EXISTS trainer_workshop_suggestions (
@@ -388,6 +389,25 @@ function sanitizeShareTiers(value: unknown): TrainerShareTierPublic[] {
 
 function hasOwnField<T extends object>(target: T, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(target, key);
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function sanitizeFeaturedPreviousClassIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const trimmed = item.trim();
+    if (!UUID_PATTERN.test(trimmed)) continue;
+    const lower = trimmed.toLowerCase();
+    if (seen.has(lower)) continue;
+    seen.add(lower);
+    result.push(lower);
+    if (result.length >= 50) break;
+  }
+  return result;
 }
 
 /**
@@ -463,6 +483,7 @@ export interface TrainerProfilePublic {
   featuredMediaType: TrainerFeaturedMediaType;
   featuredMediaUrl: string | null;
   manualUpcomingCourses: TrainerManualUpcomingCoursePublic[];
+  featuredPreviousClassIds: string[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -488,6 +509,7 @@ export async function findTrainerProfiles(userIds: string[]): Promise<TrainerPro
     featuredMediaType: sanitizeFeaturedMediaType(row.featured_media_type),
     featuredMediaUrl: sanitizeText(row.featured_media_url, 500),
     manualUpcomingCourses: sanitizeManualUpcomingCourses(row.manual_upcoming_courses),
+    featuredPreviousClassIds: sanitizeFeaturedPreviousClassIds(row.featured_previous_class_ids),
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -588,6 +610,7 @@ export async function upsertTrainerProfile(data: {
   featuredMediaType?: TrainerFeaturedMediaType;
   featuredMediaUrl?: string | null;
   manualUpcomingCourses?: TrainerManualUpcomingCoursePublic[];
+  featuredPreviousClassIds?: string[];
   isActive?: boolean;
 }): Promise<TrainerProfilePublic> {
   await ensureTrainerProfilesFinanceSchema();
@@ -652,6 +675,11 @@ export async function upsertTrainerProfile(data: {
     values.push(JSON.stringify(sanitizeManualUpcomingCourses(data.manualUpcomingCourses ?? [])));
   }
 
+  if (hasOwnField(data, "featuredPreviousClassIds")) {
+    updates.push(`featured_previous_class_ids = $${paramIndex++}::uuid[]`);
+    values.push(sanitizeFeaturedPreviousClassIds(data.featuredPreviousClassIds ?? []));
+  }
+
   if (hasOwnField(data, "isActive")) {
     updates.push(`is_active = $${paramIndex++}`);
     values.push(Boolean(data.isActive));
@@ -697,6 +725,7 @@ export async function getTrainerProfile(userId: string): Promise<TrainerProfileP
     featuredMediaType: sanitizeFeaturedMediaType(row.featured_media_type),
     featuredMediaUrl: sanitizeText(row.featured_media_url, 500),
     manualUpcomingCourses: sanitizeManualUpcomingCourses(row.manual_upcoming_courses),
+    featuredPreviousClassIds: sanitizeFeaturedPreviousClassIds(row.featured_previous_class_ids),
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
