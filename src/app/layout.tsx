@@ -1,15 +1,19 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { headers } from "next/headers";
 import ThemeInitScript from "@/components/site/ThemeInitScript";
 import LocaleSync from "@/components/site/LocaleSync";
 import OverlayScrollbarsProvider from "@/components/site/OverlayScrollbarsProvider";
+import PWARegister from "@/components/pwa/PWARegister";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://noonomanarts.com'),
   title: "Noon - نون",
   description: "Noon Arts & Design Studio",
+  applicationName: "Noon",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
@@ -31,6 +35,19 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Noon",
   },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#14110e" },
+  ],
 };
 
 const tsSafaa = localFont({
@@ -122,6 +139,8 @@ export default async function RootLayout({
         <LocaleSync />
         <OverlayScrollbarsProvider />
         <div className="min-h-dvh">{children}</div>
+        <PWARegister />
+        <InstallPrompt />
       </body>
     </html>
   );
