@@ -1,15 +1,15 @@
 /* Noon PWA service worker.
  *
  * Responsibilities:
- *   1. App-shell install with an offline fallback page.
- *   2. Smart runtime caching with per-asset strategies.
+ *   1. App-shell install with smart runtime caching.
+ *   2. Per-asset strategies for pages, assets, fonts and images.
  *   3. Web Push notifications (receive + click handling).
  *   4. Update lifecycle with SKIP_WAITING message support.
  *
  * Cache versioning: bump CACHE_VERSION to invalidate old caches.
  */
 
-const CACHE_VERSION = 'v1.0.0';
+const CACHE_VERSION = 'v1.0.1';
 const PRECACHE = `noon-precache-${CACHE_VERSION}`;
 const RUNTIME_PAGES = `noon-pages-${CACHE_VERSION}`;
 const RUNTIME_ASSETS = `noon-assets-${CACHE_VERSION}`;
@@ -23,9 +23,7 @@ const KNOWN_CACHES = new Set([
   RUNTIME_FONTS,
 ]);
 
-const OFFLINE_URL = '/offline.html';
 const PRECACHE_URLS = [
-  OFFLINE_URL,
   '/manifest.webmanifest',
   '/favicon.ico',
   '/apple-touch-icon.png',
@@ -162,8 +160,6 @@ async function networkFirstNavigation(event) {
   } catch (_) {
     const cached = await cache.match(event.request);
     if (cached) return cached;
-    const offline = await caches.match(OFFLINE_URL);
-    if (offline) return offline;
     return new Response('Offline', {
       status: 503,
       statusText: 'Offline',

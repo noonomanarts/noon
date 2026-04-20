@@ -4,6 +4,7 @@ import { isLocale, type Locale } from "@/lib/locale";
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
 import FloatingWhatsAppButton from "@/components/site/FloatingWhatsAppButton";
+import FloatingInstallButton from "@/components/pwa/FloatingInstallButton";
 import {
   defaultWhatsAppFloatingButtonSettings,
   getAdminSettingsByKey,
@@ -33,6 +34,7 @@ export default async function SiteLocaleLayout({
       <main className="route-sharp flex-1">{children}</main>
       <Footer locale={locale} />
       <FloatingWhatsAppButton locale={locale} settings={whatsappFloatingButton} />
+      <FloatingInstallButton locale={locale} whatsapp={whatsappFloatingButton} />
     </div>
   );
 }

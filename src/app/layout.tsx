@@ -5,7 +5,6 @@ import ThemeInitScript from "@/components/site/ThemeInitScript";
 import LocaleSync from "@/components/site/LocaleSync";
 import OverlayScrollbarsProvider from "@/components/site/OverlayScrollbarsProvider";
 import PWARegister from "@/components/pwa/PWARegister";
-import InstallPrompt from "@/components/pwa/InstallPrompt";
 import appleSplash from "../../public/icons/apple-splash.json";
 import "./globals.css";
 
@@ -163,7 +162,6 @@ export default async function RootLayout({
         <OverlayScrollbarsProvider />
         <div className="min-h-dvh">{children}</div>
         <PWARegister />
-        <InstallPrompt />
       </body>
     </html>
   );
