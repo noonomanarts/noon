@@ -56,6 +56,7 @@ interface FormData {
   durationMinutes: string;
   startDateTime: string;
   endDateTime: string;
+  registrationCloseAt: string;
   status: ClassStatus;
   metaTitle: string;
   metaDescription: string;
@@ -106,6 +107,7 @@ export default function NewClassPage() {
     durationMinutes: '',
     startDateTime: '',
     endDateTime: '',
+    registrationCloseAt: '',
     status: 'DRAFT',
     metaTitle: '',
     metaDescription: ''
@@ -362,6 +364,7 @@ export default function NewClassPage() {
         durationMinutes: formData.durationMinutes ? parseInt(formData.durationMinutes) : 120,
         startDateTime: formData.startDateTime ? new Date(formData.startDateTime).toISOString() : null,
         endDateTime: formData.endDateTime ? new Date(formData.endDateTime).toISOString() : null,
+        registrationCloseAt: formData.registrationCloseAt ? new Date(formData.registrationCloseAt).toISOString() : null,
         status: 'DRAFT',
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description || '',
@@ -439,6 +442,7 @@ export default function NewClassPage() {
         durationMinutes: parseInt(formData.durationMinutes),
         startDateTime: formData.startDateTime ? new Date(formData.startDateTime).toISOString() : null,
         endDateTime: formData.endDateTime ? new Date(formData.endDateTime).toISOString() : null,
+        registrationCloseAt: formData.registrationCloseAt ? new Date(formData.registrationCloseAt).toISOString() : null,
         status: formData.status,
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description
@@ -890,6 +894,25 @@ export default function NewClassPage() {
                 onChange={handleInputChange}
                 className={inputBase}
               />
+            </div>
+
+            {/* Registration Close Date & Time */}
+            <div className="md:col-span-3">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {isRTL ? 'إغلاق التسجيل' : 'Registration closes at'}
+              </label>
+              <input
+                type="datetime-local"
+                name="registrationCloseAt"
+                value={formData.registrationCloseAt}
+                onChange={handleInputChange}
+                className={inputBase}
+              />
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                {isRTL
+                  ? 'اختياري. إذا ترك فارغاً، يُغلق التسجيل تلقائياً قبل 24 ساعة من بدء الورشة.'
+                  : 'Optional. If left empty, registration closes automatically 24 hours before the workshop starts.'}
+              </p>
             </div>
 
             {/* Duration */}

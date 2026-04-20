@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation';
 import { isLocale, type Locale } from '@/lib/locale';
 import { findClassBySlug } from '@/lib/db/classes';
 import { getCurrentUser } from '@/lib/session';
+import { isRegistrationClosed, resolveRegistrationCloseAt } from '@/lib/classRegistration';
 import ClassBookingClient from '@/components/site/ClassBookingClient';
 
 export default async function ClassBookingPage({
@@ -61,6 +62,28 @@ export default async function ClassBookingPage({
     );
   }
 
+  if (isRegistrationClosed(classData.startDateTime, classData.registrationCloseAt)) {
+    return (
+      <div className="route-sharp mx-auto w-full max-w-5xl px-4 py-12">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm">
+          <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">
+            {locale === 'ar' ? 'التسجيل مُغلق' : 'Registration is closed'}
+          </h1>
+          <p className="mt-2 text-sm text-[color:var(--text-muted)]">
+            {locale === 'ar'
+              ? 'تم إغلاق التسجيل لهذه الورشة. يرجى اختيار موعد آخر أو التواصل معنا.'
+              : 'Registration for this workshop is now closed. Please pick another date or contact us.'}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const registrationCloseAt = resolveRegistrationCloseAt(
+    classData.startDateTime,
+    classData.registrationCloseAt
+  );
+
   return (
     <div className="route-sharp">
       <ClassBookingClient
@@ -76,6 +99,7 @@ export default async function ClassBookingPage({
           minimumAge: classData.minimumAge,
           startDateTime: classData.startDateTime ? classData.startDateTime.toISOString() : null,
           endDateTime: classData.endDateTime ? classData.endDateTime.toISOString() : null,
+          registrationCloseAt: registrationCloseAt ? registrationCloseAt.toISOString() : null,
           seatsTotal: classData.seatsTotal,
           seatsBooked: classData.seatsBooked ?? 0,
         }}

@@ -8,6 +8,7 @@ import { MdCalendarMonth, MdAccessTime, MdPerson } from "react-icons/md";
 
 import ClassHeaderSlideshow from "@/components/site/ClassHeaderSlideshow";
 import RequestRepeatButton from "@/components/site/RequestRepeatButton";
+import RegistrationCountdown from "@/components/site/RegistrationCountdown";
 import { findClassBySlug, findClassReviews } from "@/lib/db/classes";
 import {
   getClassRepeatRequestSummaries,
@@ -19,6 +20,10 @@ import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { formatDurationClock } from "@/lib/formatDuration";
 import { isLocale, type Locale } from "@/lib/locale";
+import {
+  isRegistrationClosed,
+  resolveRegistrationCloseAt,
+} from "@/lib/classRegistration";
 
 const DISPLAY_TIMEZONE = "Asia/Muscat";
 
@@ -60,6 +65,15 @@ export default async function ClassDetailPage({
   ]);
 
   const seatsAvailable = Math.max(0, (classData.seatsTotal ?? 0) - (classData.seatsBooked ?? 0));
+  const registrationCloseAt = resolveRegistrationCloseAt(
+    classData.startDateTime,
+    classData.registrationCloseAt
+  );
+  const registrationClosed = !isEnded && isRegistrationClosed(
+    classData.startDateTime,
+    classData.registrationCloseAt
+  );
+  const canBook = !isEnded && !registrationClosed && !!classData.startDateTime && seatsAvailable > 0;
 
   const isCooking = classData.category === ClassCategory.COOKING;
   const Icon = isCooking ? GiChefToque : HiPaintBrush;
@@ -109,6 +123,10 @@ export default async function ClassDetailPage({
       isArabic ? "لا يوجد موعد نشط لهذه الورشة حالياً، ويمكنك طلب إعادتها من القسم الجانبي." : "There is no active schedule for this workshop right now. You can request a repeat from the side panel.",
     minimumAge: isArabic ? "الحد الأدنى للعمر" : "Minimum Age",
     yearsOld: isArabic ? "سنة فأكثر" : "years & above",
+    registrationClosed: isArabic ? "تم إغلاق التسجيل" : "Registration closed",
+    registrationClosedHint: isArabic
+      ? "انتهى الوقت المتاح للتسجيل في هذه الورشة."
+      : "The window to register for this workshop has ended.",
   };
 
   const title = isArabic && classData.titleAr ? classData.titleAr : classData.title;
@@ -374,12 +392,26 @@ export default async function ClassDetailPage({
                       {seatsAvailable} {t.seatsAvailable}
                     </span>
                   </div>
-                  <Link
-                    href={`/${locale}/classes/${classData.slug}/book`}
-                    className="mt-3 inline-flex items-center justify-center rounded-lg bg-[color:var(--primary)] px-4 py-2 text-xs font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] sm:text-sm"
-                  >
-                    {t.bookNow}
-                  </Link>
+                  {registrationCloseAt && !registrationClosed ? (
+                    <div className="mt-3">
+                      <RegistrationCountdown
+                        locale={locale}
+                        closesAt={registrationCloseAt.toISOString()}
+                      />
+                    </div>
+                  ) : null}
+                  {registrationClosed ? (
+                    <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+                      {t.registrationClosed}
+                    </div>
+                  ) : canBook ? (
+                    <Link
+                      href={`/${locale}/classes/${classData.slug}/book`}
+                      className="mt-3 inline-flex items-center justify-center rounded-lg bg-[color:var(--primary)] px-4 py-2 text-xs font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] sm:text-sm"
+                    >
+                      {t.bookNow}
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             ) : isEnded ? (
@@ -448,13 +480,31 @@ export default async function ClassDetailPage({
             </div>
             <p className="mt-4 text-sm leading-6 text-[color:var(--text-muted)]">{isEnded ? t.repeatHint : t.bookingHint}</p>
 
-            {!isEnded && classData.startDateTime && seatsAvailable > 0 ? (
+            {!isEnded && registrationCloseAt && !registrationClosed ? (
+              <div className="mt-4">
+                <RegistrationCountdown
+                  locale={locale}
+                  closesAt={registrationCloseAt.toISOString()}
+                />
+              </div>
+            ) : null}
+
+            {canBook ? (
               <Link
                 href={`/${locale}/classes/${classData.slug}/book`}
                 className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
               >
                 {t.secureSeatNow}
               </Link>
+            ) : null}
+
+            {registrationClosed ? (
+              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+                {t.registrationClosed}
+                <p className="mt-1 text-xs font-normal text-red-600/90 dark:text-red-300/80">
+                  {t.registrationClosedHint}
+                </p>
+              </div>
             ) : null}
 
             {isEnded ? (

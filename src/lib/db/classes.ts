@@ -17,6 +17,7 @@ async function ensureClassMinimumAgeSchema(): Promise<void> {
   classMinimumAgeSchemaReady = (async () => {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS minimum_age INTEGER DEFAULT NULL`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS show_minimum_age BOOLEAN NOT NULL DEFAULT FALSE`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS registration_close_at TIMESTAMP WITH TIME ZONE`);
   })();
 
   return classMinimumAgeSchemaReady;
@@ -108,6 +109,7 @@ export async function findManyClasses(options: {
     expenseSharePercent: parseFloat(row.expense_share_percent || 0),
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
+    registrationCloseAt: row.registration_close_at || null,
     seatsBooked: row.seats_booked ?? 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -222,6 +224,7 @@ export async function findManyClassesPaginated(options: {
     publishedAt: row.published_at,
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
+    registrationCloseAt: row.registration_close_at || null,
     seatsBooked: row.seats_booked ?? 0,
     closedAt: row.closed_at,
     closedByUserId: row.closed_by_user_id,
@@ -309,6 +312,7 @@ export async function findUniqueClass(
     showMinimumAge: Boolean(row.show_minimum_age),
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
+    registrationCloseAt: row.registration_close_at || null,
     seatsBooked: row.seats_booked ?? 0,
   };
 
@@ -367,6 +371,7 @@ export async function createClass(data: {
   expenseSharePercent?: number;
   startDateTime?: Date | string | null;
   endDateTime?: Date | string | null;
+  registrationCloseAt?: Date | string | null;
 }): Promise<Record<string, unknown>> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
@@ -379,9 +384,9 @@ export async function createClass(data: {
       trainer_id, price, currency, seats_total, seats_available, duration_minutes,
       image, images, status, meta_title, meta_description,
       trainer_share_percent, noon_share_percent, expense_share_percent,
-      start_date_time, end_date_time,
+      start_date_time, end_date_time, registration_close_at,
       created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
     RETURNING *`,
     [
       id,
@@ -408,6 +413,7 @@ export async function createClass(data: {
       data.expenseSharePercent ?? 0,
       data.startDateTime ? new Date(data.startDateTime as string) : null,
       data.endDateTime ? new Date(data.endDateTime as string) : null,
+      data.registrationCloseAt ? new Date(data.registrationCloseAt as string) : null,
       now,
       now,
     ]
@@ -446,6 +452,7 @@ export async function createClass(data: {
     showMinimumAge: Boolean(row.show_minimum_age),
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
+    registrationCloseAt: row.registration_close_at || null,
     seatsBooked: row.seats_booked ?? 0,
   };
 }
@@ -483,6 +490,7 @@ export async function updateClass(
     showMinimumAge: boolean;
     startDateTime: Date | string | null;
     endDateTime: Date | string | null;
+    registrationCloseAt: Date | string | null;
     seatsBooked: number;
   }>
 ): Promise<Record<string, unknown> | null> {
@@ -520,6 +528,7 @@ export async function updateClass(
     showMinimumAge: 'show_minimum_age',
     startDateTime: 'start_date_time',
     endDateTime: 'end_date_time',
+    registrationCloseAt: 'registration_close_at',
     seatsBooked: 'seats_booked',
   };
 
@@ -578,6 +587,7 @@ export async function updateClass(
     showMinimumAge: Boolean(row.show_minimum_age),
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
+    registrationCloseAt: row.registration_close_at || null,
     seatsBooked: row.seats_booked ?? 0,
   };
 }
@@ -626,6 +636,7 @@ export async function findClassBySlug(slug: string): Promise<{
   showMinimumAge: boolean;
   startDateTime: Date | null;
   endDateTime: Date | null;
+  registrationCloseAt: Date | null;
 } | null> {
   await ensureClassMinimumAgeSchema();
   const result = await query(
@@ -658,6 +669,7 @@ export async function findClassBySlug(slug: string): Promise<{
     showMinimumAge: Boolean(row.show_minimum_age),
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
+    registrationCloseAt: row.registration_close_at || null,
   };
 }
 

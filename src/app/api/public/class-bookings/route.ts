@@ -4,6 +4,7 @@ import { pool } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
 import { addBonusPoints } from '@/lib/db/wallet';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
+import { isRegistrationClosed } from '@/lib/classRegistration';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -197,7 +198,7 @@ export async function POST(request: NextRequest) {
 
     const classResult = await client.query(
       `SELECT c.id, c.title, c.title_ar, c.price, c.currency, c.seats_total, c.seats_booked,
-              c.status, c.sub_category, c.minimum_age, c.start_date_time
+              c.status, c.sub_category, c.minimum_age, c.start_date_time, c.registration_close_at
        FROM classes c
        WHERE c.id = $1
        FOR UPDATE`,
@@ -218,6 +219,10 @@ export async function POST(request: NextRequest) {
       if (classStart.getTime() < Date.now()) {
         throw new ApiError('This class has already started', 409);
       }
+    }
+
+    if (isRegistrationClosed(classRow.start_date_time, classRow.registration_close_at)) {
+      throw new ApiError('Registration for this class is closed', 409);
     }
 
     // Enforce minimum age restriction

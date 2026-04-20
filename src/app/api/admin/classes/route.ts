@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
       currency,
       startDateTime,
       endDateTime,
+      registrationCloseAt,
     } = body;
 
     const isDraft = status === 'DRAFT';
@@ -229,6 +230,7 @@ export async function POST(request: NextRequest) {
       expenseSharePercent: 0,
       startDateTime: startDateTime || null,
       endDateTime: endDateTime || null,
+      registrationCloseAt: registrationCloseAt || null,
     });
 
     // Create calendar event if date/time is set

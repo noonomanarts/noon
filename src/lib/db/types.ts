@@ -228,6 +228,7 @@ export interface ClassPublic {
   seatsBooked: number;
   startDateTime: Date | null;
   endDateTime: Date | null;
+  registrationCloseAt: Date | null;
   durationMinutes: number;
   status: ClassStatus;
   metaTitle: string | null;

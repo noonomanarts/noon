@@ -153,6 +153,7 @@ export default function ClassBookingClient({
     minimumAge?: number | null;
     startDateTime: string | null;
     endDateTime: string | null;
+    registrationCloseAt?: string | null;
     seatsTotal: number;
     seatsBooked: number;
   };
