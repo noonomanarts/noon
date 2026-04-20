@@ -13,6 +13,7 @@ import {
   EVENT_BOOKING_CONFIRMATION_TOKEN_TTL_MS,
   generateEventBookingConfirmationToken,
   sendEventBookingCompletionRequest,
+  sendEventBookingPaymentStatusNotification,
 } from '@/lib/eventBookingWorkflow';
 import { notifyPhotographerDashboardUsers } from '@/lib/photographerNotifications';
 import {
@@ -118,11 +119,23 @@ export async function PUT(request: NextRequest, props: Params) {
     }
 
     let confirmationToken: string | null = null;
-    if (updateData.status === 'PENDING_CLIENT_CONFIRMATION') {
+    const isTransitionToPendingConfirmation =
+      updateData.status === 'PENDING_CLIENT_CONFIRMATION' &&
+      existingEvent.status !== 'PENDING_CLIENT_CONFIRMATION';
+
+    if (isTransitionToPendingConfirmation) {
       confirmationToken = generateEventBookingConfirmationToken();
       updateData.confirmationToken = confirmationToken;
       updateData.confirmationTokenExpiresAt = new Date(Date.now() + EVENT_BOOKING_CONFIRMATION_TOKEN_TTL_MS);
+    } else if (updateData.status === 'PENDING_CLIENT_CONFIRMATION') {
+      // Already in this status — do not re-generate the token or re-send the link.
+      delete updateData.status;
     }
+
+    const paymentStatusChanged =
+      typeof updateData.paymentStatus === 'string' &&
+      updateData.paymentStatus !== existingEvent.paymentStatus;
+    const nextPaymentStatus = paymentStatusChanged ? (updateData.paymentStatus as string) : null;
 
     const updatedEvent = await updateEventBooking(params.eventId, updateData);
 
@@ -265,6 +278,24 @@ export async function PUT(request: NextRequest, props: Params) {
       }).catch((notificationError) => {
         console.error('Failed to send event completion request:', notificationError);
       });
+    }
+
+    if (nextPaymentStatus) {
+      const paymentKind = nextPaymentStatus === 'PAID'
+        ? 'PAID'
+        : nextPaymentStatus === 'FAILED'
+          ? 'FAILED'
+          : nextPaymentStatus === 'REFUNDED'
+            ? 'REFUNDED'
+            : null;
+      if (paymentKind) {
+        void sendEventBookingPaymentStatusNotification({
+          event: updatedEvent,
+          kind: paymentKind,
+        }).catch((notificationError) => {
+          console.error('Failed to send event payment status notification:', notificationError);
+        });
+      }
     }
 
     // Notify photographer when event is confirmed

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findUniqueEventBooking, updateEventBooking } from '@/lib/db/events';
 import { getPaymobOrder, mapPaymobOrderToWalletStatus } from '@/lib/paymob';
+import { getPublicSiteBaseUrl } from '@/lib/eventBookingWorkflow';
 
 type CallbackLookup = {
   reference: string | null;
@@ -114,7 +115,8 @@ function buildReturnUrl(request: NextRequest, booking: Record<string, unknown> |
   const token = lookup.token || (typeof booking?.confirmationToken === 'string' ? booking.confirmationToken : '');
   const locale = lookup.locale === 'ar' ? 'ar' : lookup.locale === 'en' ? 'en' : 'en';
 
-  const destination = new URL(token ? `/${locale}/group-booking-events/complete/${token}` : `/${locale}/group-booking-events`, request.url);
+  const base = getPublicSiteBaseUrl(request.nextUrl.origin);
+  const destination = new URL(token ? `/${locale}/group-booking-events/complete/${token}` : `/${locale}/group-booking-events`, base);
   destination.searchParams.set('payment', paymentState);
   if (lookup.reference) {
     destination.searchParams.set('reference', lookup.reference);
@@ -137,7 +139,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(buildReturnUrl(request, booking, lookup, paymentState));
   } catch (error) {
     console.error('Error handling Paymob event payment callback:', error);
-    return NextResponse.redirect(new URL('/en/group-booking-events?payment=failed', request.url));
+    return NextResponse.redirect(new URL('/en/group-booking-events?payment=failed', getPublicSiteBaseUrl(request.nextUrl.origin)));
   }
 }
 
