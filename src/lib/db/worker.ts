@@ -29,6 +29,7 @@ async function ensureStockRestocksSchema(): Promise<void> {
   if (stockRestocksSchemaReady) return;
 
   await pool.query(`ALTER TABLE stock_restocks ADD COLUMN IF NOT EXISTS expiry_date DATE`);
+  await pool.query(`ALTER TABLE stock_restocks ADD COLUMN IF NOT EXISTS production_date DATE`);
   stockRestocksSchemaReady = true;
 }
 
@@ -104,6 +105,7 @@ export interface CreateRestockInput {
   workerUserId: string;
   quantityAdded: number;
   expiryDate: string;
+  productionDate?: string | null;
   notes?: string;
   notesAr?: string;
 }
@@ -133,6 +135,15 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
       throw new Error('Invalid expiry date');
     }
 
+    let productionDate: string | null = null;
+    if (input.productionDate) {
+      const parsed = new Date(`${input.productionDate}T00:00:00`);
+      if (Number.isNaN(parsed.getTime())) {
+        throw new Error('Invalid production date');
+      }
+      productionDate = input.productionDate;
+    }
+
     // Update product stock
     await client.query(
       `UPDATE shop_products SET stock_quantity = $1, updated_at = NOW() WHERE id = $2`,
@@ -141,8 +152,8 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
 
     // Record restock
     const restockResult = await client.query(
-      `INSERT INTO stock_restocks (product_id, worker_user_id, quantity_added, previous_quantity, new_quantity, expiry_date, unit_cost, total_cost, supplier_name, notes, notes_ar)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, $9, $10)
+      `INSERT INTO stock_restocks (product_id, worker_user_id, quantity_added, previous_quantity, new_quantity, expiry_date, production_date, unit_cost, total_cost, supplier_name, notes, notes_ar)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULL, $10, $11)
        RETURNING *`,
       [
         input.productId,
@@ -151,6 +162,7 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
         previousQuantity,
         newQuantity,
         input.expiryDate,
+        productionDate,
         unitCost,
         totalCost,
         input.notes ?? null,
@@ -169,6 +181,7 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
       previous_quantity: Number(row.previous_quantity),
       new_quantity: Number(row.new_quantity),
       expiry_date: row.expiry_date ? new Date(`${row.expiry_date}T00:00:00`) : null,
+      production_date: row.production_date ? new Date(`${row.production_date}T00:00:00`) : null,
       unit_cost: row.unit_cost ? toMoney(row.unit_cost) : null,
       total_cost: row.total_cost ? toMoney(row.total_cost) : null,
       supplier_name: row.supplier_name,
@@ -235,6 +248,7 @@ export async function getStockRestocks(options?: {
       previous_quantity: Number(row.previous_quantity),
       new_quantity: Number(row.new_quantity),
       expiry_date: row.expiry_date ? new Date(`${row.expiry_date}T00:00:00`) : null,
+      production_date: row.production_date ? new Date(`${row.production_date}T00:00:00`) : null,
       unit_cost: row.unit_cost ? toMoney(row.unit_cost) : null,
       total_cost: row.total_cost ? toMoney(row.total_cost) : null,
       supplier_name: row.supplier_name,

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { productId, quantityAdded, expiryDate, notes, notesAr } = body;
+    const { productId, quantityAdded, expiryDate, productionDate, notes, notesAr } = body;
 
     if (!productId || !quantityAdded || quantityAdded <= 0 || !expiryDate) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
@@ -48,6 +48,7 @@ export async function POST(request: Request) {
       workerUserId: user.id,
       quantityAdded,
       expiryDate,
+      productionDate: typeof productionDate === 'string' && productionDate.trim().length > 0 ? productionDate : null,
       notes,
       notesAr,
     });

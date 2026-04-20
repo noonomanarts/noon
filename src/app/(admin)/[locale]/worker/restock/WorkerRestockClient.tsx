@@ -21,6 +21,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
   const [selectedProduct, setSelectedProduct] = useState<ProductForWorker | null>(null);
   const [quantity, setQuantity] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  const [productionDate, setProductionDate] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -35,6 +36,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
       currentStock: isArabic ? "المخزون الحالي" : "Current Stock",
       quantity: isArabic ? "الكمية المضافة" : "Quantity to Add",
       expiryDate: isArabic ? "تاريخ الانتهاء" : "Expiry Date",
+      productionDate: isArabic ? "تاريخ الإنتاج (اختياري)" : "Production Date (optional)",
       notes: isArabic ? "ملاحظات (اختياري)" : "Notes (optional)",
       submit: isArabic ? "إضافة المخزون" : "Add Stock",
       submitting: isArabic ? "جارٍ الإضافة..." : "Adding...",
@@ -94,6 +96,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
           productId: selectedProduct.id,
           quantityAdded: qty,
           expiryDate,
+          productionDate: productionDate || undefined,
           notes: notes || undefined,
         }),
       });
@@ -115,6 +118,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
       setSuccessMessage(t.success);
       setQuantity("");
       setExpiryDate("");
+      setProductionDate("");
       setNotes("");
 
       // Clear success message after 3 seconds
@@ -256,6 +260,19 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
                   type="date"
                   value={expiryDate}
                   onChange={(e) => setExpiryDate(e.target.value)}
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-white dark:focus:ring-white/10"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {t.productionDate}
+                </label>
+                <input
+                  type="date"
+                  value={productionDate}
+                  onChange={(e) => setProductionDate(e.target.value)}
+                  max={expiryDate || undefined}
                   className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:focus:border-white dark:focus:ring-white/10"
                 />
               </div>
