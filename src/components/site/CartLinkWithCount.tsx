@@ -79,7 +79,7 @@ export default function CartLinkWithCount({
             </span>
           )}
         </span>
-        <span>{label}</span>
+        <span className="hidden whitespace-nowrap sm:inline">{label}</span>
       </span>
     </Link>
   );

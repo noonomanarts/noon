@@ -77,8 +77,9 @@ export default function FloatingWhatsAppButton({
   const buttonSizePx = sanitizeNumber(settings.buttonSizePx, 44, 96, 58);
   const iconSizePx = sanitizeNumber(settings.iconSizePx, 16, 42, 28);
   const sideOffsetPx = sanitizeNumber(settings.sideOffsetPx, 0, 80, 20);
-  const bottomOffsetPx = sanitizeNumber(settings.bottomOffsetPx, 0, 120, 20);
-  const position = settings.position === 'left' ? 'left' : 'right';
+  const baseBottomOffsetPx = sanitizeNumber(settings.bottomOffsetPx, 0, 120, 20);
+  const bottomOffsetPx = Math.min(172, baseBottomOffsetPx + 40);
+  const position = locale === 'ar' ? 'left' : 'right';
   const text = settings.presetMessage.trim();
   const href = `https://api.whatsapp.com/send?phone=${phone}${text ? `&text=${encodeURIComponent(text)}` : ''}`;
 

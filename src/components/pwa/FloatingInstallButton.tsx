@@ -128,15 +128,15 @@ export default function FloatingInstallButton({
 
   const showWA = whatsapp.enabled && (whatsapp.showOnMobile || whatsapp.showOnDesktop);
   const waSize = sanitizeNumber(whatsapp.buttonSizePx, 44, 96, 58);
-  const waBottom = sanitizeNumber(whatsapp.bottomOffsetPx, 0, 120, 20);
+  const waBottom = Math.min(172, sanitizeNumber(whatsapp.bottomOffsetPx, 0, 120, 20) + 40);
   const waSide = sanitizeNumber(whatsapp.sideOffsetPx, 0, 80, 20);
-  const waPosition = whatsapp.position === 'left' ? 'left' : 'right';
+  const waPosition = locale === 'ar' ? 'left' : 'right';
 
   // Stack above WA button (12px gap). If WA is disabled, use its side/bottom defaults.
   const gap = 12;
-  const bottomPx = showWA ? waBottom + waSize + gap : 20;
+  const bottomPx = showWA ? waBottom + waSize + gap : 60;
   const sidePx = waSide;
-  const position = showWA ? waPosition : 'right';
+  const position = showWA ? waPosition : locale === 'ar' ? 'left' : 'right';
 
   const visibilityClass =
     whatsapp.showOnMobile && whatsapp.showOnDesktop

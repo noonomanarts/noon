@@ -24,11 +24,11 @@ function NavLink({
   tone?: "dark" | "light";
 }) {
   const topClasses = tone === "light"
-    ? "inline-flex h-11 items-center px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
-    : "inline-flex h-11 items-center px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 hover:text-white";
+    ? "inline-flex h-11 shrink-0 items-center whitespace-nowrap px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
+    : "inline-flex h-11 shrink-0 items-center whitespace-nowrap px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 hover:text-white";
   const panelClasses = tone === "light"
-    ? "flex h-10 items-center px-3 text-sm font-bold text-black transition hover:bg-black/10 hover:text-black"
-    : "flex h-10 items-center px-3 text-sm font-bold text-white/95 transition hover:bg-white/14 hover:text-white";
+    ? "flex h-10 items-center whitespace-nowrap px-3 text-sm font-bold text-black transition hover:bg-black/10 hover:text-black"
+    : "flex h-10 items-center whitespace-nowrap px-3 text-sm font-bold text-white/95 transition hover:bg-white/14 hover:text-white";
 
   return (
     <Link
@@ -50,7 +50,7 @@ export default async function Header({ locale }: { locale: Locale }) {
   const initialCartCount = initialCart.items.reduce((sum, item) => sum + item.quantity, 0);
   const { headerColor, headerLogoUrl } = await resolveHeaderBranding();
   const navTone: "dark" | "light" = "light";
-  const dropdownButtonClass = "text-black hover:bg-black/10 hover:text-black focus-visible:outline-black/60";
+  const dropdownButtonClass = "whitespace-nowrap text-black hover:bg-black/10 hover:text-black focus-visible:outline-black/60";
   const dropdownPanelClass = "mt-0 border-0 shadow-none";
   const headerMenuStyle = {
     backgroundColor: headerColor,
@@ -79,7 +79,7 @@ export default async function Header({ locale }: { locale: Locale }) {
       <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
         <Link
           href={`/${locale}`}
-          className="inline-flex h-11 items-center gap-3 px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+          className="inline-flex h-11 shrink-0 items-center gap-3 px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
           aria-label="Noon"
         >
           <Image
@@ -88,11 +88,11 @@ export default async function Header({ locale }: { locale: Locale }) {
             width={56}
             height={56}
             priority
-            className="h-11 w-auto"
+            className="h-11 w-auto shrink-0"
           />
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
           <Dropdown
             label={t.classes}
             buttonClassName={dropdownButtonClass}
@@ -127,17 +127,17 @@ export default async function Header({ locale }: { locale: Locale }) {
           <NavLink href={`/${locale}/join-us`} variant="top" tone={navTone}>{t.joinUs}</NavLink>
         </nav>
 
-        <div className="ms-auto flex items-center gap-2">
+        <div className="ms-auto flex items-center gap-1 sm:gap-2">
           <HeaderLocaleLink
             locale={locale}
-            className="inline-flex h-11 items-center justify-center rounded-none px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
+            className="inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-none px-2 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black sm:px-3"
           />
 
           <CartLinkWithCount
             locale={locale}
             label={t.cart}
             initialCount={initialCartCount}
-            className="inline-flex h-11 items-center justify-center gap-1.5 rounded-none px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-none px-2 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black sm:px-3"
           />
 
           {user ? (
@@ -160,13 +160,13 @@ export default async function Header({ locale }: { locale: Locale }) {
           ) : (
             <Link
               href={`/${locale}/login`} 
-              className="hidden h-11 items-center justify-center px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black md:inline-flex"
+              className="hidden h-11 shrink-0 items-center justify-center whitespace-nowrap px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black lg:inline-flex"
             >
               {t.login}
             </Link>
           )}
 
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <Dropdown
               label={locale === "ar" ? "القائمة" : "Menu"}
               align="end"
