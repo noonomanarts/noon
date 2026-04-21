@@ -73,10 +73,10 @@ export default async function Header({ locale }: { locale: Locale }) {
 
   return (
     <header
-      className="sticky top-0 z-40 shadow-none"
+      className="sticky top-0 z-40 shadow-none pt-[env(safe-area-inset-top)]"
       style={{ backgroundColor: headerColor }}
     >
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3">
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 ps-[max(1rem,env(safe-area-inset-left))] pe-[max(1rem,env(safe-area-inset-right))]">
         <Link
           href={`/${locale}`}
           className="inline-flex h-11 shrink-0 items-center gap-3 px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
