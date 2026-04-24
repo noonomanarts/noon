@@ -589,30 +589,39 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
               />
 
               <div className="grid grid-cols-3 gap-2">
-                <input
-                  value={editor.price}
-                  onChange={(event) => setEditor((prev) => ({ ...prev, price: event.target.value }))}
-                  type="number"
-                  min="0"
-                  step="0.001"
-                  placeholder={t.price}
-                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
-                />
-                <input
-                  value={editor.cost}
-                  onChange={(event) => setEditor((prev) => ({ ...prev, cost: event.target.value }))}
-                  type="number"
-                  min="0"
-                  step="0.001"
-                  placeholder={t.cost}
-                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
-                />
-                <input
-                  value={editor.currency}
-                  onChange={(event) => setEditor((prev) => ({ ...prev, currency: event.target.value.toUpperCase() }))}
-                  placeholder={t.currency}
-                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
-                />
+                <label className="space-y-1">
+                  <span className="block text-xs font-medium text-zinc-600 dark:text-zinc-300">{t.price}</span>
+                  <input
+                    value={editor.price}
+                    onChange={(event) => setEditor((prev) => ({ ...prev, price: event.target.value }))}
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    placeholder={t.price}
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="block text-xs font-medium text-zinc-600 dark:text-zinc-300">{t.cost}</span>
+                  <input
+                    value={editor.cost}
+                    onChange={(event) => setEditor((prev) => ({ ...prev, cost: event.target.value }))}
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    placeholder={t.cost}
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="block text-xs font-medium text-zinc-600 dark:text-zinc-300">{t.currency}</span>
+                  <input
+                    value={editor.currency}
+                    onChange={(event) => setEditor((prev) => ({ ...prev, currency: event.target.value.toUpperCase() }))}
+                    placeholder={t.currency}
+                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                  />
+                </label>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
