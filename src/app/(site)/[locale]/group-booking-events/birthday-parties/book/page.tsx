@@ -11,6 +11,9 @@ import BookingFormError from '@/components/site/BookingFormError';
 import PublicEventAvailabilityPicker from '@/components/site/PublicEventAvailabilityPicker';
 import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
 import {
+  BIRTHDAY_PARTY_PRICE_TIERS,
+  getBirthdayPartyTier,
+  getBirthdayPartyTierById,
   getBirthdayPartyTotal,
 } from '@/lib/competitionPricing';
 
@@ -20,10 +23,10 @@ export default function BirthdayPartyBookingPage() {
   const searchParams = useSearchParams();
   const locale = (isLocale(params.locale as string) ? params.locale : 'en') as Locale;
   const participantsFromUrl = Number.parseInt(searchParams.get('participants') ?? '', 10);
-  const initialParticipants =
-    Number.isInteger(participantsFromUrl) && participantsFromUrl >= 1 && participantsFromUrl <= 40
-      ? participantsFromUrl
-      : 10;
+  const initialBirthdayTier =
+    getBirthdayPartyTierById(searchParams.get('birthdayPackage') ?? '') ??
+    getBirthdayPartyTier(participantsFromUrl) ??
+    BIRTHDAY_PARTY_PRICE_TIERS[0];
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -32,7 +35,8 @@ export default function BirthdayPartyBookingPage() {
   const [formData, setFormData] = useState({
     selectedDate: '',
     selectedTime: '',
-    numberOfParticipants: initialParticipants,
+    birthdayPackageId: initialBirthdayTier.id,
+    numberOfParticipants: initialBirthdayTier.maxParticipants,
     childAge: 10,
     fullName: '',
     email: '',
@@ -53,8 +57,10 @@ export default function BirthdayPartyBookingPage() {
     selectTime: locale === 'ar' ? 'الوقت' : 'Time',
     
     partyDetails: locale === 'ar' ? 'تفاصيل الحفلة' : 'Party Details',
-    participants: locale === 'ar' ? 'عدد المشاركين' : 'Number of Participants',
-    maxParticipants: locale === 'ar' ? 'الباقة تشمل حتى 16 مشاركة، وبعدها +10 ر.ع لكل مشاركة إضافية' : 'Base package includes up to 16 participants, then +10 OMR per additional person',
+    chooseOption: locale === 'ar' ? 'اختاري الباقة' : 'Choose Your Option',
+    participants: locale === 'ar' ? 'المشاركون' : 'Participants',
+    workStyle: locale === 'ar' ? 'طريقة العمل' : 'Work Style',
+    selectedOptionRequired: locale === 'ar' ? 'يرجى اختيار الباقة.' : 'Please select a package option.',
     childAge: locale === 'ar' ? 'عمر الطفل' : "Child's Age",
     minimumAge: locale === 'ar' ? 'الحد الأدنى 10 سنوات' : 'Minimum 10 years',
     duration: locale === 'ar' ? 'المدة: ساعتان' : 'Duration: 2 hours',
@@ -83,7 +89,6 @@ export default function BirthdayPartyBookingPage() {
     selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
     dateRequired: locale === 'ar' ? 'يرجى اختيار التاريخ.' : 'Please select a date.',
     timeRequired: locale === 'ar' ? 'يرجى اختيار الوقت.' : 'Please select a time.',
-    participantsRange: locale === 'ar' ? 'عدد المشاركين يجب أن يكون بين 1 و 40.' : 'Participants must be between 1 and 40.',
     ageMinimum: locale === 'ar' ? 'الحد الأدنى للعمر هو 10 سنوات.' : 'Minimum age is 10.',
     fullNameRequired: locale === 'ar' ? 'يرجى إدخال الاسم.' : 'Please enter parent/guardian name.',
     emailRequired: locale === 'ar' ? 'يرجى إدخال البريد الإلكتروني.' : 'Please enter email.',
@@ -106,14 +111,6 @@ export default function BirthdayPartyBookingPage() {
       locale === 'ar'
         ? 'اختاري التاريخ والوقت وحجم المجموعة المناسب.'
         : 'Select your preferred date, time, and party size.',
-    packageDetails: locale === 'ar' ? 'تفاصيل الباقة' : 'Package Details',
-    packageParticipantsLabel: locale === 'ar' ? 'المشاركات' : 'Participants',
-    packageParticipantsValue: locale === 'ar' ? 'حتى 16 بنت (بعدها +10 ر.ع/مشاركة)' : 'Up to 16 girls (then +10 OMR/person)',
-    packageDurationLabel: locale === 'ar' ? 'المدة' : 'Duration',
-    packageDurationValue: locale === 'ar' ? 'ساعتان' : '2 hours',
-    packageAgeLabel: locale === 'ar' ? 'العمر' : 'Age',
-    packageAgeValue: locale === 'ar' ? 'بنات 10+ سنوات' : 'Girls 10+ years',
-    participantsPlaceholder: locale === 'ar' ? 'مثال: 12' : 'e.g., 12',
     childAgePlaceholder: locale === 'ar' ? 'مثال: 12' : 'e.g., 12',
     guardianInfoHint:
       locale === 'ar'
@@ -134,12 +131,11 @@ export default function BirthdayPartyBookingPage() {
     summaryTitle: locale === 'ar' ? 'ملخص الحجز' : 'Booking Summary',
     summaryDateTime: locale === 'ar' ? 'التاريخ والوقت' : 'Date & Time',
     summaryPartyDetails: locale === 'ar' ? 'تفاصيل الحفلة' : 'Party Details',
+    summarySelectedOption: locale === 'ar' ? 'الباقة المختارة' : 'Selected Package',
     summaryParent: locale === 'ar' ? 'ولي الأمر' : 'Parent/Guardian',
     summaryContact: locale === 'ar' ? 'معلومات التواصل' : 'Contact Information',
     summarySpecial: locale === 'ar' ? 'طلبات خاصة' : 'Special Requests',
-    estimatedPrice: locale === 'ar' ? 'السعر التقديري' : 'Estimated Price',
-    basePackage: locale === 'ar' ? 'الباقة الأساسية' : 'Base package',
-    additionalParticipants: locale === 'ar' ? 'مشاركات إضافية' : 'Additional participants',
+    fixedPrice: locale === 'ar' ? 'السعر الثابت' : 'Fixed Price',
     noteTitle: locale === 'ar' ? 'ملاحظة:' : 'Note:',
     noteText:
       locale === 'ar'
@@ -147,9 +143,12 @@ export default function BirthdayPartyBookingPage() {
         : 'Our team will review your request and contact you within 24 hours to confirm availability and finalize the details.',
     viewAllEvents: locale === 'ar' ? 'عرض جميع الفعاليات' : 'View All Events',
     loading: locale === 'ar' ? 'جاري المعالجة...' : 'Processing...',
+    individual: locale === 'ar' ? 'كل مشاركة تعمل بشكل فردي' : 'Each person works individually',
+    pairs: locale === 'ar' ? 'كل شخصين يعملان معاً' : 'Every 2 people work together',
   };
 
-  const participantsCount = Number(formData.numberOfParticipants);
+  const selectedTier = getBirthdayPartyTierById(formData.birthdayPackageId) ?? initialBirthdayTier;
+  const participantsCount = selectedTier.maxParticipants;
   const birthdayTotal = getBirthdayPartyTotal(participantsCount);
   const validateStep = (stepToValidate: 1 | 2 | 3): boolean => {
     if (stepToValidate === 1) {
@@ -166,9 +165,8 @@ export default function BirthdayPartyBookingPage() {
         return false;
       }
 
-      const participants = Number(formData.numberOfParticipants);
-      if (!Number.isInteger(participants) || participants < 1 || participants > 40) {
-        setError(t.participantsRange);
+      if (!selectedTier) {
+        setError(t.selectedOptionRequired);
         return false;
       }
 
@@ -217,7 +215,8 @@ export default function BirthdayPartyBookingPage() {
         preferredLanguage: locale,
         selectedDate: formData.selectedDate,
         selectedTime: formData.selectedTime,
-        numberOfParticipants: Number(formData.numberOfParticipants),
+        birthdayPackage: selectedTier.id,
+        numberOfParticipants: selectedTier.maxParticipants,
         childAge: Number(formData.childAge),
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),
@@ -322,28 +321,48 @@ export default function BirthdayPartyBookingPage() {
               }
             />
 
-            {/* Party Details */}
             <div className="grid gap-6 md:grid-cols-2">
               <div>
                 <label className="noon-text mb-3 flex items-center gap-2 font-semibold">
                   <MdGroup className="text-xl text-purple" />
-                  {t.participants}
+                  {t.chooseOption}
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="40"
-                  className="w-full rounded-xl border-2 border-[color:var(--border)] px-4 py-3 transition-all focus:border-purple focus:outline-none focus:ring-2 focus:ring-purple/20"
-                  value={formData.numberOfParticipants}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      numberOfParticipants: parseIntegerInput(e.target.value, 0),
-                    })
-                  }
-                  placeholder={t.participantsPlaceholder}
-                />
-                <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{t.maxParticipants}</p>
+                <div className="space-y-3">
+                  {BIRTHDAY_PARTY_PRICE_TIERS.map((tier) => {
+                    const isSelected = tier.id === formData.birthdayPackageId;
+
+                    return (
+                      <button
+                        key={tier.id}
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            birthdayPackageId: tier.id,
+                            numberOfParticipants: tier.maxParticipants,
+                          }))
+                        }
+                        className={`w-full rounded-2xl border-2 px-4 py-4 text-left transition ${
+                          isSelected
+                            ? 'border-purple bg-purple/5 shadow-sm'
+                            : 'border-[color:var(--border)] bg-[color:var(--surface)] hover:border-purple/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-base font-semibold text-[color:var(--text)]">
+                              {tier.minParticipants}-{tier.maxParticipants} {t.participants}
+                            </p>
+                            <p className="mt-1 text-sm text-[color:var(--text-muted)]">
+                              {t.workStyle}: {tier.workMode === 'INDIVIDUAL' ? t.individual : t.pairs}
+                            </p>
+                          </div>
+                          <p className="text-lg font-bold text-coral">{tier.totalPrice} OMR</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div>
@@ -471,13 +490,15 @@ export default function BirthdayPartyBookingPage() {
                 <div className="flex items-start gap-4 rounded-xl bg-[color:var(--surface)]/50 p-4">
                   <MdGroup className="mt-1 text-xl text-yellow" />
                   <div className="flex-1">
-                    <span className="text-sm text-[color:var(--text-muted)]">{t.summaryPartyDetails}</span>
+                    <span className="text-sm text-[color:var(--text-muted)]">{t.summarySelectedOption}</span>
                     <p className="font-semibold">
-                      {formData.numberOfParticipants} {t.participants} • {t.childAge}: {formData.childAge}
+                      {selectedTier.minParticipants}-{selectedTier.maxParticipants} {t.participants}
                     </p>
-                    <p className="mt-1 font-semibold text-coral">
-                      {t.estimatedPrice}: {birthdayTotal !== null ? `${birthdayTotal} OMR` : '--'}
+                    <p className="mt-1 text-sm text-[color:var(--text-muted)]">
+                      {t.workStyle}: {selectedTier.workMode === 'INDIVIDUAL' ? t.individual : t.pairs}
                     </p>
+                    <p className="mt-1 text-sm text-[color:var(--text-muted)]">{t.childAge}: {formData.childAge}</p>
+                    <p className="mt-1 font-semibold text-coral">{t.fixedPrice}: {birthdayTotal !== null ? `${birthdayTotal} OMR` : '--'}</p>
                   </div>
                 </div>
 

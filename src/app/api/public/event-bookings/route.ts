@@ -13,6 +13,8 @@ import {
 } from '@/lib/calendar';
 import { createCalendarEvent } from '@/lib/db/events';
 import {
+  getBirthdayPartyTier,
+  getBirthdayPartyTierById,
   getBirthdayPartyTotal,
   getPremiumCompetitionTotal,
   getPrivateArtsCraftsClassTotal,
@@ -51,7 +53,7 @@ function validateParticipantsByEvent(
     if (privateClassType === 'arts-crafts') return participants >= 6;
     return participants >= 6 && participants <= 32;
   }
-  if (eventType === 'BIRTHDAY_PARTY') return participants >= 1 && participants <= 40;
+  if (eventType === 'BIRTHDAY_PARTY') return getBirthdayPartyTier(participants) !== null;
   return false;
 }
 
@@ -64,6 +66,7 @@ export async function POST(request: NextRequest) {
     const selectedDateRaw = parseSafeString(body.selectedDate, 20);
     const selectedTime = parseSafeString(body.selectedTime, 10);
     const packageTypeRaw = parseSafeString(body.packageType, 40);
+    const birthdayPackageRaw = parseSafeString(body.birthdayPackage, 40);
     const classTypeRaw = parseSafeString(body.classType, 40);
     const fullName = parseSafeString(body.fullName, 255);
     const email = parseSafeString(body.email, 255).toLowerCase();
@@ -74,6 +77,14 @@ export async function POST(request: NextRequest) {
     const preferredLanguage = parseSafeString(body.preferredLanguage, 20);
     const numberOfParticipants = parseParticipantCount(body.numberOfParticipants);
     const childAge = parseParticipantCount(body.childAge);
+    const birthdayTier =
+      eventType === 'BIRTHDAY_PARTY'
+        ? getBirthdayPartyTierById(birthdayPackageRaw) ?? getBirthdayPartyTier(numberOfParticipants)
+        : null;
+    const normalizedParticipantCount =
+      eventType === 'BIRTHDAY_PARTY' && birthdayTier
+        ? (Number.isInteger(numberOfParticipants) ? numberOfParticipants : birthdayTier.maxParticipants)
+        : numberOfParticipants;
 
     // Validation
     if (!eventType || !selectedDateRaw || !selectedTime || !fullName || !email || !phoneNumber) {
@@ -131,9 +142,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!validateParticipantsByEvent(eventType, numberOfParticipants, packageType, classTypeRaw)) {
+    if (!validateParticipantsByEvent(eventType, normalizedParticipantCount, packageType, classTypeRaw)) {
       return NextResponse.json(
         { error: 'Invalid number of participants for this event type' },
+        { status: 400 }
+      );
+    }
+
+    if (eventType === 'BIRTHDAY_PARTY' && !birthdayTier) {
+      return NextResponse.json(
+        { error: 'Invalid birthday party package' },
         { status: 400 }
       );
     }
@@ -141,7 +159,7 @@ export async function POST(request: NextRequest) {
     const resolvedGifts = await resolveEventGiftSelections({
       value: body.gifts,
       eventType: eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY',
-      participantCount: numberOfParticipants,
+      participantCount: normalizedParticipantCount,
     });
 
     if (eventType === 'BIRTHDAY_PARTY' && (!Number.isInteger(childAge) || childAge < 10)) {
@@ -212,7 +230,7 @@ export async function POST(request: NextRequest) {
       const privateArtsCraftsTotal = getPrivateArtsCraftsClassTotal(numberOfParticipants);
       totalAmount = (privateArtsCraftsTotal ?? 0) + giftsTotal;
     } else if (eventType === 'BIRTHDAY_PARTY') {
-      const birthdayTotal = getBirthdayPartyTotal(numberOfParticipants);
+      const birthdayTotal = getBirthdayPartyTotal(normalizedParticipantCount);
       totalAmount = (birthdayTotal ?? 0) + giftsTotal;
     } else if (giftsTotal > 0) {
       totalAmount = giftsTotal;
@@ -233,6 +251,9 @@ export async function POST(request: NextRequest) {
       }
     }
     if (eventType === 'BIRTHDAY_PARTY') {
+      metadataParts.push(
+        `Birthday package: ${birthdayTier?.minParticipants}-${birthdayTier?.maxParticipants} people (${birthdayTier?.totalPrice} OMR)`
+      );
       metadataParts.push(`Child age: ${childAge}`);
     }
     if (preferredLanguage) {
@@ -293,7 +314,7 @@ export async function POST(request: NextRequest) {
       selectedDate,
       selectedTime,
       packageType,
-      numberOfParticipants,
+      numberOfParticipants: normalizedParticipantCount,
       numberOfGroups,
       gifts:
         resolvedGifts.items.length > 0

@@ -32,9 +32,19 @@ export const PRIVATE_ARTS_CRAFTS_CLASS_PRICE_TIERS: StandardCompetitionPriceTier
   { minParticipants: 31, maxParticipants: null, pricePerPerson: 15 },
 ];
 
-export const BIRTHDAY_PARTY_BASE_INCLUDED_PARTICIPANTS = 16;
-export const BIRTHDAY_PARTY_BASE_AMOUNT = 180;
-export const BIRTHDAY_PARTY_ADDITIONAL_PERSON_AMOUNT = 10;
+export type BirthdayPartyPriceTier = {
+  id: '6_9' | '10_16' | '17_24';
+  minParticipants: number;
+  maxParticipants: number;
+  totalPrice: number;
+  workMode: 'INDIVIDUAL' | 'PAIRS';
+};
+
+export const BIRTHDAY_PARTY_PRICE_TIERS: BirthdayPartyPriceTier[] = [
+  { id: '6_9', minParticipants: 6, maxParticipants: 9, totalPrice: 180, workMode: 'INDIVIDUAL' },
+  { id: '10_16', minParticipants: 10, maxParticipants: 16, totalPrice: 230, workMode: 'PAIRS' },
+  { id: '17_24', minParticipants: 17, maxParticipants: 24, totalPrice: 280, workMode: 'PAIRS' },
+];
 
 function findTier(
   participants: number,
@@ -107,11 +117,22 @@ export function getPrivateArtsCraftsClassTotal(participants: number): number | n
   return calculateTieredTotal(participants, PRIVATE_ARTS_CRAFTS_CLASS_PRICE_TIERS);
 }
 
-export function getBirthdayPartyTotal(participants: number): number | null {
-  if (!Number.isInteger(participants) || participants < 1) return null;
-  if (participants <= BIRTHDAY_PARTY_BASE_INCLUDED_PARTICIPANTS) return BIRTHDAY_PARTY_BASE_AMOUNT;
+export function getBirthdayPartyTier(participants: number): BirthdayPartyPriceTier | null {
+  if (!Number.isInteger(participants)) {
+    return null;
+  }
+
   return (
-    BIRTHDAY_PARTY_BASE_AMOUNT +
-    (participants - BIRTHDAY_PARTY_BASE_INCLUDED_PARTICIPANTS) * BIRTHDAY_PARTY_ADDITIONAL_PERSON_AMOUNT
+    BIRTHDAY_PARTY_PRICE_TIERS.find(
+      (tier) => participants >= tier.minParticipants && participants <= tier.maxParticipants
+    ) ?? null
   );
+}
+
+export function getBirthdayPartyTierById(id: string): BirthdayPartyPriceTier | null {
+  return BIRTHDAY_PARTY_PRICE_TIERS.find((tier) => tier.id === id) ?? null;
+}
+
+export function getBirthdayPartyTotal(participants: number): number | null {
+  return getBirthdayPartyTier(participants)?.totalPrice ?? null;
 }

@@ -5,6 +5,7 @@ import { getUserByEmail, getUserById } from '@/lib/db/users';
 import { isValidEmail, isValidPhone } from '@/lib/forms/eventBooking';
 import { resolveEventGiftSelections } from '@/lib/eventGiftAddOns';
 import {
+  getBirthdayPartyTier,
   getBirthdayPartyTotal,
   getPremiumCompetitionTotal,
   getPrivateArtsCraftsClassTotal,
@@ -63,7 +64,7 @@ function validateParticipantsByEvent(
     if (privateClassType === 'arts-crafts') return participants >= 6;
     return participants >= 6 && participants <= 32;
   }
-  if (eventType === 'BIRTHDAY_PARTY') return participants >= 1 && participants <= 40;
+  if (eventType === 'BIRTHDAY_PARTY') return getBirthdayPartyTier(participants) !== null;
   return false;
 }
 
