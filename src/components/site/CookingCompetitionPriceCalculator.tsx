@@ -33,10 +33,10 @@ export default function CookingCompetitionPriceCalculator({
     variant === 'compactPremium' ? 'PREMIUM' : 'STANDARD'
   );
   const [participantsInput, setParticipantsInput] = useState(
-    variant === 'compactPremium' ? '6' : '8'
+    '6'
   );
 
-  const minParticipants = packageType === 'PREMIUM' ? 6 : 8;
+  const minParticipants = 6;
 
   const participants = Number.parseInt(participantsInput, 10);
   const isParticipantsValid = Number.isInteger(participants) && participants >= minParticipants && participants <= 40;
@@ -64,7 +64,7 @@ export default function CookingCompetitionPriceCalculator({
   const t = {
     title: isArabic ? 'حاسبة السعر' : 'Price Calculator',
     subtitle: isArabic
-      ? 'أدخلي عدد المشاركين لاختيار السعر تلقائياً حسب الشرائح، ثم تابعي للحجز.'
+      ? 'أدخلي عدد المشاركين لاختيار السعر تلقائياً، ثم تابعي للحجز.'
       : 'Enter participants to auto-calculate the tier price, then continue to booking.',
     choosePackage: isArabic ? 'اختيار الباقة' : 'Choose package',
     standard: isArabic ? 'قياسية' : 'Standard',

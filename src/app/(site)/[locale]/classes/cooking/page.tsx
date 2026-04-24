@@ -193,7 +193,7 @@ export default async function CookingClassesPage({
   );
 
   const t: Record<string, string> = {
-    title: isArabic ? "دروس الطبخ" : "Cooking Classes",
+    title: isArabic ? "ورش الطبخ" : "Cooking Classes",
     subtitle: isArabic
       ? "برامج عملية بمستويات مختلفة من الأساسيات حتى الإتقان."
       : "Hands-on programs for every level, from fundamentals to mastery.",

@@ -33,17 +33,10 @@ export default async function ShopCategoryPage({
     noProducts: isArabic
       ? "لا توجد منتجات حالياً في هذا التصنيف."
       : "No products in this category yet.",
-    inStock: isArabic ? "متوفر" : "In stock",
-    outOfStock: isArabic ? "غير متوفر حالياً" : "Out of stock",
-    productsCount: isArabic ? "عدد المنتجات" : "Products",
-    availableCount: isArabic ? "جاهز للشحن" : "Available",
     backToShop: isArabic ? "العودة للمتجر" : "Back to shop",
   };
 
   const categoryName = isArabic ? currentCategory.name_ar : currentCategory.name_en;
-  const categoryDescription =
-    (isArabic ? currentCategory.description_ar : currentCategory.description_en) || t.comingSoonDesc;
-  const inStockCount = products.filter((item) => item.stock_quantity > 0).length;
 
   return (
     <div className="route-sharp relative overflow-x-clip pb-16">
@@ -62,22 +55,26 @@ export default async function ShopCategoryPage({
             {t.backToShop}
           </Link>
         </div>
-        <div className="border border-[color:var(--border)] bg-[color:var(--surface)] p-7 shadow-sm sm:p-9">
-          <h1 className="text-4xl font-semibold tracking-tight text-[color:var(--text)] sm:text-5xl">
-            {categoryName}
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
-            {categoryDescription}
-          </p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <div className="border border-[color:var(--border)] bg-[color:var(--muted)] p-3 text-center">
-              <p className="text-xs uppercase tracking-[0.12em] text-[color:var(--text-subtle)]">{t.productsCount}</p>
-              <p className="mt-1 text-2xl font-extrabold text-[color:var(--text)]">{products.length}</p>
-            </div>
-            <div className="border border-[color:var(--border)] bg-[color:var(--muted)] p-3 text-center">
-              <p className="text-xs uppercase tracking-[0.12em] text-[color:var(--text-subtle)]">{t.availableCount}</p>
-              <p className="mt-1 text-2xl font-extrabold text-[color:var(--text)]">{inStockCount}</p>
-            </div>
+        <div className="overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm">
+          <div className="relative h-56 w-full bg-[color:var(--muted)] sm:h-72 lg:h-80">
+            {currentCategory.image ? (
+              <Image
+                src={currentCategory.image}
+                alt={categoryName}
+                fill
+                sizes="(max-width: 1024px) 100vw, 80vw"
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-[color:var(--text-subtle)]">
+                {t.comingSoon}
+              </div>
+            )}
+          </div>
+          <div className="px-6 py-7 sm:px-8 sm:py-8">
+            <h1 className="text-4xl font-semibold tracking-tight text-[color:var(--text)] sm:text-5xl">
+              {categoryName}
+            </h1>
           </div>
         </div>
       </div>
@@ -86,21 +83,6 @@ export default async function ShopCategoryPage({
         <main>
           {products.length === 0 ? (
             <div className="overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm">
-              <div className="relative h-56 w-full bg-[color:var(--muted)]">
-                {currentCategory.image ? (
-                  <Image
-                    src={currentCategory.image}
-                    alt={categoryName}
-                    fill
-                    sizes="(max-width: 1024px) 100vw, 70vw"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-[color:var(--text-subtle)]">
-                    {t.comingSoon}
-                  </div>
-                )}
-              </div>
               <div className="flex min-h-[240px] flex-col items-center justify-center p-10 text-center">
                 <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.comingSoon}</h2>
                 <p className="mt-2 max-w-md text-sm leading-7 text-[color:var(--text-muted)]">{t.noProducts}</p>

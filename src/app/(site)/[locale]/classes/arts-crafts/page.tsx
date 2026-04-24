@@ -57,7 +57,7 @@ export default async function ArtsCraftsClassesPage({
   );
 
   const t = {
-    title: isArabic ? "دروس الفنون والحرف" : "Arts & Crafts Classes",
+    title: isArabic ? "ورش الفنون والمهارات اليدوية" : "Arts & Crafts Classes",
     subtitle: isArabic
       ? "ورش إبداعية عملية لتجارب فنية ممتعة ومهارية."
       : "Hands-on creative workshops for expressive and skillful art experiences.",

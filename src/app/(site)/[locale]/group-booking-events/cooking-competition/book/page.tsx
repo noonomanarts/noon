@@ -169,7 +169,7 @@ export default function CookingCompetitionBookingPage() {
       : 'Welcome with Arabic coffee & sweets, team draw, mystery box challenge, cook & compete, voting, and winner announcement!',
     
     // Step 2
-    step2Title: locale === 'ar' ? 'التسعير والإضافات' : 'Pricing & Add-ons',
+    step2Title: locale === 'ar' ? 'السعر و الإضافات' : 'Pricing & Add-ons',
     standardPackage: locale === 'ar' ? 'المسابقة العادية' : 'Standard Competition',
     premiumPackage: locale === 'ar' ? 'المسابقة المتميزة' : 'Premium Competition',
     selectedPackage: locale === 'ar' ? 'الباقة المختارة' : 'Selected Package',
@@ -205,7 +205,7 @@ export default function CookingCompetitionBookingPage() {
     popular: locale === 'ar' ? 'الأفضل' : 'POPULAR',
     calculatorTitle: locale === 'ar' ? 'حاسبة السعر' : 'Price Calculator',
     calculatorSubtitle: locale === 'ar'
-      ? 'أدخلي عدد المشاركين ليتم احتساب السعر تلقائياً حسب الشرائح، وسيتم نقل القيمة للخطوة التالية.'
+      ? 'أدخلي عدد المشاركين ليتم احتساب السعر تلقائياً، وسيتم نقل القيمة للخطوة التالية.'
       : 'Enter participants to calculate pricing by tier. This value is carried to the next step.',
     perPersonRate: locale === 'ar' ? 'سعر الفرد' : 'Per Person Rate',
     baseAmount: locale === 'ar' ? 'المبلغ الأساسي' : 'Base Amount',
