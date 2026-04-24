@@ -1,16 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { findUniqueClass, updateClass, deleteClass, countClassBookings } from '@/lib/db/classes';
 import { cleanupClosedClassSettlement } from '@/lib/db/classFinance';
 import { query } from '@/lib/db/pool';
+import { getUserById } from '@/lib/db/users';
 
 type Params = {
   params: Promise<{ classId: string }>;
 };
 
+async function requireAdmin() {
+  const cookieStore = await cookies();
+  const sessionId = cookieStore.get('noon_session')?.value;
+
+  if (!sessionId) return null;
+
+  const user = await getUserById(sessionId);
+  if (!user || user.role !== 'ADMIN') return null;
+
+  return user;
+}
+
 // GET: Get single class
 export async function GET(request: NextRequest, props: Params) {
   const params = await props.params;
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const classData = await findUniqueClass(
       { id: params.classId },
       { trainer: true, reviews: true }
@@ -46,6 +65,11 @@ export async function GET(request: NextRequest, props: Params) {
 export async function PUT(request: NextRequest, props: Params) {
   const params = await props.params;
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { slug: _, ...updateData } = body;
@@ -84,6 +108,11 @@ export async function PUT(request: NextRequest, props: Params) {
 export async function DELETE(request: NextRequest, props: Params) {
   const params = await props.params;
   try {
+    const admin = await requireAdmin();
+    if (!admin) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const classData = await findUniqueClass({ id: params.classId });
     if (!classData) {
       return NextResponse.json({ error: 'Class not found' }, { status: 404 });

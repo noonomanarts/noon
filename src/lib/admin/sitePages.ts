@@ -1403,12 +1403,12 @@ export function getDefaultSitePageSettings(page: SitePageDefinition): SitePageSe
     contactPage: {
       subtitleEn:
         "The Noon team is ready to support your questions on classes, bookings, and private experiences.",
-      subtitleAr: "فريق نون جاهز للرد على استفساراتك حول الدورات والحجوزات والتجارب الخاصة.",
+      subtitleAr: "فريق نون جاهز للرد على استفساراتك حول ورش والحجوزات والتجارب الخاصة.",
       helperEn: "Send us your message and we usually get back within one business day.",
       helperAr: "أرسل رسالتك وسنعود إليك خلال يوم عمل واحد عادةً.",
-      addressEn: "Muscat, Sultanate of Oman",
+      addressEn: "Bousher, Muscat, Sultanate of Oman",
       addressAr: "مسقط، سلطنة عمان",
-      officeHoursEn: "Sunday - Thursday • 9:00 AM - 6:00 PM",
+      officeHoursEn: "Saturday - Thursday • 10:00 AM - 10:00 PM",
       officeHoursAr: "الأحد - الخميس • 9:00 صباحًا - 6:00 مساءً",
       phonePrimary: "+968 98199508",
       emailPrimary: "info@noonomanarts.com",
