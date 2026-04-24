@@ -49,8 +49,8 @@ export default function PrivateClassBookingPage() {
 
   const t = {
     title: locale === 'ar' ? 'حجز كلاس خاص' : 'Book Private Class',
-    cookingClass: locale === 'ar' ? 'كلاس طبخ خاص' : 'Private Cooking Class',
-    artsCraftsClass: locale === 'ar' ? 'كلاس فنون وأشغال خاص' : 'Private Arts & Crafts Class',
+    cookingClass: locale === 'ar' ? 'ورشة طبخ' : 'Private Cooking Class',
+    artsCraftsClass: locale === 'ar' ? 'ورشة فنون و مهارات يدوية' : 'Private Arts & Crafts Class',
     step: locale === 'ar' ? 'الخطوة' : 'Step',
     next: locale === 'ar' ? 'التالي' : 'Next',
     back: locale === 'ar' ? 'رجوع' : 'Back',
@@ -110,12 +110,6 @@ export default function PrivateClassBookingPage() {
     summaryPhone: locale === 'ar' ? 'رقم الهاتف' : 'Phone',
     estimatedPrice: locale === 'ar' ? 'السعر التقديري' : 'Estimated Price',
     pricePerPerson: locale === 'ar' ? 'السعر/فرد' : 'Price/person',
-    privateCookingPricingHint: locale === 'ar'
-      ? 'تسعير الطبخ الخاص: 6-10 = 26، 11-18 = 22، 19-25 = 19، 26-32 = 17 ر.ع/فرد.'
-      : 'Private cooking pricing: 6-10 = 26, 11-18 = 22, 19-25 = 19, 26-32 = 17 OMR/person.',
-    privateArtsPricingHint: locale === 'ar'
-      ? 'تسعير الفنون والأشغال: 6-12 = 18، 13-20 = 17، 21-30 = 16، 31+ = 15 ر.ع/فرد.'
-      : 'Private arts & crafts pricing: 6-12 = 18, 13-20 = 17, 21-30 = 16, 31+ = 15 OMR/person.',
     externalVenueHint: locale === 'ar'
       ? 'للمجموعات أكبر من 12، يمكن توفير موقع بديل مناسب وتُضاف تكلفة الإيجار إلى السعر النهائي.'
       : 'For groups above 12, a suitable external venue may be required and rental cost is added to the final workshop price.',
@@ -315,9 +309,6 @@ export default function PrivateClassBookingPage() {
                     {t.estimatedPrice}: <span className="font-semibold text-[color:var(--text)]">{privateTotal !== null ? `${privateTotal} OMR` : '--'}</span>
                   </p>
                 </div>
-                <p className="mt-2 text-xs text-[color:var(--text-subtle)]">
-                  {classType === 'cooking' ? t.privateCookingPricingHint : t.privateArtsPricingHint}
-                </p>
                 {classType === 'arts-crafts' && participantsCount > 12 ? (
                   <p className="mt-2 text-xs font-medium text-[color:var(--text-muted)]">{t.externalVenueHint}</p>
                 ) : null}

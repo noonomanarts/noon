@@ -26,7 +26,7 @@ export default async function PrivateClassesPage({
   const t = {
     title: isArabic ? "الدروس الخاصة" : "Private Classes",
     processTitle: isArabic ? "كيف تسير التجربة" : "How the Experience Works",
-    packageTitle: isArabic ? "أنواع الجلسات" : "Session Types",
+    packageTitle: isArabic ? "أنواع الورشز" : "Session Types",
     readyTitle: isArabic ? "جاهزون لجلسة خاصة؟" : "Ready for a Private Session?",
     readySubtitle: isArabic
       ? "احجز الموعد الأنسب وسيقوم فريق نون بتأكيد جميع التفاصيل معك."
@@ -55,7 +55,7 @@ export default async function PrivateClassesPage({
 
   const steps = [
     {
-      title: isArabic ? "الترحيب" : "Welcome",
+      title: isArabic ? "الترحيب و الضيافة" : "Welcome",
       desc: isArabic ? "استقبال الضيوف مع قهوة عربية وحلويات." : "Guests are welcomed with Arabic coffee and sweets.",
       icon: FiUsers,
     },
@@ -83,7 +83,7 @@ export default async function PrivateClassesPage({
   const packageCards = [
     {
       key: "cooking" as const,
-      title: isArabic ? "جلسة طبخ خاصة" : "Private Cooking Class",
+      title: isArabic ? "ورش طبخ" : "Private Cooking Class",
       participants: isArabic ? "6-32 مشارك" : "6-32 participants",
       priceSummary: isArabic ? "ابتداءً من 17 ر.ع / شخص" : "From 17 OMR / person",
       details: [
@@ -111,7 +111,7 @@ export default async function PrivateClassesPage({
     },
     {
       key: "arts-crafts" as const,
-      title: isArabic ? "جلسة فنون وأشغال خاصة" : "Private Arts & Crafts Class",
+      title: isArabic ? "ورشة فنون ومهارات يدوية" : "Private Arts & Crafts Class",
       participants: isArabic ? "6+ مشارك" : "6+ participants",
       priceSummary: isArabic ? "ابتداءً من 15 ر.ع / شخص" : "From 15 OMR / person",
       details: [
@@ -186,7 +186,6 @@ export default async function PrivateClassesPage({
                 <item.icon className="h-10 w-10 text-white" />
               </div>
               <h3 className="text-center text-base font-semibold text-white">{item.title}</h3>
-              <p className="mt-2 text-center text-sm leading-6 text-white/90">{item.desc}</p>
             </article>
           ))}
         </div>

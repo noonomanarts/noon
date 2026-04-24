@@ -59,6 +59,81 @@ function parseBoolean(value: FormDataEntryValue | null): boolean {
   return value === 'true' || value === '1' || value === 'on';
 }
 
+function formatMuscatDate(value: Date): string {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Muscat',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(value);
+  const year = parts.find((part) => part.type === 'year')?.value ?? '';
+  const month = parts.find((part) => part.type === 'month')?.value ?? '';
+  const day = parts.find((part) => part.type === 'day')?.value ?? '';
+  return year && month && day ? `${year}-${month}-${day}` : '';
+}
+
+function formatMuscatTime(value: Date): string {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Muscat',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(value);
+  const hour = parts.find((part) => part.type === 'hour')?.value ?? '';
+  const minute = parts.find((part) => part.type === 'minute')?.value ?? '';
+  return hour && minute ? `${hour}:${minute}` : '';
+}
+
+function normalizeSelectedDate(value: unknown, fallbackDateTime?: unknown): string {
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    if (normalized) {
+      return normalized.slice(0, 10);
+    }
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return formatMuscatDate(value);
+  }
+
+  const fallback = fallbackDateTime instanceof Date
+    ? fallbackDateTime
+    : typeof fallbackDateTime === 'string'
+      ? new Date(fallbackDateTime)
+      : null;
+  if (fallback && !Number.isNaN(fallback.getTime())) {
+    return formatMuscatDate(fallback);
+  }
+
+  return '';
+}
+
+function normalizeSelectedTime(value: unknown, fallbackDateTime?: unknown): string {
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return formatMuscatTime(value);
+  }
+
+  const fallback = fallbackDateTime instanceof Date
+    ? fallbackDateTime
+    : typeof fallbackDateTime === 'string'
+      ? new Date(fallbackDateTime)
+      : null;
+  if (fallback && !Number.isNaN(fallback.getTime())) {
+    return formatMuscatTime(fallback);
+  }
+
+  return '';
+}
+
 function buildCompletionPayload(event: Record<string, unknown>, invoiceSettings: InvoiceTemplateSettings) {
   const tokenExpiresAt = event.confirmationTokenExpiresAt instanceof Date
     ? event.confirmationTokenExpiresAt.toISOString()
@@ -117,8 +192,8 @@ async function syncConfirmedCalendar(eventId: string, event: Record<string, unkn
   const cleaningCalendarEvent = calendarResult.rows.find((row) => row.type === 'CLEANING') ?? null;
   const eventType = event.eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY';
   const classType = getPrivateClassType(event);
-  const selectedDate = typeof event.selectedDate === 'string' ? event.selectedDate.slice(0, 10) : '';
-  const selectedTime = typeof event.selectedTime === 'string' ? event.selectedTime : '';
+  const selectedDate = normalizeSelectedDate(event.selectedDate, primaryCalendarEvent?.start_date_time);
+  const selectedTime = normalizeSelectedTime(event.selectedTime, primaryCalendarEvent?.start_date_time);
 
   if (!selectedDate || !selectedTime) {
     throw new Error('Event schedule is incomplete.');
