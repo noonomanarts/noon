@@ -1030,3 +1030,80 @@ export async function closeEventSettlement(args: {
     client.release();
   }
 }
+
+export async function cleanupClosedEventSettlement(args: {
+  eventId: string;
+}): Promise<{
+  deletedFinanceEntries: number;
+  restoredInventoryLines: number;
+}> {
+  await ensureEventFinanceSchema();
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const financeDeleteResult = await client.query(
+      `DELETE FROM admin_finance_entries
+       WHERE metadata->>'source' = 'EVENT_SETTLEMENT_CLOSE'
+         AND metadata->>'eventBookingId' = $1`,
+      [args.eventId]
+    );
+
+    const usageResult = await client.query(
+      `SELECT inventory_item_id, quantity, total_cost, posted_movement_id
+       FROM event_inventory_usages
+       WHERE event_booking_id = $1
+         AND status = 'POSTED'
+       FOR UPDATE`,
+      [args.eventId]
+    );
+
+    for (const usageRow of usageResult.rows) {
+      const inventoryItemId = String(usageRow.inventory_item_id);
+      const quantity = toMoney(usageRow.quantity);
+      const totalCost = toMoney(usageRow.total_cost);
+
+      const itemResult = await client.query(
+        `SELECT current_stock, total_consumed_cost
+         FROM inventory_items
+         WHERE id = $1
+         FOR UPDATE`,
+        [inventoryItemId]
+      );
+
+      if (itemResult.rows[0]) {
+        const currentStock = toMoney(itemResult.rows[0].current_stock);
+        const totalConsumedCost = toMoney(itemResult.rows[0].total_consumed_cost);
+
+        await client.query(
+          `UPDATE inventory_items
+           SET current_stock = $1,
+               total_consumed_cost = $2,
+               updated_at = NOW()
+           WHERE id = $3`,
+          [
+            toMoney(currentStock + quantity),
+            Math.max(0, toMoney(totalConsumedCost - totalCost)),
+            inventoryItemId,
+          ]
+        );
+      }
+
+      if (usageRow.posted_movement_id) {
+        await client.query(`DELETE FROM inventory_movements WHERE id = $1`, [String(usageRow.posted_movement_id)]);
+      }
+    }
+
+    await client.query('COMMIT');
+    return {
+      deletedFinanceEntries: financeDeleteResult.rowCount ?? 0,
+      restoredInventoryLines: usageResult.rowCount ?? 0,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}

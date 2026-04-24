@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findUniqueClass, updateClass, deleteClass, countClassBookings } from '@/lib/db/classes';
+import { cleanupClosedClassSettlement } from '@/lib/db/classFinance';
 import { query } from '@/lib/db/pool';
 
 type Params = {
@@ -83,14 +84,24 @@ export async function PUT(request: NextRequest, props: Params) {
 export async function DELETE(request: NextRequest, props: Params) {
   const params = await props.params;
   try {
+    const classData = await findUniqueClass({ id: params.classId });
+    if (!classData) {
+      return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+    }
+
     // Check if class has any bookings
     const bookingsCount = await countClassBookings(params.classId);
 
-    if (bookingsCount > 0) {
+    if (bookingsCount > 0 && classData.status !== 'COMPLETED') {
       return NextResponse.json(
         { error: 'Cannot delete class with existing bookings' },
         { status: 400 }
       );
+    }
+
+    if (classData.status === 'COMPLETED') {
+      await cleanupClosedClassSettlement({ classId: params.classId });
+      await query(`DELETE FROM bookings WHERE class_id = $1`, [params.classId]);
     }
 
     const deleted = await deleteClass(params.classId);

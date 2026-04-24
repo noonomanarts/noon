@@ -384,6 +384,105 @@ export async function createInventoryItem(input: {
   return mapInventoryItem(row);
 }
 
+export async function deleteInventoryItem(itemId: string): Promise<boolean> {
+  await ensureInventorySchema();
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const itemResult = await client.query(
+      `SELECT current_stock
+       FROM inventory_items
+       WHERE id = $1
+       FOR UPDATE`,
+      [itemId]
+    );
+
+    if (!itemResult.rows[0]) {
+      await client.query('ROLLBACK');
+      return false;
+    }
+
+    if (toMoney(itemResult.rows[0].current_stock) > 0) {
+      throw new Error('Inventory item still has stock. Clear its stock before deleting it.');
+    }
+
+    const referencesResult = await client.query(
+      `SELECT (
+          (SELECT COUNT(*) FROM inventory_purchase_lines WHERE inventory_item_id = $1) +
+          (SELECT COUNT(*) FROM inventory_movements WHERE inventory_item_id = $1) +
+          (SELECT COUNT(*) FROM class_inventory_usages WHERE inventory_item_id = $1) +
+          (SELECT COUNT(*) FROM event_inventory_usages WHERE inventory_item_id = $1)
+        )::int AS reference_count`,
+      [itemId]
+    );
+
+    if ((referencesResult.rows[0]?.reference_count ?? 0) > 0) {
+      throw new Error('Inventory item has purchase or usage history and cannot be deleted. Clear stock only, or keep it for history.');
+    }
+
+    const deleteResult = await client.query(`DELETE FROM inventory_items WHERE id = $1`, [itemId]);
+    await client.query('COMMIT');
+    return (deleteResult.rowCount ?? 0) > 0;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function clearInventoryStock(adminUserId: string): Promise<number> {
+  await ensureInventorySchema();
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const itemsResult = await client.query(
+      `SELECT id, current_stock, average_unit_cost, currency
+       FROM inventory_items
+       WHERE current_stock > 0
+       FOR UPDATE`
+    );
+
+    for (const row of itemsResult.rows) {
+      const currentStock = toMoney(row.current_stock);
+      const averageUnitCost = toMoney(row.average_unit_cost);
+      const totalCost = toMoney(currentStock * averageUnitCost);
+
+      await client.query(
+        `INSERT INTO inventory_movements (
+           inventory_item_id, movement_type, direction, quantity, unit_cost, total_cost,
+           reference_type, notes, occurred_at, created_by_user_id, created_at
+         ) VALUES (
+           $1, 'ADJUSTMENT_OUT', 'OUT', $2, $3, $4,
+           'ADMIN_CLEAR_STOCK', 'Inventory stock cleared by admin.', NOW(), $5, NOW()
+         )`,
+        [String(row.id), currentStock, averageUnitCost, totalCost, adminUserId]
+      );
+    }
+
+    await client.query(
+      `UPDATE inventory_items
+       SET current_stock = 0,
+           updated_by_user_id = $1,
+           updated_at = NOW()
+       WHERE current_stock > 0`,
+      [adminUserId]
+    );
+
+    await client.query('COMMIT');
+    return itemsResult.rowCount ?? 0;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export async function createInventoryPurchase(input: {
   supplierName?: string | null;
   invoiceNumber?: string | null;

@@ -1230,6 +1230,62 @@ export async function getAllWallets(): Promise<
   }));
 }
 
+export async function adminResetWallet(userId: string): Promise<Wallet> {
+  await ensureWalletTopupPaymentsTable();
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    let walletResult = await client.query(
+      `SELECT * FROM wallets WHERE user_id = $1 FOR UPDATE`,
+      [userId]
+    );
+
+    if (!walletResult.rows[0]) {
+      walletResult = await client.query(
+        `INSERT INTO wallets (user_id, balance, available_balance, currency)
+         VALUES ($1, 0, 0, 'OMR')
+         RETURNING *`,
+        [userId]
+      );
+    }
+
+    const wallet = walletResult.rows[0];
+    const walletId = String(wallet.id);
+
+    await client.query(`DELETE FROM wallet_topup_payments WHERE wallet_id = $1`, [walletId]);
+    await client.query(`DELETE FROM wallet_transactions WHERE wallet_id = $1`, [walletId]);
+    await client.query(
+      `UPDATE wallets
+       SET balance = 0,
+           available_balance = 0,
+           updated_at = NOW()
+       WHERE id = $1`,
+      [walletId]
+    );
+
+    const refreshedWalletResult = await client.query(
+      `SELECT * FROM wallets WHERE id = $1`,
+      [walletId]
+    );
+
+    await client.query('COMMIT');
+
+    return {
+      ...refreshedWalletResult.rows[0],
+      balance: 0,
+      available_balance: 0,
+      blocked_balance: 0,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 const generateTopupReference = () => {
   const timestamp = Date.now().toString(36).toUpperCase();
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();

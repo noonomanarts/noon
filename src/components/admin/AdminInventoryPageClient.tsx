@@ -187,6 +187,13 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
     inactive: isArabic ? 'غير نشط' : 'Inactive',
     active: isArabic ? 'نشط' : 'Active',
     workshopLinesSuffix: isArabic ? 'بنود' : 'lines',
+    actions: isArabic ? 'الإجراءات' : 'Actions',
+    deleteItem: isArabic ? 'حذف المادة' : 'Delete Item',
+    clearStock: isArabic ? 'تصفير المخزون' : 'Clear Inventory',
+    clearStockSuccess: isArabic ? 'تم تصفير كميات المخزون.' : 'Inventory stock cleared successfully.',
+    deleteItemSuccess: isArabic ? 'تم حذف مادة المخزون.' : 'Inventory item deleted successfully.',
+    clearStockConfirm: isArabic ? 'سيتم تصفير كميات جميع مواد المخزون. هل تريد المتابعة؟' : 'This will set every inventory item stock to zero. Continue?',
+    deleteItemConfirm: isArabic ? 'هل تريد حذف مادة المخزون هذه؟' : 'Delete this inventory item?',
   };
 
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -194,6 +201,8 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
   const [loading, setLoading] = useState(true);
   const [savingItem, setSavingItem] = useState(false);
   const [savingPurchase, setSavingPurchase] = useState(false);
+  const [clearingStock, setClearingStock] = useState(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -352,6 +361,56 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
     }
   };
 
+  const handleClearStock = async () => {
+    if (!confirm(t.clearStockConfirm)) {
+      return;
+    }
+
+    setClearingStock(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch('/api/admin/inventory/items/clear', { method: 'POST' });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to clear inventory stock');
+      }
+
+      setSuccess(t.clearStockSuccess);
+      await loadData();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Failed to clear inventory stock');
+    } finally {
+      setClearingStock(false);
+    }
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!confirm(t.deleteItemConfirm)) {
+      return;
+    }
+
+    setDeletingItemId(itemId);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(`/api/admin/inventory/items/${itemId}`, { method: 'DELETE' });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to delete inventory item');
+      }
+
+      setSuccess(t.deleteItemSuccess);
+      await loadData();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Failed to delete inventory item');
+    } finally {
+      setDeletingItemId(null);
+    }
+  };
+
   if (loading) {
     return (
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -373,6 +432,14 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
             className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-300 px-4 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
             {t.refresh}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleClearStock()}
+            disabled={clearingStock}
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-rose-300 px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/40"
+          >
+            {clearingStock ? '...' : t.clearStock}
           </button>
         </div>
 
@@ -662,7 +729,8 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
                   <th className="py-2 pe-4">{t.avgCost}</th>
                   <th className="py-2 pe-4">{t.stockValue}</th>
                   <th className="py-2 pe-4">{t.totalSpent}</th>
-                  <th className="py-2">{isArabic ? 'الحالة' : 'Status'}</th>
+                  <th className="py-2 pe-4">{isArabic ? 'الحالة' : 'Status'}</th>
+                  <th className="py-2">{t.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">
@@ -683,7 +751,17 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
                       <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{formatMoney(item.averageUnitCost, item.currency)}</td>
                       <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{formatMoney(item.stockValue, item.currency)}</td>
                       <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{formatMoney(item.totalConsumedCost, item.currency)}</td>
-                      <td className="py-3 text-zinc-600 dark:text-zinc-300">{item.isActive ? t.active : t.inactive}</td>
+                      <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{item.isActive ? t.active : t.inactive}</td>
+                      <td className="py-3">
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteItem(item.id)}
+                          disabled={deletingItemId === item.id}
+                          className="rounded-xl border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                        >
+                          {deletingItemId === item.id ? '...' : t.deleteItem}
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}

@@ -1488,3 +1488,162 @@ export async function reprocessSettlementWalletCredits(args: {
     client.release();
   }
 }
+
+async function reverseSettlementWalletCredit(params: {
+  db: Queryable;
+  transactionId: string | null;
+  insufficientFundsMessage: string;
+}): Promise<boolean> {
+  if (!params.transactionId) {
+    return false;
+  }
+
+  const result = await params.db.query(
+    `SELECT wt.id,
+            wt.wallet_id,
+            ABS(wt.amount) AS amount,
+            w.balance,
+            w.available_balance
+     FROM wallet_transactions wt
+     INNER JOIN wallets w ON w.id = wt.wallet_id
+     WHERE wt.id = $1
+     FOR UPDATE OF wt, w`,
+    [params.transactionId]
+  );
+
+  if (result.rows.length === 0) {
+    return false;
+  }
+
+  const row = result.rows[0];
+  const amount = toMoney(row.amount);
+  const balance = toMoney(row.balance);
+  const availableBalance = toMoney(row.available_balance);
+
+  if (balance < amount || availableBalance < amount) {
+    throw new Error(params.insufficientFundsMessage);
+  }
+
+  await params.db.query(
+    `UPDATE wallets
+     SET balance = $1,
+         available_balance = $2,
+         updated_at = NOW()
+     WHERE id = $3`,
+    [toMoney(balance - amount), toMoney(availableBalance - amount), String(row.wallet_id)]
+  );
+
+  await params.db.query(`DELETE FROM wallet_transactions WHERE id = $1`, [params.transactionId]);
+  return true;
+}
+
+export async function cleanupClosedClassSettlement(args: {
+  classId: string;
+}): Promise<{
+  trainerWalletCreditReversed: boolean;
+  adminWalletCreditReversed: boolean;
+  deletedFinanceEntries: number;
+  restoredInventoryLines: number;
+}> {
+  await ensureClassFinanceSchema();
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const settlementResult = await client.query(
+      `SELECT status,
+              trainer_wallet_transaction_id,
+              admin_share_wallet_transaction_id
+       FROM class_settlements
+       WHERE class_id = $1
+       FOR UPDATE`,
+      [args.classId]
+    );
+
+    const settlementRow = settlementResult.rows[0] ?? null;
+
+    if (settlementRow?.status === 'CLOSED') {
+      await reverseSettlementWalletCredit({
+        db: client,
+        transactionId: settlementRow.trainer_wallet_transaction_id
+          ? String(settlementRow.trainer_wallet_transaction_id)
+          : null,
+        insufficientFundsMessage: 'Cannot delete this closed workshop because the trainer fee was already used from the wallet.',
+      });
+
+      await reverseSettlementWalletCredit({
+        db: client,
+        transactionId: settlementRow.admin_share_wallet_transaction_id
+          ? String(settlementRow.admin_share_wallet_transaction_id)
+          : null,
+        insufficientFundsMessage: 'Cannot delete this closed workshop because the Noon share was already used from the wallet.',
+      });
+    }
+
+    const financeDeleteResult = await client.query(
+      `DELETE FROM admin_finance_entries
+       WHERE metadata->>'source' = 'CLASS_SETTLEMENT_CLOSE'
+         AND metadata->>'classId' = $1`,
+      [args.classId]
+    );
+
+    const usageResult = await client.query(
+      `SELECT inventory_item_id, quantity, total_cost, posted_movement_id
+       FROM class_inventory_usages
+       WHERE class_id = $1
+         AND status = 'POSTED'
+       FOR UPDATE`,
+      [args.classId]
+    );
+
+    for (const usageRow of usageResult.rows) {
+      const inventoryItemId = String(usageRow.inventory_item_id);
+      const quantity = toMoney(usageRow.quantity);
+      const totalCost = toMoney(usageRow.total_cost);
+
+      const itemResult = await client.query(
+        `SELECT current_stock, total_consumed_cost
+         FROM inventory_items
+         WHERE id = $1
+         FOR UPDATE`,
+        [inventoryItemId]
+      );
+
+      if (itemResult.rows[0]) {
+        const currentStock = toMoney(itemResult.rows[0].current_stock);
+        const totalConsumedCost = toMoney(itemResult.rows[0].total_consumed_cost);
+
+        await client.query(
+          `UPDATE inventory_items
+           SET current_stock = $1,
+               total_consumed_cost = $2,
+               updated_at = NOW()
+           WHERE id = $3`,
+          [
+            toMoney(currentStock + quantity),
+            Math.max(0, toMoney(totalConsumedCost - totalCost)),
+            inventoryItemId,
+          ]
+        );
+      }
+
+      if (usageRow.posted_movement_id) {
+        await client.query(`DELETE FROM inventory_movements WHERE id = $1`, [String(usageRow.posted_movement_id)]);
+      }
+    }
+
+    await client.query('COMMIT');
+    return {
+      trainerWalletCreditReversed: Boolean(settlementRow?.trainer_wallet_transaction_id),
+      adminWalletCreditReversed: Boolean(settlementRow?.admin_share_wallet_transaction_id),
+      deletedFinanceEntries: financeDeleteResult.rowCount ?? 0,
+      restoredInventoryLines: usageResult.rowCount ?? 0,
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}

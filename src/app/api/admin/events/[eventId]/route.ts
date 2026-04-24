@@ -8,6 +8,7 @@ import {
   updateCalendarEvent,
   updateEventBooking,
 } from '@/lib/db/events';
+import { cleanupClosedEventSettlement } from '@/lib/db/eventFinance';
 import { query } from '@/lib/db/pool';
 import {
   EVENT_BOOKING_CONFIRMATION_TOKEN_TTL_MS,
@@ -338,8 +339,12 @@ export async function DELETE(request: NextRequest, props: Params) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
-    // If paid, add to wallet
-    if (event.paymentStatus === 'PAID' && event.totalAmount && event.userId) {
+    if (event.status === 'COMPLETED') {
+      await cleanupClosedEventSettlement({ eventId: params.eventId });
+    }
+
+    // If paid, add to wallet for non-completed events only
+    if (event.status !== 'COMPLETED' && event.paymentStatus === 'PAID' && event.totalAmount && event.userId) {
       const refundAmount = event.totalAmount as number;
       await addWalletCredit(
         event.userId as string,

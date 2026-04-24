@@ -253,6 +253,48 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
     }
   };
 
+  const handleClearWallet = async (userId: string) => {
+    const confirmed = confirm(locale === 'ar'
+      ? 'سيتم تصفير المحفظة وحذف كل حركاتها. هل تريد المتابعة؟'
+      : 'This will clear the wallet and delete all its transactions. Continue?');
+
+    if (!confirmed) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/wallet/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setWallets((prev) => prev.map((wallet) =>
+          wallet.user_id === userId
+            ? {
+                ...wallet,
+                balance: result.wallet.balance,
+                available_balance: result.wallet.available_balance,
+                blocked_balance: result.wallet.blocked_balance ?? 0,
+              }
+            : wallet
+        ));
+        notifyWithSound(locale === 'ar' ? 'تم تصفير المحفظة' : 'Wallet cleared successfully', 'success');
+      } else {
+        const error = await response.json();
+        notifyWithSound(error.error || (locale === 'ar' ? 'فشل في تصفير المحفظة' : 'Failed to clear wallet'), 'error');
+      }
+    } catch (error) {
+      console.error('Error clearing wallet:', error);
+      notifyWithSound(locale === 'ar' ? 'خطأ في تصفير المحفظة' : 'Error clearing wallet', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSelectWallet = (userId: string, checked: boolean) => {
     const newSelected = new Set(selectedWallets);
     if (checked) {
@@ -784,6 +826,20 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                 <FiArrowRight className="w-4 h-4 text-orange-600 dark:text-orange-400" />
               </div>
               <span className="font-medium">{locale === "ar" ? "طلب سحب" : "Request Withdrawal"}</span>
+            </button>
+            <button
+              onClick={() => {
+                void handleClearWallet(openWallet.user_id);
+                setOpenDropdown(null);
+                setDropdownPosition(null);
+              }}
+              className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gradient-to-r hover:from-rose-50 hover:to-red-50 dark:hover:from-rose-900/20 dark:hover:to-red-900/20 hover:text-rose-700 dark:hover:text-rose-300 transition-all duration-200 group"
+              disabled={loading}
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 mr-3 group-hover:bg-rose-200 dark:group-hover:bg-rose-800/40 transition-colors duration-200">
+                <FiX className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+              </div>
+              <span className="font-medium">{locale === 'ar' ? 'تصفير المحفظة' : 'Clear Wallet'}</span>
             </button>
           </div>
         </div>
