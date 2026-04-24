@@ -119,7 +119,7 @@ export default async function ShopPage({
                     {t.noProductsInCategory}
                   </div>
                 ) : (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                     {previewProducts.map((product) => (
                       <ShopProductCard key={product.id} product={product} locale={locale} />
                     ))}
@@ -144,7 +144,7 @@ export default async function ShopPage({
         {discoverLinks.length > 0 ? (
           <section className="space-y-4 pt-2">
             <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.discoverMore}</h2>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
               {discoverLinks.map((link) => (
                 <a
                   key={link.id}

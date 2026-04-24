@@ -485,7 +485,7 @@ export default async function TrainerProfilePage({
               {t.noUpcomingClasses}
             </div>
           ) : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-3">
               {upcomingItems.map((item) => {
                 const title = locale === "ar" && item.titleAr ? item.titleAr : item.title;
                 const schedule = formatSessionDateTime(item.scheduledAt, locale);
@@ -493,7 +493,7 @@ export default async function TrainerProfilePage({
 
                 const cardBody = (
                   <>
-                    <div className="relative aspect-[3/4] overflow-hidden bg-zinc-900">
+                    <div className="relative aspect-[4/5] overflow-hidden bg-zinc-900 sm:aspect-[3/4]">
                       {item.kind === "manual" ? (
                         item.mediaType === "YOUTUBE" && item.mediaUrl ? (
                           toYoutubeEmbedUrl(item.mediaUrl) ? (
@@ -548,30 +548,30 @@ export default async function TrainerProfilePage({
                       </div>
                     </div>
 
-                    <div className="space-y-3 p-4">
-                      <h3 className="line-clamp-2 text-lg font-bold text-zinc-900 dark:text-white">{title}</h3>
+                    <div className="space-y-2 p-3 sm:space-y-3 sm:p-4">
+                      <h3 className="line-clamp-2 text-sm font-bold text-zinc-900 dark:text-white sm:text-lg">{title}</h3>
 
                       {schedule ? (
-                        <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 sm:gap-2 sm:text-sm">
                           <FiCalendar className="h-4 w-4 text-teal" />
                           <span>{schedule}</span>
                         </div>
                       ) : null}
 
                       {item.kind === "class" ? (
-                        <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 sm:gap-2 sm:text-sm">
                           <FiUsers className="h-4 w-4 text-coral" />
                           <span>
                             {t.seats}: {item.seatsBooked}/{item.seatsTotal ?? "-"} ({item.seatsAvailable} {locale === "ar" ? "متاح" : "available"})
                           </span>
                         </div>
                       ) : item.description ? (
-                        <p className="line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">{item.description}</p>
+                        <p className="line-clamp-2 text-xs text-zinc-600 dark:text-zinc-400 sm:text-sm">{item.description}</p>
                       ) : null}
 
-                      <div className="flex items-center justify-between border-t border-zinc-200 pt-3 dark:border-zinc-800">
-                        <span className="text-base font-black text-coral">{price}</span>
-                        <span className="inline-flex items-center gap-1 text-sm font-semibold text-zinc-900 dark:text-white">
+                      <div className="flex items-center justify-between border-t border-zinc-200 pt-2.5 dark:border-zinc-800 sm:pt-3">
+                        <span className="text-sm font-black text-coral sm:text-base">{price}</span>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-900 dark:text-white sm:text-sm">
                           {item.kind === "manual" ? t.bookNow : t.moreDetails}
                           <FiExternalLink className="h-3.5 w-3.5" />
                         </span>
@@ -632,14 +632,14 @@ export default async function TrainerProfilePage({
               {t.noPreviousClasses}
             </div>
           ) : (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 md:gap-5 xl:grid-cols-3">
               {previousClasses.map((cls) => (
                 <Link
                   key={cls.id as string}
                   href={`/${locale}/classes/${cls.slug}`}
                   className="group overflow-hidden rounded-2xl border border-zinc-200 bg-white/85 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900/75"
                 >
-                  <div className="relative aspect-[3/4] overflow-hidden">
+                  <div className="relative aspect-[4/5] overflow-hidden sm:aspect-[3/4]">
                     {cls.image ? (
                       <Image
                         src={cls.image as string}
@@ -655,12 +655,12 @@ export default async function TrainerProfilePage({
                     )}
                   </div>
 
-                  <div className="space-y-3 p-4">
-                    <h3 className="line-clamp-2 text-lg font-bold text-zinc-900 dark:text-white">
+                  <div className="space-y-2 p-3 sm:space-y-3 sm:p-4">
+                    <h3 className="line-clamp-2 text-sm font-bold text-zinc-900 dark:text-white sm:text-lg">
                       {locale === "ar" && cls.titleAr ? cls.titleAr : cls.title}
                     </h3>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
+                      <div className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400 sm:gap-2">
                         <FiClock className="h-4 w-4 text-teal" />
                         <span>
                           {formatDurationClock(cls.durationMinutes as number | null | undefined)}

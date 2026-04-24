@@ -75,11 +75,7 @@ function ClassCard({
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-      <Link
-        href={`/${locale}/classes/${cls.slug}`}
-        className="relative block aspect-[3/4] overflow-hidden"
-        aria-label={title}
-      >
+      <Link href={`/${locale}/classes/${cls.slug}`} className="relative block aspect-[4/5] overflow-hidden sm:aspect-[3/4]" aria-label={title}>
         {cls.image ? (
           <Image
             src={cls.image}
@@ -93,34 +89,34 @@ function ClassCard({
           </div>
         )}
         <span
-          className={`absolute top-3 inline-flex max-w-[70%] items-center gap-1.5 bg-black/65 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm ${
+          className={`absolute top-2 inline-flex max-w-[74%] items-center gap-1 bg-black/65 px-1.5 py-1 text-[9px] font-medium text-white backdrop-blur-sm sm:top-3 sm:gap-1.5 sm:px-3 sm:text-xs ${
             locale === "ar" ? "left-3" : "right-3"
           }`}
         >
-          <GiChefToque className="size-3.5 shrink-0 text-yellow-300" />
+          <GiChefToque className="size-3 shrink-0 text-yellow-300 sm:size-3.5" />
           <span className="truncate">{subCategoryLabel}</span>
         </span>
       </Link>
-      <div className="flex flex-1 flex-col space-y-3 p-4 sm:p-5">
-        <h3 className="line-clamp-2 inline-flex items-start gap-2 text-base font-semibold text-[color:var(--text)] sm:text-lg">
-          <FiBookOpen className="mt-0.5 size-4 shrink-0 text-purple-500" />
+      <div className="flex flex-1 flex-col space-y-2 p-3 sm:space-y-3 sm:p-5">
+        <h3 className="line-clamp-2 inline-flex items-start gap-1 text-[12px] font-semibold leading-[1.3] text-[color:var(--text)] sm:gap-2 sm:text-lg sm:leading-6">
+          <FiBookOpen className="mt-0.5 size-3 shrink-0 text-purple-500 sm:size-4" />
           <span>{title}</span>
         </h3>
         {!isEnded ? (
-          <p className="inline-flex items-center gap-2 text-sm font-bold text-[color:var(--text)] sm:text-base">
-            <FiCalendar className="size-5 shrink-0 text-teal-500" />
+          <p className="inline-flex items-center gap-1 text-[10px] font-medium leading-4 text-[color:var(--text)] sm:gap-2 sm:text-base">
+            <FiCalendar className="size-3.5 shrink-0 text-teal-500 sm:size-5" />
             {datetimeText}
           </p>
         ) : null}
         {trainerName ? (
-          <p className="inline-flex items-center gap-2 text-xs text-[color:var(--text-muted)] sm:text-sm">
-            <FiUser className="size-4 shrink-0 text-indigo-500" />
+          <p className="inline-flex items-center gap-1 text-[9px] leading-4 text-[color:var(--text-muted)] sm:gap-2 sm:text-sm">
+            <FiUser className="size-3 shrink-0 text-indigo-500 sm:size-4" />
             {trainerName}
           </p>
         ) : null}
         <div className="mt-auto pt-2">
-          <p className="mb-3 inline-flex items-center gap-2 text-2xl font-black leading-none text-[color:var(--text)] sm:text-3xl">
-            <HiOutlineBanknotes className="size-6 shrink-0 text-emerald-600" />
+          <p className="mb-2 inline-flex items-center gap-1 text-[18px] font-black leading-none text-[color:var(--text)] sm:mb-3 sm:gap-2 sm:text-3xl">
+            <HiOutlineBanknotes className="size-4.5 shrink-0 text-emerald-600 sm:size-6" />
             {priceText}
           </p>
           {isEnded ? (
@@ -129,14 +125,15 @@ function ClassCard({
               locale={locale}
               initialCount={repeatRequestsCount}
               initialRequested={requestedByCurrentUser}
+              compact
             />
           ) : (
             <Link
               href={`/${locale}/classes/${cls.slug}`}
-              className="inline-flex w-full items-center justify-center gap-1 bg-[color:var(--primary)] px-4 py-3 text-sm font-extrabold uppercase tracking-wide text-[color:var(--primary-foreground)] transition hover:brightness-95"
+              className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-[color:var(--primary)] px-2.5 py-1.5 text-[10px] font-semibold leading-tight tracking-[0.01em] text-[color:var(--primary-foreground)] transition hover:brightness-95 sm:px-4 sm:py-3 sm:text-sm"
             >
               {t.bookNow}
-              <FiArrowRight className="size-3.5" />
+              <FiArrowRight className="size-3 sm:size-3.5" />
             </Link>
           )}
         </div>
@@ -205,19 +202,19 @@ export default async function CookingClassesPage({
     desserts: isArabic ? "الحلويات والمخبوزات" : "Desserts & Baking",
     momAndKid: isArabic ? "الأم والطفل" : "Mom & Kid",
     other: isArabic ? "أخرى" : "Other",
-    bookNow: isArabic ? "عرض التفاصيل والحجز" : "View Details & Book",
+    bookNow: isArabic ? "احجز" : "Book",
     available: isArabic ? "متاح" : "available",
     noClasses: isArabic
       ? "لا توجد دروس طبخ منشورة حالياً."
       : "No published cooking classes right now.",
     activeClasses: isArabic ? "الورش النشطة" : "Active Workshops",
     endedClasses: isArabic ? "ورش منتهية" : "Ended Workshops",
-    endedSubtitle: isArabic ? "يمكنك طلب إعادة أي ورشة انتهت." : "You can request any ended workshop to be repeated.",
+    endedSubtitle: isArabic ? "اطلب إعادتها." : "Request a repeat.",
     duration: isArabic ? "المدة" : "Duration",
     minutes: isArabic ? "دقيقة" : "min",
-    noUpcomingSessions: isArabic ? "لا توجد مواعيد قادمة حالياً." : "No upcoming sessions yet.",
+    noUpcomingSessions: isArabic ? "لا مواعيد" : "No dates",
     workshopEnded: isArabic ? "انتهت الورشة" : "Workshop ended",
-    backToClasses: isArabic ? "العودة إلى الدورات" : "Back to classes",
+    backToClasses: isArabic ? "رجوع" : "Back",
   };
 
   const pageTitle = (isArabic ? pageSettings?.headingAr : pageSettings?.headingEn)?.trim() || t.title;
@@ -275,7 +272,7 @@ export default async function CookingClassesPage({
                 <div>
                   <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.activeClasses}</h2>
                 </div>
-                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 md:gap-6 xl:grid-cols-3">
                   {activeClasses.map((cls) => (
                     <ClassCard
                       key={cls.id}
@@ -300,7 +297,7 @@ export default async function CookingClassesPage({
                   <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.endedClasses}</h2>
                   <p className="mt-1 text-sm text-[color:var(--text-muted)]">{t.endedSubtitle}</p>
                 </div>
-                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 md:gap-6 xl:grid-cols-3">
                   {endedClasses.map((cls) => (
                     <ClassCard
                       key={cls.id}
