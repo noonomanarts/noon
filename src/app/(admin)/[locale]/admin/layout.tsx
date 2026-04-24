@@ -240,7 +240,7 @@ export default async function AdminLayout({
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <div className="admin-panel flex h-screen overflow-hidden bg-zinc-50 dark:bg-zinc-950" lang={locale} dir={dir}>
+    <div className="admin-panel flex min-h-dvh overflow-hidden bg-zinc-50 dark:bg-zinc-950" lang={locale} dir={dir}>
       {/* Sidebar */}
       <aside className={`hidden w-64 flex-shrink-0 border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 lg:block ${locale === "ar" ? "border-l" : "border-r"}`}>
             <div className="flex h-full flex-col">
@@ -330,52 +330,54 @@ export default async function AdminLayout({
           {/* Main Content */}
           <main className="flex flex-1 flex-col overflow-hidden">
             {/* Top Bar */}
-            <header className="flex h-16 items-center justify-between gap-2 border-b border-zinc-200 bg-white px-3 dark:border-zinc-800 dark:bg-zinc-900 sm:gap-3 sm:px-4 lg:px-6" dir={dir}>
-              <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                <MobileSidebar
-                  menuItems={menuItems}
-                  user={{
-                    fullName: user.fullName,
-                    email: user.email,
-                    profileImage: user.profileImage ?? undefined,
-                  }}
-                  locale={locale}
-                  translations={{
-                    adminPanel: t.adminPanel,
-                    management: t.management,
-                    logout: t.logout,
-                    profile: t.profile,
-                    accountSettings: t.accountSettings,
-                  }}
-                  onLogoutAction={handleLogout}
-                />
-              </div>
-
-              <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2 lg:gap-3">
-                <div className="min-w-0 max-w-[9.75rem] sm:max-w-none">
-                  <AdminWalletDisplay locale={locale} userId={user.id} />
+            <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white pt-[env(safe-area-inset-top)] dark:border-zinc-800 dark:bg-zinc-900" dir={dir}>
+              <div className="flex h-14 items-center justify-between gap-2 px-3 ps-[max(0.75rem,env(safe-area-inset-left))] pe-[max(0.75rem,env(safe-area-inset-right))] sm:h-16 sm:gap-3 sm:px-4 lg:px-6">
+                <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                  <MobileSidebar
+                    menuItems={menuItems}
+                    user={{
+                      fullName: user.fullName,
+                      email: user.email,
+                      profileImage: user.profileImage ?? undefined,
+                    }}
+                    locale={locale}
+                    translations={{
+                      adminPanel: t.adminPanel,
+                      management: t.management,
+                      logout: t.logout,
+                      profile: t.profile,
+                      accountSettings: t.accountSettings,
+                    }}
+                    onLogoutAction={handleLogout}
+                  />
                 </div>
 
-                <LocaleSwitcher
-                  currentLocale={locale}
-                  labelEn={t.languageEn}
-                  labelAr={t.languageAr}
-                />
+                <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2 lg:gap-3">
+                  <div className="min-w-0 max-w-[8.5rem] sm:max-w-[9.75rem] md:max-w-none">
+                    <AdminWalletDisplay locale={locale} userId={user.id} />
+                  </div>
 
-                <AdminNotificationCenter locale={locale} />
+                  <LocaleSwitcher
+                    currentLocale={locale}
+                    labelEn={t.languageEn}
+                    labelAr={t.languageAr}
+                  />
 
-                <Link
-                  href={`/${locale}`}
-                  className="hidden shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:inline-flex sm:text-sm"
-                >
-                  {t.viewSite}
-                </Link>
+                  <AdminNotificationCenter locale={locale} />
+
+                  <Link
+                    href={`/${locale}`}
+                    className="hidden shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:inline-flex sm:text-sm"
+                  >
+                    {t.viewSite}
+                  </Link>
+                </div>
               </div>
             </header>
 
             {/* Content Area */}
             <OverlayScrollArea className="flex-1" options={{ overflow: { x: "hidden", y: "scroll" } }}>
-              <div className="p-6">
+              <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
                 {children}
               </div>
             </OverlayScrollArea>

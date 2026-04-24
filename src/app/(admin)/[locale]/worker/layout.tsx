@@ -25,7 +25,7 @@ type WorkerMenuItem = {
   iconColor: string;
   label: string;
   href: string;
-  permissionKey?: keyof typeof permissionMap;
+  permissionKey?: WorkerPermissionKey;
   badgeCount?: number;
 };
 
@@ -34,13 +34,12 @@ type WorkerMenuSection = {
   items: WorkerMenuItem[];
 };
 
-const permissionMap = {
-  can_restock: true,
-  can_record_sales: true,
-  can_manage_orders: true,
-  can_print_labels: true,
-  can_print_bills: true,
-} as const;
+type WorkerPermissionKey =
+  | "can_restock"
+  | "can_record_sales"
+  | "can_manage_orders"
+  | "can_print_labels"
+  | "can_print_bills";
 
 export default async function WorkerLayout({
   children,
@@ -156,7 +155,7 @@ export default async function WorkerLayout({
 
   return (
     <div
-      className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950"
+      className="flex min-h-dvh bg-zinc-50 dark:bg-zinc-950"
       dir={isRTL ? "rtl" : "ltr"}
     >
       {/* Desktop Sidebar */}
@@ -235,56 +234,58 @@ export default async function WorkerLayout({
       {/* Main Content */}
       <div className="flex flex-1 flex-col">
         {/* Top Header */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b border-zinc-200 bg-white px-3 dark:border-zinc-800 dark:bg-zinc-900 sm:gap-3 sm:px-4 lg:px-6">
-          {/* Mobile Menu */}
-          <div className="flex min-w-0 items-center gap-3 lg:hidden">
-            <MobileSidebar
-              menuItems={menuItems.map((s) => ({
-                section: s.section,
-                items: s.items.map((item) => ({
-                  iconName: item.iconName,
-                  iconColor: item.iconColor,
-                  label: item.label,
-                  href: item.href,
-                })),
-              }))}
-              user={{
-                fullName: user.fullName,
-                email: user.email,
-                profileImage: user.profileImage ?? undefined,
-              }}
-              locale={locale}
-              translations={{
-                adminPanel: t.panel,
-                management: t.management,
-                logout: t.logout,
-                profile: t.profile,
-                accountSettings: t.accountSettings,
-              }}
-              onLogoutAction={handleLogout}
-            />
-          </div>
+        <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white pt-[env(safe-area-inset-top)] dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex h-14 items-center justify-between gap-2 px-3 ps-[max(0.75rem,env(safe-area-inset-left))] pe-[max(0.75rem,env(safe-area-inset-right))] sm:h-16 sm:gap-3 sm:px-4 lg:px-6">
+            {/* Mobile Menu */}
+            <div className="flex min-w-0 items-center gap-3 lg:hidden">
+              <MobileSidebar
+                menuItems={menuItems.map((s) => ({
+                  section: s.section,
+                  items: s.items.map((item) => ({
+                    iconName: item.iconName,
+                    iconColor: item.iconColor,
+                    label: item.label,
+                    href: item.href,
+                  })),
+                }))}
+                user={{
+                  fullName: user.fullName,
+                  email: user.email,
+                  profileImage: user.profileImage ?? undefined,
+                }}
+                locale={locale}
+                translations={{
+                  adminPanel: t.panel,
+                  management: t.management,
+                  logout: t.logout,
+                  profile: t.profile,
+                  accountSettings: t.accountSettings,
+                }}
+                onLogoutAction={handleLogout}
+              />
+            </div>
 
-          {/* Right side */}
-          <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-3">
-            <LocaleSwitcher currentLocale={locale} />
-            <AdminNotificationCenter locale={locale} />
-            <AdminProfileMenu
-              userName={user.fullName}
-              userEmail={user.email}
-              userInitial={user.fullName.charAt(0)}
-              profileImage={user.profileImage ?? undefined}
-              locale={locale}
-              onLogout={handleLogout}
-              logoutLabel={t.logout}
-              profileLabel={t.profile}
-              settingsLabel={t.accountSettings}
-            />
+            {/* Right side */}
+            <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-3">
+              <LocaleSwitcher currentLocale={locale} />
+              <AdminNotificationCenter locale={locale} />
+              <AdminProfileMenu
+                userName={user.fullName}
+                userEmail={user.email}
+                userInitial={user.fullName.charAt(0)}
+                profileImage={user.profileImage ?? undefined}
+                locale={locale}
+                onLogout={handleLogout}
+                logoutLabel={t.logout}
+                profileLabel={t.profile}
+                settingsLabel={t.accountSettings}
+              />
+            </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6">{children}</main>
+        <main className="flex-1 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:p-6 lg:pb-[max(1.5rem,env(safe-area-inset-bottom))]">{children}</main>
       </div>
     </div>
   );

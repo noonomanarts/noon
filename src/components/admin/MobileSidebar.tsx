@@ -112,7 +112,7 @@ export default function MobileSidebar({
       {/* Hamburger Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 lg:hidden"
+        className="rounded-xl p-2 text-zinc-600 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 lg:hidden"
         aria-label="Open menu"
       >
         <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -130,13 +130,13 @@ export default function MobileSidebar({
 
       {/* Sidebar Drawer */}
       <aside
-        className={`fixed inset-y-0 z-50 w-64 transform border-zinc-200 bg-white transition-transform duration-300 dark:border-zinc-800 dark:bg-zinc-900 lg:hidden ${
+        className={`fixed inset-y-0 z-50 w-[min(20rem,calc(100vw-1.25rem))] transform border-zinc-200 bg-white transition-transform duration-300 dark:border-zinc-800 dark:bg-zinc-900 lg:hidden ${
           locale === "ar" ? "right-0 border-l" : "left-0 border-r"
         } ${isOpen ? "translate-x-0" : locale === "ar" ? "translate-x-full" : "-translate-x-full"}`}
       >
-        <div className="flex h-full flex-col">
+        <div className="flex h-full flex-col pt-[env(safe-area-inset-top)] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           {/* Logo & Close Button */}
-          <div className="flex h-16 items-center justify-between border-b border-zinc-200 px-6 dark:border-zinc-800" dir={dir}>
+          <div className="flex h-14 items-center justify-between border-b border-zinc-200 px-4 ps-[max(1rem,env(safe-area-inset-left))] pe-[max(1rem,env(safe-area-inset-right))] dark:border-zinc-800 sm:h-16 sm:px-6" dir={dir}>
             <div className="flex items-center gap-3">
               <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
                 <span className="text-lg font-bold">N</span>
@@ -152,7 +152,7 @@ export default function MobileSidebar({
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="rounded-lg p-1.5 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              className="rounded-xl p-1.5 text-zinc-600 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
               aria-label="Close menu"
             >
               <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -163,7 +163,7 @@ export default function MobileSidebar({
 
           {/* Navigation */}
           <OverlayScrollArea className="flex-1" options={{ overflow: { x: "hidden", y: "scroll" } }}>
-            <nav className="p-4" dir={dir}>
+            <nav className="p-3 sm:p-4" dir={dir}>
               <div className="space-y-6">
                 {menuItems.map((section) => (
                   <div key={section.section}>
@@ -178,7 +178,7 @@ export default function MobileSidebar({
                             key={item.href}
                             href={item.href}
                             onClick={() => setIsOpen(false)}
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
+                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
                           >
                             <span className={`flex size-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 ${item.iconColor}`}>
                               <IconComponent className="size-4" />
@@ -200,7 +200,7 @@ export default function MobileSidebar({
           </OverlayScrollArea>
 
           {/* User Profile Menu */}
-          <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
+          <div className="border-t border-zinc-200 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-zinc-800 sm:px-4 sm:pt-4">
             <AdminProfileMenu
               userName={user.fullName}
               userEmail={user.email}
