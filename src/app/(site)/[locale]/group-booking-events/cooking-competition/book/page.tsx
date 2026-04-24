@@ -6,7 +6,6 @@ import { isLocale, type Locale } from '@/lib/locale';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { MdGroup, MdSchedule, MdEmail, MdPhone, MdBusiness, MdCalculate } from 'react-icons/md';
 import { IoTrophy, IoCalendar, IoCheckmarkCircle, IoClose } from 'react-icons/io5';
-import { GiCookingPot } from 'react-icons/gi';
 import { BiSolidGift } from 'react-icons/bi';
 import { HiSparkles } from 'react-icons/hi2';
 import BookingFormError from '@/components/site/BookingFormError';
@@ -256,8 +255,6 @@ export default function CookingCompetitionBookingPage() {
 
   const participantsCount = Number(bookingData.numberOfParticipants);
   const hasValidParticipants = isValidCompetitionParticipants(participantsCount, bookingData.packageType ?? 'STANDARD');
-  const packageFromEntry = searchParams.get('package')?.toLowerCase();
-  const packageSelectedFromEntry = packageFromEntry === 'standard' || packageFromEntry === 'premium';
   const packageRate =
     hasValidParticipants && bookingData.packageType === 'PREMIUM'
       ? getPremiumCompetitionPricePerPerson(participantsCount)
@@ -282,21 +279,6 @@ export default function CookingCompetitionBookingPage() {
       : bookingData.packageType === 'PREMIUM'
       ? t.premiumPackage
       : '--';
-  const selectedPackageSubtitle =
-    bookingData.packageType === 'PREMIUM' ? t.premiumSubtitle : t.standardSubtitle;
-  const selectedPackageDishes = bookingData.packageType === 'PREMIUM' ? '2-3' : '1-2';
-  const selectedPackageGifts =
-    bookingData.packageType === 'PREMIUM'
-      ? t.included
-      : `${t.notIncluded} ${t.availableAsAddon}`;
-  const selectedPackageIdealText =
-    bookingData.packageType === 'PREMIUM'
-      ? locale === 'ar'
-        ? 'فعاليات الشركات والاحتفالات والتجارب الراقية'
-        : 'Corporate events, celebrations, and premium experiences'
-      : locale === 'ar'
-      ? 'بناء الفريق، الأصدقاء، والتجارب الجماعية'
-      : 'Team building, friends, and casual group experiences';
   const participantsRangeMessage =
     bookingData.packageType === 'PREMIUM' ? t.participantsRangePremium : t.participantsRangeStandard;
   const participantsMin = bookingData.packageType === 'PREMIUM' ? 6 : 8;
@@ -525,19 +507,11 @@ export default function CookingCompetitionBookingPage() {
                 <h2 className="text-2xl font-bold text-[color:var(--text)] dark:text-white">{t.step1Title}</h2>
               </div>
               
-              {/* Brief */}
-              <div className="rounded-xl border-2 border-coral/20 bg-coral/5 p-6 dark:border-coral/30 dark:bg-coral/10">
-                <div className="mb-3 flex items-center gap-2">
-                  <GiCookingPot className="h-6 w-6 text-coral" />
-                  <h3 className="font-bold text-[color:var(--text)] dark:text-white">{t.briefTitle}</h3>
-                </div>
-                <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{t.briefText}</p>
-              </div>
-
               <PublicEventAvailabilityPicker
                 locale={locale}
                 eventType="COOKING_COMPETITION"
                 layoutVariant="tables"
+                showHeader={false}
                 selectedDate={bookingData.selectedDate || ''}
                 selectedTime={bookingData.selectedTime || ''}
                 onChange={({ date, time }) =>
@@ -679,86 +653,8 @@ export default function CookingCompetitionBookingPage() {
                   )}
                 </div>
 
-                <div className="space-y-3 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/40 p-4 dark:border-zinc-700">
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-semibold text-[color:var(--text)]">{t.perPersonRate}</span>
-                    <span className="font-semibold text-[color:var(--text-muted)]">
-                      {packageRate !== null ? formatMoney(packageRate) : '--'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-semibold text-[color:var(--text)]">{t.baseAmount}</span>
-                    <span className="font-semibold text-[color:var(--text-muted)]">
-                      {packageBaseAmount !== null ? formatMoney(packageBaseAmount) : '--'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="font-semibold text-[color:var(--text)]">{t.giftsAmount}</span>
-                    <span className="font-semibold text-[color:var(--text-muted)]">{formatMoney(giftsAmount)}</span>
-                  </div>
-                </div>
               </div>
 
-            </div>
-
-            {/* Package Summary */}
-            <div
-              className={`overflow-hidden rounded-2xl border shadow-sm ${
-                bookingData.packageType === 'PREMIUM'
-                  ? 'border-purple/30 dark:border-purple/40'
-                  : 'border-teal/30 dark:border-teal/40'
-              }`}
-            >
-              <div
-                className={`flex flex-wrap items-center justify-between gap-3 border-b p-5 ${
-                  bookingData.packageType === 'PREMIUM'
-                    ? 'border-purple/20 bg-purple/5 dark:border-purple/30 dark:bg-purple/10'
-                    : 'border-teal/20 bg-teal/5 dark:border-teal/30 dark:bg-teal/10'
-                }`}
-              >
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
-                    {t.selectedPackage}
-                  </p>
-                  <h3 className="mt-1 text-2xl font-bold text-[color:var(--text)] dark:text-white">
-                    {selectedPackageLabel}
-                  </h3>
-                  <p className="mt-1 text-sm text-[color:var(--text-muted)]">{selectedPackageSubtitle}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => router.push(`/${locale}/group-booking-events/cooking-competition`)}
-                  className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
-                >
-                  {t.changePackage}
-                </button>
-              </div>
-
-              <div className="grid gap-3 p-5">
-                {[
-                  { Icon: MdGroup, label: t.participants, value: bookingData.packageType === 'PREMIUM' ? '6-40' : '8-40' },
-                  { Icon: MdSchedule, label: t.duration, value: `3 ${t.hours}` },
-                  { Icon: GiCookingPot, label: t.dishes, value: selectedPackageDishes },
-                  { Icon: BiSolidGift, label: t.gifts, value: selectedPackageGifts },
-                ].map((item) => (
-                  <div
-                    key={`${item.label}-${item.value}`}
-                    className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5"
-                  >
-                    <p className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)]">
-                      <item.Icon className="h-4 w-4 text-coral" />
-                      {item.label}
-                    </p>
-                    <p className="mt-1 text-sm text-[color:var(--text-muted)]">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              <p className="px-5 pb-5 text-xs text-[color:var(--text-subtle)]">
-                {selectedPackageIdealText}
-                {' • '}
-                {packageSelectedFromEntry ? t.packageLockedHint : t.packageDefaultHint}
-              </p>
             </div>
 
             <div className="rounded-2xl border-2 border-coral/20 bg-coral/5 p-6 dark:border-coral/30 dark:bg-coral/10">
@@ -767,14 +663,6 @@ export default function CookingCompetitionBookingPage() {
                 {t.estimatedTotal}
               </h3>
               <div className="space-y-3 text-sm text-zinc-700 dark:text-zinc-300">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-[color:var(--text)]">{t.baseAmount}</span>
-                  <span>{packageBaseAmount !== null ? formatMoney(packageBaseAmount) : '--'}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-[color:var(--text)]">{t.immediateGiftTotal}</span>
-                  <span>{formatMoney(giftsAmount)}</span>
-                </div>
                 {deferredGiftSelections.length > 0 ? (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-200">
                     {t.deferredGiftNote}
@@ -784,6 +672,11 @@ export default function CookingCompetitionBookingPage() {
                   <span>{t.estimatedTotal}</span>
                   <span>{estimatedTotalAmount !== null ? formatMoney(estimatedTotalAmount) : '--'}</span>
                 </div>
+                {packageRate !== null ? (
+                  <div className="text-xs text-[color:var(--text-subtle)]">
+                    {t.perPersonRate}: {formatMoney(packageRate)}
+                  </div>
+                ) : null}
               </div>
             </div>
 

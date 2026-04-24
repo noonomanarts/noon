@@ -3,17 +3,14 @@
 import { useState } from 'react';
 import { isLocale, type Locale } from '@/lib/locale';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { MdCake, MdGroup, MdSchedule, MdEmail, MdPhone, MdPerson } from 'react-icons/md';
-import { IoCalendar, IoCheckmarkCircle, IoClose } from 'react-icons/io5';
-import { GiPartyPopper, GiCupcake } from 'react-icons/gi';
+import { MdCake, MdGroup, MdEmail, MdPhone, MdPerson } from 'react-icons/md';
+import { IoCalendar, IoCheckmarkCircle } from 'react-icons/io5';
+import { GiPartyPopper } from 'react-icons/gi';
 import { HiSparkles } from 'react-icons/hi2';
 import BookingFormError from '@/components/site/BookingFormError';
 import PublicEventAvailabilityPicker from '@/components/site/PublicEventAvailabilityPicker';
 import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
 import {
-  BIRTHDAY_PARTY_ADDITIONAL_PERSON_AMOUNT,
-  BIRTHDAY_PARTY_BASE_AMOUNT,
-  BIRTHDAY_PARTY_BASE_INCLUDED_PARTICIPANTS,
   getBirthdayPartyTotal,
 } from '@/lib/competitionPricing';
 
@@ -154,8 +151,6 @@ export default function BirthdayPartyBookingPage() {
 
   const participantsCount = Number(formData.numberOfParticipants);
   const birthdayTotal = getBirthdayPartyTotal(participantsCount);
-  const additionalParticipantsCount = Math.max(0, participantsCount - BIRTHDAY_PARTY_BASE_INCLUDED_PARTICIPANTS);
-
   const validateStep = (stepToValidate: 1 | 2 | 3): boolean => {
     if (stepToValidate === 1) {
       if (!formData.selectedDate) {
@@ -311,85 +306,11 @@ export default function BirthdayPartyBookingPage() {
               <p className="noon-text-muted">{t.step1Hint}</p>
             </div>
 
-            {/* Package Information */}
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="rounded-2xl border-2 border-yellow/20 bg-gradient-to-br from-yellow/5 to-yellow-light/5 p-6">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow/20">
-                    <GiCupcake className="text-2xl text-yellow" />
-                  </div>
-                  <h3 className="text-lg font-bold">{t.packageDetails}</h3>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <MdGroup className="text-xl text-yellow" />
-                    <div>
-                      <span className="text-sm text-[color:var(--text-muted)]">{t.packageParticipantsLabel}:</span>
-                      <p className="font-semibold">{t.packageParticipantsValue}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <MdSchedule className="text-xl text-yellow" />
-                    <div>
-                      <span className="text-sm text-[color:var(--text-muted)]">{t.packageDurationLabel}:</span>
-                      <p className="font-semibold">{t.packageDurationValue}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <MdCake className="text-xl text-yellow" />
-                    <div>
-                      <span className="text-sm text-[color:var(--text-muted)]">{t.packageAgeLabel}:</span>
-                      <p className="font-semibold">{t.packageAgeValue}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="rounded-2xl border-2 border-teal/20 bg-gradient-to-br from-teal/5 to-teal-light/5 p-6">
-                  <div className="mb-3 flex items-center gap-2">
-                    <IoCheckmarkCircle className="text-xl text-teal" />
-                    <h3 className="font-bold text-teal">{t.packageIncludes}</h3>
-                  </div>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-start gap-2">
-                      <IoCheckmarkCircle className="mt-0.5 text-teal" />
-                      <span>{t.includes1}</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <IoCheckmarkCircle className="mt-0.5 text-teal" />
-                      <span>{t.includes2}</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <IoCheckmarkCircle className="mt-0.5 text-teal" />
-                      <span>{t.includes3}</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="rounded-2xl border-2 border-coral/20 bg-gradient-to-br from-coral/5 to-coral-light/5 p-6">
-                  <div className="mb-3 flex items-center gap-2">
-                    <IoClose className="text-xl text-coral" />
-                    <h3 className="font-bold text-coral">{t.notIncluded}</h3>
-                  </div>
-                  <ul className="space-y-2 text-sm">
-                    <li className="flex items-start gap-2">
-                      <IoClose className="mt-0.5 text-coral" />
-                      <span>{t.notIncluded1}</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <IoClose className="mt-0.5 text-coral" />
-                      <span>{t.notIncluded2}</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
             <PublicEventAvailabilityPicker
               locale={locale}
               eventType="BIRTHDAY_PARTY"
               layoutVariant="tables"
+              showHeader={false}
               selectedDate={formData.selectedDate}
               selectedTime={formData.selectedTime}
               onChange={({ date, time }) =>
@@ -423,17 +344,6 @@ export default function BirthdayPartyBookingPage() {
                   placeholder={t.participantsPlaceholder}
                 />
                 <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{t.maxParticipants}</p>
-                <div className="mt-3 rounded-lg bg-[color:var(--muted)] p-3 text-sm">
-                  <p className="text-[color:var(--text-muted)]">
-                    {t.basePackage}: <span className="font-semibold text-[color:var(--text)]">{BIRTHDAY_PARTY_BASE_AMOUNT} OMR ({BIRTHDAY_PARTY_BASE_INCLUDED_PARTICIPANTS})</span>
-                  </p>
-                  <p className="mt-1 text-[color:var(--text-muted)]">
-                    {t.additionalParticipants}: <span className="font-semibold text-[color:var(--text)]">{additionalParticipantsCount} × {BIRTHDAY_PARTY_ADDITIONAL_PERSON_AMOUNT} OMR</span>
-                  </p>
-                  <p className="mt-1 text-[color:var(--text-muted)]">
-                    {t.estimatedPrice}: <span className="font-semibold text-[color:var(--text)]">{birthdayTotal !== null ? `${birthdayTotal} OMR` : '--'}</span>
-                  </p>
-                </div>
               </div>
 
               <div>

@@ -53,6 +53,7 @@ export default function PublicEventAvailabilityPicker({
   selectedDate,
   selectedTime,
   layoutVariant = 'cards',
+  showHeader = true,
   onChange,
 }: {
   locale: Locale;
@@ -61,6 +62,7 @@ export default function PublicEventAvailabilityPicker({
   selectedDate: string;
   selectedTime: string;
   layoutVariant?: 'cards' | 'tables';
+  showHeader?: boolean;
   onChange: (value: { date: string; time: string }) => void;
 }) {
   const isArabic = locale === 'ar';
@@ -267,23 +269,25 @@ export default function PublicEventAvailabilityPicker({
 
   return (
     <div className="noon-border-strong rounded-3xl border-2 border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
-      <div className="flex flex-col gap-3 border-b border-[color:var(--border)] pb-5">
-        <div>
-          <h3 className="text-xl font-semibold text-[color:var(--text)]">{t.title}</h3>
-          <p className="mt-1 text-sm text-[color:var(--text-muted)]">{t.subtitle}</p>
+      {showHeader ? (
+        <div className="flex flex-col gap-3 border-b border-[color:var(--border)] pb-5">
+          <div>
+            <h3 className="text-xl font-semibold text-[color:var(--text)]">{t.title}</h3>
+            <p className="mt-1 text-sm text-[color:var(--text-muted)]">{t.subtitle}</p>
+          </div>
+          <div className="flex flex-wrap gap-3 text-xs text-[color:var(--text-subtle)]">
+            <span className="rounded-full bg-[color:var(--muted)] px-3 py-1.5">
+              {t.duration}: {durationLabel}
+            </span>
+            <span className="rounded-full bg-[color:var(--muted)] px-3 py-1.5">
+              {t.timezone}: {availability.timezone}
+            </span>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-3 text-xs text-[color:var(--text-subtle)]">
-          <span className="rounded-full bg-[color:var(--muted)] px-3 py-1.5">
-            {t.duration}: {durationLabel}
-          </span>
-          <span className="rounded-full bg-[color:var(--muted)] px-3 py-1.5">
-            {t.timezone}: {availability.timezone}
-          </span>
-        </div>
-      </div>
+      ) : null}
 
       {layoutVariant === 'tables' ? (
-        <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <div className={`${showHeader ? 'mt-6' : ''} grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]`}>
           <div>
             <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">{t.chooseDay}</p>
             <div className="noon-border-strong overflow-hidden rounded-2xl border-2 border-[color:var(--border)] bg-[color:var(--surface)]">

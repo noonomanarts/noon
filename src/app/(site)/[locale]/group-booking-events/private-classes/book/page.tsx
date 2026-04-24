@@ -7,9 +7,7 @@ import BookingFormError from '@/components/site/BookingFormError';
 import PublicEventAvailabilityPicker from '@/components/site/PublicEventAvailabilityPicker';
 import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
 import {
-  getPrivateArtsCraftsClassPricePerPerson,
   getPrivateArtsCraftsClassTotal,
-  getPrivateCookingClassPricePerPerson,
   getPrivateCookingClassTotal,
 } from '@/lib/competitionPricing';
 
@@ -109,7 +107,6 @@ export default function PrivateClassBookingPage() {
     summaryName: locale === 'ar' ? 'الاسم' : 'Name',
     summaryPhone: locale === 'ar' ? 'رقم الهاتف' : 'Phone',
     estimatedPrice: locale === 'ar' ? 'السعر التقديري' : 'Estimated Price',
-    pricePerPerson: locale === 'ar' ? 'السعر/فرد' : 'Price/person',
     externalVenueHint: locale === 'ar'
       ? 'للمجموعات أكبر من 12، يمكن توفير موقع بديل مناسب وتُضاف تكلفة الإيجار إلى السعر النهائي.'
       : 'For groups above 12, a suitable external venue may be required and rental cost is added to the final workshop price.',
@@ -117,10 +114,6 @@ export default function PrivateClassBookingPage() {
   };
 
   const participantsCount = Number(formData.numberOfParticipants);
-  const privateRate =
-    classType === 'cooking'
-      ? getPrivateCookingClassPricePerPerson(participantsCount)
-      : getPrivateArtsCraftsClassPricePerPerson(participantsCount);
   const privateTotal =
     classType === 'cooking'
       ? getPrivateCookingClassTotal(participantsCount)
@@ -265,6 +258,7 @@ export default function PrivateClassBookingPage() {
               eventType="PRIVATE_CLASS"
               classType={classType}
               layoutVariant="tables"
+              showHeader={false}
               selectedDate={formData.selectedDate}
               selectedTime={formData.selectedTime}
               onChange={({ date, time }) =>
@@ -297,23 +291,6 @@ export default function PrivateClassBookingPage() {
                 {classType === 'cooking' ? `6-32 ${t.participants}` : `6+ ${t.participants}`}
               </p>
             </div>
-
-            {(classType === 'cooking' || classType === 'arts-crafts') && (
-              <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
-                <p className="text-sm font-semibold text-[color:var(--text)]">{t.estimatedPrice}</p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  <p className="text-sm text-[color:var(--text-muted)]">
-                    {t.pricePerPerson}: <span className="font-semibold text-[color:var(--text)]">{privateRate !== null ? `${privateRate} OMR` : '--'}</span>
-                  </p>
-                  <p className="text-sm text-[color:var(--text-muted)]">
-                    {t.estimatedPrice}: <span className="font-semibold text-[color:var(--text)]">{privateTotal !== null ? `${privateTotal} OMR` : '--'}</span>
-                  </p>
-                </div>
-                {classType === 'arts-crafts' && participantsCount > 12 ? (
-                  <p className="mt-2 text-xs font-medium text-[color:var(--text-muted)]">{t.externalVenueHint}</p>
-                ) : null}
-              </div>
-            )}
 
             {classType === 'cooking' && (
               <div>
