@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { FiArrowRight, FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
+import { FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
 import { GiCookingPot, GiChefToque } from "react-icons/gi";
 import { IoTrophyOutline } from "react-icons/io5";
 
@@ -202,6 +201,23 @@ export default async function CookingCompetitionPage({
       </section>
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center shadow-sm">
+          <h3 className="text-2xl font-semibold text-[color:var(--text)]">{t.readyTitle}</h3>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-[color:var(--text-muted)]">{t.readySubtitle}</p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-[color:var(--text-subtle)]">
+            <span className="inline-flex items-center gap-1">
+              <FiUsers className="size-3.5" />
+              {isArabic ? "8-40 مشارك" : "8-40 participants"}
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <FiClock className="size-3.5" />
+              {isArabic ? "3 ساعات" : "3 hours"}
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto mt-10 w-full max-w-6xl px-4">
         <h2 className="text-center text-2xl font-semibold text-[color:var(--text)]">{t.processTitle}</h2>
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {steps.map((item) => (
@@ -286,31 +302,6 @@ export default async function CookingCompetitionPage({
         </div>
       </section>
 
-      <section className="mx-auto mt-10 w-full max-w-6xl px-4">
-        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center shadow-sm">
-          <h3 className="text-2xl font-semibold text-[color:var(--text)]">{t.readyTitle}</h3>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-[color:var(--text-muted)]">{t.readySubtitle}</p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-[color:var(--text-subtle)]">
-            <span className="inline-flex items-center gap-1">
-              <FiUsers className="size-3.5" />
-              {isArabic ? "8-40 مشارك" : "8-40 participants"}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <FiClock className="size-3.5" />
-              {isArabic ? "3 ساعات" : "3 hours"}
-            </span>
-          </div>
-          <div className="mt-6">
-            <Link
-              href={`/${locale}/group-booking-events/cooking-competition/book`}
-              className="inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
-            >
-              {isArabic ? "ابدأ الحجز" : "Start Booking"}
-              <FiArrowRight className="size-4" />
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

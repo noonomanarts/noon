@@ -159,15 +159,8 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
         throw new ApiError('Class not found', 404);
       }
 
-      if (classRow.status !== 'PUBLISHED') {
-        throw new ApiError('Class is not published', 409);
-      }
-
-      if (classRow.start_date_time) {
-        const startTime = new Date(classRow.start_date_time as string);
-        if (startTime.getTime() < Date.now()) {
-          throw new ApiError('Cannot enroll in a class that already started', 409);
-        }
+      if (classRow.status !== 'PUBLISHED' && classRow.status !== 'COMPLETED') {
+        throw new ApiError('Class is not available for admin enrollment', 409);
       }
 
       const seatsTotal = Number(classRow.seats_total ?? 0);
