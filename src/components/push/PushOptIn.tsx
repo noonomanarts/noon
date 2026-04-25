@@ -71,7 +71,10 @@ export default function PushOptIn({ locale = 'en' }: PushOptInProps) {
   }, []);
 
   useEffect(() => {
-    void detect();
+    const timeout = window.setTimeout(() => {
+      void detect();
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [detect]);
 
   const enable = async () => {

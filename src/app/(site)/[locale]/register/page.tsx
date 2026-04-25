@@ -8,6 +8,7 @@ import WhatsAppAuthCard from "@/components/site/WhatsAppAuthCard";
 import PasswordInput from "@/components/site/PasswordInput";
 import CountryCodeSelect from "@/components/site/CountryCodeSelect";
 import { isEnglishPassword } from "@/lib/passwordPolicy";
+import { getSessionCookieOptions, SESSION_COOKIE_NAME } from "@/lib/sessionCookie";
 
 export default async function RegisterPage({
   params,
@@ -92,11 +93,7 @@ export default async function RegisterPage({
 
       // Auto-login after successful registration
       const cookieStore = await cookies();
-      cookieStore.set("noon_session", user.id, {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-      });
+      cookieStore.set(SESSION_COOKIE_NAME, user.id, getSessionCookieOptions());
 
       redirect(`/${localeValue ?? "en"}/account`);
     } catch {

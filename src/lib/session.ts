@@ -5,13 +5,14 @@ import { cookies } from "next/headers";
 import { getUserById } from "@/lib/db/users";
 import type { UserPublic } from "@/lib/db/users";
 import type { UserRole } from "@/lib/db/types";
+import { getExpiredSessionCookieOptions, SESSION_COOKIE_NAME } from "@/lib/sessionCookie";
 
 /**
  * Get the current logged-in user from session
  */
 export async function getCurrentUser(): Promise<UserPublic | null> {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("noon_session")?.value;
+  const sessionId = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (!sessionId) {
     return null;
@@ -70,7 +71,7 @@ export async function requireRole(
  */
 export async function logout(locale: string = "en"): Promise<void> {
   const cookieStore = await cookies();
-  cookieStore.delete("noon_session");
+  cookieStore.set(SESSION_COOKIE_NAME, "", getExpiredSessionCookieOptions());
   
   const { redirect } = await import("next/navigation");
   redirect(`/${locale}/login`);

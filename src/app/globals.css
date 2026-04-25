@@ -172,9 +172,14 @@ body {
   background-image: none;
   background-repeat: no-repeat;
   color: var(--text);
+  font-family: var(--font-arabic), system-ui, sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html[lang="en"] body {
+  font-family: var(--font-english), system-ui, sans-serif;
 }
 
 html,

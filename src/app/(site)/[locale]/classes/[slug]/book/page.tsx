@@ -5,6 +5,10 @@ import { getCurrentUser } from '@/lib/session';
 import { isRegistrationClosed, resolveRegistrationCloseAt } from '@/lib/classRegistration';
 import ClassBookingClient from '@/components/site/ClassBookingClient';
 
+async function getCurrentTimestamp() {
+  return Date.now();
+}
+
 export default async function ClassBookingPage({
   params,
 }: {
@@ -26,7 +30,10 @@ export default async function ClassBookingPage({
 
   const seatsAvailable = classData.seatsTotal - (classData.seatsBooked ?? 0);
   const hasStartDateTime = !!classData.startDateTime;
-  const isUpcoming = classData.startDateTime ? new Date(classData.startDateTime).getTime() > Date.now() : false;
+  const currentTimestamp = await getCurrentTimestamp();
+  const isUpcoming = classData.startDateTime
+    ? new Date(classData.startDateTime).getTime() > currentTimestamp
+    : false;
 
   if (!hasStartDateTime || !isUpcoming) {
     return (

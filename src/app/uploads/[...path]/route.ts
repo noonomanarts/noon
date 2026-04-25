@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile, stat } from "fs/promises";
+import { createReadStream } from "fs";
+import { stat } from "fs/promises";
 import path from "path";
+import { Readable } from "stream";
 import {
   findReadableUploadFilePath,
   sanitizeUploadPathSegments,
@@ -27,6 +29,10 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 function getContentType(filePath: string): string {
   const extension = path.extname(filePath).toLowerCase();
   return MIME_BY_EXTENSION[extension] || "application/octet-stream";
+}
+
+function streamFile(filePath: string, range?: { start: number; end: number }) {
+  return Readable.toWeb(createReadStream(filePath, range)) as ReadableStream;
 }
 
 async function resolveRequestedFilePath(params: Promise<{ path: string[] }>) {
@@ -75,11 +81,9 @@ async function buildUploadResponse(
       end >= start &&
       end < fileInfo.size
     ) {
-      const buffer = await readFile(filePath);
-      const chunk = buffer.subarray(start, end + 1);
       headers.set("Content-Range", `bytes ${start}-${end}/${fileInfo.size}`);
-      headers.set("Content-Length", String(chunk.length));
-      return new NextResponse(chunk, { status: 206, headers });
+      headers.set("Content-Length", String(end - start + 1));
+      return new NextResponse(streamFile(filePath, { start, end }), { status: 206, headers });
     }
   }
 
@@ -87,8 +91,7 @@ async function buildUploadResponse(
     return new NextResponse(null, { status: 200, headers });
   }
 
-  const fileBuffer = await readFile(filePath);
-  return new NextResponse(fileBuffer, { status: 200, headers });
+  return new NextResponse(streamFile(filePath), { status: 200, headers });
 }
 
 export async function GET(

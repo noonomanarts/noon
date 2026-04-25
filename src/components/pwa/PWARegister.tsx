@@ -16,15 +16,11 @@ import { useEffect, useRef, useState } from "react";
  */
 export default function PWARegister() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
-  const [isAr, setIsAr] = useState(false);
+  const [isAr] = useState(() =>
+    typeof document !== "undefined" ? document.documentElement.lang === "ar" : false
+  );
   const waitingRef = useRef<ServiceWorker | null>(null);
   const reloadedRef = useRef(false);
-
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      setIsAr(document.documentElement.lang === "ar");
-    }
-  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;

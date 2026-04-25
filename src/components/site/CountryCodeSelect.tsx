@@ -146,11 +146,6 @@ export default function CountryCodeSelect({
       })
     : COUNTRY_CODES;
 
-  // Reset highlight when filter changes
-  useEffect(() => {
-    setHighlightIndex(0);
-  }, [search]);
-
   // Scroll highlighted item into view
   useEffect(() => {
     if (!open || !dropdownRef.current) return;
@@ -193,6 +188,7 @@ export default function CountryCodeSelect({
         e.preventDefault();
         setOpen(false);
         setSearch("");
+        setHighlightIndex(0);
         break;
     }
   }
@@ -258,7 +254,10 @@ export default function CountryCodeSelect({
               ref={searchInputRef}
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setHighlightIndex(0);
+              }}
               onKeyDown={handleKeyDown}
               placeholder={isAr ? "ابحث عن دولة..." : "Search country..."}
               className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-600"

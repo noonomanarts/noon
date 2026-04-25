@@ -11,6 +11,7 @@ import {
 import type { UserRole } from '@/lib/db/types';
 import { validateWhatsAppVerificationCode, type WhatsAppVerificationPurpose } from '@/lib/db/whatsappAuth';
 import { isEnglishPassword } from '@/lib/passwordPolicy';
+import { getSessionCookieOptions, SESSION_COOKIE_NAME } from '@/lib/sessionCookie';
 import { sendUserWhatsAppTemplate } from '@/lib/whatsapp/transactionNotifications';
 
 type RegisterData = {
@@ -228,11 +229,7 @@ export async function POST(request: Request) {
     }
 
     const cookieStore = await cookies();
-    cookieStore.set('noon_session', userId, {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-    });
+    cookieStore.set(SESSION_COOKIE_NAME, userId, getSessionCookieOptions());
 
     if (purpose === 'LOGIN') {
       // Authentication should succeed even when the WhatsApp gateway is slow or unavailable.

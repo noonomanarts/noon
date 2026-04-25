@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import { headers } from "next/headers";
 import ThemeInitScript from "@/components/site/ThemeInitScript";
 import LocaleSync from "@/components/site/LocaleSync";
 import OverlayScrollbarsProvider from "@/components/site/OverlayScrollbarsProvider";
@@ -102,28 +101,15 @@ const tsSafaa = localFont({
   fallback: ["Tahoma", "Arial", "sans-serif"],
 });
 
-// Make layout dynamic so we can access headers
-export const dynamic = 'force-dynamic';
-
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Try to get locale from middleware header
-  const headersList = await headers();
-  const localeFromHeader = headersList.get("x-noon-locale");
-  const pathHeader = headersList.get("x-noon-pathname") || "";
-  
-  // If header fails, try to extract from path
-  const pathMatch = pathHeader.match(/^\/(ar|en)(?:\/|$)/);
-  const locale = localeFromHeader || (pathMatch ? pathMatch[1] : "ar");
-  const dir = locale === "ar" ? "rtl" : "ltr";
-
   return (
     <html
-      lang={locale}
-      dir={dir}
+      lang="ar"
+      dir="rtl"
       suppressHydrationWarning
       className={`${tsSafaa.variable} scroll-smooth`}
       data-scroll-behavior="smooth"
@@ -153,11 +139,6 @@ export default async function RootLayout({
       <body
         data-overlayscrollbars-initialize
         className="bg-[color:var(--background)] text-[color:var(--text)] antialiased transition-colors"
-        style={{
-          fontFamily: locale === "ar" 
-            ? "var(--font-arabic), system-ui, sans-serif"
-            : "var(--font-english), system-ui, sans-serif"
-        }}
       >
         <AppFeedbackProvider>
           <LocaleSync />

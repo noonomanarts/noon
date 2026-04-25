@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { isLocale, type Locale } from "@/lib/locale";
 import { ensureDefaultAdmin, verifyLogin } from "@/lib/authStore";
 import { sendUserWhatsAppTemplate } from "@/lib/whatsapp/transactionNotifications";
+import { getSessionCookieOptions, SESSION_COOKIE_NAME } from "@/lib/sessionCookie";
 import WhatsAppAuthCard from "@/components/site/WhatsAppAuthCard";
 import PasswordInput from "@/components/site/PasswordInput";
 
@@ -51,11 +52,7 @@ export default async function LoginPage({
     }
 
     const cookieStore = await cookies();
-    cookieStore.set("noon_session", user.id, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-    });
+    cookieStore.set(SESSION_COOKIE_NAME, user.id, getSessionCookieOptions());
 
     // Login must not depend on the WhatsApp gateway being reachable.
     void sendUserWhatsAppTemplate({
