@@ -419,7 +419,15 @@ export async function deleteInventoryItem(itemId: string): Promise<boolean> {
     );
 
     if ((referencesResult.rows[0]?.reference_count ?? 0) > 0) {
-      throw new Error('Inventory item has purchase or usage history and cannot be deleted. Clear stock only, or keep it for history.');
+      const archiveResult = await client.query(
+        `UPDATE inventory_items
+         SET is_active = FALSE,
+             updated_at = NOW()
+         WHERE id = $1`,
+        [itemId]
+      );
+      await client.query('COMMIT');
+      return (archiveResult.rowCount ?? 0) > 0;
     }
 
     const deleteResult = await client.query(`DELETE FROM inventory_items WHERE id = $1`, [itemId]);

@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { pool } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
 import { addBonusPoints } from '@/lib/db/wallet';
+import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import { isRegistrationClosed } from '@/lib/classRegistration';
 
@@ -354,6 +355,19 @@ export async function POST(request: NextRequest) {
       },
     }).catch((error) => {
       console.error('Failed to send class booking WhatsApp message:', error);
+    });
+
+    void sendPaymentAdminNotifications({
+      source: 'classBooking',
+      entityId: String(booking.id),
+      reference: String(booking.booking_number),
+      amount: totalAmount,
+      currency: (wallet.currency as string) || 'OMR',
+      customerName: user.full_name,
+      paymentMethod: 'Wallet',
+      adminPath: '/admin/payments',
+    }).catch((error) => {
+      console.error('Failed to send admin class payment alerts:', error);
     });
 
     return NextResponse.json({

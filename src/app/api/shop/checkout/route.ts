@@ -4,6 +4,7 @@ import { pool } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
 import { CART_COOKIE_NAME, emptyCart, parseCartCookie, serializeCartCookie } from '@/lib/cart';
 import { validatePromoCode } from '@/lib/db/promoCodes';
+import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import { getWorkersWithOrdersPermission } from '@/lib/db/worker';
 import { notifyUser } from '@/lib/notificationService';
@@ -440,6 +441,19 @@ export async function POST(request: NextRequest) {
         },
       }).catch((error) => {
         console.error('Failed to send shop purchase WhatsApp message:', error);
+      });
+
+      void sendPaymentAdminNotifications({
+        source: 'shopOrder',
+        entityId: String(orderId),
+        reference: String(orderInsert.rows[0].order_number),
+        amount: totalAmount,
+        currency: String(walletRow.currency || 'OMR'),
+        customerName: recipientFullName,
+        paymentMethod: 'Wallet',
+        adminPath: '/admin/shop/orders',
+      }).catch((error) => {
+        console.error('Failed to send admin shop payment alerts:', error);
       });
 
       // Notify workers with order management permission

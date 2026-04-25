@@ -1,6 +1,8 @@
 import { pool } from './pool';
 import { emitAdminEvent, emitUserEvent } from '@/lib/realtime/adminEvents';
 import { notifyRole, notifyUser } from '@/lib/notificationService';
+import { getUserById } from '@/lib/db/users';
+import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import type { Wallet, WalletTransaction, LoyaltyCard, WalletTopupPayment, WalletTopupPaymentStatus } from './types';
 
@@ -1695,6 +1697,24 @@ export async function updateWalletTopupPaymentStatus(data: {
       }).catch((error) => {
         console.error('Failed to send wallet top-up WhatsApp message:', error);
       });
+
+      void (async () => {
+        try {
+          const owner = await getUserById(topupWhatsappPayload.userId);
+          await sendPaymentAdminNotifications({
+            source: 'walletTopup',
+            entityId: updatedPayment.id,
+            reference: updatedPayment.reference,
+            amount: topupWhatsappPayload.amount,
+            currency: topupWhatsappPayload.currency,
+            customerName: owner?.full_name ?? null,
+            paymentMethod: updatedPayment.gateway,
+            adminPath: '/admin/payments',
+          });
+        } catch (error) {
+          console.error('Failed to send admin wallet top-up alerts:', error);
+        }
+      })();
     }
 
     return {

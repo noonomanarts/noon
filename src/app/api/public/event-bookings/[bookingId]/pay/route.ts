@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { pool } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
+import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 
 class ApiError extends Error {
@@ -148,6 +149,19 @@ export async function POST(request: NextRequest, props: Params) {
       },
     }).catch((error) => {
       console.error('Failed to send event booking WhatsApp message:', error);
+    });
+
+    void sendPaymentAdminNotifications({
+      source: 'eventBooking',
+      entityId: String(updatedBooking.id),
+      reference: String(updatedBooking.booking_number),
+      amount: totalAmount,
+      currency,
+      customerName: user.full_name,
+      paymentMethod: 'Wallet',
+      adminPath: '/admin/payments',
+    }).catch((error) => {
+      console.error('Failed to send admin event payment alerts:', error);
     });
 
     return NextResponse.json({

@@ -132,6 +132,7 @@ export default async function AdminLayout({
     contactMessages: locale === "ar" ? "رسائل التواصل" : "Contact Messages",
     joinUsApplications: locale === "ar" ? "طلبات الانضمام" : "Join Us Applications",
     settings: locale === "ar" ? "الإعدادات" : "Settings",
+    paymentAlerts: "Payment Alerts",
     notifications: locale === "ar" ? "الإشعارات" : "Notifications",
     whatsapp: locale === "ar" ? "واتساب" : "WhatsApp",
     whatsappSessions: locale === "ar" ? "سشنات واتساب" : "WhatsApp Sessions",
@@ -228,6 +229,7 @@ export default async function AdminLayout({
           section: t.settings,
           items: [
             { iconName: "FiSettings" as const, iconColor: "text-slate-600 dark:text-slate-300", label: t.settings, href: `/${locale}/admin/settings` },
+            { iconName: "FiCreditCard" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.paymentAlerts, href: `/${locale}/admin/payment-alerts` },
             { iconName: "FiMessageSquare" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.whatsapp, href: `/${locale}/admin/whatsapp` },
             { iconName: "FiMessageSquare" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.whatsappSessions, href: `/${locale}/admin/whatsapp/sessions` },
             { iconName: "FiMessageSquare" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.whatsappTemplates, href: `/${locale}/admin/whatsapp/templates` },
