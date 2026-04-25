@@ -1707,7 +1707,7 @@ export async function updateWalletTopupPaymentStatus(data: {
             reference: updatedPayment.reference,
             amount: topupWhatsappPayload.amount,
             currency: topupWhatsappPayload.currency,
-            customerName: owner?.full_name ?? null,
+            customerName: owner?.fullName ?? null,
             paymentMethod: updatedPayment.gateway,
             adminPath: '/admin/payments',
           });

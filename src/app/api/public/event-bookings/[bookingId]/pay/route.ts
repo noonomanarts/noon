@@ -157,7 +157,7 @@ export async function POST(request: NextRequest, props: Params) {
       reference: String(updatedBooking.booking_number),
       amount: totalAmount,
       currency,
-      customerName: user.full_name,
+      customerName: user.fullName,
       paymentMethod: 'Wallet',
       adminPath: '/admin/payments',
     }).catch((error) => {

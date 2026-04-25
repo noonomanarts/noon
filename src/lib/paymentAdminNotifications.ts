@@ -162,7 +162,7 @@ export async function sendPaymentAdminNotifications(input: PaymentAdminNotificat
             channel,
             userId: recipient.userId,
             email: user.email ?? null,
-            phoneNumber: user.phone_number ?? null,
+            phoneNumber: user.phoneNumber ?? null,
             message,
             dedupeKey: `payment-alert:${input.source}:${input.entityId}:${recipient.userId}:${channel}`,
           })

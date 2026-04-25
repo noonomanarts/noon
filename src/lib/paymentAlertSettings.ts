@@ -47,7 +47,7 @@ export function sanitizePaymentAlertSettings(
   input: Partial<PaymentAlertSettings> | null | undefined
 ): PaymentAlertSettings {
   const source = input ?? {};
-  const rawSources = source.sources ?? {};
+  const rawSources: Partial<Record<PaymentAlertSourceKey, unknown>> = source.sources ?? {};
   const rawRecipients = Array.isArray(source.recipients) ? source.recipients : [];
 
   const recipients = rawRecipients
@@ -55,7 +55,7 @@ export function sanitizePaymentAlertSettings(
       const userId = sanitizeUserId(recipient?.userId);
       if (!userId) return null;
 
-      const rawChannels = recipient?.channels ?? {};
+      const rawChannels: Partial<Record<PaymentAlertChannelKey, unknown>> = recipient?.channels ?? {};
       const channels: PaymentAlertRecipientChannels = {
         email: asBoolean(rawChannels.email, defaultPaymentAlertRecipientChannels.email),
         whatsapp: asBoolean(rawChannels.whatsapp, defaultPaymentAlertRecipientChannels.whatsapp),

@@ -45,7 +45,6 @@ export default function AdminPhotographerTasksClient({
   locale,
   dashboardUsers,
   initialTasks,
-  initialTotal,
 }: Props) {
   const isRTL = locale === "ar";
   const { confirm } = useAppFeedback();
@@ -117,7 +116,7 @@ export default function AdminPhotographerTasksClient({
     CANCELLED: tasks.filter((t) => t.status === "CANCELLED").length,
   }), [tasks]);
 
-  function resetForm() {
+  const resetForm = useCallback(() => {
     setSelectedAssigneeId(dashboardUsers[0]?.id ?? "");
     setFormTitle("");
     setFormTitleAr("");
@@ -129,7 +128,7 @@ export default function AdminPhotographerTasksClient({
     setFormNotesAr("");
     setEditingTask(null);
     setShowForm(false);
-  }
+  }, [dashboardUsers]);
 
   function openEditForm(task: PhotographerTaskPublic) {
     setSelectedAssigneeId(task.photographerUserId);
@@ -198,7 +197,7 @@ export default function AdminPhotographerTasksClient({
     } finally {
       setSaving(false);
     }
-  }, [editingTask, formDescription, formDescriptionAr, formDueDate, formNotes, formNotesAr, formPriority, formTitle, formTitleAr, selectedAssigneeId]);
+  }, [editingTask, formDescription, formDescriptionAr, formDueDate, formNotes, formNotesAr, formPriority, formTitle, formTitleAr, resetForm, selectedAssigneeId]);
 
   const handleDelete = useCallback(async (taskId: string) => {
     const confirmed = await confirm({

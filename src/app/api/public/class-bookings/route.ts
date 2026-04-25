@@ -363,7 +363,7 @@ export async function POST(request: NextRequest) {
       reference: String(booking.booking_number),
       amount: totalAmount,
       currency: (wallet.currency as string) || 'OMR',
-      customerName: user.full_name,
+      customerName: user.fullName,
       paymentMethod: 'Wallet',
       adminPath: '/admin/payments',
     }).catch((error) => {
