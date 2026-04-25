@@ -15,6 +15,7 @@ import {
   MdOutlineReceiptLong,
   MdScheduleSend,
 } from "react-icons/md";
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 type EventDetails = {
   id: string;
@@ -85,6 +86,7 @@ export default function AdminEventDetailsPage({
   const { locale, eventId } = use(params);
   const router = useRouter();
   const isAr = locale === "ar";
+  const { confirm } = useAppFeedback();
   const [event, setEvent] = useState<EventDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -212,8 +214,15 @@ export default function AdminEventDetailsPage({
     };
   }, [eventId, isAr]);
 
-  const handleDelete = () => {
-    if (!confirm(t.confirmDelete)) return;
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: isAr ? 'تأكيد حذف الحجز' : 'Delete event booking',
+      message: t.confirmDelete,
+      confirmLabel: isAr ? 'حذف' : 'Delete',
+      cancelLabel: isAr ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
 
     startTransition(async () => {
       try {

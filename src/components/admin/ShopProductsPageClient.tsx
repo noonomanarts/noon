@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 type ShopCategory = {
   id: string;
@@ -78,6 +79,7 @@ const emptyEditor: EditorState = {
 
 export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
   const isArabic = locale === 'ar';
+  const { confirm } = useAppFeedback();
 
   const [categories, setCategories] = useState<ShopCategory[]>([]);
   const [products, setProducts] = useState<ShopProduct[]>([]);
@@ -367,7 +369,14 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
       ? `هل تريد حذف المنتج \"${product.name_ar}\"؟`
       : `Delete product "${product.name_en}"?`;
 
-    if (!window.confirm(message)) return;
+    const confirmed = await confirm({
+      title: isArabic ? 'تأكيد حذف المنتج' : 'Delete product',
+      message,
+      confirmLabel: isArabic ? 'حذف' : 'Delete',
+      cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
 
     setSaving(true);
     setError(null);

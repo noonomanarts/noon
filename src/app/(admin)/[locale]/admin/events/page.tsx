@@ -17,6 +17,7 @@ import {
   HiOutlineUsers,
   HiOutlineCurrencyDollar,
 } from "react-icons/hi2";
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 type EventBooking = {
   id: string;
@@ -57,6 +58,7 @@ export default function AdminEventsPage() {
   const router = useRouter();
   const locale = (params.locale as string) || "en";
   const isAr = locale === "ar";
+  const { confirm } = useAppFeedback();
 
   const [events, setEvents] = useState<EventBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -115,7 +117,14 @@ export default function AdminEventsPage() {
   }, [fetchEvents]);
 
   const handleDelete = async (eventId: string) => {
-    if (!confirm(t.confirmDelete)) return;
+    const confirmed = await confirm({
+      title: isAr ? 'تأكيد حذف الفعالية' : 'Delete event booking',
+      message: t.confirmDelete,
+      confirmLabel: isAr ? 'حذف' : 'Delete',
+      cancelLabel: isAr ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
 
     startTransition(async () => {
       try {

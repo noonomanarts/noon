@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiCheck, FiX, FiTag } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 type PromoCode = {
   id: string;
@@ -30,6 +31,7 @@ const empty = (): Omit<PromoCode, 'id' | 'timesUsed' | 'createdAt' | 'isActive'>
 
 export default function AdminPromoCodesPageClient({ locale }: { locale: Locale }) {
   const isAr = locale === 'ar';
+  const { confirm } = useAppFeedback();
 
   const t = {
     title: isAr ? 'أكواد الخصم' : 'Promo Codes',
@@ -159,7 +161,14 @@ export default function AdminPromoCodesPageClient({ locale }: { locale: Locale }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm(t.confirmDelete)) return;
+    const confirmed = await confirm({
+      title: isAr ? 'تأكيد حذف الكود' : 'Delete promo code',
+      message: t.confirmDelete,
+      confirmLabel: isAr ? 'حذف' : 'Delete',
+      cancelLabel: isAr ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     try {
       await fetch(`/api/admin/promo-codes?id=${id}`, { method: 'DELETE' });
       await fetchCodes();

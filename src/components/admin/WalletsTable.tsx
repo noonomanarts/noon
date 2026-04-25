@@ -6,6 +6,7 @@ import { FiUsers, FiDollarSign, FiTrendingDown, FiCheck, FiArrowRight, FiX, FiLo
 import type { Locale } from '@/lib/locale';
 import type { Wallet, WalletTransaction } from '@/lib/db/types';
 import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 interface WalletsTableProps {
   wallets: (Wallet & {
@@ -18,6 +19,7 @@ interface WalletsTableProps {
 }
 
 export function WalletsTable({ wallets: initialWallets, locale }: WalletsTableProps) {
+  const { confirm } = useAppFeedback();
   const [wallets, setWallets] = useState(initialWallets);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [showTransactions, setShowTransactions] = useState(false);
@@ -254,9 +256,15 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
   };
 
   const handleClearWallet = async (userId: string) => {
-    const confirmed = confirm(locale === 'ar'
-      ? 'سيتم تصفير المحفظة وحذف كل حركاتها. هل تريد المتابعة؟'
-      : 'This will clear the wallet and delete all its transactions. Continue?');
+    const confirmed = await confirm({
+      title: locale === 'ar' ? 'تأكيد تصفير المحفظة' : 'Clear wallet',
+      message: locale === 'ar'
+        ? 'سيتم تصفير المحفظة وحذف كل حركاتها. هل تريد المتابعة؟'
+        : 'This will clear the wallet and delete all its transactions. Continue?',
+      confirmLabel: locale === 'ar' ? 'تأكيد' : 'Confirm',
+      cancelLabel: locale === 'ar' ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
 
     if (!confirmed) {
       return;

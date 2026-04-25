@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import type { ShopOrder, ShopOrderItem, ShopOrderStatus, ShopOrderStatusHistory } from "@/lib/db/types";
 import { FiPackage, FiTruck, FiCheck, FiClock, FiMapPin, FiPhone, FiUser, FiRefreshCw, FiX } from "react-icons/fi";
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 type OrderWithDetails = ShopOrder & {
   user_full_name: string;
@@ -32,6 +33,7 @@ const STATUS_ORDER: ShopOrderStatus[] = ["PAID", "PROCESSING", "READY_TO_SHIP", 
 
 export default function WorkerOrdersClient({ locale, orders: initialOrders }: Props) {
   const isArabic = locale === "ar";
+  const { toast } = useAppFeedback();
   const [orders, setOrders] = useState(initialOrders);
   const [filterStatus, setFilterStatus] = useState<ShopOrderStatus | "ALL">("ALL");
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
@@ -133,7 +135,11 @@ export default function WorkerOrdersClient({ locale, orders: initialOrders }: Pr
       );
     } catch (error) {
       console.error("Error updating order status:", error);
-      alert(error instanceof Error ? error.message : "Failed to update status");
+      toast({
+        title: isArabic ? 'تعذر تحديث الحالة' : 'Status update failed',
+        message: error instanceof Error ? error.message : 'Failed to update status',
+        tone: 'error',
+      });
     } finally {
       setUpdatingOrderId(null);
     }

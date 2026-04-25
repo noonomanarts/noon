@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { IoAdd, IoCubeOutline, IoFlashOutline, IoLayersOutline, IoWalletOutline } from 'react-icons/io5';
 import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 type InventoryItem = {
   id: string;
@@ -136,6 +137,7 @@ function emptyPurchaseForm(): PurchaseFormState {
 
 export default function AdminInventoryPageClient({ locale }: { locale: Locale }) {
   const isArabic = locale === 'ar';
+  const { confirm } = useAppFeedback();
   const localeCode = isArabic ? 'ar-OM-u-nu-latn' : 'en-OM';
 
   const t = {
@@ -362,7 +364,14 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
   };
 
   const handleClearStock = async () => {
-    if (!confirm(t.clearStockConfirm)) {
+    const confirmed = await confirm({
+      title: isArabic ? 'تأكيد تصفير المخزون' : 'Clear inventory stock',
+      message: t.clearStockConfirm,
+      confirmLabel: isArabic ? 'تأكيد' : 'Confirm',
+      cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -387,7 +396,14 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
   };
 
   const handleDeleteItem = async (itemId: string) => {
-    if (!confirm(t.deleteItemConfirm)) {
+    const confirmed = await confirm({
+      title: isArabic ? 'تأكيد حذف المادة' : 'Delete inventory item',
+      message: t.deleteItemConfirm,
+      confirmLabel: isArabic ? 'حذف' : 'Delete',
+      cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 

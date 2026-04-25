@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 import {
   type EventGiftAddOn,
   type EventGiftAddOnSettings,
@@ -41,6 +42,7 @@ const emptyEditor: EditorState = {
 
 export default function AdminEventGiftAddOnsPageClient({ locale }: { locale: Locale }) {
   const isArabic = locale === 'ar';
+  const { confirm } = useAppFeedback();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [items, setItems] = useState<EventGiftAddOn[]>([]);
@@ -188,7 +190,14 @@ export default function AdminEventGiftAddOnsPageClient({ locale }: { locale: Loc
   };
 
   const removeItem = async (item: EventGiftAddOn) => {
-    if (!window.confirm(isArabic ? 'هل تريد حذف هذه الهدية؟' : 'Delete this gift add-on?')) return;
+    const confirmed = await confirm({
+      title: isArabic ? 'تأكيد حذف الهدية' : 'Delete gift add-on',
+      message: isArabic ? 'هل تريد حذف هذه الهدية؟' : 'Delete this gift add-on?',
+      confirmLabel: isArabic ? 'حذف' : 'Delete',
+      cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
 
     setSaving(true);
     setInfo(null);

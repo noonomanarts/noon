@@ -16,6 +16,7 @@ import {
   FiCamera,
 } from "react-icons/fi";
 import type { PhotographerDashboardUser, PhotographerTaskPublic } from "@/lib/db/photographer";
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 type Props = {
   locale: "en" | "ar";
@@ -47,6 +48,7 @@ export default function AdminPhotographerTasksClient({
   initialTotal,
 }: Props) {
   const isRTL = locale === "ar";
+  const { confirm } = useAppFeedback();
   const photographerExists = dashboardUsers.length > 0;
   const [tasks, setTasks] = useState(initialTasks);
   const [filter, setFilter] = useState<FilterStatus>("ALL");
@@ -199,7 +201,14 @@ export default function AdminPhotographerTasksClient({
   }, [editingTask, formDescription, formDescriptionAr, formDueDate, formNotes, formNotesAr, formPriority, formTitle, formTitleAr, selectedAssigneeId]);
 
   const handleDelete = useCallback(async (taskId: string) => {
-    if (!confirm(t.confirmDelete)) return;
+    const confirmed = await confirm({
+      title: isRTL ? 'تأكيد حذف المهمة' : 'Delete task',
+      message: t.confirmDelete,
+      confirmLabel: isRTL ? 'حذف' : 'Delete',
+      cancelLabel: isRTL ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     setDeletingId(taskId);
     try {
       const res = await fetch(`/api/admin/photographer-tasks?taskId=${taskId}`, {
@@ -211,7 +220,7 @@ export default function AdminPhotographerTasksClient({
     } finally {
       setDeletingId(null);
     }
-  }, [t.confirmDelete]);
+  }, [confirm, isRTL, t.confirmDelete]);
 
   const handleStatusChange = useCallback(async (taskId: string, newStatus: string) => {
     try {

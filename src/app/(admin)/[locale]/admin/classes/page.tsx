@@ -28,6 +28,7 @@ import {
 } from 'react-icons/bi';
 import { FiMoreVertical } from 'react-icons/fi';
 import { HiSparkles } from 'react-icons/hi';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 interface Trainer {
   id: string;
@@ -72,6 +73,7 @@ export default function AdminClassesPage() {
   const VIEWPORT_PADDING = 12;
   const params = useParams();
   const locale = params.locale as string;
+  const { toast } = useAppFeedback();
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [filteredClasses, setFilteredClasses] = useState<ClassItem[]>([]);
   const [stats, setStats] = useState<Stats>({
@@ -298,11 +300,11 @@ export default function AdminClassesPage() {
       if (response.ok) {
         fetchClasses();
       } else {
-        alert('Failed to delete class');
+        toast({ title: 'Delete failed', message: 'Failed to delete class', tone: 'error' });
       }
     } catch (error) {
       console.error('Failed to delete class:', error);
-      alert('Failed to delete class');
+      toast({ title: 'Delete failed', message: 'Failed to delete class', tone: 'error' });
     }
   }
 
@@ -321,11 +323,11 @@ export default function AdminClassesPage() {
       if (response.ok) {
         fetchClasses();
       } else {
-        alert('Failed to update status');
+        toast({ title: 'Status update failed', message: 'Failed to update status', tone: 'error' });
       }
     } catch (error) {
       console.error('Failed to update status:', error);
-      alert('Failed to update status');
+      toast({ title: 'Status update failed', message: 'Failed to update status', tone: 'error' });
     }
   }
 
@@ -343,7 +345,11 @@ export default function AdminClassesPage() {
       await fetchClasses();
     } catch (error) {
       console.error('Failed to duplicate class:', error);
-      alert(error instanceof Error ? error.message : 'Failed to duplicate class');
+      toast({
+        title: 'Duplicate failed',
+        message: error instanceof Error ? error.message : 'Failed to duplicate class',
+        tone: 'error',
+      });
     }
   }
 

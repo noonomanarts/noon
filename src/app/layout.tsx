@@ -5,6 +5,7 @@ import ThemeInitScript from "@/components/site/ThemeInitScript";
 import LocaleSync from "@/components/site/LocaleSync";
 import OverlayScrollbarsProvider from "@/components/site/OverlayScrollbarsProvider";
 import PWARegister from "@/components/pwa/PWARegister";
+import { AppFeedbackProvider } from "@/components/ui/AppFeedbackProvider";
 import appleSplash from "../../public/icons/apple-splash.json";
 import "./globals.css";
 
@@ -158,10 +159,12 @@ export default async function RootLayout({
             : "var(--font-english), system-ui, sans-serif"
         }}
       >
-        <LocaleSync />
-        <OverlayScrollbarsProvider />
-        <div className="min-h-dvh">{children}</div>
-        <PWARegister />
+        <AppFeedbackProvider>
+          <LocaleSync />
+          <OverlayScrollbarsProvider />
+          <div className="min-h-dvh">{children}</div>
+          <PWARegister />
+        </AppFeedbackProvider>
       </body>
     </html>
   );

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 type EntryType = 'ALL' | 'INCOME' | 'EXPENSE';
 type PersistedEntryType = Exclude<EntryType, 'ALL'>;
@@ -186,6 +187,7 @@ function emptyReasonFormState(type: PersistedEntryType): ReasonFormState {
 
 export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
   const isArabic = locale === 'ar';
+  const { confirm } = useAppFeedback();
 
   const t = {
     title: isArabic ? 'المالية والتقارير' : 'Finance & Reports',
@@ -640,7 +642,14 @@ export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
   };
 
   const onDeleteEntry = async (entryId: string) => {
-    if (!window.confirm(t.deleteConfirm)) {
+    const confirmed = await confirm({
+      title: isArabic ? 'تأكيد حذف القيد' : 'Delete finance entry',
+      message: t.deleteConfirm,
+      confirmLabel: isArabic ? 'حذف' : 'Delete',
+      cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -767,7 +776,14 @@ export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
   };
 
   const onDeleteReason = async (reasonId: string) => {
-    if (!window.confirm(t.reasonDeleteConfirm)) {
+    const confirmed = await confirm({
+      title: isArabic ? 'تأكيد حذف المصدر' : 'Delete reason/source',
+      message: t.reasonDeleteConfirm,
+      confirmLabel: isArabic ? 'حذف' : 'Delete',
+      cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 

@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { Locale } from '@/lib/locale';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 type DiscoverLink = {
   id: string;
@@ -42,6 +43,7 @@ const emptyEditor: EditorState = {
 
 export default function ShopDiscoverMorePageClient({ locale }: { locale: Locale }) {
   const isArabic = locale === 'ar';
+  const { confirm } = useAppFeedback();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [links, setLinks] = useState<DiscoverLink[]>([]);
@@ -211,7 +213,14 @@ export default function ShopDiscoverMorePageClient({ locale }: { locale: Locale 
   };
 
   const removeLink = async (link: DiscoverLink) => {
-    if (!window.confirm(isArabic ? 'هل تريد حذف هذا الرابط؟' : 'Delete this link?')) return;
+    const confirmed = await confirm({
+      title: isArabic ? 'تأكيد حذف الرابط' : 'Delete link',
+      message: isArabic ? 'هل تريد حذف هذا الرابط؟' : 'Delete this link?',
+      confirmLabel: isArabic ? 'حذف' : 'Delete',
+      cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
 
     setSaving(true);
     setInfo(null);

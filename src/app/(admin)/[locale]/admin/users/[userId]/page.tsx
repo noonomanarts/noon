@@ -4,6 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 interface User {
   id: string;
@@ -47,6 +48,7 @@ export default function EditUserPage({
 }) {
   const router = useRouter();
   const { locale, userId } = use(params);
+  const { confirm } = useAppFeedback();
   
   const [user, setUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
@@ -246,7 +248,14 @@ export default function EditUserPage({
   };
 
   const handleDelete = async () => {
-    if (!confirm(locale === "ar" ? "هل أنت متأكد من حذف هذا المستخدم؟" : "Are you sure you want to delete this user?")) {
+    const confirmed = await confirm({
+      title: locale === 'ar' ? 'تأكيد حذف المستخدم' : 'Delete user',
+      message: locale === "ar" ? "هل أنت متأكد من حذف هذا المستخدم؟" : "Are you sure you want to delete this user?",
+      confirmLabel: locale === 'ar' ? 'حذف' : 'Delete',
+      cancelLabel: locale === 'ar' ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) {
       return;
     }
 

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiRefreshCw } from 'react-icons/fi';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 type Props = {
   classId: string;
@@ -22,6 +23,7 @@ export default function AdminRenewClassButton({
   loadingLabel,
 }: Props) {
   const router = useRouter();
+  const { toast } = useAppFeedback();
   const [loading, setLoading] = useState(false);
 
   const buttonLabel = label || (locale === 'ar' ? 'رينيـو الصف' : 'Renew Class');
@@ -48,7 +50,11 @@ export default function AdminRenewClassButton({
       router.push(`/${locale}/admin/classes/${payload.class.id}/renew`);
       router.refresh();
     } catch (error) {
-      window.alert(error instanceof Error ? error.message : 'Failed to renew class.');
+      toast({
+        title: locale === 'ar' ? 'تعذر تجديد الصف' : 'Renew class failed',
+        message: error instanceof Error ? error.message : 'Failed to renew class.',
+        tone: 'error',
+      });
     } finally {
       setLoading(false);
     }
