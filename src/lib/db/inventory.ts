@@ -384,7 +384,7 @@ export async function createInventoryItem(input: {
   return mapInventoryItem(row);
 }
 
-export async function deleteInventoryItem(itemId: string): Promise<boolean> {
+export async function deleteInventoryItem(itemId: string, adminUserId?: string): Promise<boolean> {
   await ensureInventorySchema();
 
   const client = await pool.connect();
@@ -404,30 +404,82 @@ export async function deleteInventoryItem(itemId: string): Promise<boolean> {
       return false;
     }
 
-    if (toMoney(itemResult.rows[0].current_stock) > 0) {
-      throw new Error('Inventory item still has stock. Clear its stock before deleting it.');
-    }
+    const currentStock = toMoney(itemResult.rows[0].current_stock);
+
+    const eventUsageTableExistsResult = await client.query(
+      `SELECT to_regclass('public.event_inventory_usages') IS NOT NULL AS exists`
+    );
+
+    const eventUsageTableExists = Boolean(eventUsageTableExistsResult.rows[0]?.exists);
 
     const referencesResult = await client.query(
       `SELECT (
           (SELECT COUNT(*) FROM inventory_purchase_lines WHERE inventory_item_id = $1) +
           (SELECT COUNT(*) FROM inventory_movements WHERE inventory_item_id = $1) +
-          (SELECT COUNT(*) FROM class_inventory_usages WHERE inventory_item_id = $1) +
-          (SELECT COUNT(*) FROM event_inventory_usages WHERE inventory_item_id = $1)
+          (SELECT COUNT(*) FROM class_inventory_usages WHERE inventory_item_id = $1)
         )::int AS reference_count`,
       [itemId]
     );
 
-    if ((referencesResult.rows[0]?.reference_count ?? 0) > 0) {
+    let referenceCount = referencesResult.rows[0]?.reference_count ?? 0;
+
+    if (eventUsageTableExists) {
+      const eventReferencesResult = await client.query(
+        `SELECT COUNT(*)::int AS reference_count
+         FROM event_inventory_usages
+         WHERE inventory_item_id = $1`,
+        [itemId]
+      );
+      referenceCount += eventReferencesResult.rows[0]?.reference_count ?? 0;
+    }
+
+    if (referenceCount > 0) {
+      if (currentStock > 0) {
+        const averageUnitCostResult = await client.query(
+          `SELECT average_unit_cost
+           FROM inventory_items
+           WHERE id = $1
+           LIMIT 1`,
+          [itemId]
+        );
+        const averageUnitCost = toMoney(averageUnitCostResult.rows[0]?.average_unit_cost);
+        const totalCost = toMoney(currentStock * averageUnitCost);
+
+        await client.query(
+          `INSERT INTO inventory_movements (
+             inventory_item_id, movement_type, direction, quantity, unit_cost, total_cost,
+             reference_type, notes, occurred_at, created_by_user_id, created_at
+           ) VALUES (
+             $1, 'ADJUSTMENT_OUT', 'OUT', $2, $3, $4,
+             'ADMIN_DELETE_ARCHIVE', 'Inventory item archived during delete request.', NOW(), $5, NOW()
+           )`,
+          [itemId, currentStock, averageUnitCost, totalCost, adminUserId ?? null]
+        );
+
+        await client.query(
+          `UPDATE inventory_items
+           SET current_stock = 0,
+               updated_by_user_id = $2,
+               updated_at = NOW()
+           WHERE id = $1`,
+          [itemId, adminUserId ?? null]
+        );
+      }
+
       const archiveResult = await client.query(
         `UPDATE inventory_items
          SET is_active = FALSE,
+             updated_by_user_id = $2,
              updated_at = NOW()
          WHERE id = $1`,
-        [itemId]
+        [itemId, adminUserId ?? null]
       );
       await client.query('COMMIT');
       return (archiveResult.rowCount ?? 0) > 0;
+    }
+
+    if (currentStock > 0) {
+      throw new Error('Inventory item still has stock. Clear its stock before deleting it.');
     }
 
     const deleteResult = await client.query(`DELETE FROM inventory_items WHERE id = $1`, [itemId]);

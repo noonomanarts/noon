@@ -12,7 +12,7 @@ export async function DELETE(request: NextRequest, props: Params) {
     if (auth.error) return auth.error;
 
     const params = await props.params;
-    const deleted = await deleteInventoryItem(params.itemId);
+    const deleted = await deleteInventoryItem(params.itemId, auth.user.id);
     if (!deleted) {
       return NextResponse.json({ error: 'Inventory item not found' }, { status: 404 });
     }
