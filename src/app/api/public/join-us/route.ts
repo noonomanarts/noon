@@ -17,6 +17,10 @@ function parseSafeArray(value: unknown, maxItems = 20): string[] {
     .slice(0, maxItems);
 }
 
+function parseOptionalBoolean(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -43,13 +47,13 @@ export async function POST(request: NextRequest) {
     const certifications = parseSafeString(body.certifications, 2000);
     const employmentStatus = parseSafeString(body.employmentStatus, 100);
     const employerDetails = parseSafeString(body.employerDetails, 500);
-    const hasPriorTraining = Boolean(body.hasPriorTraining);
+    const hasPriorTraining = parseOptionalBoolean(body.hasPriorTraining);
     const priorTrainingDetails = parseSafeString(body.priorTrainingDetails, 2000);
     const motivation = parseSafeString(body.motivation, 3000);
     const personalityDescription = parseSafeString(body.personalityDescription, 3000);
     const workshopCategory = parseSafeString(body.workshopCategory, 100);
     const otherSkillsDetail = parseSafeString(body.otherSkillsDetail, 1000);
-    const hasRestaurantExperience = Boolean(body.hasRestaurantExperience);
+    const hasRestaurantExperience = parseOptionalBoolean(body.hasRestaurantExperience);
     const restaurantDetails = parseSafeString(body.restaurantDetails, 2000);
     const kitchenInterests = parseSafeString(body.kitchenInterests, 2000);
     const culinaryDishes = parseSafeArray(body.culinaryDishes);
@@ -85,6 +89,64 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (formType === "trainer") {
+      const missingBaseFields =
+        !dateOfBirth ||
+        !nationality ||
+        !address ||
+        !instagramUrl ||
+        !certifications ||
+        !employmentStatus ||
+        hasPriorTraining === null ||
+        !motivation ||
+        !personalityDescription ||
+        !otherSkillsDetail;
+
+      if (missingBaseFields) {
+        return NextResponse.json(
+          { error: "Please fill in all required fields" },
+          { status: 400 },
+        );
+      }
+
+      if ((employmentStatus === "employed" || employmentStatus === "self-employed") && !employerDetails) {
+        return NextResponse.json(
+          { error: "Employer details are required" },
+          { status: 400 },
+        );
+      }
+
+      if (hasPriorTraining && !priorTrainingDetails) {
+        return NextResponse.json(
+          { error: "Training experience details are required" },
+          { status: 400 },
+        );
+      }
+
+      if (workshopCategory === "culinary") {
+        if (hasRestaurantExperience === null || !kitchenInterests || culinaryDishes.length === 0) {
+          return NextResponse.json(
+            { error: "Please fill in all culinary details" },
+            { status: 400 },
+          );
+        }
+
+        if (hasRestaurantExperience && !restaurantDetails) {
+          return NextResponse.json(
+            { error: "Restaurant experience details are required" },
+            { status: 400 },
+          );
+        }
+      }
+
+      if (workshopCategory === "arts" && (!artsSpecialization || artsWorkshopIdeas.length === 0)) {
+        return NextResponse.json(
+          { error: "Please fill in all arts and crafts details" },
+          { status: 400 },
+        );
+      }
+    }
+
     const application = await createJoinUsApplication({
       formType: formType as "trainer" | "social_media",
       fullName,
@@ -98,13 +160,13 @@ export async function POST(request: NextRequest) {
       certifications: certifications || null,
       employmentStatus: employmentStatus || null,
       employerDetails: employerDetails || null,
-      hasPriorTraining,
+      hasPriorTraining: hasPriorTraining ?? false,
       priorTrainingDetails: priorTrainingDetails || null,
       motivation: motivation || null,
       personalityDescription: personalityDescription || null,
       workshopCategory: workshopCategory || null,
       otherSkillsDetail: otherSkillsDetail || null,
-      hasRestaurantExperience,
+      hasRestaurantExperience: hasRestaurantExperience ?? false,
       restaurantDetails: restaurantDetails || null,
       recipeFileUrl: null,
       kitchenInterests: kitchenInterests || null,

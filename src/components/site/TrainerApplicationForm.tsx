@@ -29,7 +29,7 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
   const [employerDetails, setEmployerDetails] = useState("");
 
   // Training experience
-  const [hasPriorTraining, setHasPriorTraining] = useState(false);
+  const [hasPriorTraining, setHasPriorTraining] = useState<boolean | null>(null);
   const [priorTrainingDetails, setPriorTrainingDetails] = useState("");
   const [motivation, setMotivation] = useState("");
   const [personalityDescription, setPersonalityDescription] = useState("");
@@ -39,7 +39,7 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
   const [otherSkillsDetail, setOtherSkillsDetail] = useState("");
 
   // Culinary fields
-  const [hasRestaurantExperience, setHasRestaurantExperience] = useState(false);
+  const [hasRestaurantExperience, setHasRestaurantExperience] = useState<boolean | null>(null);
   const [restaurantDetails, setRestaurantDetails] = useState("");
   const [kitchenInterests, setKitchenInterests] = useState("");
   const [culinaryDishes, setCulinaryDishes] = useState<string[]>([]);
@@ -104,6 +104,9 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
       : "Thank you for your interest in joining the Noon team. Our team will review your application and contact you soon.",
     backToJoinUs: isArabic ? "العودة" : "Back",
     required: isArabic ? "مطلوب" : "Required",
+    requiredError: isArabic ? "يرجى تعبئة جميع الحقول المطلوبة" : "Please fill in all required fields",
+    culinaryDishesRequired: isArabic ? "يرجى إضافة طبق واحد على الأقل" : "Please add at least one dish",
+    artsIdeasRequired: isArabic ? "يرجى إضافة فكرة ورشة واحدة على الأقل" : "Please add at least one workshop idea",
   };
 
   function addCulinaryDish() {
@@ -126,8 +129,24 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
     e.preventDefault();
     setError(null);
 
-    if (!fullName.trim() || !email.trim() || !phone.trim()) {
-      setError(isArabic ? "الاسم والبريد الإلكتروني ورقم الهاتف مطلوبة" : "Full name, email, and phone are required");
+    const baseFields = [
+      fullName,
+      phone,
+      email,
+      dateOfBirth,
+      nationality,
+      address,
+      instagramUrl,
+      certifications,
+      employmentStatus,
+      motivation,
+      personalityDescription,
+      workshopCategory,
+      otherSkillsDetail,
+    ];
+
+    if (baseFields.some((value) => !value.trim()) || hasPriorTraining === null) {
+      setError(t.requiredError);
       return;
     }
     if (!isValidEmail(email.trim())) {
@@ -138,8 +157,26 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
       setError(isArabic ? "صيغة رقم الهاتف غير صحيحة" : "Invalid phone format");
       return;
     }
-    if (!workshopCategory) {
-      setError(isArabic ? "يرجى اختيار فئة ورشة العمل" : "Please select a workshop category");
+    if ((employmentStatus === "employed" || employmentStatus === "self-employed") && !employerDetails.trim()) {
+      setError(t.requiredError);
+      return;
+    }
+    if (hasPriorTraining && !priorTrainingDetails.trim()) {
+      setError(t.requiredError);
+      return;
+    }
+    if (workshopCategory === "culinary") {
+      if (hasRestaurantExperience === null || !kitchenInterests.trim() || culinaryDishes.length === 0) {
+        setError(culinaryDishes.length === 0 ? t.culinaryDishesRequired : t.requiredError);
+        return;
+      }
+      if (hasRestaurantExperience && !restaurantDetails.trim()) {
+        setError(t.requiredError);
+        return;
+      }
+    }
+    if (workshopCategory === "arts" && (!artsSpecialization.trim() || artsWorkshopIdeas.length === 0)) {
+      setError(artsWorkshopIdeas.length === 0 ? t.artsIdeasRequired : t.requiredError);
       return;
     }
 
@@ -238,21 +275,21 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
               <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} dir="ltr" />
             </label>
             <label className="space-y-1">
-              <span className={labelClass}>{t.dateOfBirth}</span>
-              <input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} className={inputClass} dir="ltr" />
+              <span className={labelClass}>{t.dateOfBirth} *</span>
+              <input type="date" required value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} className={inputClass} dir="ltr" />
             </label>
             <label className="space-y-1">
-              <span className={labelClass}>{t.nationality}</span>
-              <input type="text" value={nationality} onChange={(e) => setNationality(e.target.value)} className={inputClass} />
+              <span className={labelClass}>{t.nationality} *</span>
+              <input type="text" required value={nationality} onChange={(e) => setNationality(e.target.value)} className={inputClass} />
             </label>
             <label className="space-y-1">
-              <span className={labelClass}>{t.address}</span>
-              <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
+              <span className={labelClass}>{t.address} *</span>
+              <input type="text" required value={address} onChange={(e) => setAddress(e.target.value)} className={inputClass} />
             </label>
           </div>
           <label className="block space-y-1">
-            <span className={labelClass}>{t.instagramUrl}</span>
-            <input type="url" value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} className={inputClass} dir="ltr" placeholder="https://instagram.com/..." />
+            <span className={labelClass}>{t.instagramUrl} *</span>
+            <input type="url" required value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} className={inputClass} dir="ltr" placeholder="https://instagram.com/..." />
           </label>
         </fieldset>
 
@@ -261,13 +298,13 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
           <legend className="text-base font-semibold text-zinc-900">{t.qualifications}</legend>
 
           <label className="block space-y-1">
-            <span className={labelClass}>{t.certifications}</span>
-            <textarea rows={3} value={certifications} onChange={(e) => setCertifications(e.target.value)} className={inputClass} placeholder={t.certificationsHint} />
+            <span className={labelClass}>{t.certifications} *</span>
+            <textarea rows={3} required value={certifications} onChange={(e) => setCertifications(e.target.value)} className={inputClass} placeholder={t.certificationsHint} />
           </label>
 
           <label className="block space-y-1">
-            <span className={labelClass}>{t.employmentStatus}</span>
-            <select value={employmentStatus} onChange={(e) => setEmploymentStatus(e.target.value)} className={inputClass}>
+            <span className={labelClass}>{t.employmentStatus} *</span>
+            <select required value={employmentStatus} onChange={(e) => setEmploymentStatus(e.target.value)} className={inputClass}>
               <option value="">—</option>
               <option value="employed">{t.employed}</option>
               <option value="self-employed">{t.selfEmployed}</option>
@@ -278,8 +315,8 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
 
           {(employmentStatus === "employed" || employmentStatus === "self-employed") && (
             <label className="block space-y-1">
-              <span className={labelClass}>{t.employerDetails}</span>
-              <input type="text" value={employerDetails} onChange={(e) => setEmployerDetails(e.target.value)} className={inputClass} />
+              <span className={labelClass}>{t.employerDetails} *</span>
+              <input type="text" required value={employerDetails} onChange={(e) => setEmployerDetails(e.target.value)} className={inputClass} />
             </label>
           )}
         </fieldset>
@@ -289,14 +326,14 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
           <legend className="text-base font-semibold text-zinc-900">{t.trainingExperience}</legend>
 
           <div className="space-y-1">
-            <span className={labelClass}>{t.hasPriorTraining}</span>
+            <span className={labelClass}>{t.hasPriorTraining} *</span>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm">
-                <input type="radio" name="priorTraining" checked={hasPriorTraining} onChange={() => setHasPriorTraining(true)} />
+                <input type="radio" name="priorTraining" required checked={hasPriorTraining === true} onChange={() => setHasPriorTraining(true)} />
                 {t.yes}
               </label>
               <label className="flex items-center gap-2 text-sm">
-                <input type="radio" name="priorTraining" checked={!hasPriorTraining} onChange={() => setHasPriorTraining(false)} />
+                <input type="radio" name="priorTraining" required checked={hasPriorTraining === false} onChange={() => setHasPriorTraining(false)} />
                 {t.no}
               </label>
             </div>
@@ -304,19 +341,19 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
 
           {hasPriorTraining && (
             <label className="block space-y-1">
-              <span className={labelClass}>{t.priorTrainingDetails}</span>
-              <textarea rows={3} value={priorTrainingDetails} onChange={(e) => setPriorTrainingDetails(e.target.value)} className={inputClass} placeholder={t.priorTrainingHint} />
+              <span className={labelClass}>{t.priorTrainingDetails} *</span>
+              <textarea rows={3} required value={priorTrainingDetails} onChange={(e) => setPriorTrainingDetails(e.target.value)} className={inputClass} placeholder={t.priorTrainingHint} />
             </label>
           )}
 
           <label className="block space-y-1">
-            <span className={labelClass}>{t.motivation}</span>
-            <textarea rows={3} value={motivation} onChange={(e) => setMotivation(e.target.value)} className={inputClass} />
+            <span className={labelClass}>{t.motivation} *</span>
+            <textarea rows={3} required value={motivation} onChange={(e) => setMotivation(e.target.value)} className={inputClass} />
           </label>
 
           <label className="block space-y-1">
-            <span className={labelClass}>{t.personalityDescription}</span>
-            <input type="text" value={personalityDescription} onChange={(e) => setPersonalityDescription(e.target.value)} className={inputClass} />
+            <span className={labelClass}>{t.personalityDescription} *</span>
+            <input type="text" required value={personalityDescription} onChange={(e) => setPersonalityDescription(e.target.value)} className={inputClass} />
           </label>
         </fieldset>
 
@@ -328,19 +365,19 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
             <span className={labelClass}>{t.workshopCategoryLabel} *</span>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm">
-                <input type="radio" name="workshopCategory" value="culinary" checked={workshopCategory === "culinary"} onChange={() => setWorkshopCategory("culinary")} />
+                <input type="radio" name="workshopCategory" value="culinary" required checked={workshopCategory === "culinary"} onChange={() => setWorkshopCategory("culinary")} />
                 {t.culinary}
               </label>
               <label className="flex items-center gap-2 text-sm">
-                <input type="radio" name="workshopCategory" value="arts" checked={workshopCategory === "arts"} onChange={() => setWorkshopCategory("arts")} />
+                <input type="radio" name="workshopCategory" value="arts" required checked={workshopCategory === "arts"} onChange={() => setWorkshopCategory("arts")} />
                 {t.arts}
               </label>
             </div>
           </div>
 
           <label className="block space-y-1">
-            <span className={labelClass}>{t.otherSkills}</span>
-            <input type="text" value={otherSkillsDetail} onChange={(e) => setOtherSkillsDetail(e.target.value)} className={inputClass} />
+            <span className={labelClass}>{t.otherSkills} *</span>
+            <input type="text" required value={otherSkillsDetail} onChange={(e) => setOtherSkillsDetail(e.target.value)} className={inputClass} />
           </label>
         </fieldset>
 
@@ -350,14 +387,14 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
             <legend className="text-base font-semibold text-zinc-900">{t.culinarySection}</legend>
 
             <div className="space-y-1">
-              <span className={labelClass}>{t.hasRestaurantExperience}</span>
+              <span className={labelClass}>{t.hasRestaurantExperience} *</span>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 text-sm">
-                  <input type="radio" name="restaurantExp" checked={hasRestaurantExperience} onChange={() => setHasRestaurantExperience(true)} />
+                  <input type="radio" name="restaurantExp" required checked={hasRestaurantExperience === true} onChange={() => setHasRestaurantExperience(true)} />
                   {t.yes}
                 </label>
                 <label className="flex items-center gap-2 text-sm">
-                  <input type="radio" name="restaurantExp" checked={!hasRestaurantExperience} onChange={() => setHasRestaurantExperience(false)} />
+                  <input type="radio" name="restaurantExp" required checked={hasRestaurantExperience === false} onChange={() => setHasRestaurantExperience(false)} />
                   {t.no}
                 </label>
               </div>
@@ -365,18 +402,18 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
 
             {hasRestaurantExperience && (
               <label className="block space-y-1">
-                <span className={labelClass}>{t.restaurantDetails}</span>
-                <textarea rows={3} value={restaurantDetails} onChange={(e) => setRestaurantDetails(e.target.value)} className={inputClass} />
+                <span className={labelClass}>{t.restaurantDetails} *</span>
+                <textarea rows={3} required value={restaurantDetails} onChange={(e) => setRestaurantDetails(e.target.value)} className={inputClass} />
               </label>
             )}
 
             <label className="block space-y-1">
-              <span className={labelClass}>{t.kitchenInterests}</span>
-              <input type="text" value={kitchenInterests} onChange={(e) => setKitchenInterests(e.target.value)} className={inputClass} placeholder={t.kitchenInterestsHint} />
+              <span className={labelClass}>{t.kitchenInterests} *</span>
+              <input type="text" required value={kitchenInterests} onChange={(e) => setKitchenInterests(e.target.value)} className={inputClass} placeholder={t.kitchenInterestsHint} />
             </label>
 
             <div className="space-y-2">
-              <span className={labelClass}>{t.culinaryDishesLabel}</span>
+              <span className={labelClass}>{t.culinaryDishesLabel} *</span>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -409,12 +446,12 @@ export default function TrainerApplicationForm({ locale }: { locale: Locale }) {
             <legend className="text-base font-semibold text-zinc-900">{t.artsSection}</legend>
 
             <label className="block space-y-1">
-              <span className={labelClass}>{t.artsSpecialization}</span>
-              <input type="text" value={artsSpecialization} onChange={(e) => setArtsSpecialization(e.target.value)} className={inputClass} />
+              <span className={labelClass}>{t.artsSpecialization} *</span>
+              <input type="text" required value={artsSpecialization} onChange={(e) => setArtsSpecialization(e.target.value)} className={inputClass} />
             </label>
 
             <div className="space-y-2">
-              <span className={labelClass}>{t.artsWorkshopIdeasLabel}</span>
+              <span className={labelClass}>{t.artsWorkshopIdeasLabel} *</span>
               <div className="flex gap-2">
                 <input
                   type="text"
