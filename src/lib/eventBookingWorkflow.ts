@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { getEmailLayout } from '@/lib/email/emailLayout';
 import { sendEmail } from '@/lib/email/emailClient';
+import { getPublicSiteBaseUrl } from '@/lib/publicSiteUrl';
 import { sendWhatsAppText } from '@/lib/whatsappClient';
 
 type EventNotificationBooking = {
@@ -12,36 +13,6 @@ type EventNotificationBooking = {
 };
 
 export const EVENT_BOOKING_CONFIRMATION_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 7;
-
-const DEFAULT_SITE_URL = 'https://noonomanarts.com';
-
-function isUsablePublicOrigin(origin: string | undefined | null): boolean {
-  if (!origin) return false;
-  try {
-    const url = new URL(origin);
-    const host = url.hostname.toLowerCase();
-    if (!host) return false;
-    if (host === 'localhost' || host === '0.0.0.0' || host === '127.0.0.1' || host === '::1') {
-      return false;
-    }
-    if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return false;
-    if (!host.includes('.')) return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function getPublicSiteBaseUrl(requestOrigin?: string | null): string {
-  const envUrl = process.env.NEXT_PUBLIC_BASE_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (envUrl && isUsablePublicOrigin(envUrl)) {
-    return envUrl.replace(/\/$/, '');
-  }
-  if (isUsablePublicOrigin(requestOrigin)) {
-    return (requestOrigin as string).replace(/\/$/, '');
-  }
-  return DEFAULT_SITE_URL;
-}
 
 export function generateEventBookingConfirmationToken(): string {
   return crypto.randomBytes(24).toString('hex');

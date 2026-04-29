@@ -3,6 +3,7 @@ import { findUniqueClass } from './classes';
 import { notifyRole, notifyUser } from '@/lib/notificationService';
 import { getUserById } from './users';
 import { sendEmail } from '@/lib/email/emailClient';
+import { buildPublicSiteUrl } from '@/lib/publicSiteUrl';
 import { sendUserWhatsAppTemplate } from '@/lib/whatsapp/transactionNotifications';
 import { sendWhatsAppText } from '@/lib/whatsappClient';
 
@@ -355,7 +356,7 @@ function isArabicPreferredLanguage(value: string | null | undefined): boolean {
 }
 
 function buildRepeatClassUrl(input: { slug: string; isArabic: boolean }): string {
-  return `/${input.isArabic ? 'ar' : 'en'}/classes/${input.slug}`;
+  return buildPublicSiteUrl(`/${input.isArabic ? 'ar' : 'en'}/classes/${input.slug}`);
 }
 
 function buildRepeatMessageEmailHtml(input: {

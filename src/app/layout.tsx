@@ -5,6 +5,7 @@ import LocaleSync from "@/components/site/LocaleSync";
 import OverlayScrollbarsProvider from "@/components/site/OverlayScrollbarsProvider";
 import PWARegister from "@/components/pwa/PWARegister";
 import { AppFeedbackProvider } from "@/components/ui/AppFeedbackProvider";
+import { getPublicSiteBaseUrl } from "@/lib/publicSiteUrl";
 import appleSplash from "../../public/icons/apple-splash.json";
 import "./globals.css";
 
@@ -20,7 +21,7 @@ type AppleSplashEntry = {
 const APPLE_SPLASH_SCREENS = appleSplash as AppleSplashEntry[];
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://noonomanarts.com'),
+  metadataBase: new URL(getPublicSiteBaseUrl()),
   title: "Noon - نون",
   description: "Noon Arts & Design Studio",
   applicationName: "Noon",

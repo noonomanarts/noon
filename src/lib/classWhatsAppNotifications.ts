@@ -1,4 +1,5 @@
 import { query } from '@/lib/db/pool';
+import { buildPublicSiteUrl } from '@/lib/publicSiteUrl';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 
 let classWhatsAppNotificationSchemaReady: Promise<void> | null = null;
@@ -13,10 +14,6 @@ type DueWorkshopNotificationRow = {
   end_date_time: string | null;
   preferred_language: string | null;
 };
-
-function getBaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_BASE_URL || 'https://noonomanarts.com').replace(/\/$/, '');
-}
 
 function normalizeLanguage(preferredLanguage: string | null | undefined): 'en' | 'ar' {
   return preferredLanguage?.toUpperCase().startsWith('AR') ? 'ar' : 'en';
@@ -133,8 +130,6 @@ export async function dispatchDueClassWhatsAppNotifications(limit = 200): Promis
 
   let reminderSent = 0;
   let reviewSent = 0;
-  const baseUrl = getBaseUrl();
-
   for (const row of dueReminders) {
     if (!row.start_date_time) continue;
 
@@ -146,7 +141,7 @@ export async function dispatchDueClassWhatsAppNotifications(limit = 200): Promis
         classTitle: row.title_ar?.trim() || row.title,
         classDate: formatClassDate(row.start_date_time, language),
         classTime: formatClassTime(row.start_date_time, language),
-        classUrl: `${baseUrl}/${language}/classes/${row.slug}`,
+        classUrl: buildPublicSiteUrl(`/${language}/classes/${row.slug}`),
       },
     });
 
@@ -172,7 +167,7 @@ export async function dispatchDueClassWhatsAppNotifications(limit = 200): Promis
         classTitle: row.title_ar?.trim() || row.title,
         classDate: dateSource ? formatClassDate(dateSource, language) : '',
         classTime: dateSource ? formatClassTime(dateSource, language) : '',
-        classUrl: `${baseUrl}/${language}/classes/${row.slug}`,
+        classUrl: buildPublicSiteUrl(`/${language}/classes/${row.slug}`),
       },
     });
 
