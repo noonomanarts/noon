@@ -61,7 +61,7 @@ export default function ShopProductCard({
       <Link
         href={`/${locale}/shop/product/${product.slug}`}
         aria-label={`${t.openProduct}: ${name}`}
-        className="relative block h-40 overflow-hidden bg-[color:var(--muted)] sm:h-56"
+        className="relative block aspect-[3/4] overflow-hidden bg-[color:var(--muted)]"
       >
         <div className="absolute inset-x-0 top-0 z-10 h-1 bg-gradient-to-r from-coral via-yellow to-teal" />
         {product.image ? (
@@ -69,7 +69,7 @@ export default function ShopProductCard({
             src={product.image}
             alt={name}
             fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1280px) 50vw, 33vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1280px) 33vw, 25vw"
             className="object-cover transition duration-500 group-hover:scale-[1.04]"
           />
         ) : (

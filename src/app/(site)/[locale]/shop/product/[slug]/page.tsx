@@ -123,7 +123,7 @@ export default async function ShopProductDetailsPage({
                   images={productImages}
                   noImageLabel={t.noImage}
                   galleryLabel={t.gallery}
-                  mainAspectClass="aspect-square"
+                  mainAspectClass="aspect-[3/4]"
                 />
               </div>
 

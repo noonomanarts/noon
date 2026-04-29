@@ -1,14 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+const AUTOPLAY_INTERVAL_MS = 4000;
 
 export default function ProductMediaGallery({
   title,
   images,
   noImageLabel,
   galleryLabel,
-  mainAspectClass = "aspect-square",
+  mainAspectClass = "aspect-[3/4]",
 }: {
   title: string;
   images: string[];
@@ -22,6 +24,19 @@ export default function ProductMediaGallery({
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const activeImage = preparedImages[activeIndex] ?? null;
+
+  useEffect(() => {
+    if (preparedImages.length <= 1) {
+      setActiveIndex(0);
+      return;
+    }
+
+    const autoplayTimer = window.setInterval(() => {
+      setActiveIndex((currentIndex) => (currentIndex + 1) % preparedImages.length);
+    }, AUTOPLAY_INTERVAL_MS);
+
+    return () => window.clearInterval(autoplayTimer);
+  }, [preparedImages.length]);
 
   return (
     <div className="space-y-3">
@@ -60,7 +75,7 @@ export default function ProductMediaGallery({
                   key={`${imageUrl}-${index}`}
                   type="button"
                   onClick={() => setActiveIndex(index)}
-                  className={`relative aspect-square overflow-hidden border bg-[color:var(--muted)] transition ${
+                  className={`relative aspect-[3/4] overflow-hidden border bg-[color:var(--muted)] transition ${
                     isActive
                       ? "border-[color:var(--primary)] ring-1 ring-[color:var(--primary)]"
                       : "border-[color:var(--border)] hover:border-[color:var(--text-subtle)]"
