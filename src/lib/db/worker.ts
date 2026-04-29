@@ -3,7 +3,7 @@
  */
 
 import { pool } from './index';
-import { createShopRevenueFinanceEntry, createShopSaleCostExpenseEntry } from './finance';
+import { createShopRestockExpenseEntry, createShopRevenueFinanceEntry } from './finance';
 import type {
   WorkerPermissions,
   StockRestock,
@@ -118,7 +118,7 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
 
     // Get current stock
     const productResult = await client.query(
-      `SELECT stock_quantity, cost FROM shop_products WHERE id = $1 FOR UPDATE`,
+      `SELECT stock_quantity, cost, currency, name_en, name_ar FROM shop_products WHERE id = $1 FOR UPDATE`,
       [input.productId]
     );
     if (productResult.rows.length === 0) {
@@ -128,6 +128,8 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
     const previousQuantity = Number(productResult.rows[0].stock_quantity);
     const unitCost = toMoney(productResult.rows[0].cost);
     const totalCost = toMoney(unitCost * input.quantityAdded);
+    const currency = String(productResult.rows[0].currency || 'OMR');
+    const productName = String(productResult.rows[0].name_en || productResult.rows[0].name_ar || 'Product');
     const newQuantity = previousQuantity + input.quantityAdded;
     const expiryDate = new Date(`${input.expiryDate}T00:00:00`);
 
@@ -170,9 +172,24 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
       ]
     );
 
+    const restockRow = restockResult.rows[0];
+
+    await createShopRestockExpenseEntry({
+      db: client,
+      restockId: String(restockRow.id),
+      productId: input.productId,
+      productName,
+      quantityAdded: input.quantityAdded,
+      totalCost,
+      currency,
+      workerName: null,
+      notes: input.notes ?? null,
+      occurredAt: new Date(restockRow.created_at),
+    });
+
     await client.query('COMMIT');
 
-    const row = restockResult.rows[0];
+    const row = restockRow;
     return {
       id: row.id,
       product_id: row.product_id,
@@ -398,17 +415,6 @@ export async function createInShopSale(input: CreateInShopSaleInput): Promise<In
       referenceId: sale.id,
       referenceNumber: `Sale #${sale.sale_number}`,
       amount: totalAmount,
-      currency: sale.currency,
-      customerName: input.customerName ?? null,
-      occurredAt: new Date(sale.created_at),
-    });
-
-    await createShopSaleCostExpenseEntry({
-      db: client,
-      saleType: 'IN_SHOP_SALE',
-      referenceId: sale.id,
-      referenceNumber: `Sale #${sale.sale_number}`,
-      totalCost: toMoney(totalCost),
       currency: sale.currency,
       customerName: input.customerName ?? null,
       occurredAt: new Date(sale.created_at),

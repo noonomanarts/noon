@@ -1,5 +1,5 @@
 import { pool } from './pool';
-import { createShopSaleCostExpenseEntry, createShopSaleFinanceEntry } from './finance';
+import { createShopSaleFinanceEntry } from './finance';
 import type {
   ShopCategory,
   ShopOrder,
@@ -1822,16 +1822,6 @@ export async function createAdminShopOrder(input: {
       orderNumber: String(orderInsert.rows[0].order_number),
       orderId,
       amount: totalAmount,
-      currency,
-      customerName: recipientFullName || customer.full_name,
-    });
-
-    await createShopSaleCostExpenseEntry({
-      db: client,
-      saleType: 'SHOP_ORDER',
-      referenceId: orderId,
-      referenceNumber: `Order #${String(orderInsert.rows[0].order_number)}`,
-      totalCost: Number(orderItems.reduce((sum, item) => sum + item.totalCost, 0).toFixed(3)),
       currency,
       customerName: recipientFullName || customer.full_name,
     });

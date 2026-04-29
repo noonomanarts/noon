@@ -418,16 +418,6 @@ export async function POST(request: NextRequest) {
         customerName: recipientFullName,
       });
 
-      await createShopSaleCostExpenseEntry({
-        db: client,
-        saleType: 'SHOP_ORDER',
-        referenceId: orderId,
-        referenceNumber: `Order #${String(orderInsert.rows[0].order_number)}`,
-        totalCost: Number(orderItems.reduce((sum, item) => sum + item.totalCost, 0).toFixed(3)),
-        currency: String(walletRow.currency || 'OMR'),
-        customerName: recipientFullName,
-      });
-
       await client.query('COMMIT');
 
       void sendUserTransactionWhatsApp({

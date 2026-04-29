@@ -1457,6 +1457,52 @@ export async function createShopSaleFinanceEntry(params: {
   });
 }
 
+export async function createShopRestockExpenseEntry(params: {
+  db: Queryable;
+  restockId: string;
+  productId: string;
+  productName: string;
+  quantityAdded: number;
+  totalCost: number;
+  currency: string;
+  workerName?: string | null;
+  notes?: string | null;
+  occurredAt?: Date;
+}): Promise<void> {
+  await ensureAdminFinanceSchema();
+
+  if (params.totalCost <= 0) {
+    return;
+  }
+
+  const expenseReason = await resolveAutoFinanceReason({
+    db: params.db,
+    type: 'EXPENSE',
+    preferredNames: ['Supplies', 'Other Expense'],
+    fallbackName: 'Supplies',
+  });
+
+  await insertAutoFinanceEntry({
+    db: params.db,
+    type: 'EXPENSE',
+    title: `Shop restock bill: ${params.productName} x${params.quantityAdded}`,
+    amount: params.totalCost,
+    currency: params.currency,
+    occurredAt: params.occurredAt ?? new Date(),
+    reason: expenseReason,
+    counterparty: params.workerName || null,
+    notes: params.notes?.trim() || 'Auto-generated bill for shop product restocking.',
+    metadata: {
+      source: 'SHOP_RESTOCK',
+      restockId: params.restockId,
+      productId: params.productId,
+      productName: params.productName,
+      quantityAdded: params.quantityAdded,
+      component: 'RESTOCK_BILL',
+    },
+  });
+}
+
 export async function createShopSaleCostExpenseEntry(params: {
   db: Queryable;
   saleType: 'SHOP_ORDER' | 'IN_SHOP_SALE';
