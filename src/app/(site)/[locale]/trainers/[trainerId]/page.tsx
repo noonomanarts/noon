@@ -188,15 +188,7 @@ export default async function TrainerProfilePage({
     trainer: locale === "ar" ? "المدرب" : "Trainer",
     aboutTrainer: locale === "ar" ? "نبذة عن المدرب" : "About the Trainer",
     upcomingClasses: locale === "ar" ? "الورش القادمة" : "Upcoming Classes",
-    upcomingSubtitle:
-      locale === "ar"
-        ? "جلسات مؤكدة وورش مضافة يدوياً بواسطة الإدارة"
-        : "Confirmed sessions plus manual upcoming items from admin",
     previousClasses: locale === "ar" ? "الورش السابقة" : "Previous Classes",
-    previousSubtitle:
-      locale === "ar"
-        ? "أرشيف الورش السابقة مع الوصول لصفحات التفاصيل"
-        : "Archive of previous classes with quick access to details",
     bookNow: locale === "ar" ? "احجز الآن" : "Book Now",
     moreDetails: locale === "ar" ? "المزيد من التفاصيل" : "More Details",
     noUpcomingClasses: locale === "ar" ? "لا توجد ورش قادمة حالياً" : "No upcoming classes at the moment",
@@ -398,7 +390,6 @@ export default async function TrainerProfilePage({
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-2xl font-black text-zinc-900 dark:text-white">{t.upcomingClasses}</h2>
-              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t.upcomingSubtitle}</p>
             </div>
           </div>
 
@@ -545,7 +536,6 @@ export default async function TrainerProfilePage({
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-2xl font-black text-zinc-900 dark:text-white">{t.previousClasses}</h2>
-              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t.previousSubtitle}</p>
             </div>
           </div>
 
