@@ -83,7 +83,7 @@ export default async function ClassDetailPage({
       : 0;
 
   const t = {
-    breadcrumbClasses: isArabic ? "الدورات" : "Classes",
+    breadcrumbClasses: isArabic ? "الورش" : "Classes",
     category: isArabic ? "التصنيف" : "Category",
     cooking: isArabic ? "طبخ" : "Cooking",
     artsCrafts: isArabic ? "فنون وحرف" : "Arts & Crafts",

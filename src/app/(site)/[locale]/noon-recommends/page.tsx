@@ -17,9 +17,9 @@ export default async function NoonRecommendsPage({
   const t = {
     title: isArabic ? "نون يوصي" : "Noon Recommends",
     subtitle: isArabic
-      ? "منتجات وعلامات موصى بها بعد تجربة فعلية في مطبخ نون ودوراتنا."
+      ? "منتجات وعلامات موصى بها بعد تجربة فعلية في مطبخ نون وورشنا."
       : "Products and brands recommended after real use in Noon classes and kitchen sessions.",
-    usedBadge: isArabic ? "مستخدم في دوراتنا" : "Used in our classes",
+    usedBadge: isArabic ? "مستخدم في ورشنا" : "Used in our classes",
     buyFrom: isArabic ? "اشترِ من" : "Buy from",
     partnersTitle: isArabic ? "شركاء العلامات" : "Brand Partners",
     whyNoon: isArabic ? "لماذا نون يوصي؟" : "Why Noon recommends it",

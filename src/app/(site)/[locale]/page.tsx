@@ -334,10 +334,10 @@ export default async function HomePage({
   const heroUi = {
     cookingClasses:
       heroPrimaryCtaFromSettings?.trim() ||
-      (isArabic ? "دورات الطبخ" : "Cooking classes"),
+      (isArabic ? "ورش الطبخ" : "Cooking classes"),
     artClasses:
       heroSecondaryCtaFromSettings?.trim() ||
-      (isArabic ? "دورات الفنون والحرف" : "Arts & crafts classes"),
+      (isArabic ? "ورش الفنون والحرف" : "Arts & crafts classes"),
     cookingHref: resolveHeroHref(locale, heroPrimaryHrefFromSettings ?? "", "/classes/cooking"),
     artsHref: resolveHeroHref(locale, heroSecondaryHrefFromSettings ?? "", "/classes/arts-crafts"),
     cookingColor: normalizeHexColor(heroPrimaryColorFromSettings ?? "#f77d6b", "#f77d6b"),

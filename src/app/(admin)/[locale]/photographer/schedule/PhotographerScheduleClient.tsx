@@ -45,7 +45,7 @@ export default function PhotographerScheduleClient({ locale, schedule }: Props) 
   const t = {
     title: isRTL ? "الجدول الزمني" : "Schedule",
     all: isRTL ? "الكل" : "All",
-    classes: isRTL ? "الدورات" : "Classes",
+    classes: isRTL ? "الورش" : "Classes",
     events: isRTL ? "الفعاليات" : "Events",
     meetings: isRTL ? "الاجتماعات" : "Meetings",
     noItems: isRTL ? "لا توجد أحداث مجدولة" : "No scheduled events",

@@ -72,7 +72,7 @@ export default async function ArtsCraftsClassesPage({
     duration: isArabic ? "المدة" : "Duration",
     noSchedule: isArabic ? "الموعد سيُعلن قريباً" : "Schedule coming soon",
     workshopEnded: isArabic ? "انتهت الورشة" : "Workshop ended",
-    backToClasses: isArabic ? "العودة إلى الدورات" : "Back to classes",
+    backToClasses: isArabic ? "العودة إلى الورش" : "Back to classes",
   };
 
   const pageTitle = (isArabic ? pageSettings?.headingAr : pageSettings?.headingEn)?.trim() || t.title;

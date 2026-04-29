@@ -219,20 +219,20 @@ export default async function TrainerProfilePage({
   const t = {
     trainer: locale === "ar" ? "المدرب" : "Trainer",
     aboutTrainer: locale === "ar" ? "نبذة عن المدرب" : "About the Trainer",
-    upcomingClasses: locale === "ar" ? "الدورات القادمة" : "Upcoming Classes",
+    upcomingClasses: locale === "ar" ? "الورش القادمة" : "Upcoming Classes",
     upcomingSubtitle:
       locale === "ar"
-        ? "جلسات مؤكدة ودورات مضافة يدوياً بواسطة الإدارة"
+        ? "جلسات مؤكدة وورش مضافة يدوياً بواسطة الإدارة"
         : "Confirmed sessions plus manual upcoming items from admin",
-    previousClasses: locale === "ar" ? "الدورات السابقة" : "Previous Classes",
+    previousClasses: locale === "ar" ? "الورش السابقة" : "Previous Classes",
     previousSubtitle:
       locale === "ar"
-        ? "أرشيف الدورات السابقة مع الوصول لصفحات التفاصيل"
+        ? "أرشيف الورش السابقة مع الوصول لصفحات التفاصيل"
         : "Archive of previous classes with quick access to details",
     bookNow: locale === "ar" ? "احجز الآن" : "Book Now",
     moreDetails: locale === "ar" ? "المزيد من التفاصيل" : "More Details",
-    noUpcomingClasses: locale === "ar" ? "لا توجد دورات قادمة حالياً" : "No upcoming classes at the moment",
-    noPreviousClasses: locale === "ar" ? "لا توجد دورات سابقة" : "No previous classes",
+    noUpcomingClasses: locale === "ar" ? "لا توجد ورش قادمة حالياً" : "No upcoming classes at the moment",
+    noPreviousClasses: locale === "ar" ? "لا توجد ورش سابقة" : "No previous classes",
     contactInfo: locale === "ar" ? "معلومات التواصل" : "Contact Information",
     expertise: locale === "ar" ? "التخصصات" : "Expertise",
     experience: locale === "ar" ? "الخبرة" : "Experience",
@@ -244,7 +244,7 @@ export default async function TrainerProfilePage({
     noBio:
       locale === "ar" ? "سيتم تحديث نبذة المدرب قريباً." : "Trainer bio will be updated soon.",
     visit: locale === "ar" ? "زيارة" : "Visit",
-    totalClasses: locale === "ar" ? "إجمالي الدورات" : "Total Classes",
+    totalClasses: locale === "ar" ? "إجمالي الورش" : "Total Classes",
     upcoming: locale === "ar" ? "القادمة" : "Upcoming",
     previous: locale === "ar" ? "السابقة" : "Previous",
     video: locale === "ar" ? "فيديو" : "Video",

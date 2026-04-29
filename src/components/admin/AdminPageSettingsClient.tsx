@@ -238,7 +238,7 @@ export default function AdminPageSettingsClient({
     heroUploading: isArabic ? "جارٍ رفع الوسائط..." : "Uploading media...",
     heroAutoplayMs: isArabic ? "سرعة السلايدشو (ms)" : "Slideshow Speed (ms)",
     heroAutoplayHint: isArabic ? "من 2000 إلى 12000 مللي ثانية." : "Between 2000 and 12000 ms.",
-    classHeaderSection: isArabic ? "إعدادات هيدر صفحة الدورات" : "Class Header Settings",
+    classHeaderSection: isArabic ? "إعدادات هيدر صفحة الورش" : "Class Header Settings",
     classHeaderHint: isArabic
       ? "عنوان الهيدر يُؤخذ من حقول العنوان أعلاه. من هنا يمكنك تغيير لون الخلفية وصور السلايدشو لهذه الصفحة."
       : "The header title uses the heading fields above. Configure the background color and slideshow images for this page here.",
@@ -287,7 +287,7 @@ export default function AdminPageSettingsClient({
     shopHeaderUploading: isArabic ? "جارٍ الرفع..." : "Uploading...",
     shopHeaderUploadDone: isArabic ? "تم رفع صورة هيدر الشوب." : "Shop header image uploaded.",
     shopHeaderUploadFailed: isArabic ? "فشل رفع صورة هيدر الشوب." : "Failed to upload shop header image.",
-    homeCoursesSection: isArabic ? "إعدادات قسم الدورات" : "Courses Section Settings",
+    homeCoursesSection: isArabic ? "إعدادات قسم الورش" : "Courses Section Settings",
     homeCoursesHint: isArabic
       ? "تحكم بعنوان القسم، الوصف، ونصوص الكروت. روابط الصور تبقى قابلة للتعديل من هنا."
       : "Configure section title, subtitle, and card copy. Image paths remain editable here.",
@@ -315,7 +315,7 @@ export default function AdminPageSettingsClient({
     cardImageUploadDone: isArabic ? "تم رفع الصورة." : "Image uploaded successfully.",
     cardImageUploadFailed: isArabic ? "فشل رفع الصورة." : "Image upload failed.",
     cardImagePlaceholder: isArabic ? "لا توجد صورة" : "No image",
-    homeUpcomingSection: isArabic ? "إعدادات قسم الدورات القادمة" : "Upcoming Classes Section Settings",
+    homeUpcomingSection: isArabic ? "إعدادات قسم الورش القادمة" : "Upcoming Classes Section Settings",
     homeUpcomingHint: isArabic
       ? "حرر عنوان القسم، الوصف، نص الزر، وأضف عددًا غير محدود من البطاقات."
       : "Configure section title, subtitle, button label, and manage unlimited upcoming cards.",
@@ -402,9 +402,9 @@ export default function AdminPageSettingsClient({
       ? "تحكم بإظهار أقسام الصفحة الرئيسية من مكان واحد."
       : "Control homepage sections visibility in one place.",
     showHero: isArabic ? "إظهار الهيرو" : "Show Hero",
-    showCourses: isArabic ? "إظهار قسم الدورات" : "Show Courses Section",
+    showCourses: isArabic ? "إظهار قسم الورش" : "Show Courses Section",
     showNumbers: isArabic ? "إظهار قسم الأرقام" : "Show Numbers Section",
-    showUpcoming: isArabic ? "إظهار قسم الدورات القادمة" : "Show Upcoming Section",
+    showUpcoming: isArabic ? "إظهار قسم الورش القادمة" : "Show Upcoming Section",
     showWhyNoon: isArabic ? "إظهار قسم لماذا نون" : "Show Why Noon Section",
     showPartners: isArabic ? "إظهار قسم الشركاء" : "Show Partners Section",
     faqSection: isArabic ? "إعدادات الأسئلة الشائعة" : "FAQ Settings",
@@ -564,8 +564,8 @@ export default function AdminPageSettingsClient({
     settings.eventCompetition.processCardBorderColor,
     defaults.eventCompetition.processCardBorderColor
   );
-  const cookingPreviewTitle = (isArabic ? settings.homeCourses.cookingTitleAr : settings.homeCourses.cookingTitleEn).trim() || (isArabic ? "دورات الطبخ" : "Cooking classes");
-  const artsPreviewTitle = (isArabic ? settings.homeCourses.artsTitleAr : settings.homeCourses.artsTitleEn).trim() || (isArabic ? "دورات الفنون" : "Arts & crafts classes");
+  const cookingPreviewTitle = (isArabic ? settings.homeCourses.cookingTitleAr : settings.homeCourses.cookingTitleEn).trim() || (isArabic ? "ورش الطبخ" : "Cooking classes");
+  const artsPreviewTitle = (isArabic ? settings.homeCourses.artsTitleAr : settings.homeCourses.artsTitleEn).trim() || (isArabic ? "ورش الفنون" : "Arts & crafts classes");
 
   const handleReset = () => {
     setSettings(defaults);
@@ -4334,7 +4334,7 @@ export default function AdminPageSettingsClient({
             <input
               value={keywordsArText}
               onChange={(event) => setKeywordsArText(event.target.value)}
-              placeholder="طبخ, دورات, نون"
+              placeholder="طبخ, ورش, نون"
               className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
             />
           </label>

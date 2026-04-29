@@ -115,7 +115,7 @@ export default async function SearchPage({
         </h1>
         <p className="mt-2 text-sm text-[color:var(--text-muted)] dark:text-zinc-400">
           {isArabic
-            ? "ابحث في الدورات، المدربين، ومنتجات المتجر."
+            ? "ابحث في الورش، المدربين، ومنتجات المتجر."
             : "Search classes, trainers, and shop products."}
         </p>
       </div>
@@ -164,7 +164,7 @@ export default async function SearchPage({
 
           <section className="space-y-3">
             <h2 className="text-xl font-semibold text-[color:var(--text)] dark:text-zinc-100">
-              {isArabic ? "الدورات" : "Classes"}
+              {isArabic ? "الورش" : "Classes"}
             </h2>
             {classResults.length === 0 ? (
               <p className="text-sm text-[color:var(--text-subtle)] dark:text-zinc-400">{isArabic ? "لا توجد نتائج." : "No results."}</p>

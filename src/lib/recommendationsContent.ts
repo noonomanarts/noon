@@ -58,7 +58,7 @@ const DEFAULT_CONTENT: NoonRecommendationsContent = {
       nameEn: 'Pantry Essentials',
       nameAr: 'أساسيات المخزن',
       descriptionEn: 'Everyday staples we consistently rely on during classes.',
-      descriptionAr: 'مكونات أساسية نعتمد عليها باستمرار خلال الدورات.',
+      descriptionAr: 'مكونات أساسية نعتمد عليها باستمرار خلال الورش.',
       products: [
         {
           id: 'prod-pantry-1',
@@ -104,7 +104,7 @@ const DEFAULT_CONTENT: NoonRecommendationsContent = {
       nameEn: 'Cookware',
       nameAr: 'أدوات الطهي',
       descriptionEn: 'Durable cookware tested in active class environments.',
-      descriptionAr: 'أدوات طهي متينة تم اختبارها في بيئة الدورات العملية.',
+      descriptionAr: 'أدوات طهي متينة تم اختبارها في بيئة الورش العملية.',
       products: [],
       partners: [],
     },

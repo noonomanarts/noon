@@ -53,7 +53,7 @@ export default function AdminPagesPageClient({
     search: isArabic ? "ابحث بالاسم أو المسار..." : "Search by page name or route...",
     all: isArabic ? "الكل" : "All",
     core: isArabic ? "أساسية" : "Core",
-    classes: isArabic ? "الدورات" : "Classes",
+    classes: isArabic ? "الورش" : "Classes",
     events: isArabic ? "الفعاليات" : "Events",
     commerce: isArabic ? "التجارة" : "Commerce",
     account: isArabic ? "الحساب" : "Account",

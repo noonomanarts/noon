@@ -104,7 +104,7 @@ export default function AdminRecommendationsPageClient({ locale }: { locale: Loc
     deleteProduct: isArabic ? 'حذف المنتج' : 'Delete Product',
     whyEn: isArabic ? 'سبب التوصية (English)' : 'Why recommended (English)',
     whyAr: isArabic ? 'سبب التوصية (العربية)' : 'Why recommended (Arabic)',
-    usedInClasses: isArabic ? 'يستخدم في دوراتنا' : 'Used in our classes',
+    usedInClasses: isArabic ? 'يستخدم في ورشنا' : 'Used in our classes',
     buyLabelEn: isArabic ? 'نص زر الشراء (English)' : 'Buy button text (English)',
     buyLabelAr: isArabic ? 'نص زر الشراء (العربية)' : 'Buy button text (Arabic)',
     buyUrl: isArabic ? 'رابط الشراء' : 'Buy URL',

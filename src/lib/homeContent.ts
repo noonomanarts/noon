@@ -89,13 +89,13 @@ const DEFAULT_HOME_CONTENT: Record<Locale, HomeContent> = {
     hero: {
       headline: "الطبخ تجربة",
       subheadline: "تعلّم وابدع واحتفل مع نون.",
-      ctaExploreClasses: "استكشف الدورات",
+      ctaExploreClasses: "استكشف الورش",
       backgroundImageSrc: "/og-image.png",
     },
     courses: {
-      title: "دوراتنا",
-      cookingLabel: "دورات الطبخ",
-      artsLabel: "دورات الفنون والأشغال",
+      title: "ورشنا",
+      cookingLabel: "ورش الطبخ",
+      artsLabel: "ورش الفنون والأشغال",
     },
     numbers: {
       title: "أرقامنا",
@@ -107,7 +107,7 @@ const DEFAULT_HOME_CONTENT: Record<Locale, HomeContent> = {
       ],
     },
     upcoming: {
-      title: "الدورات القادمة",
+      title: "الورش القادمة",
       bookNowLabel: "احجز الآن",
       items: [
         {

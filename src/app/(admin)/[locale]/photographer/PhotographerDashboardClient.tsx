@@ -51,7 +51,7 @@ export default function PhotographerDashboardClient({ locale, stats, upcomingSch
   const t = {
     welcome: isRTL ? `مرحباً، ${userName}` : `Welcome, ${userName}`,
     subtitle: isRTL ? "إليك نظرة عامة على جدولك ومهامك" : "Here's an overview of your schedule and tasks",
-    upcomingClasses: isRTL ? "دورات قادمة" : "Upcoming Classes",
+    upcomingClasses: isRTL ? "ورش قادمة" : "Upcoming Classes",
     upcomingEvents: isRTL ? "فعاليات قادمة" : "Upcoming Events",
     upcomingMeetings: isRTL ? "اجتماعات قادمة" : "Upcoming Meetings",
     pendingTasks: isRTL ? "مهام معلقة" : "Pending Tasks",

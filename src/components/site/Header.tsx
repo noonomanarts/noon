@@ -57,8 +57,8 @@ export default async function Header({ locale }: { locale: Locale }) {
   } as CSSProperties;
   const t = {
     about: locale === "ar" ? "من نحن" : "About",
-    classes: locale === "ar" ? "دورات" : "Classes",
-    cooking: locale === "ar" ? "دورات الطبخ" : "Cooking classes",
+    classes: locale === "ar" ? "ورش" : "Classes",
+    cooking: locale === "ar" ? "ورش الطبخ" : "Cooking classes",
     arts: locale === "ar" ? "الفنون والأشغال" : "Arts & crafts classes",
     shop: locale === "ar" ? "المتجر" : "Shop",
     group: locale === "ar" ? "فعاليات" : "Events",

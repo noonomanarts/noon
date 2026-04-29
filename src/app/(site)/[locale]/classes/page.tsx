@@ -16,11 +16,11 @@ export default async function ClassesPage({
   const headerButtonTextColor = getReadableTextColor(headerColor);
 
   const t = {
-    title: isRTL ? "الدورات" : "Classes",
+    title: isRTL ? "الورش" : "Classes",
     subtitle: isRTL
       ? "اختر الفئة التي تهمك"
       : "Choose the category that fits you",
-    cooking: isRTL ? "دورات الطبخ" : "Cooking Classes",
+    cooking: isRTL ? "ورش الطبخ" : "Cooking Classes",
     artsCrafts: isRTL ? "فنون وحرف" : "Arts & Crafts",
     cookingDesc: isRTL
       ? "تعلم مهارات الطهي مع مدربين محترفين"
