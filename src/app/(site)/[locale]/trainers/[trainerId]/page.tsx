@@ -96,20 +96,51 @@ function escapeHtml(text: string): string {
   return text
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
-                    {trainerInstagramUrl ? (
-                      <div className="rounded-xl border border-zinc-200 bg-white/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/65">
-                        <a
-                          href={trainerInstagramUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 rounded-full border border-pink-300/70 bg-pink-50 px-4 py-2 text-sm font-semibold text-pink-700 transition hover:bg-pink-100 dark:border-pink-500/40 dark:bg-pink-500/10 dark:text-pink-200 dark:hover:bg-pink-500/15"
-                        >
-                          <FaInstagram className="h-4 w-4" />
-                          {t.instagram}
-                          <FiExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      </div>
-                    ) : null}
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function markdownToHtml(source: string): string {
+  const escaped = escapeHtml(source);
+  const lines = escaped.split("\n");
+  const html: string[] = [];
+  let inUl = false;
+  let inOl = false;
+
+  const closeLists = () => {
+    if (inUl) {
+      html.push("</ul>");
+      inUl = false;
+    }
+    if (inOl) {
+      html.push("</ol>");
+      inOl = false;
+    }
+  };
+
+  const parseInline = (line: string): string =>
+    line
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/__(.+?)__/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      .replace(/_(.+?)_/g, "<em>$1</em>")
+      .replace(/~~(.+?)~~/g, "<del>$1</del>")
+      .replace(/`([^`]+)`/g, '<code class="rounded bg-zinc-200/80 px-1.5 py-0.5 text-xs dark:bg-zinc-800">$1</code>')
+      .replace(
+        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-coral underline underline-offset-2">$1</a>'
+      );
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd();
+
+    if (/^\s*$/.test(line)) {
+      closeLists();
+      html.push("");
+      continue;
+    }
+
     const ulMatch = line.match(/^[-*]\s+(.+)$/);
     if (ulMatch) {
       if (inOl) {

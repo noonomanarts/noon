@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findUniqueEventBooking, updateEventBooking } from '@/lib/db/events';
 import { getPaymobOrder, mapPaymobOrderToWalletStatus } from '@/lib/paymob';
-import { getPublicSiteBaseUrl } from '@/lib/eventBookingWorkflow';
+import { getPublicSiteBaseUrl } from '@/lib/publicSiteUrl';
 
 type CallbackLookup = {
   reference: string | null;
