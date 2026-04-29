@@ -2,8 +2,8 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { FaInstagram } from "react-icons/fa6";
 import { FiBookOpen, FiCalendar, FiClock, FiExternalLink, FiUsers } from "react-icons/fi";
-import { MdEmail, MdPhone } from "react-icons/md";
 import { GiChefToque } from "react-icons/gi";
 import { HiSparkles } from "react-icons/hi2";
 import { findTrainerById, findTrainerClasses, getTrainerProfile } from "@/lib/db/trainers";
@@ -53,7 +53,6 @@ function toYoutubeEmbedUrl(value: string): string | null {
   try {
     const parsed = new URL(trimmed);
     const hostname = parsed.hostname.toLowerCase();
-
     if (hostname.includes("youtu.be")) {
       const id = parsed.pathname.replace("/", "").split("/")[0];
       return id ? `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1` : null;
@@ -68,7 +67,7 @@ function toYoutubeEmbedUrl(value: string): string | null {
 
       const embed = parsed.pathname.match(/\/embed\/([^/?]+)/);
       if (embed?.[1]) return `https://www.youtube-nocookie.com/embed/${embed[1]}?rel=0&modestbranding=1`;
-    }
+        }
 
     return null;
   } catch {
@@ -97,51 +96,20 @@ function escapeHtml(text: string): string {
   return text
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-function markdownToHtml(source: string): string {
-  const escaped = escapeHtml(source);
-  const lines = escaped.split("\n");
-  const html: string[] = [];
-  let inUl = false;
-  let inOl = false;
-
-  const closeLists = () => {
-    if (inUl) {
-      html.push("</ul>");
-      inUl = false;
-    }
-    if (inOl) {
-      html.push("</ol>");
-      inOl = false;
-    }
-  };
-
-  const parseInline = (line: string): string =>
-    line
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/__(.+?)__/g, "<strong>$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em>$1</em>")
-      .replace(/_(.+?)_/g, "<em>$1</em>")
-      .replace(/~~(.+?)~~/g, "<del>$1</del>")
-      .replace(/`([^`]+)`/g, '<code class="rounded bg-zinc-200/80 px-1.5 py-0.5 text-xs dark:bg-zinc-800">$1</code>')
-      .replace(
-        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-        '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-coral underline underline-offset-2">$1</a>'
-      );
-
-  for (const rawLine of lines) {
-    const line = rawLine.trimEnd();
-
-    if (/^\s*$/.test(line)) {
-      closeLists();
-      html.push("");
-      continue;
-    }
-
+                    {trainerInstagramUrl ? (
+                      <div className="rounded-xl border border-zinc-200 bg-white/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/65">
+                        <a
+                          href={trainerInstagramUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-full border border-pink-300/70 bg-pink-50 px-4 py-2 text-sm font-semibold text-pink-700 transition hover:bg-pink-100 dark:border-pink-500/40 dark:bg-pink-500/10 dark:text-pink-200 dark:hover:bg-pink-500/15"
+                        >
+                          <FaInstagram className="h-4 w-4" />
+                          {t.instagram}
+                          <FiExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    ) : null}
     const ulMatch = line.match(/^[-*]\s+(.+)$/);
     if (ulMatch) {
       if (inOl) {
@@ -233,7 +201,6 @@ export default async function TrainerProfilePage({
     moreDetails: locale === "ar" ? "المزيد من التفاصيل" : "More Details",
     noUpcomingClasses: locale === "ar" ? "لا توجد ورش قادمة حالياً" : "No upcoming classes at the moment",
     noPreviousClasses: locale === "ar" ? "لا توجد ورش سابقة" : "No previous classes",
-    contactInfo: locale === "ar" ? "معلومات التواصل" : "Contact Information",
     expertise: locale === "ar" ? "التخصصات" : "Expertise",
     experience: locale === "ar" ? "الخبرة" : "Experience",
     years: locale === "ar" ? "سنة" : "years",
@@ -243,12 +210,9 @@ export default async function TrainerProfilePage({
     classCourse: locale === "ar" ? "دورة مباشرة" : "Live Class",
     noBio:
       locale === "ar" ? "سيتم تحديث نبذة المدرب قريباً." : "Trainer bio will be updated soon.",
-    visit: locale === "ar" ? "زيارة" : "Visit",
-    totalClasses: locale === "ar" ? "إجمالي الورش" : "Total Classes",
-    upcoming: locale === "ar" ? "القادمة" : "Upcoming",
-    previous: locale === "ar" ? "السابقة" : "Previous",
     video: locale === "ar" ? "فيديو" : "Video",
     image: locale === "ar" ? "صورة" : "Image",
+    instagram: locale === "ar" ? "إنستغرام" : "Instagram",
   };
 
   const trainerBio = trainerProfile?.bio?.trim() || t.noBio;
@@ -256,6 +220,10 @@ export default async function TrainerProfilePage({
   const trainerSocialLinks = trainerProfile?.socialLinks ?? null;
   const trainerExperience = trainerProfile?.experience ?? null;
   const trainerBioHtml = markdownToHtml(trainerBio);
+  const trainerInstagramUrl =
+    trainerSocialLinks && typeof trainerSocialLinks.instagram === "string"
+      ? toExternalUrl(trainerSocialLinks.instagram)
+      : "";
 
   const featuredMediaType = trainerProfile?.featuredMediaType ?? "IMAGE";
   const featuredMediaUrl = trainerProfile?.featuredMediaUrl?.trim() || null;
@@ -381,21 +349,6 @@ export default async function TrainerProfilePage({
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/65">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.totalClasses}</p>
-                  <p className="mt-2 text-3xl font-black text-zinc-900 dark:text-white">{classes.length}</p>
-                </div>
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/65">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.upcoming}</p>
-                  <p className="mt-2 text-3xl font-black text-zinc-900 dark:text-white">{upcomingItems.length}</p>
-                </div>
-                <div className="rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/65">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.previous}</p>
-                  <p className="mt-2 text-3xl font-black text-zinc-900 dark:text-white">{previousClasses.length}</p>
-                </div>
-              </div>
-
               {(trainerExperience || trainerExpertise.length > 0) && (
                 <div className="space-y-3 rounded-xl border border-zinc-200 bg-white/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/65">
                   {trainerExperience ? (
@@ -423,51 +376,20 @@ export default async function TrainerProfilePage({
                 </div>
               )}
 
-              {(trainer.email || trainer.phoneNumber || trainerSocialLinks) && (
-                <div className="space-y-3 rounded-xl border border-zinc-200 bg-white/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/65">
-                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.contactInfo}</h3>
-
-                  {trainer.email ? (
-                    <a
-                      href={`mailto:${trainer.email}`}
-                      className="flex items-center gap-2 text-sm text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white"
-                    >
-                      <MdEmail className="h-4 w-4 text-coral" />
-                      {trainer.email}
-                    </a>
-                  ) : null}
-
-                  {trainer.phoneNumber ? (
-                    <a
-                      href={`tel:${trainer.phoneNumber}`}
-                      className="flex items-center gap-2 text-sm text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white"
-                    >
-                      <MdPhone className="h-4 w-4 text-teal" />
-                      {trainer.phoneNumber}
-                    </a>
-                  ) : null}
-
-                  {trainerSocialLinks &&
-                    Object.entries(trainerSocialLinks).map(([key, value]) => {
-                      if (typeof value !== "string" || value.trim().length === 0) return null;
-                      const href = toExternalUrl(value);
-                      if (!href) return null;
-
-                      return (
-                        <a
-                          key={key}
-                          href={href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-full border border-zinc-300/70 bg-zinc-100/80 px-3 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
-                        >
-                          {t.visit} {key}
-                          <FiExternalLink className="h-3 w-3" />
-                        </a>
-                      );
-                    })}
+              {trainerInstagramUrl ? (
+                <div className="rounded-xl border border-zinc-200 bg-white/80 p-4 dark:border-zinc-800 dark:bg-zinc-900/65">
+                  <a
+                    href={trainerInstagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-pink-300/70 bg-pink-50 px-4 py-2 text-sm font-semibold text-pink-700 transition hover:bg-pink-100 dark:border-pink-500/40 dark:bg-pink-500/10 dark:text-pink-200 dark:hover:bg-pink-500/15"
+                  >
+                    <FaInstagram className="h-4 w-4" />
+                    {t.instagram}
+                    <FiExternalLink className="h-3.5 w-3.5" />
+                  </a>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </section>
