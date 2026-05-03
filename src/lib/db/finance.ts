@@ -1445,6 +1445,7 @@ export async function createShopSaleFinanceEntry(params: {
   amount: number;
   currency: string;
   customerName?: string | null;
+  occurredAt?: Date;
 }): Promise<void> {
   await createShopRevenueFinanceEntry({
     db: params.db,
@@ -1454,6 +1455,7 @@ export async function createShopSaleFinanceEntry(params: {
     amount: params.amount,
     currency: params.currency,
     customerName: params.customerName,
+    occurredAt: params.occurredAt,
   });
 }
 
