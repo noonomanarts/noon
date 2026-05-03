@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Locale } from '@/lib/locale';
+import { startAmwalCheckout } from '@/lib/amwalClient';
 
 type CompletionResponse = {
   booking: {
@@ -42,6 +43,15 @@ type CompletionResponse = {
   };
 };
 
+type CompletionSubmitResponse = {
+  error?: string;
+  checkout?: {
+    scriptUrl: string;
+    config: Record<string, unknown>;
+    reference?: string;
+  };
+};
+
 const eventTypeLabels: Record<string, { en: string; ar: string }> = {
   COOKING_COMPETITION: { en: 'Cooking Competition', ar: 'مسابقة الطبخ' },
   PRIVATE_CLASS: { en: 'Private Class', ar: 'الدرس الخاص' },
@@ -62,6 +72,16 @@ export default function EventBookingCompletionClient({ locale, token }: { locale
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const paymentState = searchParams.get('payment');
+
+  const redirectWithPaymentState = useCallback((state: 'paid' | 'failed' | 'pending', reference?: string) => {
+    if (typeof window === 'undefined') return;
+    const destination = new URL(window.location.href);
+    destination.searchParams.set('payment', state);
+    if (reference) {
+      destination.searchParams.set('reference', reference);
+    }
+    window.location.href = `${destination.pathname}${destination.search}`;
+  }, []);
 
   const t = {
     title: isAr ? 'إكمال الحجز' : 'Complete Your Booking',
@@ -191,13 +211,47 @@ export default function EventBookingCompletionClient({ locale, token }: { locale
         method: 'POST',
         body: formData,
       });
-      const payload = (await response.json().catch(() => ({}))) as { error?: string; redirectUrl?: string };
+      const payload = (await response.json().catch(() => ({}))) as CompletionSubmitResponse;
       if (!response.ok) {
         throw new Error(payload.error || t.loadError);
       }
 
-      if (payload.redirectUrl) {
-        window.location.href = payload.redirectUrl;
+      if (payload.checkout) {
+        const reference = payload.checkout.reference;
+
+        await startAmwalCheckout({
+          checkout: payload.checkout,
+          onComplete: async (gatewayPayload) => {
+            const callbackResponse = await fetch('/api/public/event-bookings/payment/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reference, token, gatewayPayload }),
+            });
+            const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as {
+              error?: string;
+              paymentStatus?: string;
+            };
+
+            if (!callbackResponse.ok) {
+              throw new Error(callbackPayload.error || 'Failed to confirm payment');
+            }
+
+            const nextState = callbackPayload.paymentStatus === 'PAID'
+              ? 'paid'
+              : callbackPayload.paymentStatus === 'FAILED'
+                ? 'failed'
+                : 'pending';
+
+            redirectWithPaymentState(nextState, reference);
+          },
+          onCancel: () => {
+            redirectWithPaymentState('failed', reference);
+          },
+          onError: () => {
+            redirectWithPaymentState('failed', reference);
+          },
+        });
+
         return;
       }
 

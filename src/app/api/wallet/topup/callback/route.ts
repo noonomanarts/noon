@@ -1,63 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
-  getWalletTopupPaymentByGatewayOrderId,
   getWalletTopupPaymentByReference,
   updateWalletTopupPaymentStatus,
 } from '@/lib/db/wallet';
-import { getPaymobOrder, mapPaymobOrderToWalletStatus } from '@/lib/paymob';
+import {
+  isExpectedAmwalMerchant,
+  mapAmwalTransactionToPaymentStatus,
+  parseAmwalTransactionPayload,
+} from '@/lib/amwal';
 
 type CallbackLookup = {
   reference: string | null;
-  orderId: number | null;
-  rawStatusHint: string | null;
+  payload: Record<string, unknown>;
 };
-
-function toInteger(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isInteger(value)) {
-    return value;
-  }
-
-  if (typeof value === 'string' && /^\d+$/.test(value.trim())) {
-    return Number(value.trim());
-  }
-
-  return null;
-}
 
 function lookupFromSearchParams(request: NextRequest): CallbackLookup {
   const { searchParams } = request.nextUrl;
   return {
-    reference:
-      searchParams.get('merchant_order_id')?.trim() ||
-      searchParams.get('reference')?.trim() ||
-      null,
-    orderId:
-      toInteger(searchParams.get('order')) ??
-      toInteger(searchParams.get('order_id')) ??
-      toInteger(searchParams.get('merchant_order_id')),
-    rawStatusHint: searchParams.get('success') || searchParams.get('pending') || null,
+    reference: searchParams.get('reference')?.trim() || null,
+    payload: Object.fromEntries(searchParams.entries()),
   };
 }
 
 function lookupFromBody(body: Record<string, unknown>): CallbackLookup {
-  const obj = body.obj && typeof body.obj === 'object' ? (body.obj as Record<string, unknown>) : null;
-  const orderPayload = obj?.order && typeof obj.order === 'object' ? (obj.order as Record<string, unknown>) : null;
+  const payload = body.gatewayPayload && typeof body.gatewayPayload === 'object'
+    ? (body.gatewayPayload as Record<string, unknown>)
+    : body;
 
   return {
     reference:
       (typeof body.reference === 'string' ? body.reference.trim() : '') ||
-      (typeof body.merchant_order_id === 'string' ? body.merchant_order_id.trim() : '') ||
-      (typeof orderPayload?.merchant_order_id === 'string' ? orderPayload.merchant_order_id.trim() : '') ||
+      (typeof payload.MerchantReference === 'string' ? payload.MerchantReference.trim() : '') ||
+      (typeof payload.merchantReference === 'string' ? payload.merchantReference.trim() : '') ||
       null,
-    orderId:
-      toInteger(body.order_id) ??
-      toInteger(body.order) ??
-      toInteger(obj?.order) ??
-      toInteger(orderPayload?.id),
-    rawStatusHint:
-      (typeof body.success === 'string' ? body.success : null) ||
-      (typeof obj?.success === 'string' ? obj.success : null) ||
-      null,
+    payload,
   };
 }
 
@@ -69,10 +45,6 @@ async function resolvePayment(lookup: CallbackLookup) {
     }
   }
 
-  if (lookup.orderId) {
-    return getWalletTopupPaymentByGatewayOrderId(lookup.orderId);
-  }
-
   return null;
 }
 
@@ -82,55 +54,48 @@ function getReturnUrl(payment: { metadata?: Record<string, unknown> | null }): s
   return requested.startsWith('/') ? requested : `/${locale}/account/wallet`;
 }
 
-async function syncPaymentFromPaymob(lookup: CallbackLookup) {
+async function syncPaymentFromAmwal(lookup: CallbackLookup) {
   const payment = await resolvePayment(lookup);
   if (!payment) {
     return null;
   }
 
-  const paymobMetadata =
-    payment.metadata?.paymob && typeof payment.metadata.paymob === 'object'
-      ? (payment.metadata.paymob as Record<string, unknown>)
+  const amwalMetadata =
+    payment.metadata?.amwal && typeof payment.metadata.amwal === 'object'
+      ? (payment.metadata.amwal as Record<string, unknown>)
       : {};
 
-  const orderId =
-    lookup.orderId ??
-    (typeof paymobMetadata.orderId === 'number' && Number.isInteger(paymobMetadata.orderId)
-      ? paymobMetadata.orderId
-      : null);
-
-  if (!orderId) {
-    return payment;
+  if (
+    (lookup.payload.MerchantId || lookup.payload.merchantId || lookup.payload.TerminalId || lookup.payload.terminalId) &&
+    !isExpectedAmwalMerchant(lookup.payload)
+  ) {
+    throw new Error('AMWAL notification merchant identity mismatch');
   }
 
-  const order = await getPaymobOrder(orderId);
-  const nextStatus = mapPaymobOrderToWalletStatus(order);
+  const snapshot = parseAmwalTransactionPayload(lookup.payload);
+  const nextStatus = mapAmwalTransactionToPaymentStatus(snapshot);
 
-  if (payment.status === nextStatus || nextStatus === 'PENDING') {
-    return {
-      ...payment,
-      metadata: {
-        ...(payment.metadata ?? {}),
-        paymob: {
-          ...paymobMetadata,
-          orderStatus: order.payment_status,
-          paidAmountCents: order.paid_amount_cents,
-          syncedAt: new Date().toISOString(),
-        },
-      },
-    };
+  if (nextStatus === 'PENDING' || payment.status === nextStatus) {
+    return payment;
   }
 
   return updateWalletTopupPaymentStatus({
     reference: payment.reference,
     status: nextStatus,
-    gatewayTransactionId: `PAYMOB-ORDER-${order.id}`,
-    failureReason: nextStatus === 'CANCELLED' ? 'Paymob order cancelled' : undefined,
+    gatewayTransactionId: snapshot.systemReference || payment.gateway_transaction_id || undefined,
+    failureReason: nextStatus === 'PAID' ? undefined : snapshot.message || 'Amwal payment did not complete',
     metadata: {
-      paymob: {
-        ...paymobMetadata,
-        orderStatus: order.payment_status,
-        paidAmountCents: order.paid_amount_cents,
+      amwal: {
+        ...amwalMetadata,
+        responseCode: snapshot.responseCode,
+        message: snapshot.message,
+        systemReference: snapshot.systemReference,
+        secureHash: snapshot.secureHash,
+        authorizationDateTime: snapshot.authorizationDateTime,
+        dateTimeLocalTrxn: snapshot.dateTimeLocalTrxn,
+        paidThrough: snapshot.paidThrough,
+        amount: snapshot.amount,
+        currencyId: snapshot.currencyId,
         syncedAt: new Date().toISOString(),
       },
     },
@@ -139,7 +104,7 @@ async function syncPaymentFromPaymob(lookup: CallbackLookup) {
 
 export async function GET(request: NextRequest) {
   try {
-    const payment = await syncPaymentFromPaymob(lookupFromSearchParams(request));
+    const payment = await syncPaymentFromAmwal(lookupFromSearchParams(request));
 
     if (!payment) {
       return NextResponse.redirect(new URL('/en/account/wallet?topup=failed', request.url));
@@ -154,15 +119,13 @@ export async function GET(request: NextRequest) {
       destination.searchParams.set('topup', 'cancelled');
     } else if (payment.status === 'FAILED') {
       destination.searchParams.set('topup', 'failed');
-    } else if (lookupFromSearchParams(request).rawStatusHint === 'false') {
-      destination.searchParams.set('topup', 'failed');
     } else {
       destination.searchParams.set('topup', 'pending');
     }
 
     return NextResponse.redirect(destination);
   } catch (error) {
-    console.error('Error handling Paymob top-up callback:', error);
+    console.error('Error handling Amwal top-up callback:', error);
     return NextResponse.redirect(new URL('/en/account/wallet?topup=failed', request.url));
   }
 }
@@ -170,15 +133,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    const payment = await syncPaymentFromPaymob(lookupFromBody(body));
+    const payment = await syncPaymentFromAmwal(lookupFromBody(body));
 
     if (!payment) {
       return NextResponse.json({ error: 'Top-up payment not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ payment });
+    return NextResponse.json({ payment, topupStatus: payment.status });
   } catch (error) {
-    console.error('Error processing Paymob top-up webhook:', error);
+    console.error('Error processing Amwal top-up callback:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

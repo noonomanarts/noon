@@ -18,7 +18,7 @@ import {
   shouldCreateCleaningBlock,
 } from '@/lib/calendar';
 import { sanitizeInvoiceTemplateSettings, type InvoiceTemplateSettings } from '@/lib/adminSettings';
-import { createPaymobEventBookingIntention } from '@/lib/paymob';
+import { prepareAmwalPayment } from '@/lib/amwal';
 import { getEventBookingPreferredLanguage } from '@/lib/eventBookingWorkflow';
 import { getUploadRootDir } from '@/lib/uploadStorage';
 
@@ -402,30 +402,28 @@ export async function POST(request: NextRequest, props: Params) {
     }
 
     const paymentReference = `EVENT-${String(booking.id)}-${Date.now()}`;
-    const callbackUrl = new URL('/api/public/event-bookings/paymob/callback', request.url);
-    callbackUrl.searchParams.set('reference', paymentReference);
-    callbackUrl.searchParams.set('token', params.token);
-    callbackUrl.searchParams.set('locale', locale);
-
-    const intention = await createPaymobEventBookingIntention({
+    const completionPath = `/${locale}/group-booking-events/complete/${params.token}`;
+    const absoluteCompletionUrl = new URL(completionPath, request.url).toString();
+    const amwalPayment = prepareAmwalPayment({
       amount: totalAmount,
       currency: typeof booking.currency === 'string' ? booking.currency : 'OMR',
       reference: paymentReference,
-      customer: {
+      locale,
+      purpose: 'EVENT_BOOKING',
+      returnUrl: absoluteCompletionUrl,
+      contact: {
         fullName: typeof booking.fullName === 'string' ? booking.fullName : 'Noon Customer',
-        email: typeof booking.email === 'string' ? booking.email : 'paymob@noonomanarts.com',
+        email: typeof booking.email === 'string' ? booking.email : 'payments@noonomanarts.com',
         phoneNumber: typeof booking.phoneNumber === 'string' ? booking.phoneNumber : '',
       },
-      returnUrl: callbackUrl.toString(),
-      locale,
       bookingNumber: typeof booking.bookingNumber === 'string' ? booking.bookingNumber : String(booking.id),
     });
 
     const updatedBooking = await updateEventBooking(String(booking.id), {
       ...baseUpdate,
-      paymentGateway: 'PAYMOB',
+      paymentGateway: 'AMWAL',
       paymentReference,
-      paymentGatewayOrderId: intention.orderId,
+      paymentGatewayOrderId: null,
     });
     if (!updatedBooking) {
       return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
@@ -435,7 +433,11 @@ export async function POST(request: NextRequest, props: Params) {
 
     return NextResponse.json({
       success: true,
-      redirectUrl: intention.paymentUrl,
+      checkout: {
+        scriptUrl: amwalPayment.scriptUrl,
+        config: amwalPayment.config,
+        reference: paymentReference,
+      },
     });
   } catch (error) {
     console.error('Error completing event booking:', error);

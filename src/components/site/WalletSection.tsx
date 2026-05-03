@@ -4,6 +4,19 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Wallet, WalletTransaction } from '@/lib/db/types';
 import { formatNotificationContent } from '@/lib/notifications/formatNotification';
 import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
+import { startAmwalCheckout } from '@/lib/amwalClient';
+
+type WalletTopupCheckoutPayload = {
+  payment?: {
+    reference?: string;
+    returnUrl?: string;
+    checkout?: {
+      scriptUrl: string;
+      config: Record<string, unknown>;
+    };
+  };
+  error?: string;
+};
 
 interface WalletSectionProps {
   wallet: Wallet;
@@ -39,6 +52,17 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
   const isArabic = locale === 'ar';
   const transactionsPerPage = 8;
   const blockedBalance = walletData.blocked_balance ?? 0;
+
+  const redirectWithTopupStatus = useCallback((status: 'paid' | 'failed' | 'cancelled' | 'pending', reference?: string, targetPath?: string) => {
+    if (typeof window === 'undefined') return;
+    const fallbackTarget = `/${locale}/account/wallet`;
+    const destination = new URL(targetPath && targetPath.startsWith('/') ? targetPath : fallbackTarget, window.location.origin);
+    destination.searchParams.set('topup', status);
+    if (reference) {
+      destination.searchParams.set('reference', reference);
+    }
+    window.location.href = `${destination.pathname}${destination.search}`;
+  }, [locale]);
 
   const transactionsTotalPages = Math.max(1, Math.ceil(transactionsData.length / transactionsPerPage));
   const effectiveTransactionsPage = Math.min(transactionsPage, transactionsTotalPages);
@@ -146,7 +170,7 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
     }
 
     if (topupStatus === 'pending' && reference) {
-      void fetch(`/api/wallet/topup/paymob/status?reference=${encodeURIComponent(reference)}`, {
+      void fetch(`/api/wallet/topup/status?reference=${encodeURIComponent(reference)}`, {
         cache: 'no-store',
       })
         .then(async (response) => {
@@ -296,16 +320,54 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
       });
 
       if (response.ok) {
-        const payload = await response.json();
-        const redirectUrl = payload?.payment?.redirectUrl;
-        if (!redirectUrl) {
-          setMessage(isArabic ? 'تعذر إنشاء رابط الدفع.' : 'Failed to create payment link.');
+        const payload = (await response.json()) as WalletTopupCheckoutPayload;
+        const payment = payload.payment;
+        const checkout = payment?.checkout;
+        const reference = typeof payment?.reference === 'string' ? payment.reference : undefined;
+        const targetReturnUrl = typeof payment?.returnUrl === 'string' ? payment.returnUrl : (returnUrl || `/${locale}/account/wallet`);
+
+        if (!checkout || !reference) {
+          setMessage(isArabic ? 'تعذر تجهيز نافذة الدفع.' : 'Failed to prepare the payment window.');
           return;
         }
 
         setShowDepositModal(false);
-        setMessage(isArabic ? 'سيتم تحويلك الآن إلى Paymob.' : 'Redirecting you to Paymob.');
-        window.location.href = redirectUrl;
+        setMessage(isArabic ? 'سيتم فتح نافذة الدفع الآن.' : 'Opening the payment window now.');
+
+        await startAmwalCheckout({
+          checkout,
+          onComplete: async (gatewayPayload) => {
+            const callbackResponse = await fetch('/api/wallet/topup/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reference, gatewayPayload }),
+            });
+            const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as {
+              error?: string;
+              topupStatus?: string;
+            };
+
+            if (!callbackResponse.ok) {
+              throw new Error(callbackPayload.error || 'Failed to confirm payment');
+            }
+
+            const topupStatus = callbackPayload.topupStatus === 'PAID'
+              ? 'paid'
+              : callbackPayload.topupStatus === 'CANCELLED'
+                ? 'cancelled'
+                : callbackPayload.topupStatus === 'FAILED'
+                  ? 'failed'
+                  : 'pending';
+
+            redirectWithTopupStatus(topupStatus, reference, targetReturnUrl);
+          },
+          onCancel: () => {
+            redirectWithTopupStatus('cancelled', reference, targetReturnUrl);
+          },
+          onError: () => {
+            redirectWithTopupStatus('failed', reference, targetReturnUrl);
+          },
+        });
       } else {
         const data = await response.json();
         setMessage(data.error || (isArabic ? 'فشل في إنشاء عملية الشحن' : 'Failed to create top-up request'));

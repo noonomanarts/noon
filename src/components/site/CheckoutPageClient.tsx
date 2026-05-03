@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { MuscatLocationPicker } from '@/components/site/MuscatLocationPicker';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import { startAmwalCheckout } from '@/lib/amwalClient';
 
 type CartApiItem = {
   productId: string;
@@ -34,6 +35,17 @@ type WalletPayload = {
   balance: number;
   available_balance: number;
   currency: string;
+};
+
+type WalletTopupCheckoutPayload = {
+  payment?: {
+    reference?: string;
+    returnUrl?: string;
+    checkout?: {
+      scriptUrl: string;
+      config: Record<string, unknown>;
+    };
+  };
 };
 
 type CheckoutResult = {
@@ -158,8 +170,8 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
       : 'What you already have in your wallet will be used automatically, so you only need to pay the missing amount now.',
     topupAmount: isArabic ? 'المبلغ المتبقي' : 'Remaining Amount',
     topupRedirect: isArabic
-      ? 'لحظة، بنحوّلك لصفحة الدفع.'
-      : 'One moment, taking you to the payment page.',
+      ? 'لحظة، بنفتح لك نافذة الدفع.'
+      : 'One moment, opening the payment window.',
     topupResume: isArabic
       ? 'وصل المبلغ المتبقي، والحين بنكمل الطلب تلقائياً.'
       : 'The remaining amount was received. Finishing your order now.',
@@ -167,9 +179,9 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     shortfallHelp: isArabic
       ? 'هذا فقط المبلغ اللي تحتاجي تدفعيه الآن عشان يكتمل الطلب.'
       : 'This is the only amount you need to pay now to complete your order.',
-    paymobCtaHint: isArabic
-      ? 'إذا ضغطتي الزر، بتنتقلي لصفحة الدفع عشان تدفعي هذا المبلغ فقط.'
-      : 'When you continue, you will go to the payment page to pay this amount only.',
+    paymentCtaHint: isArabic
+      ? 'إذا ضغطتي الزر، ستفتح نافذة أمول باي لدفع هذا المبلغ فقط.'
+      : 'When you continue, an Amwal Pay window will open for this remaining amount only.',
     successTitle: isArabic ? 'تم تأكيد الطلب بنجاح' : 'Order confirmed successfully',
     orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',
     continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
@@ -180,6 +192,17 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   };
   const checkoutTextBoxClassName =
     'w-full rounded-xl border border-solid border-[#b5ada4] bg-[color:var(--muted)] px-3 py-2 text-[color:var(--text)] focus:border-[color:var(--primary)] focus:outline-2 focus:outline-[color:var(--focus)]';
+
+  const redirectWithTopupStatus = useCallback((status: 'paid' | 'failed' | 'cancelled' | 'pending', reference?: string, targetPath?: string) => {
+    if (typeof window === 'undefined') return;
+    const fallbackTarget = `/${locale}/checkout`;
+    const destination = new URL(targetPath && targetPath.startsWith('/') ? targetPath : fallbackTarget, window.location.origin);
+    destination.searchParams.set('topup', status);
+    if (reference) {
+      destination.searchParams.set('reference', reference);
+    }
+    window.location.href = `${destination.pathname}${destination.search}`;
+  }, [locale]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -410,15 +433,51 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         throw new Error(typeof errPayload?.error === 'string' ? errPayload.error : 'Failed to top up wallet');
       }
 
-      const payload = (await response.json()) as { payment?: { redirectUrl?: string } };
-      const redirectUrl = payload?.payment?.redirectUrl;
+      const payload = (await response.json()) as WalletTopupCheckoutPayload;
+      const payment = payload?.payment;
+      const checkout = payment?.checkout;
+      const reference = typeof payment?.reference === 'string' ? payment.reference : undefined;
+      const targetReturnUrl = typeof payment?.returnUrl === 'string' ? payment.returnUrl : `/${locale}/checkout`;
 
-      if (!redirectUrl) {
-        throw new Error(isArabic ? 'رابط الدفع غير متوفر.' : 'Payment URL is missing.');
+      if (!checkout || !reference) {
+        throw new Error(isArabic ? 'بيانات الدفع غير مكتملة.' : 'Payment details are incomplete.');
       }
 
       setMessage(t.topupRedirect);
-      window.location.href = redirectUrl;
+      await startAmwalCheckout({
+        checkout,
+        onComplete: async (gatewayPayload) => {
+          const callbackResponse = await fetch('/api/wallet/topup/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reference, gatewayPayload }),
+          });
+          const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as {
+            error?: string;
+            topupStatus?: string;
+          };
+
+          if (!callbackResponse.ok) {
+            throw new Error(callbackPayload.error || 'Failed to confirm payment');
+          }
+
+          const topupStatus = callbackPayload.topupStatus === 'PAID'
+            ? 'paid'
+            : callbackPayload.topupStatus === 'CANCELLED'
+              ? 'cancelled'
+              : callbackPayload.topupStatus === 'FAILED'
+                ? 'failed'
+                : 'pending';
+
+          redirectWithTopupStatus(topupStatus, reference, targetReturnUrl);
+        },
+        onCancel: () => {
+          redirectWithTopupStatus('cancelled', reference, targetReturnUrl);
+        },
+        onError: () => {
+          redirectWithTopupStatus('failed', reference, targetReturnUrl);
+        },
+      });
     } catch (topupError) {
       setError(topupError instanceof Error ? topupError.message : 'Failed to top up wallet');
     } finally {
@@ -874,7 +933,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     <span className="text-base font-bold">{formatAmountWithCurrency(shortfallAmount, currency)}</span>
                   </div>
                 </div>
-                <p className="mt-3 text-[11px] leading-5 text-emerald-700 dark:text-emerald-300">{t.paymobCtaHint}</p>
+                <p className="mt-3 text-[11px] leading-5 text-emerald-700 dark:text-emerald-300">{t.paymentCtaHint}</p>
                 <button
                   type="button"
                   onClick={() => void handleTopup()}

@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import { getPaymentMethodLabel } from '@/lib/paymentMethod';
+import { startAmwalCheckout } from '@/lib/amwalClient';
 
 type WalletPayload = {
   balance: number;
@@ -20,6 +21,18 @@ type EventPaymentResult = {
     paidAt?: string | null;
   };
   wallet?: WalletPayload;
+};
+
+type WalletTopupCheckoutPayload = {
+  payment?: {
+    reference?: string;
+    returnUrl?: string;
+    checkout?: {
+      scriptUrl: string;
+      config: Record<string, unknown>;
+    };
+  };
+  error?: string;
 };
 
 type OrderPaymentCardProps = {
@@ -93,6 +106,16 @@ export function OrderPaymentCard({
   const [currentPaymentMethod, setCurrentPaymentMethod] = useState<string | null>(paymentMethod);
   const [currentPaidAt, setCurrentPaidAt] = useState<string | Date | null | undefined>(paidAt);
 
+  const redirectWithTopupStatus = useCallback((status: 'paid' | 'failed' | 'cancelled' | 'pending', reference?: string, targetPath?: string) => {
+    if (typeof window === 'undefined') return;
+    const destination = new URL(targetPath && targetPath.startsWith('/') ? targetPath : pathname, window.location.origin);
+    destination.searchParams.set('topup', status);
+    if (reference) {
+      destination.searchParams.set('reference', reference);
+    }
+    window.location.href = `${destination.pathname}${destination.search}`;
+  }, [pathname]);
+
   const normalizedTotalAmount = useMemo(() => {
     const parsed = typeof totalAmount === 'number' ? totalAmount : Number(totalAmount);
     return Number.isFinite(parsed) ? Number(parsed.toFixed(3)) : null;
@@ -145,8 +168,8 @@ export function OrderPaymentCard({
     cancelled: isArabic ? 'تم إلغاء هذا الطلب.' : 'This order has been cancelled.',
     retry: isArabic ? 'يمكنك إعادة المحاولة بعد تجهيز الرصيد.' : 'You can retry once your wallet balance is ready.',
     topupRedirect: isArabic
-      ? 'سيتم تحويلك الآن إلى بوابة شحن المحفظة التجريبية.'
-      : 'You will now be redirected to the wallet top-up sandbox.',
+      ? 'سيتم فتح نافذة الدفع الآن.'
+      : 'The payment window will open now.',
     topupPaid: isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.',
     topupFailed: isArabic ? 'فشلت عملية شحن المحفظة.' : 'Wallet top-up failed.',
     topupCancelled: isArabic ? 'تم إلغاء شحن المحفظة.' : 'Wallet top-up was cancelled.',
@@ -245,19 +268,56 @@ export function OrderPaymentCard({
         }),
       });
 
-      const payload = await response.json().catch(() => ({}));
+      const payload = (await response.json().catch(() => ({}))) as WalletTopupCheckoutPayload;
       if (!response.ok) {
         throw new Error(typeof payload?.error === 'string' ? payload.error : 'Failed to top up wallet');
       }
 
-      const reference = payload?.payment?.reference as string | undefined;
-      if (!reference) {
-        throw new Error(isArabic ? 'مرجع الدفع غير متوفر.' : 'Payment reference is missing.');
+      const payment = payload?.payment;
+      const reference = typeof payment?.reference === 'string' ? payment.reference : undefined;
+      const checkout = payment?.checkout;
+      const targetReturnUrl = typeof payment?.returnUrl === 'string' ? payment.returnUrl : pathname;
+
+      if (!reference || !checkout) {
+        throw new Error(isArabic ? 'بيانات الدفع غير مكتملة.' : 'Payment details are incomplete.');
       }
 
       setTopupAmount('');
       setMessage(t.topupRedirect);
-      window.location.href = `/${locale}/wallet/topup/sandbox?reference=${encodeURIComponent(reference)}&returnUrl=${encodeURIComponent(pathname)}`;
+      await startAmwalCheckout({
+        checkout,
+        onComplete: async (gatewayPayload) => {
+          const callbackResponse = await fetch('/api/wallet/topup/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reference, gatewayPayload }),
+          });
+          const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as {
+            error?: string;
+            topupStatus?: string;
+          };
+
+          if (!callbackResponse.ok) {
+            throw new Error(callbackPayload.error || 'Failed to confirm payment');
+          }
+
+          const topupStatus = callbackPayload.topupStatus === 'PAID'
+            ? 'paid'
+            : callbackPayload.topupStatus === 'CANCELLED'
+              ? 'cancelled'
+              : callbackPayload.topupStatus === 'FAILED'
+                ? 'failed'
+                : 'pending';
+
+          redirectWithTopupStatus(topupStatus, reference, targetReturnUrl);
+        },
+        onCancel: () => {
+          redirectWithTopupStatus('cancelled', reference, targetReturnUrl);
+        },
+        onError: () => {
+          redirectWithTopupStatus('failed', reference, targetReturnUrl);
+        },
+      });
     } catch (topupError) {
       setError(topupError instanceof Error ? topupError.message : 'Failed to top up wallet');
     } finally {

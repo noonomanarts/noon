@@ -1415,29 +1415,6 @@ export async function getWalletTopupPaymentForUser(reference: string, userId: st
   };
 }
 
-export async function getWalletTopupPaymentByGatewayOrderId(orderId: number): Promise<WalletTopupPayment | null> {
-  await ensureWalletTopupPaymentsTable();
-
-  const result = await pool.query(
-    `SELECT *
-     FROM wallet_topup_payments
-     WHERE metadata->'paymob'->>'orderId' = $1
-     LIMIT 1`,
-    [String(orderId)]
-  );
-
-  const row = result.rows[0];
-  if (!row) {
-    return null;
-  }
-
-  return {
-    ...row,
-    amount: parseFloat(row.amount as string),
-    metadata: row.metadata ?? {},
-  };
-}
-
 export async function listWalletTopupPaymentsForAdmin(options?: {
   status?: WalletTopupPaymentStatus | 'ALL';
   search?: string;

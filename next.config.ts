@@ -14,7 +14,8 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(self), payment=(self)",
+            value:
+              'camera=(), microphone=(), geolocation=(self), payment=(self "https://test.amwalpg.com:7443" "https://test.amwalpg.com:10443" "https://checkout.amwalpg.com")',
           },
         ],
       },

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserById } from '@/lib/db/users';
 import { createWalletTopupPayment, updateWalletTopupPaymentGatewayData } from '@/lib/db/wallet';
-import { createPaymobWalletTopupIntention } from '@/lib/paymob';
+import { prepareAmwalPayment } from '@/lib/amwal';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,12 +38,13 @@ export async function POST(request: NextRequest) {
     const fallbackReturnUrl = `/${locale}/account/wallet`;
     const requestedReturnUrl = typeof body.returnUrl === 'string' ? body.returnUrl.trim() : '';
     const returnUrl = requestedReturnUrl.startsWith('/') ? requestedReturnUrl : fallbackReturnUrl;
+    const absoluteReturnUrl = new URL(returnUrl, request.url).toString();
 
     const payment = await createWalletTopupPayment({
       userId: user.id,
       amount,
       currency,
-      gateway: 'PAYMOB',
+      gateway: 'AMWAL',
       metadata: {
         ...(body.metadata ?? {}),
         locale,
@@ -52,44 +53,47 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      const intention = await createPaymobWalletTopupIntention({
+      const amwalPayment = prepareAmwalPayment({
         amount,
         currency,
         reference: payment.reference,
-        user,
-        returnUrl,
         locale,
+        purpose: 'WALLET_TOPUP',
+        returnUrl: absoluteReturnUrl,
+        contact: {
+          fullName: user.fullName,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
+        },
       });
 
       const enrichedPayment = await updateWalletTopupPaymentGatewayData({
         reference: payment.reference,
-        gateway: 'PAYMOB',
-        paymentUrl: intention.paymentUrl,
+        gateway: 'AMWAL',
         metadata: {
-          paymob: {
-            intentionId: intention.intentionId,
-            orderId: intention.orderId,
-            clientSecret: intention.clientSecret,
-            paymentMethodIds: intention.paymentMethodIds,
-          },
+          ...amwalPayment.metadata,
         },
       });
 
       return NextResponse.json({
         payment: {
           ...enrichedPayment,
-          redirectUrl: intention.paymentUrl,
+          checkout: {
+            scriptUrl: amwalPayment.scriptUrl,
+            config: amwalPayment.config,
+          },
+          returnUrl,
         },
       }, { status: 201 });
     } catch (gatewayError) {
       await updateWalletTopupPaymentGatewayData({
         reference: payment.reference,
-        gateway: 'PAYMOB',
+        gateway: 'AMWAL',
         metadata: {
-          paymob: {
+          amwal: {
             intentCreationFailedAt: new Date().toISOString(),
             intentCreationError:
-              gatewayError instanceof Error ? gatewayError.message : 'Unknown Paymob error',
+              gatewayError instanceof Error ? gatewayError.message : 'Unknown Amwal error',
           },
         },
       });
@@ -107,7 +111,7 @@ export async function POST(request: NextRequest) {
     }
     if (
       error instanceof Error &&
-      (error.message.includes('Paymob') || error.message.startsWith('PAYMOB_'))
+      (error.message.includes('Amwal') || error.message.startsWith('AMWAL_'))
     ) {
       return NextResponse.json({ error: error.message }, { status: 502 });
     }
