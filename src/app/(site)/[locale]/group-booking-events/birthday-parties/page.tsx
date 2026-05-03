@@ -52,7 +52,6 @@ export default async function BirthdayPartiesPage({
   }
 
   const includes = [
-    isArabic ? "حتى 16 مشاركة (ثم +10 ر.ع لكل مشاركة إضافية)" : "Up to 16 participants (then +10 OMR per additional person)",
     isArabic ? "المدة: ساعتان" : "Duration: 2 hours",
     isArabic ? "قهوة عربية وحلويات" : "Arabic coffee and sweets",
     isArabic ? "المعدات والمكونات مشمولة" : "Equipment and ingredients included",
