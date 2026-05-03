@@ -76,7 +76,11 @@ CREATE TABLE users (
 CREATE TABLE trainer_profiles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  display_name_en VARCHAR(255),
+  display_name_ar VARCHAR(255),
   bio TEXT,
+  bio_en TEXT,
+  bio_ar TEXT,
   expertise TEXT[] DEFAULT '{}',
   experience INTEGER,
   social_links JSONB,

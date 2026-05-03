@@ -178,7 +178,11 @@ export async function PATCH(
     const phoneNumber = typeof body.phoneNumber === 'string' ? body.phoneNumber.trim() : undefined;
     const profileImage = typeof body.profileImage === 'string' ? body.profileImage.trim() : undefined;
     const status = typeof body.status === 'string' ? body.status.toUpperCase() : undefined;
+    const displayNameEn = typeof body.displayNameEn === 'string' ? body.displayNameEn.trim() : undefined;
+    const displayNameAr = typeof body.displayNameAr === 'string' ? body.displayNameAr.trim() : undefined;
     const bio = typeof body.bio === 'string' ? body.bio.trim() : undefined;
+    const bioEn = typeof body.bioEn === 'string' ? body.bioEn.trim() : undefined;
+    const bioAr = typeof body.bioAr === 'string' ? body.bioAr.trim() : undefined;
     const experience =
       typeof body.experience === 'number' && Number.isFinite(body.experience)
         ? Math.max(0, Math.floor(body.experience))
@@ -266,7 +270,11 @@ export async function PATCH(
     // Update or create trainer profile
     const profile = await upsertTrainerProfile({
       userId: id,
+      displayNameEn,
+      displayNameAr,
       bio,
+      bioEn,
+      bioAr,
       expertise,
       experience,
       socialLinks: (body.socialLinks as Record<string, string> | undefined),

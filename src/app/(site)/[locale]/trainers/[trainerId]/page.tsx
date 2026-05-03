@@ -183,6 +183,10 @@ function getSortTime(value: string | null): number {
   return Number.isNaN(time) ? Number.MAX_SAFE_INTEGER : time;
 }
 
+function containsArabicCharacters(value: string): boolean {
+  return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(value);
+}
+
 export default async function TrainerProfilePage({
   params,
 }: {
@@ -236,13 +240,19 @@ export default async function TrainerProfilePage({
     video: locale === "ar" ? "فيديو" : "Video",
     image: locale === "ar" ? "صورة" : "Image",
     instagram: locale === "ar" ? "إنستغرام" : "Instagram",
+    unnamedTrainer: locale === "ar" ? "المدرب" : "Trainer",
   };
 
-  const trainerBio = trainerProfile?.bio?.trim() || t.noBio;
+  const localizedTrainerName = locale === "ar"
+    ? trainerProfile?.displayNameAr?.trim() || trainer.fullName?.trim() || t.unnamedTrainer
+    : trainerProfile?.displayNameEn?.trim() || (!containsArabicCharacters(trainer.fullName) ? trainer.fullName.trim() : "") || t.unnamedTrainer;
+  const localizedTrainerBio = locale === "ar"
+    ? trainerProfile?.bioAr?.trim() || trainerProfile?.bio?.trim() || t.noBio
+    : trainerProfile?.bioEn?.trim() || (trainerProfile?.bio?.trim() && !containsArabicCharacters(trainerProfile.bio) ? trainerProfile.bio.trim() : "") || t.noBio;
   const trainerExpertise = trainerProfile?.expertise?.filter(Boolean) ?? [];
   const trainerSocialLinks = trainerProfile?.socialLinks ?? null;
   const trainerExperience = trainerProfile?.experience ?? null;
-  const trainerBioHtml = markdownToHtml(trainerBio);
+  const trainerBioHtml = markdownToHtml(localizedTrainerBio);
   const trainerInstagramUrl =
     trainerSocialLinks && typeof trainerSocialLinks.instagram === "string"
       ? toExternalUrl(trainerSocialLinks.instagram)
@@ -314,7 +324,7 @@ export default async function TrainerProfilePage({
               {featuredVideoEmbed ? (
                 <iframe
                   src={featuredVideoEmbed}
-                  title={`${trainer.fullName} featured video`}
+                  title={`${localizedTrainerName} featured video`}
                   className="h-full w-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -329,7 +339,7 @@ export default async function TrainerProfilePage({
               ) : featuredImageUrl ? (
                 <Image
                   src={featuredImageUrl}
-                  alt={trainer.fullName as string}
+                  alt={localizedTrainerName}
                   fill
                   sizes="(max-width: 1024px) 100vw, 45vw"
                   className="object-cover"
@@ -357,7 +367,7 @@ export default async function TrainerProfilePage({
             <div className="space-y-6 p-6 sm:p-8 lg:p-10">
               <div className="space-y-3">
                 <h1 className="text-3xl font-black leading-tight text-zinc-900 dark:text-white sm:text-4xl">
-                  {trainer.fullName}
+                  {localizedTrainerName}
                 </h1>
               </div>
 

@@ -320,6 +320,10 @@ async function ensureTrainerProfilesFinanceSchema(): Promise<void> {
   if (trainerProfilesFinanceSchemaReady) return trainerProfilesFinanceSchemaReady;
 
   trainerProfilesFinanceSchemaReady = (async () => {
+    await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS display_name_en VARCHAR(255)`);
+    await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS display_name_ar VARCHAR(255)`);
+    await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS bio_en TEXT`);
+    await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS bio_ar TEXT`);
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS share_tiers JSONB NOT NULL DEFAULT '[]'::jsonb`);
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS featured_media_type VARCHAR(20) NOT NULL DEFAULT 'IMAGE'`);
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS featured_media_url VARCHAR(500)`);
@@ -475,7 +479,11 @@ export async function findTrainerById(id: string): Promise<TrainerPublic | null>
 export interface TrainerProfilePublic {
   id: string;
   userId: string;
+  displayNameEn: string | null;
+  displayNameAr: string | null;
   bio: string | null;
+  bioEn: string | null;
+  bioAr: string | null;
   expertise: string[];
   experience: number | null;
   socialLinks: Record<string, string> | null;
@@ -501,7 +509,11 @@ export async function findTrainerProfiles(userIds: string[]): Promise<TrainerPro
   return result.rows.map((row) => ({
     id: row.id,
     userId: row.user_id,
+    displayNameEn: sanitizeText(row.display_name_en, 255),
+    displayNameAr: sanitizeText(row.display_name_ar, 255),
     bio: row.bio,
+    bioEn: sanitizeText(row.bio_en, 5000),
+    bioAr: sanitizeText(row.bio_ar, 5000),
     expertise: row.expertise || [],
     experience: row.experience,
     socialLinks: row.social_links,
@@ -602,7 +614,11 @@ export async function verifyTrainer(id: string): Promise<boolean> {
  */
 export async function upsertTrainerProfile(data: {
   userId: string;
+  displayNameEn?: string | null;
+  displayNameAr?: string | null;
   bio?: string | null;
+  bioEn?: string | null;
+  bioAr?: string | null;
   expertise?: string[];
   experience?: number | null;
   socialLinks?: Record<string, string> | null;
@@ -626,9 +642,29 @@ export async function upsertTrainerProfile(data: {
   const values: unknown[] = [data.userId];
   let paramIndex = 2;
 
+  if (hasOwnField(data, "displayNameEn")) {
+    updates.push(`display_name_en = $${paramIndex++}`);
+    values.push(sanitizeText(data.displayNameEn, 255));
+  }
+
+  if (hasOwnField(data, "displayNameAr")) {
+    updates.push(`display_name_ar = $${paramIndex++}`);
+    values.push(sanitizeText(data.displayNameAr, 255));
+  }
+
   if (hasOwnField(data, "bio")) {
     updates.push(`bio = $${paramIndex++}`);
     values.push(sanitizeText(data.bio, 5000));
+  }
+
+  if (hasOwnField(data, "bioEn")) {
+    updates.push(`bio_en = $${paramIndex++}`);
+    values.push(sanitizeText(data.bioEn, 5000));
+  }
+
+  if (hasOwnField(data, "bioAr")) {
+    updates.push(`bio_ar = $${paramIndex++}`);
+    values.push(sanitizeText(data.bioAr, 5000));
   }
 
   if (hasOwnField(data, "expertise")) {
@@ -717,7 +753,11 @@ export async function getTrainerProfile(userId: string): Promise<TrainerProfileP
   return {
     id: row.id,
     userId: row.user_id,
+    displayNameEn: sanitizeText(row.display_name_en, 255),
+    displayNameAr: sanitizeText(row.display_name_ar, 255),
     bio: row.bio,
+    bioEn: sanitizeText(row.bio_en, 5000),
+    bioAr: sanitizeText(row.bio_ar, 5000),
     expertise: row.expertise || [],
     experience: row.experience,
     socialLinks: row.social_links,

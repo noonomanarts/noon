@@ -20,7 +20,11 @@ interface ManualUpcomingCourse {
 }
 
 interface TrainerProfile {
+  displayNameEn: string | null;
+  displayNameAr: string | null;
   bio: string;
+  bioEn: string | null;
+  bioAr: string | null;
   expertise: string[];
   experience: number | null;
   socialLinks: {
@@ -125,7 +129,11 @@ export default function EditTrainerPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [profileImage, setProfileImage] = useState('');
   const [userStatus, setUserStatus] = useState<'ACTIVE' | 'INACTIVE' | 'SUSPENDED'>('ACTIVE');
+  const [displayNameEn, setDisplayNameEn] = useState('');
+  const [displayNameAr, setDisplayNameAr] = useState('');
   const [bio, setBio] = useState('');
+  const [bioEn, setBioEn] = useState('');
+  const [bioAr, setBioAr] = useState('');
   const [expertise, setExpertise] = useState<string[]>([]);
   const [newExpertise, setNewExpertise] = useState('');
   const [experience, setExperience] = useState<number>(0);
@@ -164,7 +172,11 @@ export default function EditTrainerPage() {
       
       // Set form values
       if (data.profile) {
+        setDisplayNameEn(data.profile.displayNameEn || '');
+        setDisplayNameAr(data.profile.displayNameAr || '');
         setBio(data.profile.bio || '');
+        setBioEn(data.profile.bioEn || '');
+        setBioAr(data.profile.bioAr || '');
         setExpertise(data.profile.expertise || []);
         setExperience(data.profile.experience || 0);
         setInstagram(data.profile.socialLinks?.instagram || '');
@@ -220,7 +232,11 @@ export default function EditTrainerPage() {
         );
         setIsActive(data.profile.isActive ?? true);
       } else {
+        setDisplayNameEn('');
+        setDisplayNameAr('');
         setBio('');
+        setBioEn('');
+        setBioAr('');
         setExpertise([]);
         setExperience(0);
         setInstagram('');
@@ -394,7 +410,11 @@ export default function EditTrainerPage() {
           phoneNumber,
           profileImage,
           status: userStatus,
+          displayNameEn,
+          displayNameAr,
           bio,
+          bioEn,
+          bioAr,
           expertise,
           experience: experience || null,
           socialLinks: {
@@ -526,6 +546,33 @@ export default function EditTrainerPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Public Name (EN)
+                </label>
+                <input
+                  type="text"
+                  value={displayNameEn}
+                  onChange={(e) => setDisplayNameEn(e.target.value)}
+                  placeholder="Shown on the English trainer page"
+                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Public Name (AR)
+                </label>
+                <input
+                  type="text"
+                  value={displayNameAr}
+                  onChange={(e) => setDisplayNameAr(e.target.value)}
+                  placeholder="يظهر في صفحة المدرب العربية"
+                  dir="rtl"
+                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   Email
                 </label>
                 <input
@@ -611,12 +658,28 @@ export default function EditTrainerPage() {
           <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">
             Biography
           </h2>
+          <div className="mb-6 space-y-4">
+            <MarkdownEditor
+              label="Biography (EN)"
+              value={bioEn}
+              onChange={setBioEn}
+              rows={10}
+              placeholder="Write the English biography in Markdown..."
+            />
+            <MarkdownEditor
+              label="Biography (AR)"
+              value={bioAr}
+              onChange={setBioAr}
+              rows={10}
+              placeholder="اكتب النبذة العربية بصيغة Markdown..."
+            />
+          </div>
           <MarkdownEditor
-            label=""
+            label="Legacy Biography"
             value={bio}
             onChange={setBio}
             rows={12}
-            placeholder="Write biography in Markdown..."
+            placeholder="Optional fallback biography used when localized copy is not available..."
           />
         </div>
 
