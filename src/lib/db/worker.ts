@@ -3,7 +3,7 @@
  */
 
 import { pool } from './index';
-import { createShopRestockExpenseEntry, createShopRevenueFinanceEntry } from './finance';
+import { createShopRestockExpenseEntry, createShopRevenueFinanceEntry, createShopSaleCostExpenseEntry } from './finance';
 import type {
   WorkerPermissions,
   StockRestock,
@@ -127,6 +127,10 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
 
     const previousQuantity = Number(productResult.rows[0].stock_quantity);
     const unitCost = toMoney(productResult.rows[0].cost);
+    if (unitCost <= 0) {
+      throw new Error('Product cost must be set before restocking inventory');
+    }
+
     const totalCost = toMoney(unitCost * input.quantityAdded);
     const currency = String(productResult.rows[0].currency || 'OMR');
     const productName = String(productResult.rows[0].name_en || productResult.rows[0].name_ar || 'Product');
@@ -415,6 +419,17 @@ export async function createInShopSale(input: CreateInShopSaleInput): Promise<In
       referenceId: sale.id,
       referenceNumber: `Sale #${sale.sale_number}`,
       amount: totalAmount,
+      currency: sale.currency,
+      customerName: input.customerName ?? null,
+      occurredAt: new Date(sale.created_at),
+    });
+
+    await createShopSaleCostExpenseEntry({
+      db: client,
+      saleType: 'IN_SHOP_SALE',
+      referenceId: sale.id,
+      referenceNumber: `Sale #${sale.sale_number}`,
+      totalCost,
       currency: sale.currency,
       customerName: input.customerName ?? null,
       occurredAt: new Date(sale.created_at),

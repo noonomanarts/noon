@@ -1,5 +1,5 @@
 import { pool } from './pool';
-import { createShopSaleFinanceEntry } from './finance';
+import { createShopSaleCostExpenseEntry, createShopSaleFinanceEntry } from './finance';
 import type {
   ShopCategory,
   ShopOrder,
@@ -1760,7 +1760,7 @@ export async function createAdminShopOrder(input: {
         $7, $8, $9,
         $10, 0, $11, $12, $13,
         $14, $15, $16, $17, NOW()
-      ) RETURNING id, order_number`,
+      ) RETURNING id, order_number, created_at`,
       [
         orderNumber,
         input.userId,
@@ -1817,6 +1817,9 @@ export async function createAdminShopOrder(input: {
       [orderId, input.createdByAdminId, 'Order created manually by admin']
     );
 
+    const totalProductCost = Number(orderItems.reduce((sum, item) => sum + item.totalCost, 0).toFixed(3));
+    const orderOccurredAt = new Date(orderInsert.rows[0].created_at as string);
+
     await createShopSaleFinanceEntry({
       db: client,
       orderNumber: String(orderInsert.rows[0].order_number),
@@ -1824,6 +1827,18 @@ export async function createAdminShopOrder(input: {
       amount: totalAmount,
       currency,
       customerName: recipientFullName || customer.full_name,
+      occurredAt: orderOccurredAt,
+    });
+
+    await createShopSaleCostExpenseEntry({
+      db: client,
+      saleType: 'SHOP_ORDER',
+      referenceId: orderId,
+      referenceNumber: `Order #${String(orderInsert.rows[0].order_number)}`,
+      totalCost: totalProductCost,
+      currency,
+      customerName: recipientFullName || customer.full_name,
+      occurredAt: orderOccurredAt,
     });
 
     await client.query('COMMIT');
