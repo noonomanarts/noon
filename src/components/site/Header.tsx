@@ -63,7 +63,7 @@ export default async function Header({ locale }: { locale: Locale }) {
     shop: locale === "ar" ? "المتجر" : "Shop",
     group: locale === "ar" ? "فعاليات" : "Events",
     competition: locale === "ar" ? "مسابقة الطبخ" : "Cooking competition",
-    privateClasses: locale === "ar" ? "دروس خاصة" : "Private classes",
+    privateClasses: locale === "ar" ? "ورش خاصة" : "Private classes",
     birthday: locale === "ar" ? "حفلات أعياد الميلاد" : "Birthday parties",
     contact: locale === "ar" ? "تواصل" : "Contact",
     joinUs: locale === "ar" ? "انضم إلينا" : "Join Us",
