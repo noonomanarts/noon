@@ -26,7 +26,7 @@ export default async function PrivateClassesPage({
   const t = {
     title: isArabic ? "الدروس الخاصة" : "Private Classes",
     processTitle: isArabic ? "كيف تسير التجربة" : "How the Experience Works",
-    packageTitle: isArabic ? "أنواع الورشز" : "Session Types",
+    packageTitle: isArabic ? "أنواع الورش" : "Session Types",
     readyTitle: isArabic ? "جاهزون لجلسة خاصة؟" : "Ready for a Private Session?",
     readySubtitle: isArabic
       ? "احجز الموعد الأنسب وسيقوم فريق نون بتأكيد جميع التفاصيل معك."
