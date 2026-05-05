@@ -125,7 +125,11 @@ function pad(value: number): string {
 }
 
 export function formatAmwalTransactionDate(value = new Date()): string {
-  const format = (process.env.AMWAL_REQUEST_DATETIME_FORMAT || 'legacy').trim().toLowerCase();
+  const format = (process.env.AMWAL_REQUEST_DATETIME_FORMAT || 'iso').trim().toLowerCase();
+
+  if (format === 'iso') {
+    return value.toISOString();
+  }
 
   if (format === 'legacy') {
     return [
