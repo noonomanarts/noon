@@ -402,15 +402,12 @@ export async function POST(request: NextRequest, props: Params) {
     }
 
     const paymentReference = `EVENT-${String(booking.id)}-${Date.now()}`;
-    const completionPath = `/${locale}/group-booking-events/complete/${params.token}`;
-    const absoluteCompletionUrl = new URL(completionPath, request.url).toString();
     const amwalPayment = prepareAmwalPayment({
       amount: totalAmount,
       currency: typeof booking.currency === 'string' ? booking.currency : 'OMR',
       reference: paymentReference,
       locale,
       purpose: 'EVENT_BOOKING',
-      returnUrl: absoluteCompletionUrl,
       contact: {
         fullName: typeof booking.fullName === 'string' ? booking.fullName : 'Noon Customer',
         email: typeof booking.email === 'string' ? booking.email : 'payments@noonomanarts.com',

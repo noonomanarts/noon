@@ -92,13 +92,6 @@ self.addEventListener('activate', (event) => {
           .filter((key) => key.startsWith('noon-') && !KNOWN_CACHES.has(key))
           .map((key) => caches.delete(key))
       );
-      if (self.registration.navigationPreload) {
-        try {
-          await self.registration.navigationPreload.enable();
-        } catch (_) {
-          // ignore
-        }
-      }
       await self.clients.claim();
     })()
   );
@@ -151,8 +144,7 @@ self.addEventListener('fetch', (event) => {
 async function networkFirstNavigation(event) {
   const cache = await caches.open(RUNTIME_PAGES);
   try {
-    const preload = event.preloadResponse ? await event.preloadResponse : null;
-    const response = preload || (await fetch(event.request));
+    const response = await fetch(event.request);
     if (CACHEABLE_RESPONSE(response)) {
       cache.put(event.request, response.clone()).catch(() => undefined);
     }

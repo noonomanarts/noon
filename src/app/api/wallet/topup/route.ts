@@ -38,7 +38,6 @@ export async function POST(request: NextRequest) {
     const fallbackReturnUrl = `/${locale}/account/wallet`;
     const requestedReturnUrl = typeof body.returnUrl === 'string' ? body.returnUrl.trim() : '';
     const returnUrl = requestedReturnUrl.startsWith('/') ? requestedReturnUrl : fallbackReturnUrl;
-    const absoluteReturnUrl = new URL(returnUrl, request.url).toString();
 
     const payment = await createWalletTopupPayment({
       userId: user.id,
@@ -59,7 +58,6 @@ export async function POST(request: NextRequest) {
         reference: payment.reference,
         locale,
         purpose: 'WALLET_TOPUP',
-        returnUrl: absoluteReturnUrl,
         contact: {
           fullName: user.fullName,
           email: user.email,

@@ -24,9 +24,6 @@ export type AmwalSmartBoxConfig = {
   LanguageId: 'en' | 'ar';
   PaymentViewType: 1 | 2;
   TrxDateTime: string;
-  RequestSource: string;
-  ReturnUrl: string;
-  CancelUrl: string;
   SessionToken: string;
   ContactInfoType: 1 | 2 | 3 | 4;
   OrderItems: AmwalOrderItem[];
@@ -254,8 +251,6 @@ export function prepareAmwalPayment(input: {
   purpose: 'WALLET_TOPUP' | 'EVENT_BOOKING';
   contact: BillingContact;
   bookingNumber?: string;
-  returnUrl: string;
-  cancelUrl?: string;
 }): AmwalPreparedPayment {
   if (!Number.isFinite(input.amount) || input.amount <= 0) {
     throw new Error('Payment amount must be greater than zero');
@@ -271,9 +266,6 @@ export function prepareAmwalPayment(input: {
     LanguageId: getLanguageId(input.locale),
     PaymentViewType: getPaymentViewType(),
     TrxDateTime: formatAmwalTransactionDate(),
-    RequestSource: (process.env.AMWAL_REQUEST_SOURCE || '1').trim(),
-    ReturnUrl: input.returnUrl,
-    CancelUrl: input.cancelUrl || input.returnUrl,
     SessionToken: '',
     ContactInfoType: getContactInfoType(),
     OrderItems: buildOrderItems({
