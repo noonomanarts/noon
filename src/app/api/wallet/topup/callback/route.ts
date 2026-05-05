@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   getWalletTopupPaymentByReference,
+  updateWalletTopupPaymentGatewayData,
   updateWalletTopupPaymentStatus,
 } from '@/lib/db/wallet';
 import {
@@ -75,8 +76,29 @@ async function syncPaymentFromAmwal(lookup: CallbackLookup) {
   const snapshot = parseAmwalTransactionPayload(lookup.payload);
   const nextStatus = mapAmwalTransactionToPaymentStatus(snapshot);
 
+  const diagnosticMetadata = {
+    amwal: {
+      ...amwalMetadata,
+      responseCode: snapshot.responseCode,
+      message: snapshot.message,
+      systemReference: snapshot.systemReference,
+      secureHash: snapshot.secureHash,
+      authorizationDateTime: snapshot.authorizationDateTime,
+      dateTimeLocalTrxn: snapshot.dateTimeLocalTrxn,
+      paidThrough: snapshot.paidThrough,
+      amount: snapshot.amount,
+      currencyId: snapshot.currencyId,
+      rawPayload: lookup.payload,
+      syncedAt: new Date().toISOString(),
+    },
+  };
+
   if (nextStatus === 'PENDING' || payment.status === nextStatus) {
-    return payment;
+    return updateWalletTopupPaymentGatewayData({
+      reference: payment.reference,
+      gateway: 'AMWAL',
+      metadata: diagnosticMetadata,
+    });
   }
 
   return updateWalletTopupPaymentStatus({
@@ -84,21 +106,7 @@ async function syncPaymentFromAmwal(lookup: CallbackLookup) {
     status: nextStatus,
     gatewayTransactionId: snapshot.systemReference || payment.gateway_transaction_id || undefined,
     failureReason: nextStatus === 'PAID' ? undefined : snapshot.message || 'Amwal payment did not complete',
-    metadata: {
-      amwal: {
-        ...amwalMetadata,
-        responseCode: snapshot.responseCode,
-        message: snapshot.message,
-        systemReference: snapshot.systemReference,
-        secureHash: snapshot.secureHash,
-        authorizationDateTime: snapshot.authorizationDateTime,
-        dateTimeLocalTrxn: snapshot.dateTimeLocalTrxn,
-        paidThrough: snapshot.paidThrough,
-        amount: snapshot.amount,
-        currencyId: snapshot.currencyId,
-        syncedAt: new Date().toISOString(),
-      },
-    },
+    metadata: diagnosticMetadata,
   });
 }
 

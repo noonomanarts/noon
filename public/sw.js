@@ -9,7 +9,7 @@
  * Cache versioning: bump CACHE_VERSION to invalidate old caches.
  */
 
-const CACHE_VERSION = 'v1.0.1';
+const CACHE_VERSION = 'v1.0.2';
 const PRECACHE = `noon-precache-${CACHE_VERSION}`;
 const RUNTIME_PAGES = `noon-pages-${CACHE_VERSION}`;
 const RUNTIME_ASSETS = `noon-assets-${CACHE_VERSION}`;

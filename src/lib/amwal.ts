@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash, createHmac } from 'crypto';
 
 type BillingContact = {
   fullName: string;
@@ -125,7 +125,7 @@ function pad(value: number): string {
 }
 
 export function formatAmwalTransactionDate(value = new Date()): string {
-  const format = (process.env.AMWAL_REQUEST_DATETIME_FORMAT || 'compact').trim().toLowerCase();
+  const format = (process.env.AMWAL_REQUEST_DATETIME_FORMAT || 'legacy').trim().toLowerCase();
 
   if (format === 'legacy') {
     return [
@@ -157,43 +157,39 @@ function normalizeHash(value: string): string {
   return value.replace(/\s+/g, '').toUpperCase();
 }
 
-function getSecureHashFieldValue(config: Omit<AmwalSmartBoxConfig, 'SecureHash'>, field: string): string {
-  switch (field.trim()) {
-    case 'MID':
-      return config.MID;
-    case 'TID':
-      return config.TID;
-    case 'Currency':
-    case 'CurrencyId':
-      return String(config.CurrencyId);
-    case 'Amount':
-    case 'AmountTrxn':
-      return config.AmountTrxn;
-    case 'MerchantReference':
-      return config.MerchantReference;
-    case 'RequestDateTime':
-    case 'TrxDateTime':
-      return config.TrxDateTime;
-    case 'LanguageId':
-      return config.LanguageId;
-    default:
-      return '';
-  }
+function buildRequestHashPayload(config: Omit<AmwalSmartBoxConfig, 'SecureHash'>): Record<string, string> {
+  return {
+    Amount: config.AmountTrxn,
+    CurrencyId: String(config.CurrencyId),
+    MerchantId: config.MID,
+    MerchantReference: config.MerchantReference,
+    RequestDateTime: config.TrxDateTime,
+    SessionToken: config.SessionToken,
+    TerminalId: config.TID,
+  };
+}
+
+function buildSortedHashDataString(payload: Record<string, string>): string {
+  return Object.keys(payload)
+    .sort((left, right) => left.localeCompare(right))
+    .map((key) => `${key}=${payload[key] ?? ''}`)
+    .join('&');
+}
+
+function buildHmacSha256Hex(data: string, hexKey: string): string {
+  return createHmac('sha256', Buffer.from(normalizeHash(hexKey), 'hex'))
+    .update(data, 'utf8')
+    .digest('hex')
+    .toUpperCase();
 }
 
 function buildOutgoingSecureHash(config: Omit<AmwalSmartBoxConfig, 'SecureHash'>): string {
   const secret = getOptionalEnv('AMWAL_SECURE_HASH_SECRET');
   if (secret) {
-    const configuredFields = (process.env.AMWAL_SECURE_HASH_FIELDS || 'MID,TID,Amount,MerchantReference,RequestDateTime,Currency')
-      .split(',')
-      .map((field) => field.trim())
-      .filter(Boolean);
-    const raw = [
-      ...configuredFields.map((field) => getSecureHashFieldValue(config, field)),
-      secret,
-    ].join('');
+    const payload = buildRequestHashPayload(config);
+    const raw = buildSortedHashDataString(payload);
 
-    return createHash('sha256').update(raw, 'utf8').digest('hex').toUpperCase();
+    return buildHmacSha256Hex(raw, secret);
   }
 
   const staticHash = getOptionalEnv('AMWAL_SECURE_HASH');
@@ -309,6 +305,27 @@ function getString(source: Record<string, unknown>, ...keys: string[]): string |
   return null;
 }
 
+function getRecord(source: Record<string, unknown>, ...keys: string[]): Record<string, unknown> | null {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'object' && value !== null) {
+      return value as Record<string, unknown>;
+    }
+  }
+
+  return null;
+}
+
+function getErrorListMessage(source: Record<string, unknown>): string | null {
+  const value = source.errorList;
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const parts = value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0);
+  return parts.length > 0 ? parts.join(' ') : null;
+}
+
 function getNumber(source: Record<string, unknown>, ...keys: string[]): number | null {
   for (const key of keys) {
     const value = source[key];
@@ -327,17 +344,20 @@ function getNumber(source: Record<string, unknown>, ...keys: string[]): number |
 }
 
 export function parseAmwalTransactionPayload(payload: Record<string, unknown>): AmwalTransactionSnapshot {
+  const levelOne = getRecord(payload, 'data') || payload;
+  const levelTwo = getRecord(levelOne, 'data') || levelOne;
+
   return {
-    merchantReference: getString(payload, 'MerchantReference', 'merchantReference', 'reference'),
-    systemReference: getString(payload, 'SystemReference', 'systemReference', 'TransactionId', 'transactionId'),
-    responseCode: getString(payload, 'ResponseCode', 'responseCode', 'statusCode'),
-    message: getString(payload, 'Message', 'message', 'statusMessage'),
-    secureHash: getString(payload, 'SecureHash', 'secureHash', 'secureHashValue'),
-    authorizationDateTime: getString(payload, 'AuthorizationDateTime', 'authorizationDateTime'),
-    dateTimeLocalTrxn: getString(payload, 'DateTimeLocalTrxn', 'dateTimeLocalTrxn', 'transactionDateTime'),
-    amount: getNumber(payload, 'Amount', 'amount'),
-    currencyId: getNumber(payload, 'CurrencyId', 'currencyId'),
-    paidThrough: getString(payload, 'PaidThrough', 'paidThrough'),
+    merchantReference: getString(payload, 'MerchantReference', 'merchantReference', 'reference') || getString(levelTwo, 'MerchantReference', 'merchantReference', 'reference'),
+    systemReference: getString(levelTwo, 'SystemReference', 'systemReference', 'TransactionId', 'transactionId'),
+    responseCode: getString(levelTwo, 'ResponseCode', 'responseCode', 'statusCode'),
+    message: getString(levelTwo, 'Message', 'message', 'statusMessage') || getErrorListMessage(levelTwo) || getString(levelOne, 'message', 'Message'),
+    secureHash: getString(levelTwo, 'SecureHash', 'secureHash', 'secureHashValue'),
+    authorizationDateTime: getString(levelTwo, 'AuthorizationDateTime', 'authorizationDateTime'),
+    dateTimeLocalTrxn: getString(levelTwo, 'DateTimeLocalTrxn', 'dateTimeLocalTrxn', 'transactionDateTime'),
+    amount: getNumber(levelTwo, 'Amount', 'amount'),
+    currencyId: getNumber(levelTwo, 'CurrencyId', 'currencyId'),
+    paidThrough: getString(levelTwo, 'PaidThrough', 'paidThrough'),
     raw: payload,
   };
 }
@@ -355,6 +375,18 @@ export function mapAmwalTransactionToPaymentStatus(snapshot: AmwalTransactionSna
   }
 
   if (responseCode && responseCode !== '00') {
+    return 'FAILED';
+  }
+
+  if (
+    message.includes('fail') ||
+    message.includes('error') ||
+    message.includes('unauthor') ||
+    message.includes('declin') ||
+    message.includes('reject') ||
+    message.includes('invalid') ||
+    message.includes('denied')
+  ) {
     return 'FAILED';
   }
 

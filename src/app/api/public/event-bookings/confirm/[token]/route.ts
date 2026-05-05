@@ -402,7 +402,7 @@ export async function POST(request: NextRequest, props: Params) {
     }
 
     const paymentReference = `EVENT-${String(booking.id)}-${Date.now()}`;
-    const amwalPayment = prepareAmwalPayment({
+    const amwalPayment = await prepareAmwalPayment({
       amount: totalAmount,
       currency: typeof booking.currency === 'string' ? booking.currency : 'OMR',
       reference: paymentReference,

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { MuscatLocationPicker } from '@/components/site/MuscatLocationPicker';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
-import { startAmwalCheckout } from '@/lib/amwalClient';
+import { buildAmwalErrorUiMessage, getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
 
 type CartApiItem = {
   productId: string;
@@ -320,7 +320,11 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     }
 
     if (topupStatus === 'failed') {
-      setError(isArabic ? 'فشلت عملية شحن المحفظة.' : 'Wallet top-up payment failed.');
+      setError(buildAmwalErrorUiMessage({
+        locale,
+        context: 'checkout-topup',
+        reason: searchParams.get('reason'),
+      }));
       setMessage(null);
       return;
     }
@@ -474,7 +478,13 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         onCancel: () => {
           redirectWithTopupStatus('cancelled', reference, targetReturnUrl);
         },
-        onError: () => {
+        onError: async (gatewayPayload) => {
+          await fetch('/api/wallet/topup/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reference, gatewayPayload: getAmwalCheckoutErrorPayload(gatewayPayload) }),
+          }).catch(() => undefined);
+
           redirectWithTopupStatus('failed', reference, targetReturnUrl);
         },
       });

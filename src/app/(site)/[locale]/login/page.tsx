@@ -168,6 +168,7 @@ export default async function LoginPage({
                   type="text"
                   name="identifier"
                   required
+                  autoComplete="username"
                   lang="en"
                   dir="ltr"
                   placeholder="name@example.com"

@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     });
 
     try {
-      const amwalPayment = prepareAmwalPayment({
+      const amwalPayment = await prepareAmwalPayment({
         amount,
         currency,
         reference: payment.reference,

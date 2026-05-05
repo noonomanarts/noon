@@ -5,7 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import { getPaymentMethodLabel } from '@/lib/paymentMethod';
-import { startAmwalCheckout } from '@/lib/amwalClient';
+import { buildAmwalErrorUiMessage, getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
 
 type WalletPayload = {
   balance: number;
@@ -228,7 +228,11 @@ export function OrderPaymentCard({
         void loadWallet();
       }
     } else if (topupStatus === 'failed') {
-      setError(t.topupFailed);
+      setError(buildAmwalErrorUiMessage({
+        locale,
+        context: 'checkout-topup',
+        reason: searchParams.get('reason') || t.topupFailed,
+      }));
       setMessage(null);
     } else if (topupStatus === 'cancelled') {
       setError(t.topupCancelled);
@@ -314,7 +318,13 @@ export function OrderPaymentCard({
         onCancel: () => {
           redirectWithTopupStatus('cancelled', reference, targetReturnUrl);
         },
-        onError: () => {
+        onError: async (gatewayPayload) => {
+          await fetch('/api/wallet/topup/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reference, gatewayPayload: getAmwalCheckoutErrorPayload(gatewayPayload) }),
+          }).catch(() => undefined);
+
           redirectWithTopupStatus('failed', reference, targetReturnUrl);
         },
       });

@@ -4,7 +4,13 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Wallet, WalletTransaction } from '@/lib/db/types';
 import { formatNotificationContent } from '@/lib/notifications/formatNotification';
 import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
-import { startAmwalCheckout } from '@/lib/amwalClient';
+import {
+  buildAmwalErrorUiMessage,
+  getAmwalCheckoutErrorDetails,
+  getAmwalCheckoutErrorPayload,
+  isGenericAmwalCheckoutFailure,
+  startAmwalCheckout,
+} from '@/lib/amwalClient';
 
 type WalletTopupCheckoutPayload = {
   payment?: {
@@ -16,6 +22,19 @@ type WalletTopupCheckoutPayload = {
     };
   };
   error?: string;
+};
+
+type WalletTopupStatusPayload = {
+  payment?: {
+    status?: string;
+  };
+  diagnostics?: {
+    failureReason?: string | null;
+    gatewayMessage?: string | null;
+    gatewayDetail?: string | null;
+    environment?: string | null;
+    responseCode?: string | null;
+  };
 };
 
 interface WalletSectionProps {
@@ -53,13 +72,32 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
   const transactionsPerPage = 8;
   const blockedBalance = walletData.blocked_balance ?? 0;
 
-  const redirectWithTopupStatus = useCallback((status: 'paid' | 'failed' | 'cancelled' | 'pending', reference?: string, targetPath?: string) => {
+  const buildFailureMessage = useCallback((reason?: string | null, code?: string | null, detail?: string | null, environment?: string | null) => {
+    return buildAmwalErrorUiMessage({
+      locale,
+      context: 'wallet-topup',
+      reason,
+      code,
+      detail,
+      environment,
+    });
+  }, [locale]);
+
+  const redirectWithTopupStatus = useCallback((
+    status: 'paid' | 'failed' | 'cancelled' | 'pending',
+    reference?: string,
+    targetPath?: string,
+    reason?: string,
+  ) => {
     if (typeof window === 'undefined') return;
     const fallbackTarget = `/${locale}/account/wallet`;
     const destination = new URL(targetPath && targetPath.startsWith('/') ? targetPath : fallbackTarget, window.location.origin);
     destination.searchParams.set('topup', status);
     if (reference) {
       destination.searchParams.set('reference', reference);
+    }
+    if (reason) {
+      destination.searchParams.set('reason', reason);
     }
     window.location.href = `${destination.pathname}${destination.search}`;
   }, [locale]);
@@ -150,6 +188,7 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
     const searchParams = new URLSearchParams(window.location.search);
     const topupStatus = searchParams.get('topup');
     const reference = searchParams.get('reference');
+    const failureReason = searchParams.get('reason');
 
     if (!topupStatus) return;
 
@@ -165,7 +204,26 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
     }
 
     if (topupStatus === 'failed') {
-      setMessage(isArabic ? 'فشلت عملية شحن المحفظة.' : 'Wallet top-up payment failed.');
+      setMessage(buildFailureMessage(failureReason));
+
+      if (reference && isGenericAmwalCheckoutFailure(failureReason)) {
+        void fetch(`/api/wallet/topup/status?reference=${encodeURIComponent(reference)}`, {
+          cache: 'no-store',
+        })
+          .then(async (response) => {
+            const payload = (await response.json().catch(() => ({}))) as WalletTopupStatusPayload;
+            if (!response.ok) return;
+
+            setMessage(buildFailureMessage(
+              payload.diagnostics?.gatewayMessage || payload.diagnostics?.failureReason,
+              payload.diagnostics?.responseCode,
+              payload.diagnostics?.gatewayDetail,
+              payload.diagnostics?.environment,
+            ));
+          })
+          .catch(() => undefined);
+      }
+
       return;
     }
 
@@ -174,13 +232,21 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
         cache: 'no-store',
       })
         .then(async (response) => {
-          const payload = (await response.json().catch(() => ({}))) as {
-            payment?: { status?: string };
-          };
+          const payload = (await response.json().catch(() => ({}))) as WalletTopupStatusPayload;
 
           if (payload.payment?.status === 'PAID') {
             setMessage(isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.');
             await refreshWalletBalance();
+            return;
+          }
+
+          if (payload.payment?.status === 'FAILED') {
+            setMessage(buildFailureMessage(
+              payload.diagnostics?.gatewayMessage || payload.diagnostics?.failureReason,
+              payload.diagnostics?.responseCode,
+              payload.diagnostics?.gatewayDetail,
+              payload.diagnostics?.environment,
+            ));
             return;
           }
 
@@ -198,7 +264,7 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
           );
         });
     }
-  }, [isArabic, refreshWalletBalance]);
+  }, [buildFailureMessage, isArabic, refreshWalletBalance]);
 
   useEffect(() => {
     const source = new EventSource('/api/stream');
@@ -364,8 +430,23 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
           onCancel: () => {
             redirectWithTopupStatus('cancelled', reference, targetReturnUrl);
           },
-          onError: () => {
-            redirectWithTopupStatus('failed', reference, targetReturnUrl);
+          onError: async (gatewayPayload) => {
+            const errorDetails = getAmwalCheckoutErrorDetails(gatewayPayload);
+            const errorPayload = getAmwalCheckoutErrorPayload(gatewayPayload);
+
+            console.error('Amwal wallet top-up error:', gatewayPayload);
+
+            await fetch('/api/wallet/topup/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reference, gatewayPayload: errorPayload }),
+            }).catch(() => undefined);
+
+            const failureReason = errorDetails.code
+              ? `${errorDetails.code}: ${errorDetails.message}`
+              : errorDetails.message;
+
+            redirectWithTopupStatus('failed', reference, targetReturnUrl, failureReason);
           },
         });
       } else {
