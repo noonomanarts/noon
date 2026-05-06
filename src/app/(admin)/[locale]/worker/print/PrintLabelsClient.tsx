@@ -1,10 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useMemo } from "react";
 import type { ShopProduct } from "@/lib/db/types";
 import { FiPrinter, FiSearch, FiPlus, FiMinus, FiX, FiTag } from "react-icons/fi";
 
-type ProductForLabel = Pick<ShopProduct, "id" | "name_en" | "name_ar" | "sku" | "price" | "currency" | "stock_quantity" | "image">;
+type ProductForLabel = Pick<ShopProduct, "id" | "name_en" | "name_ar" | "sku" | "price" | "currency" | "stock_quantity" | "image"> & {
+  latest_expiry_date: Date | string | null;
+  latest_production_date: Date | string | null;
+};
 
 interface Props {
   locale: string;
@@ -35,11 +39,25 @@ export default function PrintLabelsClient({ locale, products }: Props) {
       labels: isArabic ? "ملصق" : "labels",
       currency: isArabic ? "ر.ع" : "OMR",
       sku: isArabic ? "رمز المنتج" : "SKU",
+      productionDate: isArabic ? "تاريخ الإنتاج" : "Production",
+      expiryDate: isArabic ? "تاريخ الانتهاء" : "Expiry",
+      noDate: isArabic ? "غير متوفر" : "N/A",
       back: isArabic ? "رجوع" : "Back",
       close: isArabic ? "إغلاق" : "Close",
     }),
     [isArabic]
   );
+
+  const formatLabelDate = (value: Date | string | null) => {
+    if (!value) return t.noDate;
+    const date = value instanceof Date ? value : new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return t.noDate;
+    return new Intl.DateTimeFormat(isArabic ? "ar" : "en", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  };
 
   const filteredProducts = useMemo(() => {
     if (!search.trim()) return products.slice(0, 20);
@@ -117,11 +135,11 @@ export default function PrintLabelsClient({ locale, products }: Props) {
             Array.from({ length: item.quantity }).map((_, i) => (
               <div
                 key={`${item.product.id}-${i}`}
-                className="label flex h-[30mm] w-[50mm] flex-col justify-between border border-zinc-300 p-2 print:border-0 print:border-b print:border-r print:border-dashed"
+                className="label flex h-[38mm] w-[58mm] flex-col justify-between border border-zinc-300 p-2 print:border-0 print:border-b print:border-r print:border-dashed"
                 dir={isArabic ? "rtl" : "ltr"}
               >
-                <div className="text-center">
-                  <p className="text-xs font-bold leading-tight">
+                <div className="space-y-1 text-center">
+                  <p className="text-[11px] font-bold leading-tight">
                     {isArabic ? item.product.name_ar : item.product.name_en}
                   </p>
                   {!isArabic && item.product.name_ar && (
@@ -131,13 +149,25 @@ export default function PrintLabelsClient({ locale, products }: Props) {
                     <p className="text-[10px] text-zinc-500">{item.product.name_en}</p>
                   )}
                 </div>
-                <div className="flex items-end justify-between">
-                  {item.product.sku && (
-                    <span className="text-[8px] text-zinc-400">{item.product.sku}</span>
-                  )}
-                  <span className="text-sm font-bold">
-                    {item.product.price.toFixed(3)} {item.product.currency}
-                  </span>
+                <div className="space-y-1">
+                  <div className="space-y-0.5 text-[9px] leading-tight text-zinc-700">
+                    <p className="flex items-center justify-between gap-2">
+                      <span className="font-semibold">{t.productionDate}</span>
+                      <span>{formatLabelDate(item.product.latest_production_date)}</span>
+                    </p>
+                    <p className="flex items-center justify-between gap-2">
+                      <span className="font-semibold">{t.expiryDate}</span>
+                      <span>{formatLabelDate(item.product.latest_expiry_date)}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-end justify-between gap-2 border-t border-zinc-200 pt-1">
+                    {item.product.sku ? (
+                      <span className="text-[8px] text-zinc-400">{item.product.sku}</span>
+                    ) : <span />}
+                    <span className="text-sm font-bold">
+                      {item.product.price.toFixed(3)} {item.product.currency}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))
@@ -196,11 +226,15 @@ export default function PrintLabelsClient({ locale, products }: Props) {
               >
                 <div className="flex items-center gap-3">
                   {product.image ? (
-                    <img
-                      src={product.image}
-                      alt=""
-                      className="h-10 w-10 rounded-lg bg-zinc-200 object-cover"
-                    />
+                    <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-zinc-200">
+                      <Image
+                        src={product.image}
+                        alt=""
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-200 dark:bg-zinc-700">
                       <FiTag className="h-5 w-5 text-zinc-400" />

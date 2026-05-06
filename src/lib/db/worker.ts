@@ -675,12 +675,36 @@ export async function getWorkerStats(userId: string): Promise<WorkerStats> {
 // Products for Worker (simplified view)
 // ============================================================================
 
-export async function getProductsForWorker(): Promise<Pick<ShopProduct, 'id' | 'name_en' | 'name_ar' | 'sku' | 'price' | 'currency' | 'stock_quantity' | 'image'>[]> {
+export async function getProductsForWorker(): Promise<(
+  Pick<ShopProduct, 'id' | 'name_en' | 'name_ar' | 'sku' | 'price' | 'currency' | 'stock_quantity' | 'image'>
+  & {
+    latest_expiry_date: Date | null;
+    latest_production_date: Date | null;
+  }
+)[]> {
+  await ensureStockRestocksSchema();
+
   const result = await pool.query(
-    `SELECT id, name_en, name_ar, sku, price, currency, stock_quantity, image
-     FROM shop_products
-     WHERE is_active = TRUE
-     ORDER BY name_en`
+    `SELECT p.id,
+            p.name_en,
+            p.name_ar,
+            p.sku,
+            p.price,
+            p.currency,
+            p.stock_quantity,
+            p.image,
+            latest.expiry_date AS latest_expiry_date,
+            latest.production_date AS latest_production_date
+     FROM shop_products p
+     LEFT JOIN LATERAL (
+       SELECT sr.expiry_date, sr.production_date
+       FROM stock_restocks sr
+       WHERE sr.product_id = p.id
+       ORDER BY sr.created_at DESC
+       LIMIT 1
+     ) latest ON TRUE
+     WHERE p.is_active = TRUE
+     ORDER BY p.name_en`
   );
 
   return result.rows.map((row) => ({
@@ -692,6 +716,8 @@ export async function getProductsForWorker(): Promise<Pick<ShopProduct, 'id' | '
     currency: row.currency,
     stock_quantity: Number(row.stock_quantity),
     image: row.image,
+    latest_expiry_date: row.latest_expiry_date ? new Date(`${row.latest_expiry_date}T00:00:00`) : null,
+    latest_production_date: row.latest_production_date ? new Date(`${row.latest_production_date}T00:00:00`) : null,
   }));
 }
 
