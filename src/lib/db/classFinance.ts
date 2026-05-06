@@ -669,7 +669,7 @@ export async function removeClassParticipant(params: {
       removedParticipantName = typeof target?.fullName === 'string' && target.fullName.trim().length > 0
         ? target.fullName.trim()
         : 'Participant';
-      nextParticipants = rawParticipants.filter((_, index) => index !== participantIndexZeroBased);
+      nextParticipants = rawParticipants.filter((_: unknown, index: number) => index !== participantIndexZeroBased);
       paidParticipantsCount = rawParticipants.reduce<number>((count, item) => {
         const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : null;
         return row?.isFreePartner === true ? count : count + 1;
