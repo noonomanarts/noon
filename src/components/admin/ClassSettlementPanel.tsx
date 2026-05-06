@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { calculateWorkshopFinanceBreakdown } from '@/lib/classFinanceRules';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 import { IoAdd, IoCheckmarkCircle, IoCubeOutline, IoPeopleOutline, IoReceiptOutline, IoWalletOutline } from 'react-icons/io5';
 import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
 
@@ -145,6 +146,7 @@ export default function ClassSettlementPanel({
 }) {
   const isArabic = locale === 'ar';
   const localeCode = isArabic ? 'ar-OM-u-nu-latn' : 'en-OM';
+  const { confirm } = useAppFeedback();
 
   const [snapshot, setSnapshot] = useState<SettlementSnapshot | null>(null);
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([]);
@@ -154,6 +156,7 @@ export default function ClassSettlementPanel({
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
+  const [removingParticipantKey, setRemovingParticipantKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -204,6 +207,7 @@ export default function ClassSettlementPanel({
     classDate: isArabic ? 'تاريخ الدورة' : 'Class Date',
     dob: isArabic ? 'الميلاد' : 'DOB',
     language: isArabic ? 'اللغة' : 'Language',
+    actions: isArabic ? 'الإجراءات' : 'Actions',
     finance: isArabic ? 'تفصيل الورشة المالي' : 'Workshop Finance Breakdown',
     kitchenUsage: isArabic ? 'استخدام المطبخ' : 'Kitchen Usage',
     workshopContent: isArabic ? 'محتوى الورشة' : 'Workshop Content',
@@ -214,6 +218,17 @@ export default function ClassSettlementPanel({
     closed: isArabic ? 'مغلق' : 'Closed',
     open: isArabic ? 'مفتوح' : 'Open',
     noParticipants: isArabic ? 'لا يوجد مشاركون مدفوعون لهذا الكلاس حتى الآن.' : 'No paid participants for this class yet.',
+    removeFromWorkshop: isArabic ? 'إزالة من الورشة' : 'Remove from workshop',
+    removeAndRefund: isArabic ? 'إزالة + إرجاع للمحفظة' : 'Remove + wallet refund',
+    removing: isArabic ? 'جارٍ الإزالة...' : 'Removing...',
+    removeConfirm: isArabic
+      ? 'سيتم حذف هذا المشارك من الورشة بدون إرجاع مبلغ إلى المحفظة. هل تريد المتابعة؟'
+      : 'This participant will be removed from the workshop without returning funds to the wallet. Continue?',
+    refundConfirm: isArabic
+      ? 'سيتم حذف هذا المشارك من الورشة وإرجاع حصته إلى المحفظة. هل تريد المتابعة؟'
+      : 'This participant will be removed from the workshop and their share will be credited back to the wallet. Continue?',
+    participantRemoved: isArabic ? 'تمت إزالة المشارك من الورشة.' : 'Participant removed from the workshop.',
+    participantRefunded: isArabic ? 'تمت إزالة المشارك وإرجاع المبلغ إلى المحفظة.' : 'Participant removed and refunded to wallet.',
     noExpenses: isArabic ? 'لم يتم تسجيل أي تكلفة مواد بعد.' : 'No material costs recorded yet.',
     insufficientStock: isArabic ? 'الكمية المطلوبة أكبر من المتوفر في المخزون.' : 'Required quantity is greater than available stock.',
     closedAt: isArabic ? 'تاريخ الإغلاق' : 'Closed At',
@@ -514,6 +529,50 @@ export default function ClassSettlementPanel({
     }
   };
 
+  const handleRemoveParticipant = async (participant: SettlementSnapshot['participants'][number], refundToWallet: boolean) => {
+    const confirmed = await confirm({
+      title: refundToWallet
+        ? (isArabic ? 'تأكيد إزالة المشارك مع الإرجاع' : 'Remove participant and refund')
+        : (isArabic ? 'تأكيد إزالة المشارك' : 'Remove participant'),
+      message: refundToWallet ? t.refundConfirm : t.removeConfirm,
+      confirmLabel: isArabic ? 'تأكيد' : 'Confirm',
+      cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    const participantKey = `${participant.bookingId}-${participant.participantIndex}`;
+    setRemovingParticipantKey(participantKey);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(`/api/admin/classes/${classId}/participants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: participant.bookingId,
+          participantIndex: participant.participantIndex,
+          refundToWallet,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to remove participant');
+      }
+
+      setSuccess(refundToWallet ? t.participantRefunded : t.participantRemoved);
+      await loadSnapshot();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Failed to remove participant');
+    } finally {
+      setRemovingParticipantKey(null);
+    }
+  };
+
   if (loading) {
     return (
       <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -618,6 +677,7 @@ export default function ClassSettlementPanel({
                       <th className="py-2 pe-4">{t.booking}</th>
                       <th className="py-2 pe-4">{t.dob}</th>
                       <th className="py-2">{t.language}</th>
+                      {canEdit ? <th className="py-2 ps-4 text-right">{t.actions}</th> : null}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">
@@ -632,6 +692,28 @@ export default function ClassSettlementPanel({
                         <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{participant.bookingNumber}</td>
                         <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{participant.participantDateOfBirth || '—'}</td>
                         <td className="py-3 text-zinc-600 dark:text-zinc-300">{participant.participantPreferredLanguage || '—'}</td>
+                        {canEdit ? (
+                          <td className="py-3 ps-4">
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => void handleRemoveParticipant(participant, false)}
+                                disabled={removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}`}
+                                className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                              >
+                                {removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}` ? t.removing : t.removeFromWorkshop}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleRemoveParticipant(participant, true)}
+                                disabled={removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}`}
+                                className="rounded-xl border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/20"
+                              >
+                                {removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}` ? t.removing : t.removeAndRefund}
+                              </button>
+                            </div>
+                          </td>
+                        ) : null}
                       </tr>
                     ))}
                   </tbody>

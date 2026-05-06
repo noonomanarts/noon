@@ -189,7 +189,6 @@ export const defaultFooterAdminSettings: FooterAdminSettings = {
     { labelEn: 'About Us', labelAr: 'من نحن', href: '/about', enabled: true },
     { labelEn: 'Classes', labelAr: 'الورش', href: '/classes', enabled: true },
     { labelEn: 'Group Events', labelAr: 'فعاليات المجموعات', href: '/group-booking-events', enabled: true },
-    { labelEn: 'Noon Recommends', labelAr: 'توصيات نون', href: '/noon-recommends', enabled: true },
     { labelEn: 'Contact Us', labelAr: 'تواصل معنا', href: '/contact', enabled: true },
   ],
   legalLinks: [

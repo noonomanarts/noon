@@ -577,6 +577,181 @@ export async function getClassSettlementSnapshot(classId: string): Promise<Class
   });
 }
 
+export async function removeClassParticipant(params: {
+  classId: string;
+  bookingId: string;
+  participantIndex: number;
+  refundToWallet: boolean;
+  adminUserId: string;
+}): Promise<{
+  removedParticipantName: string;
+  refundedAmount: number;
+  currency: string;
+  walletBalance: number | null;
+  walletAvailableBalance: number | null;
+  notifyUserId: string | null;
+  classTitle: string;
+}> {
+  await ensureClassFinanceSchema();
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const classResult = await client.query(
+      `SELECT c.id, c.title, c.title_ar, c.currency, c.status, c.closed_at,
+              s.status AS settlement_status
+       FROM classes c
+       LEFT JOIN class_settlements s ON s.class_id = c.id
+       WHERE c.id = $1
+       FOR UPDATE`,
+      [params.classId]
+    );
+
+    const classRow = classResult.rows[0];
+    if (!classRow) {
+      throw new Error('Class not found');
+    }
+
+    if (String(classRow.status) === 'COMPLETED' || String(classRow.settlement_status || '') === 'CLOSED' || classRow.closed_at) {
+      throw new Error('Participants cannot be removed after settlement is closed.');
+    }
+
+    const bookingResult = await client.query(
+      `SELECT id, user_id, booking_number, participants, number_of_participants,
+              total_amount, currency, status, payment_status
+       FROM bookings
+       WHERE id = $1
+         AND class_id = $2
+       FOR UPDATE`,
+      [params.bookingId, params.classId]
+    );
+
+    const bookingRow = bookingResult.rows[0];
+    if (!bookingRow) {
+      throw new Error('Booking not found');
+    }
+
+    if (!['CONFIRMED', 'COMPLETED'].includes(String(bookingRow.status))) {
+      throw new Error('Only active workshop bookings can be changed.');
+    }
+
+    if (String(bookingRow.payment_status) !== 'PAID') {
+      throw new Error('Only paid workshop bookings can be changed.');
+    }
+
+    const rawParticipants = Array.isArray(bookingRow.participants) ? bookingRow.participants : [];
+    const participantIndexZeroBased = params.participantIndex - 1;
+
+    let removedParticipantName = '';
+    let nextParticipants: unknown[] = [];
+    let paidParticipantsCount = 0;
+
+    if (rawParticipants.length === 0) {
+      if (params.participantIndex !== 1) {
+        throw new Error('Participant not found in booking.');
+      }
+      removedParticipantName = 'Participant';
+      nextParticipants = [];
+      paidParticipantsCount = Math.max(1, Number(bookingRow.number_of_participants ?? 1));
+    } else {
+      if (participantIndexZeroBased < 0 || participantIndexZeroBased >= rawParticipants.length) {
+        throw new Error('Participant not found in booking.');
+      }
+
+      const target = rawParticipants[participantIndexZeroBased] as Record<string, unknown> | undefined;
+      if (target?.isFreePartner === true) {
+        throw new Error('Free partner entries cannot be removed from this view.');
+      }
+
+      removedParticipantName = typeof target?.fullName === 'string' && target.fullName.trim().length > 0
+        ? target.fullName.trim()
+        : 'Participant';
+      nextParticipants = rawParticipants.filter((_, index) => index !== participantIndexZeroBased);
+      paidParticipantsCount = rawParticipants.reduce((count, item) => {
+        const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : null;
+        return row?.isFreePartner === true ? count : count + 1;
+      }, 0);
+    }
+
+    const currentPaidParticipantsCount = Math.max(1, paidParticipantsCount || Number(bookingRow.number_of_participants ?? 1));
+    const nextPaidParticipantsCount = Math.max(0, Number(bookingRow.number_of_participants ?? currentPaidParticipantsCount) - 1);
+    const totalAmount = toMoney(bookingRow.total_amount);
+    const refundedAmount = params.refundToWallet
+      ? (nextPaidParticipantsCount === 0 ? totalAmount : toMoney(totalAmount / currentPaidParticipantsCount))
+      : 0;
+
+    let walletBalance: number | null = null;
+    let walletAvailableBalance: number | null = null;
+
+    if (nextPaidParticipantsCount === 0) {
+      await client.query(
+        `UPDATE bookings
+         SET participants = $2::jsonb,
+             number_of_participants = 0,
+             status = 'CANCELLED',
+             payment_status = CASE WHEN $3 THEN 'REFUNDED' ELSE payment_status END,
+             updated_at = NOW()
+         WHERE id = $1`,
+        [params.bookingId, JSON.stringify(nextParticipants), params.refundToWallet]
+      );
+    } else {
+      const nextTotalAmount = params.refundToWallet
+        ? toMoney(totalAmount - refundedAmount)
+        : totalAmount;
+
+      await client.query(
+        `UPDATE bookings
+         SET participants = $2::jsonb,
+             number_of_participants = $3,
+             total_amount = $4,
+             updated_at = NOW()
+         WHERE id = $1`,
+        [params.bookingId, JSON.stringify(nextParticipants), nextPaidParticipantsCount, nextTotalAmount]
+      );
+    }
+
+    await client.query(
+      `UPDATE classes
+       SET seats_booked = GREATEST(0, seats_booked - 1),
+           seats_available = GREATEST(0, seats_total - GREATEST(0, seats_booked - 1)),
+           updated_at = NOW()
+       WHERE id = $1`,
+      [params.classId]
+    );
+
+    if (params.refundToWallet && refundedAmount > 0) {
+      const walletCredit = await creditWallet({
+        db: client,
+        userId: String(bookingRow.user_id),
+        amount: refundedAmount,
+        currency: String(bookingRow.currency || classRow.currency || 'OMR'),
+        type: 'CLASS_BOOKING_REFUND',
+        reason: `Workshop participant removed by admin - ${String(classRow.title || 'Workshop')}`,
+      });
+      walletBalance = walletCredit.balance;
+      walletAvailableBalance = walletCredit.availableBalance;
+    }
+
+    await client.query('COMMIT');
+
+    return {
+      removedParticipantName,
+      refundedAmount,
+      currency: String(bookingRow.currency || classRow.currency || 'OMR'),
+      walletBalance,
+      walletAvailableBalance,
+      notifyUserId: params.refundToWallet ? String(bookingRow.user_id) : null,
+      classTitle: String(classRow.title_ar || classRow.title || 'Workshop'),
+    };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 async function replaceExpenseItems(params: {
   db: Queryable;
   classId: string;
