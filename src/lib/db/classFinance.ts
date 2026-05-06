@@ -640,7 +640,9 @@ export async function removeClassParticipant(params: {
       throw new Error('Only paid workshop bookings can be changed.');
     }
 
-    const rawParticipants = Array.isArray(bookingRow.participants) ? bookingRow.participants : [];
+    const rawParticipants: unknown[] = Array.isArray(bookingRow.participants)
+      ? (bookingRow.participants as unknown[])
+      : [];
     const participantIndexZeroBased = params.participantIndex - 1;
 
     let removedParticipantName = '';
@@ -668,7 +670,7 @@ export async function removeClassParticipant(params: {
         ? target.fullName.trim()
         : 'Participant';
       nextParticipants = rawParticipants.filter((_, index) => index !== participantIndexZeroBased);
-      paidParticipantsCount = rawParticipants.reduce((count, item) => {
+      paidParticipantsCount = rawParticipants.reduce<number>((count, item) => {
         const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : null;
         return row?.isFreePartner === true ? count : count + 1;
       }, 0);
