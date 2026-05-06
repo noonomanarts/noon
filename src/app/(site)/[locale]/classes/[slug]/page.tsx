@@ -1,25 +1,30 @@
 import Image from "next/image";
 import Link from "next/link";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { GiChefToque } from "react-icons/gi";
 import { HiPaintBrush, HiClock, HiUsers, HiStar, HiSparkles, HiShieldCheck } from "react-icons/hi2";
 import { MdCalendarMonth, MdAccessTime, MdPerson } from "react-icons/md";
 
 import ClassHeaderSlideshow from "@/components/site/ClassHeaderSlideshow";
+import ClassReviewsSection from "@/components/site/ClassReviewsSection";
 import RequestRepeatButton from "@/components/site/RequestRepeatButton";
 import RegistrationCountdown from "@/components/site/RegistrationCountdown";
-import { findClassBySlug, findClassReviews } from "@/lib/db/classes";
+import {
+  findClassBySlug,
+  findClassReviews,
+  getClassReviewForUser,
+  hasUserBookedClass,
+} from "@/lib/db/classes";
 import {
   getClassRepeatRequestSummaries,
   type ClassRepeatRequestSummary,
 } from "@/lib/db/classRepeatRequests";
 import { findTrainerById } from "@/lib/db/trainers";
-import { getUserById } from "@/lib/db/users";
 import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { formatDurationClock } from "@/lib/formatDuration";
 import { isLocale, type Locale } from "@/lib/locale";
+import { getCurrentUser } from "@/lib/session";
 import {
   isRegistrationClosed,
   resolveRegistrationCloseAt,
@@ -50,19 +55,20 @@ export default async function ClassDetailPage({
     notFound();
   }
 
-  const cookieStore = await cookies();
-  const sessionId = cookieStore.get("noon_session")?.value;
-  const currentUser = sessionId ? await getUserById(sessionId) : null;
+  const currentUser = await getCurrentUser();
 
   const isEnded = hasWorkshopEnded(classData);
 
-  const [reviews, trainer, repeatSummaries] = await Promise.all([
+  const [reviews, trainer, repeatSummaries, viewerReview, viewerCanReview] = await Promise.all([
     findClassReviews(classData.id),
     classData.trainerId ? findTrainerById(classData.trainerId) : Promise.resolve(null),
     isEnded
       ? getClassRepeatRequestSummaries([classData.id], currentUser?.id ?? null)
       : Promise.resolve<Record<string, ClassRepeatRequestSummary>>({}),
+    currentUser ? getClassReviewForUser(classData.id, currentUser.id) : Promise.resolve(null),
+    currentUser ? hasUserBookedClass(currentUser.id, classData.id) : Promise.resolve(false),
   ]);
+  const canWriteReview = viewerCanReview && isEnded;
 
   const seatsAvailable = Math.max(0, (classData.seatsTotal ?? 0) - (classData.seatsBooked ?? 0));
   const registrationCloseAt = resolveRegistrationCloseAt(
@@ -424,48 +430,30 @@ export default async function ClassDetailPage({
             )}
           </article>
 
-          <article className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm sm:p-7">
-            <h2 className="text-2xl font-semibold text-[color:var(--text)]">
-              {t.reviews} ({reviews.length})
-            </h2>
-            <p className="mt-1 text-sm text-[color:var(--text-muted)]">{t.byVerifiedAttendees}</p>
-            {reviews.length === 0 ? (
-              <p className="mt-4 text-sm text-[color:var(--text-muted)]">{t.noReviews}</p>
-            ) : (
-              <div className="mt-5 grid gap-3">
-                {reviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: 5 }).map((_, index) => (
-                          <HiStar
-                            key={`${review.id}-${index}`}
-                            className={`h-4 w-4 ${
-                              index < (review.rating || 0)
-                                ? "text-yellow"
-                                : "text-[color:var(--text-subtle)]"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <p className="text-xs text-[color:var(--text-subtle)]">
-                        {new Date(review.createdAt).toLocaleDateString(isArabic ? "ar-OM-u-nu-latn" : "en-OM")}
-                      </p>
-                    </div>
-                    {review.comment ? (
-                      <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">{review.comment}</p>
-                    ) : null}
-                    {review.user?.fullName ? (
-                      <p className="mt-2 text-xs font-medium text-[color:var(--text)]">{review.user.fullName}</p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            )}
-          </article>
+          <ClassReviewsSection
+            classId={classData.id}
+            locale={locale}
+            isAuthenticated={Boolean(currentUser)}
+            canReview={canWriteReview}
+            loginHref={`/${locale}/login?next=${encodeURIComponent(`/${locale}/classes/${classData.slug}`)}`}
+            initialReviews={reviews.map((review) => ({
+              id: review.id,
+              rating: review.rating,
+              comment: review.comment,
+              created_at: review.createdAt.toISOString(),
+              user_full_name: review.user?.fullName ?? null,
+              is_verified: true,
+            }))}
+            initialAverageRating={averageRating > 0 ? Number(averageRating.toFixed(2)) : null}
+            initialViewerReview={viewerReview ? {
+              id: viewerReview.id,
+              rating: viewerReview.rating,
+              comment: viewerReview.comment,
+              created_at: viewerReview.created_at.toISOString(),
+              user_full_name: viewerReview.user_full_name,
+              is_verified: viewerReview.is_verified,
+            } : null}
+          />
         </div>
 
         <aside className="lg:sticky lg:top-24 lg:self-start">

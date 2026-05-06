@@ -701,6 +701,173 @@ export async function findClassReviews(classId: string): Promise<{
   }));
 }
 
+export async function getClassReviewSummary(classId: string): Promise<{
+  averageRating: number | null;
+  reviewsCount: number;
+}> {
+  const result = await query(
+    `SELECT
+       COUNT(*)::int AS reviews_count,
+       ROUND(AVG(rating)::numeric, 2)::float8 AS average_rating
+     FROM reviews
+     WHERE class_id = $1
+       AND is_visible = true`,
+    [classId]
+  );
+
+  const row = result.rows[0];
+  return {
+    averageRating: row?.average_rating == null ? null : Number(row.average_rating),
+    reviewsCount: Number(row?.reviews_count ?? 0),
+  };
+}
+
+export async function getClassReviewForUser(classId: string, userId: string): Promise<{
+  id: string;
+  user_id: string;
+  rating: number;
+  comment: string | null;
+  is_verified: boolean;
+  created_at: Date;
+  user_full_name: string | null;
+} | null> {
+  const result = await query(
+    `SELECT
+       r.id,
+       r.user_id,
+       r.rating,
+       r.comment,
+       r.is_verified,
+       r.created_at,
+       u.full_name AS user_full_name
+     FROM reviews r
+     LEFT JOIN users u ON u.id = r.user_id
+     WHERE r.class_id = $1
+       AND r.user_id = $2
+     LIMIT 1`,
+    [classId, userId]
+  );
+
+  const row = result.rows[0];
+  if (!row) {
+    return null;
+  }
+
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    rating: Number(row.rating ?? 0),
+    comment: row.comment ?? null,
+    is_verified: Boolean(row.is_verified),
+    created_at: row.created_at,
+    user_full_name: row.user_full_name ?? null,
+  };
+}
+
+export async function hasUserBookedClass(userId: string, classId: string): Promise<boolean> {
+  const result = await query(
+    `SELECT 1
+     FROM bookings
+     WHERE user_id = $1
+       AND class_id = $2
+       AND status = 'CONFIRMED'
+       AND payment_status = 'PAID'
+     LIMIT 1`,
+    [userId, classId]
+  );
+
+  return result.rows.length > 0;
+}
+
+export async function createOrUpdateClassReview(input: {
+  classId: string;
+  userId: string;
+  rating: number;
+  comment?: string | null;
+}): Promise<{
+  id: string;
+  user_id: string;
+  rating: number;
+  comment: string | null;
+  is_verified: boolean;
+  created_at: Date;
+  user_full_name: string | null;
+  summary: {
+    averageRating: number | null;
+    reviewsCount: number;
+  };
+}> {
+  const normalizedRating = Math.trunc(Number(input.rating));
+  if (!Number.isFinite(normalizedRating) || normalizedRating < 1 || normalizedRating > 5) {
+    throw new Error('Rating must be between 1 and 5.');
+  }
+
+  const classResult = await query(
+    `SELECT id FROM classes WHERE id = $1 LIMIT 1`,
+    [input.classId]
+  );
+
+  if (classResult.rows.length === 0) {
+    throw new Error('Class not found.');
+  }
+
+  const canReview = await hasUserBookedClass(input.userId, input.classId);
+  if (!canReview) {
+    throw new Error('Only customers with a confirmed paid booking can review this workshop.');
+  }
+
+  const comment = typeof input.comment === 'string' ? input.comment.trim() : '';
+
+  const existingReviewResult = await query(
+    `SELECT id
+     FROM reviews
+     WHERE user_id = $1
+       AND class_id = $2
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [input.userId, input.classId]
+  );
+
+  const result = existingReviewResult.rows[0]
+    ? await query(
+      `UPDATE reviews
+       SET rating = $2,
+         comment = $3,
+         is_verified = true,
+         is_visible = true,
+         updated_at = NOW()
+       WHERE id = $1
+       RETURNING id, user_id, rating, comment, is_verified, created_at`,
+      [existingReviewResult.rows[0].id, normalizedRating, comment || null]
+      )
+    : await query(
+        `INSERT INTO reviews (
+           user_id, class_id, rating, comment, is_verified, is_visible, created_at, updated_at
+         )
+         VALUES ($1, $2, $3, $4, true, true, NOW(), NOW())
+         RETURNING id, user_id, rating, comment, is_verified, created_at`,
+        [input.userId, input.classId, normalizedRating, comment || null]
+      );
+
+  const row = result.rows[0];
+  const userResult = await query(
+    `SELECT full_name FROM users WHERE id = $1 LIMIT 1`,
+    [input.userId]
+  );
+  const summary = await getClassReviewSummary(input.classId);
+
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    rating: Number(row.rating ?? 0),
+    comment: row.comment ?? null,
+    is_verified: Boolean(row.is_verified),
+    created_at: row.created_at,
+    user_full_name: userResult.rows[0]?.full_name ?? null,
+    summary,
+  };
+}
+
 /**
  * Get bookings by user ID
  */
