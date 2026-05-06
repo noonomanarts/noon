@@ -272,7 +272,7 @@ export default async function AboutPage({
         <SectionHeader title={trainersTitle} />
 
         {liveTrainers.length > 0 ? (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {liveTrainers.map((trainer) => (
               <Link
                 key={String(trainer.id)}
@@ -286,7 +286,7 @@ export default async function AboutPage({
                     className="h-full w-full"
                   />
                 </div>
-                <p className="mt-4 text-lg font-semibold text-[color:var(--text)]">{trainer.fullName}</p>
+                <p className="mt-3 text-base font-semibold text-[color:var(--text)] sm:mt-4 sm:text-lg">{trainer.fullName}</p>
               </Link>
             ))}
           </div>

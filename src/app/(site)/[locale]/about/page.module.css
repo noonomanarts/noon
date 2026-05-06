@@ -205,6 +205,10 @@
   .offerCard {
     min-height: 0;
   }
+
+  .trainerProfileCard {
+    padding: 0.5rem;
+  }
 }
 
 @media (max-width: 1024px) {
