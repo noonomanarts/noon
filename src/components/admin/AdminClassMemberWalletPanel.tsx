@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getPaymentMethodLabel } from '@/lib/paymentMethod';
 
 type AdminUser = {
@@ -14,6 +14,42 @@ type AdminUser = {
 
 type ActionKind = 'TOPUP' | 'DEDUCT' | 'ENROLL_AND_DEDUCT';
 type EnrollmentPaymentMethod = 'WALLET' | 'CASH' | 'ONLINE' | 'BANK_TRANSFER';
+type ParticipantLanguage = 'en' | 'ar';
+type Participant = {
+  fullName: string;
+  dateOfBirth: string;
+  preferredLanguage: ParticipantLanguage;
+};
+type ParticipantWithPartner = Participant & {
+  partner: Participant | null;
+};
+
+function emptyParticipant(): ParticipantWithPartner {
+  return {
+    fullName: '',
+    dateOfBirth: '',
+    preferredLanguage: 'en',
+    partner: null,
+  };
+}
+
+function emptyPartner(): Participant {
+  return {
+    fullName: '',
+    dateOfBirth: '',
+    preferredLanguage: 'en',
+  };
+}
+
+function calculateAgeFromDateString(dateOfBirth: string, today: Date): number {
+  const dob = new Date(`${dateOfBirth}T00:00:00`);
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1;
+  }
+  return age;
+}
 
 export default function AdminClassMemberWalletPanel({
   classId,
@@ -21,6 +57,8 @@ export default function AdminClassMemberWalletPanel({
   classPrice,
   currency,
   seatsAvailable,
+  classSubCategory,
+  minimumAge,
   locale,
   onChangedAction,
 }: {
@@ -29,10 +67,13 @@ export default function AdminClassMemberWalletPanel({
   classPrice: number;
   currency: string;
   seatsAvailable: number;
+  classSubCategory?: string | null;
+  minimumAge?: number | null;
   locale: string;
   onChangedAction?: () => Promise<void> | void;
 }) {
   const isArabic = locale === 'ar';
+  const isMomKid = classSubCategory === 'MOM_AND_KID';
 
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -42,9 +83,8 @@ export default function AdminClassMemberWalletPanel({
   const [paymentMethod, setPaymentMethod] = useState<EnrollmentPaymentMethod>('WALLET');
   const [amount, setAmount] = useState(String(classPrice || 0));
   const [description, setDescription] = useState('');
-  const [participantName, setParticipantName] = useState('');
-  const [participantDateOfBirth, setParticipantDateOfBirth] = useState('');
-  const [participantPreferredLanguage, setParticipantPreferredLanguage] = useState<'en' | 'ar'>('en');
+  const [participantCount, setParticipantCount] = useState(1);
+  const [participants, setParticipants] = useState<ParticipantWithPartner[]>([emptyParticipant()]);
   const [specialRequests, setSpecialRequests] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,14 +95,60 @@ export default function AdminClassMemberWalletPanel({
     [users, selectedUserId]
   );
 
+  const payableParticipants = participants.slice(0, participantCount);
+
+  const freePartners = payableParticipants
+    .map((participant) => participant.partner)
+    .filter((partner): partner is Participant => Boolean(partner));
+
+  const calculateAge = useCallback((dateOfBirth: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return calculateAgeFromDateString(dateOfBirth, today);
+  }, []);
+
+  const needsFreePartner = useCallback((dateOfBirth: string) => {
+    if (!isMomKid || !dateOfBirth) return false;
+    const dob = new Date(`${dateOfBirth}T00:00:00`);
+    if (Number.isNaN(dob.getTime())) return false;
+    const age = calculateAge(dateOfBirth);
+    return age >= 5 && age <= 9;
+  }, [calculateAge, isMomKid]);
+
   useEffect(() => {
     if (!selectedUser) return;
-    if (!participantName) setParticipantName(selectedUser.fullName || '');
-    if (!participantDateOfBirth && selectedUser.dateOfBirth) {
-      setParticipantDateOfBirth(String(selectedUser.dateOfBirth).slice(0, 10));
-    }
-    setParticipantPreferredLanguage(selectedUser.preferredLanguage === 'ARABIC' ? 'ar' : 'en');
-  }, [selectedUser, participantDateOfBirth, participantName]);
+    setParticipants((current) => {
+      const next = [...current];
+      const first = next[0] ?? emptyParticipant();
+      next[0] = {
+        ...first,
+        fullName: first.fullName || selectedUser.fullName || '',
+        dateOfBirth: first.dateOfBirth || (selectedUser.dateOfBirth ? String(selectedUser.dateOfBirth).slice(0, 10) : ''),
+        preferredLanguage: selectedUser.preferredLanguage === 'ARABIC' ? 'ar' : 'en',
+        partner: needsFreePartner(first.dateOfBirth || (selectedUser.dateOfBirth ? String(selectedUser.dateOfBirth).slice(0, 10) : ''))
+          ? (first.partner ?? emptyPartner())
+          : null,
+      };
+      return next;
+    });
+  }, [needsFreePartner, selectedUser]);
+
+  useEffect(() => {
+    setParticipants((current) => {
+      const next = Array.from({ length: participantCount }, (_, index) => {
+        const item = current[index] ?? emptyParticipant();
+        return needsFreePartner(item.dateOfBirth)
+          ? { ...item, partner: item.partner ?? emptyPartner() }
+          : { ...item, partner: null };
+      });
+      return next;
+    });
+  }, [needsFreePartner, participantCount]);
+
+  useEffect(() => {
+    if (action !== 'ENROLL_AND_DEDUCT') return;
+    setAmount(String(Number((classPrice * participantCount).toFixed(3))));
+  }, [action, classPrice, participantCount]);
 
   useEffect(() => {
     let active = true;
@@ -138,13 +224,119 @@ export default function AdminClassMemberWalletPanel({
     participantName: isArabic ? 'اسم المشارك' : 'Participant name',
     participantDob: isArabic ? 'تاريخ الميلاد' : 'Date of birth',
     participantLang: isArabic ? 'لغة المشارك' : 'Participant language',
+    participantsCount: isArabic ? 'عدد المشاركين' : 'Number of Participants',
+    participants: isArabic ? 'بيانات المشاركين' : 'Participants Details',
+    participant: isArabic ? 'مشارك' : 'Participant',
+    partnerDetails: isArabic ? 'بيانات الشريك مع الطفل' : 'Adult companion details',
+    momKidPolicy: isArabic
+      ? 'الأطفال من 5 إلى 9 سنوات يحتاجون مرافقاً بعمر 10+ مع تسجيل بياناته. الأطفال أقل من 5 سنوات غير مقبولين.'
+      : 'Children aged 5-9 need a 10+ companion and both records must be entered. Children under 5 are not accepted.',
     notes: isArabic ? 'ملاحظات' : 'Notes',
     save: isArabic ? 'تنفيذ العملية' : 'Run Operation',
     saving: isArabic ? 'جاري التنفيذ...' : 'Processing...',
     success: isArabic ? 'تم تنفيذ العملية بنجاح.' : 'Operation completed successfully.',
     noUsers: isArabic ? 'لا يوجد عملاء متاحون حالياً.' : 'No customers are available at the moment.',
     chooseUser: isArabic ? 'يجب اختيار عميل أولاً.' : 'Please select a customer first.',
-    chooseParticipant: isArabic ? 'اسم المشارك وتاريخ الميلاد مطلوبان للتسجيل.' : 'Participant name and DOB are required for enrollment.',
+    chooseParticipant: isArabic ? 'أكمل بيانات جميع المشاركين قبل التسجيل.' : 'Complete all participant details before enrollment.',
+    invalidDob: isArabic ? 'تاريخ الميلاد غير صالح.' : 'Invalid date of birth.',
+    seatsError: isArabic ? 'عدد المشاركين أكبر من المقاعد المتاحة.' : 'Participants exceed available seats.',
+    ageTooYoung: isArabic
+      ? `عمر أحد المشاركين أقل من الحد الأدنى المطلوب (${minimumAge ?? 0} سنة).`
+      : `A participant is below the minimum age requirement (${minimumAge ?? 0} years).`,
+    momKidUnderFive: isArabic
+      ? 'لا نقبل الأطفال أقل من 5 سنوات في هذه الورشة.'
+      : 'Children under 5 are not accepted in this workshop.',
+    momKidPartnerRequired: isArabic
+      ? 'الأطفال بعمر 5-9 سنوات يحتاجون مرافقاً بعمر 10+ مع تسجيل الاسمين.'
+      : 'Children aged 5-9 must be registered with a 10+ companion and both names must be provided.',
+  };
+
+  const updateParticipant = (index: number, key: keyof Participant, value: string) => {
+    setParticipants((current) => current.map((participant, participantIndex) => {
+      if (participantIndex !== index) return participant;
+      const next = { ...participant, [key]: value };
+      return key === 'dateOfBirth' && !needsFreePartner(String(value))
+        ? { ...next, partner: null }
+        : next;
+    }));
+  };
+
+  const updatePartner = (index: number, key: keyof Participant, value: string) => {
+    setParticipants((current) => current.map((participant, participantIndex) => {
+      if (participantIndex !== index) return participant;
+      return {
+        ...participant,
+        partner: {
+          ...(participant.partner ?? emptyPartner()),
+          [key]: value,
+        },
+      };
+    }));
+  };
+
+  const validateEnrollment = () => {
+    if (participantCount < 1) {
+      setError(t.chooseParticipant);
+      return false;
+    }
+
+    if (participantCount > seatsAvailable) {
+      setError(t.seatsError);
+      return false;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (const participant of payableParticipants) {
+      if (!participant.fullName.trim() || !participant.dateOfBirth.trim()) {
+        setError(t.chooseParticipant);
+        return false;
+      }
+
+      const dob = new Date(`${participant.dateOfBirth}T00:00:00`);
+      if (Number.isNaN(dob.getTime()) || dob.getTime() > today.getTime()) {
+        setError(t.invalidDob);
+        return false;
+      }
+
+      if (minimumAge != null && minimumAge > 0) {
+        const age = calculateAge(participant.dateOfBirth);
+        if (age < minimumAge) {
+          setError(t.ageTooYoung);
+          return false;
+        }
+      }
+
+      if (isMomKid) {
+        const age = calculateAge(participant.dateOfBirth);
+        if (age < 5) {
+          setError(t.momKidUnderFive);
+          return false;
+        }
+
+        if (age >= 5 && age <= 9) {
+          const partner = participant.partner;
+          if (!partner || !partner.fullName.trim() || !partner.dateOfBirth.trim()) {
+            setError(t.momKidPartnerRequired);
+            return false;
+          }
+
+          const partnerDob = new Date(`${partner.dateOfBirth}T00:00:00`);
+          if (Number.isNaN(partnerDob.getTime()) || partnerDob.getTime() > today.getTime()) {
+            setError(t.invalidDob);
+            return false;
+          }
+
+          if (calculateAge(partner.dateOfBirth) < 10) {
+            setError(t.momKidPartnerRequired);
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
   };
 
   const runOperation = async () => {
@@ -156,8 +348,7 @@ export default function AdminClassMemberWalletPanel({
       return;
     }
 
-    if (action === 'ENROLL_AND_DEDUCT' && (!participantName.trim() || !participantDateOfBirth.trim())) {
-      setError(t.chooseParticipant);
+    if (action === 'ENROLL_AND_DEDUCT' && !validateEnrollment()) {
       return;
     }
 
@@ -173,9 +364,13 @@ export default function AdminClassMemberWalletPanel({
           userId: selectedUserId,
           amount: Number(amount),
           description,
-          participantName,
-          participantDateOfBirth,
-          participantPreferredLanguage,
+          numberOfParticipants: participantCount,
+          participants: payableParticipants.map(({ fullName, dateOfBirth, preferredLanguage }) => ({
+            fullName,
+            dateOfBirth,
+            preferredLanguage,
+          })),
+          freePartners,
           specialRequests,
         }),
       });
@@ -188,6 +383,8 @@ export default function AdminClassMemberWalletPanel({
       setSuccess(t.success);
       if (action === 'ENROLL_AND_DEDUCT') {
         setSpecialRequests('');
+        setParticipantCount(1);
+        setParticipants([emptyParticipant()]);
       }
       if (onChangedAction) {
         await onChangedAction();
@@ -270,6 +467,7 @@ export default function AdminClassMemberWalletPanel({
                 setAmount(String(classPrice || 0));
                 setDescription(`Class payment: ${classTitle}`);
                 setPaymentMethod('WALLET');
+                setParticipantCount(1);
               }
             }}
             className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
@@ -319,46 +517,118 @@ export default function AdminClassMemberWalletPanel({
       </div>
 
       {action === 'ENROLL_AND_DEDUCT' ? (
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <label className="space-y-1 text-sm">
-            <span className="text-zinc-600 dark:text-zinc-300">{t.participantName}</span>
-            <input
-              value={participantName}
-              onChange={(event) => setParticipantName(event.target.value)}
-              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-            />
-          </label>
+        <div className="mt-4 space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.participantsCount}</span>
+              <select
+                value={participantCount}
+                onChange={(event) => setParticipantCount(Number(event.target.value))}
+                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+              >
+                {Array.from({ length: Math.max(1, Math.min(10, seatsAvailable)) }, (_, index) => index + 1).map((count) => (
+                  <option key={count} value={count}>{count}</option>
+                ))}
+              </select>
+            </label>
 
-          <label className="space-y-1 text-sm">
-            <span className="text-zinc-600 dark:text-zinc-300">{t.participantDob}</span>
-            <input
-              type="date"
-              value={participantDateOfBirth}
-              onChange={(event) => setParticipantDateOfBirth(event.target.value)}
-              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-            />
-          </label>
+            <label className="space-y-1 text-sm">
+              <span className="text-zinc-600 dark:text-zinc-300">{t.notes}</span>
+              <input
+                value={specialRequests}
+                onChange={(event) => setSpecialRequests(event.target.value)}
+                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+              />
+            </label>
+          </div>
 
-          <label className="space-y-1 text-sm">
-            <span className="text-zinc-600 dark:text-zinc-300">{t.participantLang}</span>
-            <select
-              value={participantPreferredLanguage}
-              onChange={(event) => setParticipantPreferredLanguage(event.target.value === 'ar' ? 'ar' : 'en')}
-              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-            >
-              <option value="en">English</option>
-              <option value="ar">العربية</option>
-            </select>
-          </label>
+          {isMomKid ? (
+            <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-300">
+              {t.momKidPolicy}
+            </p>
+          ) : null}
 
-          <label className="space-y-1 text-sm">
-            <span className="text-zinc-600 dark:text-zinc-300">{t.notes}</span>
-            <input
-              value={specialRequests}
-              onChange={(event) => setSpecialRequests(event.target.value)}
-              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-            />
-          </label>
+          <div className="space-y-4">
+            {participants.slice(0, participantCount).map((participant, index) => (
+              <div key={`participant-${index}`} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
+                <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  {t.participant} {index + 1}
+                </p>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.participantName}</span>
+                    <input
+                      value={participant.fullName}
+                      onChange={(event) => updateParticipant(index, 'fullName', event.target.value)}
+                      className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.participantDob}</span>
+                    <input
+                      type="date"
+                      value={participant.dateOfBirth}
+                      onChange={(event) => updateParticipant(index, 'dateOfBirth', event.target.value)}
+                      max={new Date().toISOString().split('T')[0]}
+                      className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.participantLang}</span>
+                    <select
+                      value={participant.preferredLanguage}
+                      onChange={(event) => updateParticipant(index, 'preferredLanguage', event.target.value === 'ar' ? 'ar' : 'en')}
+                      className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                    >
+                      <option value="en">English</option>
+                      <option value="ar">العربية</option>
+                    </select>
+                  </label>
+                </div>
+
+                {isMomKid && needsFreePartner(participant.dateOfBirth) ? (
+                  <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20">
+                    <p className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.partnerDetails}</p>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <label className="space-y-1 text-sm">
+                        <span className="text-zinc-600 dark:text-zinc-300">{t.participantName}</span>
+                        <input
+                          value={participant.partner?.fullName ?? ''}
+                          onChange={(event) => updatePartner(index, 'fullName', event.target.value)}
+                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                        />
+                      </label>
+
+                      <label className="space-y-1 text-sm">
+                        <span className="text-zinc-600 dark:text-zinc-300">{t.participantDob}</span>
+                        <input
+                          type="date"
+                          value={participant.partner?.dateOfBirth ?? ''}
+                          onChange={(event) => updatePartner(index, 'dateOfBirth', event.target.value)}
+                          max={new Date().toISOString().split('T')[0]}
+                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                        />
+                      </label>
+
+                      <label className="space-y-1 text-sm">
+                        <span className="text-zinc-600 dark:text-zinc-300">{t.participantLang}</span>
+                        <select
+                          value={participant.partner?.preferredLanguage ?? 'en'}
+                          onChange={(event) => updatePartner(index, 'preferredLanguage', event.target.value === 'ar' ? 'ar' : 'en')}
+                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                        >
+                          <option value="en">English</option>
+                          <option value="ar">العربية</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
 

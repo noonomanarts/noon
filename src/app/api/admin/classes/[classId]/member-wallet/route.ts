@@ -8,15 +8,22 @@ import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotificat
 
 type ActionType = 'TOPUP' | 'DEDUCT' | 'ENROLL_AND_DEDUCT';
 
+type ParticipantPayload = {
+  fullName: string;
+  dateOfBirth: string;
+  preferredLanguage: 'en' | 'ar';
+  isFreePartner?: boolean;
+};
+
 type Payload = {
   action?: ActionType;
   paymentMethod?: PaymentMethod;
   userId?: string;
   amount?: number;
   description?: string;
-  participantName?: string;
-  participantDateOfBirth?: string;
-  participantPreferredLanguage?: 'en' | 'ar';
+  numberOfParticipants?: number;
+  participants?: unknown;
+  freePartners?: unknown;
   specialRequests?: string;
 };
 
@@ -40,6 +47,61 @@ function normalizePaymentMethod(value: unknown): PaymentMethod {
   }
 
   return 'WALLET';
+}
+
+function parseParticipants(value: unknown, isFreePartner = false): ParticipantPayload[] {
+  if (!Array.isArray(value)) return [];
+
+  const participants: ParticipantPayload[] = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (const rawParticipant of value) {
+    if (!rawParticipant || typeof rawParticipant !== 'object') continue;
+    const row = rawParticipant as Record<string, unknown>;
+    const fullName = normalizeText(row.fullName, 240);
+    const dateOfBirth = normalizeText(row.dateOfBirth, 20);
+    const preferredLanguage = normalizeText(row.preferredLanguage, 10);
+
+    if (!fullName || !dateOfBirth) {
+      continue;
+    }
+
+    if (preferredLanguage !== 'en' && preferredLanguage !== 'ar') {
+      continue;
+    }
+
+    const dob = new Date(`${dateOfBirth}T00:00:00`);
+    if (Number.isNaN(dob.getTime()) || dob.getTime() > today.getTime()) {
+      continue;
+    }
+
+    participants.push({
+      fullName,
+      dateOfBirth,
+      preferredLanguage: preferredLanguage as 'en' | 'ar',
+      isFreePartner,
+    });
+
+    if (participants.length >= 10) break;
+  }
+
+  return participants;
+}
+
+function normalizeParticipantCount(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? parsed : NaN;
+}
+
+function calculateAgeFromDateString(dateOfBirth: string, today: Date): number {
+  const dob = new Date(`${dateOfBirth}T00:00:00`);
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1;
+  }
+  return age;
 }
 
 function generateBookingNumber(): string {
@@ -127,18 +189,18 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
       });
     }
 
-    const participantName = normalizeText(body.participantName, 240);
-    const participantDateOfBirth = normalizeText(body.participantDateOfBirth, 20);
-    const preferredLanguage = body.participantPreferredLanguage === 'ar' ? 'ar' : 'en';
+    const numberOfParticipants = normalizeParticipantCount(body.numberOfParticipants);
+    const participants = parseParticipants(body.participants);
+    const freePartners = parseParticipants(body.freePartners, true);
+    const storedParticipants = [...participants, ...freePartners];
     const specialRequests = normalizeText(body.specialRequests, 2000) || null;
 
-    if (!participantName || !participantDateOfBirth) {
-      return NextResponse.json({ error: 'Participant name and date of birth are required' }, { status: 400 });
+    if (!Number.isInteger(numberOfParticipants) || numberOfParticipants < 1 || numberOfParticipants > 10) {
+      return NextResponse.json({ error: 'Invalid number of participants' }, { status: 400 });
     }
 
-    const dob = new Date(`${participantDateOfBirth}T00:00:00`);
-    if (Number.isNaN(dob.getTime()) || dob.getTime() > Date.now()) {
-      return NextResponse.json({ error: 'Invalid participant date of birth' }, { status: 400 });
+    if (participants.length !== numberOfParticipants) {
+      return NextResponse.json({ error: 'Participants data is incomplete' }, { status: 400 });
     }
 
     const client = await pool.connect();
@@ -147,7 +209,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
       await client.query('BEGIN');
 
       const classResult = await client.query(
-        `SELECT id, title, title_ar, price, currency, seats_total, seats_booked, status, start_date_time
+        `SELECT id, title, title_ar, price, currency, seats_total, seats_booked, status, start_date_time, sub_category, minimum_age
          FROM classes
          WHERE id = $1
          FOR UPDATE`,
@@ -165,8 +227,37 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
 
       const seatsTotal = Number(classRow.seats_total ?? 0);
       const seatsBooked = Number(classRow.seats_booked ?? 0);
-      if (seatsBooked + 1 > seatsTotal) {
+      if (seatsBooked + numberOfParticipants > seatsTotal) {
         throw new ApiError('No available seats', 409);
+      }
+
+      const minimumAge = classRow.minimum_age != null ? Number(classRow.minimum_age) : null;
+      if (minimumAge != null && minimumAge > 0) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        for (const participant of participants) {
+          const age = calculateAgeFromDateString(participant.dateOfBirth, today);
+          if (age < minimumAge) {
+            throw new ApiError(`A participant is below the minimum age requirement (${minimumAge} years).`, 400);
+          }
+        }
+      }
+
+      if (String(classRow.sub_category || '') === 'MOM_AND_KID') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const ages = participants.map((participant) => calculateAgeFromDateString(participant.dateOfBirth, today));
+        if (ages.some((age) => age < 5)) {
+          throw new ApiError('Children under 5 are not accepted in this workshop.', 400);
+        }
+        const childrenNeedingPartnerCount = ages.filter((age) => age >= 5 && age <= 9).length;
+        const partnerAges = freePartners.map((participant) => calculateAgeFromDateString(participant.dateOfBirth, today));
+        if (childrenNeedingPartnerCount > 0 && (
+          freePartners.length < childrenNeedingPartnerCount
+          || partnerAges.some((age) => age < 10)
+        )) {
+          throw new ApiError('Children aged 5-9 must be registered with a 10+ partner, and both names must be provided.', 400);
+        }
       }
 
       const classCurrency = String(classRow.currency || 'OMR');
@@ -181,21 +272,6 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
       const targetUser = userResult.rows[0];
       if (!targetUser) {
         throw new ApiError('User not found', 404);
-      }
-
-      const duplicateBookingResult = await client.query(
-        `SELECT 1
-         FROM bookings
-         WHERE class_id = $1
-           AND user_id = $2
-           AND status IN ('PENDING', 'CONFIRMED', 'COMPLETED')
-           AND payment_status = 'PAID'
-         LIMIT 1`,
-        [params.classId, userId]
-      );
-
-      if ((duplicateBookingResult.rowCount ?? 0) > 0) {
-        throw new ApiError('This user is already enrolled in this class', 409);
       }
 
       let newBalance: number | null = null;
@@ -249,14 +325,6 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
         );
       }
 
-      const participants = [
-        {
-          fullName: participantName,
-          dateOfBirth: participantDateOfBirth,
-          preferredLanguage,
-        },
-      ];
-
       let bookingRow: Record<string, unknown> | null = null;
       for (let attempt = 0; attempt < 5; attempt += 1) {
         try {
@@ -266,16 +334,17 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
                total_amount, currency, status, payment_method, payment_status, paid_at,
                terms_accepted, terms_accepted_at, special_requests, created_at, updated_at
              ) VALUES (
-               $1, $2, $3, $4::jsonb, 1,
-               $5, $6, 'CONFIRMED', $7, 'PAID', NOW(),
-               TRUE, NOW(), $8, NOW(), NOW()
+               $1, $2, $3, $4::jsonb, $5,
+               $6, $7, 'CONFIRMED', $8, 'PAID', NOW(),
+               TRUE, NOW(), $9, NOW(), NOW()
              )
              RETURNING id, booking_number`,
             [
               generateBookingNumber(),
               userId,
               params.classId,
-              JSON.stringify(participants),
+              JSON.stringify(storedParticipants),
+              numberOfParticipants,
               amount,
               classCurrency,
               paymentMethod,
@@ -295,11 +364,11 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
 
       await client.query(
         `UPDATE classes
-         SET seats_booked = seats_booked + 1,
-             seats_available = GREATEST(0, seats_total - (seats_booked + 1)),
+         SET seats_booked = seats_booked + $2,
+             seats_available = GREATEST(0, seats_total - (seats_booked + $2)),
              updated_at = NOW()
          WHERE id = $1`,
-        [params.classId]
+        [params.classId, numberOfParticipants]
       );
 
       await client.query('COMMIT');

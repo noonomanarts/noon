@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useCallback, useEffect, useMemo, useState } from 'react';
 import { IoArrowBack, IoRefresh, IoWalletOutline } from 'react-icons/io5';
 import AdminClassMemberWalletPanel from '@/components/admin/AdminClassMemberWalletPanel';
 
@@ -11,6 +11,8 @@ type ClassDetails = {
   titleAr?: string | null;
   price: number;
   currency: string;
+  subCategory?: string | null;
+  minimumAge?: number | null;
   seatsTotal: number;
   seatsBooked: number;
   status: 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED';
@@ -39,7 +41,7 @@ export default function AdminClassEnrollmentWalletPage({
     notFound: isArabic ? 'تعذر تحميل بيانات الكلاس.' : 'Failed to load class data.',
   };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -58,11 +60,11 @@ export default function AdminClassEnrollmentWalletPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [classId, t.notFound]);
 
   useEffect(() => {
     void loadData();
-  }, [classId]);
+  }, [loadData]);
 
   const displayTitle = useMemo(() => {
     if (!classData) return '';
@@ -127,6 +129,8 @@ export default function AdminClassEnrollmentWalletPage({
         classPrice={classData.price}
         currency={classData.currency}
         seatsAvailable={Math.max(0, classData.seatsTotal - (classData.seatsBooked ?? 0))}
+        classSubCategory={classData.subCategory}
+        minimumAge={classData.minimumAge}
         locale={locale}
         onChangedAction={async () => {
           await loadData();
