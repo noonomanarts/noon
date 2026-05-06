@@ -27,12 +27,12 @@ function lookupFromBody(body: Record<string, unknown>): CallbackLookup {
   const payload = body.gatewayPayload && typeof body.gatewayPayload === 'object'
     ? (body.gatewayPayload as Record<string, unknown>)
     : body;
+  const snapshot = parseAmwalTransactionPayload(payload);
 
   return {
     reference:
       (typeof body.reference === 'string' ? body.reference.trim() : '') ||
-      (typeof payload.MerchantReference === 'string' ? payload.MerchantReference.trim() : '') ||
-      (typeof payload.merchantReference === 'string' ? payload.merchantReference.trim() : '') ||
+      snapshot.merchantReference ||
       null,
     payload,
   };
@@ -80,6 +80,7 @@ async function syncPaymentFromAmwal(lookup: CallbackLookup) {
     amwal: {
       ...amwalMetadata,
       responseCode: snapshot.responseCode,
+      statusText: snapshot.statusText,
       message: snapshot.message,
       systemReference: snapshot.systemReference,
       secureHash: snapshot.secureHash,

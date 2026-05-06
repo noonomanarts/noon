@@ -39,6 +39,7 @@ export default function AdminPaymentsPageClient({ locale }: AdminPaymentsPageCli
   const [payments, setPayments] = useState<TopupPayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingReference, setProcessingReference] = useState<string | null>(null);
+  const [batchReprocessing, setBatchReprocessing] = useState(false);
   const [failureReasonByReference, setFailureReasonByReference] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -131,6 +132,63 @@ export default function AdminPaymentsPageClient({ locale }: AdminPaymentsPageCli
     }
   };
 
+  const reprocessPendingTopups = async (reference?: string) => {
+    if (reference) {
+      setProcessingReference(reference);
+    } else {
+      setBatchReprocessing(true);
+    }
+
+    setError(null);
+    setInfo(null);
+
+    try {
+      const response = await fetch('/api/admin/payments/wallet-topups/reprocess', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reference ? { reference } : { limit: 20 }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Failed to reprocess wallet top-ups');
+      }
+
+      if (reference) {
+        const reprocessed = Boolean(payload?.reprocessed);
+        const nextStatus = typeof payload?.payment?.status === 'string' ? payload.payment.status : 'PENDING';
+        const reason = typeof payload?.reason === 'string' ? payload.reason : 'updated';
+        setInfo(
+          locale === 'ar'
+            ? reprocessed
+              ? `تمت إعادة معالجة ${reference} وتحديث الحالة إلى ${nextStatus}.`
+              : `لم تتغير حالة ${reference}. النتيجة: ${reason}.`
+            : reprocessed
+              ? `${reference} was reprocessed and updated to ${nextStatus}.`
+              : `${reference} was checked but not changed. Result: ${reason}.`
+        );
+      } else {
+        const processedCount = typeof payload?.processedCount === 'number' ? payload.processedCount : 0;
+        const reprocessedCount = typeof payload?.reprocessedCount === 'number' ? payload.reprocessedCount : 0;
+        setInfo(
+          locale === 'ar'
+            ? `تمت مراجعة ${processedCount} عملية معلقة وتحديث ${reprocessedCount} منها.`
+            : `Checked ${processedCount} pending top-ups and updated ${reprocessedCount} of them.`
+        );
+      }
+
+      await fetchPayments();
+    } catch (reprocessError) {
+      setError(reprocessError instanceof Error ? reprocessError.message : 'Failed to reprocess wallet top-ups');
+    } finally {
+      if (reference) {
+        setProcessingReference(null);
+      } else {
+        setBatchReprocessing(false);
+      }
+    }
+  };
+
   useEffect(() => {
     void fetchPayments();
   }, [fetchPayments]);
@@ -188,6 +246,15 @@ export default function AdminPaymentsPageClient({ locale }: AdminPaymentsPageCli
             <option value="FAILED">{locale === 'ar' ? 'فاشل' : 'Failed'}</option>
             <option value="CANCELLED">{locale === 'ar' ? 'ملغي' : 'Cancelled'}</option>
           </select>
+          <button
+            onClick={() => void reprocessPendingTopups()}
+            disabled={loading || batchReprocessing}
+            className="rounded-lg border border-[color:var(--noon-teal)] px-3 py-2 text-sm font-semibold text-[color:var(--noon-teal)] hover:bg-[color:var(--noon-teal)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {batchReprocessing
+              ? (locale === 'ar' ? 'جارٍ التحقق...' : 'Reprocessing...')
+              : (locale === 'ar' ? 'إعادة فحص المعلّق' : 'Reprocess Pending')}
+          </button>
         </div>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           {locale === 'ar' ? `إجمالي السجلات: ${pagination.total}` : `Total records: ${pagination.total}`}
@@ -255,8 +322,17 @@ export default function AdminPaymentsPageClient({ locale }: AdminPaymentsPageCli
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <button
+                              onClick={() => void reprocessPendingTopups(payment.reference)}
+                              disabled={processingReference === payment.reference || batchReprocessing}
+                              className="rounded-md border border-[color:var(--noon-teal)] px-2.5 py-1.5 text-xs font-semibold text-[color:var(--noon-teal)] hover:bg-[color:var(--noon-teal)]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {processingReference === payment.reference
+                                ? (locale === 'ar' ? 'جارٍ التحقق...' : 'Checking...')
+                                : (locale === 'ar' ? 'فحص من البوابة' : 'Reprocess Gateway')}
+                            </button>
+                            <button
                               onClick={() => simulateStatus(payment.reference, 'PAID')}
-                              disabled={processingReference === payment.reference}
+                              disabled={processingReference === payment.reference || batchReprocessing}
                               className="rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {locale === 'ar' ? 'محاكاة نجاح' : 'Simulate Paid'}
@@ -269,14 +345,14 @@ export default function AdminPaymentsPageClient({ locale }: AdminPaymentsPageCli
                                   failureReasonByReference[payment.reference]?.trim() || undefined
                                 )
                               }
-                              disabled={processingReference === payment.reference}
+                              disabled={processingReference === payment.reference || batchReprocessing}
                               className="rounded-md bg-rose-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {locale === 'ar' ? 'محاكاة فشل' : 'Simulate Failed'}
                             </button>
                             <button
                               onClick={() => simulateStatus(payment.reference, 'CANCELLED')}
-                              disabled={processingReference === payment.reference}
+                              disabled={processingReference === payment.reference || batchReprocessing}
                               className="rounded-md bg-zinc-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {locale === 'ar' ? 'محاكاة إلغاء' : 'Simulate Cancelled'}

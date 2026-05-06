@@ -1,4 +1,4 @@
-import { createHash, createHmac } from 'crypto';
+import { createHmac } from 'crypto';
 
 type BillingContact = {
   fullName: string;
@@ -50,6 +50,7 @@ export type AmwalTransactionSnapshot = {
   merchantReference: string | null;
   systemReference: string | null;
   responseCode: string | null;
+  statusText: string | null;
   message: string | null;
   secureHash: string | null;
   authorizationDateTime: string | null;
@@ -320,6 +321,63 @@ function getRecord(source: Record<string, unknown>, ...keys: string[]): Record<s
   return null;
 }
 
+function getPayloadLevels(payload: Record<string, unknown>): Record<string, unknown>[] {
+  const levels: Record<string, unknown>[] = [payload];
+  const queue: Record<string, unknown>[] = [payload];
+  const seen = new Set<Record<string, unknown>>([payload]);
+
+  while (queue.length > 0 && levels.length < 6) {
+    const current = queue.shift();
+    if (!current) {
+      break;
+    }
+
+    for (const key of ['data', 'Data', 'payload', 'Payload', 'result', 'Result']) {
+      const nested = getRecord(current, key);
+      if (nested && !seen.has(nested)) {
+        seen.add(nested);
+        levels.push(nested);
+        queue.push(nested);
+      }
+    }
+  }
+
+  return levels;
+}
+
+function getStringFromLevels(levels: Record<string, unknown>[], ...keys: string[]): string | null {
+  for (const level of levels) {
+    const value = getString(level, ...keys);
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function getNumberFromLevels(levels: Record<string, unknown>[], ...keys: string[]): number | null {
+  for (const level of levels) {
+    const value = getNumber(level, ...keys);
+    if (value !== null) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+function getErrorListMessageFromLevels(levels: Record<string, unknown>[]): string | null {
+  for (const level of levels) {
+    const value = getErrorListMessage(level);
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 function getErrorListMessage(source: Record<string, unknown>): string | null {
   const value = source.errorList;
   if (!Array.isArray(value)) {
@@ -348,34 +406,62 @@ function getNumber(source: Record<string, unknown>, ...keys: string[]): number |
 }
 
 export function parseAmwalTransactionPayload(payload: Record<string, unknown>): AmwalTransactionSnapshot {
-  const levelOne = getRecord(payload, 'data') || payload;
-  const levelTwo = getRecord(levelOne, 'data') || levelOne;
+  const levels = getPayloadLevels(payload);
 
   return {
-    merchantReference: getString(payload, 'MerchantReference', 'merchantReference', 'reference') || getString(levelTwo, 'MerchantReference', 'merchantReference', 'reference'),
-    systemReference: getString(levelTwo, 'SystemReference', 'systemReference', 'TransactionId', 'transactionId'),
-    responseCode: getString(levelTwo, 'ResponseCode', 'responseCode', 'statusCode'),
-    message: getString(levelTwo, 'Message', 'message', 'statusMessage') || getErrorListMessage(levelTwo) || getString(levelOne, 'message', 'Message'),
-    secureHash: getString(levelTwo, 'SecureHash', 'secureHash', 'secureHashValue'),
-    authorizationDateTime: getString(levelTwo, 'AuthorizationDateTime', 'authorizationDateTime'),
-    dateTimeLocalTrxn: getString(levelTwo, 'DateTimeLocalTrxn', 'dateTimeLocalTrxn', 'transactionDateTime'),
-    amount: getNumber(levelTwo, 'Amount', 'amount'),
-    currencyId: getNumber(levelTwo, 'CurrencyId', 'currencyId'),
-    paidThrough: getString(levelTwo, 'PaidThrough', 'paidThrough'),
+    merchantReference: getStringFromLevels(levels, 'MerchantReference', 'merchantReference', 'reference'),
+    systemReference: getStringFromLevels(levels, 'SystemReference', 'systemReference', 'TransactionId', 'transactionId', 'paymentReference'),
+    responseCode: getStringFromLevels(levels, 'ResponseCode', 'responseCode', 'statusCode', 'code', 'ErrorCode', 'errorCode', 'ResultCode'),
+    statusText: getStringFromLevels(levels, 'paymentStatus', 'PaymentStatus', 'transactionStatus', 'TransactionStatus', 'status', 'Status', 'result', 'Result'),
+    message: getStringFromLevels(levels, 'Message', 'message', 'statusMessage', 'details', 'description', 'statusDescription') || getErrorListMessageFromLevels(levels),
+    secureHash: getStringFromLevels(levels, 'SecureHash', 'secureHash', 'secureHashValue'),
+    authorizationDateTime: getStringFromLevels(levels, 'AuthorizationDateTime', 'authorizationDateTime', 'paidAt'),
+    dateTimeLocalTrxn: getStringFromLevels(levels, 'DateTimeLocalTrxn', 'dateTimeLocalTrxn', 'transactionDateTime'),
+    amount: getNumberFromLevels(levels, 'Amount', 'amount'),
+    currencyId: getNumberFromLevels(levels, 'CurrencyId', 'currencyId'),
+    paidThrough: getStringFromLevels(levels, 'PaidThrough', 'paidThrough', 'paymentMethod'),
     raw: payload,
   };
 }
 
 export function mapAmwalTransactionToPaymentStatus(snapshot: AmwalTransactionSnapshot): 'PAID' | 'CANCELLED' | 'FAILED' | 'PENDING' {
   const responseCode = snapshot.responseCode?.toUpperCase() ?? null;
+  const statusText = snapshot.statusText?.toLowerCase() ?? '';
   const message = snapshot.message?.toLowerCase() ?? '';
+  const combinedText = `${statusText} ${message}`.trim();
 
-  if (responseCode === '00') {
+  if (responseCode === '00' || responseCode === '0' || responseCode === '000') {
     return 'PAID';
   }
 
-  if (message.includes('cancel')) {
+  if (responseCode === 'CANCELLED' || responseCode === 'CANCELED') {
     return 'CANCELLED';
+  }
+
+  if (combinedText.includes('cancel')) {
+    return 'CANCELLED';
+  }
+
+  if (
+    combinedText.includes('success') ||
+    combinedText.includes('approved') ||
+    combinedText.includes('authorised') ||
+    combinedText.includes('authorized') ||
+    combinedText.includes('paid') ||
+    combinedText.includes('completed')
+  ) {
+    return 'PAID';
+  }
+
+  if (
+    responseCode === 'PENDING' ||
+    responseCode === 'PROCESSING' ||
+    responseCode === 'IN_PROGRESS' ||
+    combinedText.includes('pending') ||
+    combinedText.includes('processing') ||
+    combinedText.includes('in progress')
+  ) {
+    return 'PENDING';
   }
 
   if (responseCode && responseCode !== '00') {
@@ -383,27 +469,24 @@ export function mapAmwalTransactionToPaymentStatus(snapshot: AmwalTransactionSna
   }
 
   if (
-    message.includes('fail') ||
-    message.includes('error') ||
-    message.includes('unauthor') ||
-    message.includes('declin') ||
-    message.includes('reject') ||
-    message.includes('invalid') ||
-    message.includes('denied')
+    combinedText.includes('fail') ||
+    combinedText.includes('error') ||
+    combinedText.includes('unauthor') ||
+    combinedText.includes('declin') ||
+    combinedText.includes('reject') ||
+    combinedText.includes('invalid') ||
+    combinedText.includes('denied')
   ) {
     return 'FAILED';
-  }
-
-  if (message.includes('success') || message.includes('approved') || message.includes('paid')) {
-    return 'PAID';
   }
 
   return 'PENDING';
 }
 
 export function isExpectedAmwalMerchant(payload: Record<string, unknown>): boolean {
-  const merchantId = getString(payload, 'MerchantId', 'merchantId');
-  const terminalId = getString(payload, 'TerminalId', 'terminalId');
+  const levels = getPayloadLevels(payload);
+  const merchantId = getStringFromLevels(levels, 'MerchantId', 'merchantId');
+  const terminalId = getStringFromLevels(levels, 'TerminalId', 'terminalId');
 
   return merchantId === getRequiredEnv('AMWAL_MERCHANT_ID') && terminalId === getRequiredEnv('AMWAL_TERMINAL_ID');
 }

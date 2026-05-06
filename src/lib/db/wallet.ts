@@ -3,6 +3,7 @@ import { emitAdminEvent, emitUserEvent } from '@/lib/realtime/adminEvents';
 import { notifyRole, notifyUser } from '@/lib/notificationService';
 import { getUserById } from '@/lib/db/users';
 import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
+import { isExpectedAmwalMerchant, mapAmwalTransactionToPaymentStatus, parseAmwalTransactionPayload } from '@/lib/amwal';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import type { Wallet, WalletTransaction, LoyaltyCard, WalletTopupPayment, WalletTopupPaymentStatus } from './types';
 
@@ -1413,6 +1414,127 @@ export async function getWalletTopupPaymentForUser(reference: string, userId: st
     amount: parseFloat(row.amount as string),
     metadata: row.metadata ?? {},
   };
+}
+
+function getWalletTopupAmwalRawPayload(payment: WalletTopupPayment): Record<string, unknown> | null {
+  const amwal = payment.metadata?.amwal && typeof payment.metadata.amwal === 'object'
+    ? payment.metadata.amwal as Record<string, unknown>
+    : null;
+
+  return amwal?.rawPayload && typeof amwal.rawPayload === 'object'
+    ? amwal.rawPayload as Record<string, unknown>
+    : null;
+}
+
+function buildWalletTopupAmwalMetadata(payment: WalletTopupPayment, rawPayload: Record<string, unknown>) {
+  const snapshot = parseAmwalTransactionPayload(rawPayload);
+  const currentAmwalMetadata = payment.metadata?.amwal && typeof payment.metadata.amwal === 'object'
+    ? payment.metadata.amwal as Record<string, unknown>
+    : {};
+
+  return {
+    snapshot,
+    metadata: {
+      amwal: {
+        ...currentAmwalMetadata,
+        responseCode: snapshot.responseCode,
+        statusText: snapshot.statusText,
+        message: snapshot.message,
+        systemReference: snapshot.systemReference,
+        secureHash: snapshot.secureHash,
+        authorizationDateTime: snapshot.authorizationDateTime,
+        dateTimeLocalTrxn: snapshot.dateTimeLocalTrxn,
+        paidThrough: snapshot.paidThrough,
+        amount: snapshot.amount,
+        currencyId: snapshot.currencyId,
+        rawPayload,
+        syncedAt: new Date().toISOString(),
+      },
+    },
+  };
+}
+
+export async function reprocessWalletTopupPaymentFromStoredPayload(reference: string): Promise<{
+  payment: WalletTopupPayment | null;
+  reprocessed: boolean;
+  reason: 'not_found' | 'not_pending' | 'missing_raw_payload' | 'merchant_mismatch' | 'still_pending' | 'updated';
+}> {
+  const payment = await getWalletTopupPaymentByReference(reference);
+  if (!payment) {
+    return { payment: null, reprocessed: false, reason: 'not_found' };
+  }
+
+  if (payment.status !== 'PENDING') {
+    return { payment, reprocessed: false, reason: 'not_pending' };
+  }
+
+  const rawPayload = getWalletTopupAmwalRawPayload(payment);
+  if (!rawPayload) {
+    return { payment, reprocessed: false, reason: 'missing_raw_payload' };
+  }
+
+  if (
+    (rawPayload.MerchantId || rawPayload.merchantId || rawPayload.TerminalId || rawPayload.terminalId) &&
+    !isExpectedAmwalMerchant(rawPayload)
+  ) {
+    return { payment, reprocessed: false, reason: 'merchant_mismatch' };
+  }
+
+  const { snapshot, metadata } = buildWalletTopupAmwalMetadata(payment, rawPayload);
+  const nextStatus = mapAmwalTransactionToPaymentStatus(snapshot);
+  if (nextStatus === 'PENDING') {
+    return { payment, reprocessed: false, reason: 'still_pending' };
+  }
+
+  const updatedPayment = await updateWalletTopupPaymentStatus({
+    reference: payment.reference,
+    status: nextStatus,
+    gatewayTransactionId: snapshot.systemReference || payment.gateway_transaction_id || undefined,
+    failureReason: nextStatus === 'PAID' ? undefined : snapshot.message || 'Amwal payment did not complete',
+    metadata,
+  });
+
+  return { payment: updatedPayment, reprocessed: true, reason: 'updated' };
+}
+
+export async function reprocessPendingWalletTopupPayments(limit = 20): Promise<Array<{
+  reference: string;
+  status: WalletTopupPaymentStatus | null;
+  reprocessed: boolean;
+  reason: 'not_found' | 'not_pending' | 'missing_raw_payload' | 'merchant_mismatch' | 'still_pending' | 'updated';
+}>> {
+  await ensureWalletTopupPaymentsTable();
+
+  const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
+  const result = await pool.query(
+    `SELECT reference
+     FROM wallet_topup_payments
+     WHERE status = 'PENDING'
+       AND metadata->'amwal'->'rawPayload' IS NOT NULL
+     ORDER BY created_at ASC
+     LIMIT $1`,
+    [safeLimit]
+  );
+
+  const outcomes: Array<{
+    reference: string;
+    status: WalletTopupPaymentStatus | null;
+    reprocessed: boolean;
+    reason: 'not_found' | 'not_pending' | 'missing_raw_payload' | 'merchant_mismatch' | 'still_pending' | 'updated';
+  }> = [];
+
+  for (const row of result.rows) {
+    const currentReference = String(row.reference);
+    const outcome = await reprocessWalletTopupPaymentFromStoredPayload(currentReference);
+    outcomes.push({
+      reference: currentReference,
+      status: outcome.payment?.status ?? null,
+      reprocessed: outcome.reprocessed,
+      reason: outcome.reason,
+    });
+  }
+
+  return outcomes;
 }
 
 export async function listWalletTopupPaymentsForAdmin(options?: {

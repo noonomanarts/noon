@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getUserById } from '@/lib/db/users';
-import { getWalletTopupPaymentForUser } from '@/lib/db/wallet';
+import { getWalletTopupPaymentForUser, reprocessWalletTopupPaymentFromStoredPayload } from '@/lib/db/wallet';
 
 function getDiagnostics(payment: { failure_reason?: string | null; metadata?: Record<string, unknown> | null }) {
   const amwal = payment.metadata?.amwal && typeof payment.metadata.amwal === 'object'
@@ -51,7 +51,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Reference is required' }, { status: 400 });
     }
 
-    const payment = await getWalletTopupPaymentForUser(reference, user.id);
+    const initialPayment = await getWalletTopupPaymentForUser(reference, user.id);
+    const payment = initialPayment?.status === 'PENDING'
+      ? (await reprocessWalletTopupPaymentFromStoredPayload(reference)).payment
+      : initialPayment;
     if (!payment) {
       return NextResponse.json({ error: 'Top-up payment not found' }, { status: 404 });
     }
