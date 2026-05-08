@@ -515,6 +515,10 @@ body {
     grid-column: 1 / -1;
     justify-self: center;
   }
+
+  .site-footer-mobile {
+    display: none !important;
+  }
 }
 
 @media (min-width: 1200px) {
@@ -532,9 +536,6 @@ body {
     justify-self: end;
   }
 
-  .site-footer-mobile {
-    display: none !important;
-  }
 }
 
 @media (max-width: 767.98px) {
