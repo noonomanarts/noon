@@ -24,8 +24,8 @@ function NavLink({
   tone?: "dark" | "light";
 }) {
   const topClasses = tone === "light"
-    ? "inline-flex h-11 shrink-0 items-center whitespace-nowrap px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black"
-    : "inline-flex h-11 shrink-0 items-center whitespace-nowrap px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 hover:text-white";
+    ? "inline-flex h-11 shrink-0 items-center whitespace-nowrap px-3 text-sm font-extrabold text-black transition hover:bg-black/10 hover:text-black xl:text-base"
+    : "inline-flex h-11 shrink-0 items-center whitespace-nowrap px-3 text-sm font-extrabold text-white/95 transition hover:bg-white/14 hover:text-white xl:text-base";
   const panelClasses = tone === "light"
     ? "flex h-10 items-center whitespace-nowrap px-3 text-sm font-bold text-black transition hover:bg-black/10 hover:text-black"
     : "flex h-10 items-center whitespace-nowrap px-3 text-sm font-bold text-white/95 transition hover:bg-white/14 hover:text-white";
@@ -76,19 +76,19 @@ export default async function Header({ locale }: { locale: Locale }) {
       className="sticky top-0 z-40 shadow-none pt-[env(safe-area-inset-top)]"
       style={{ backgroundColor: headerColor }}
     >
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-3 ps-[max(1rem,env(safe-area-inset-left))] pe-[max(1rem,env(safe-area-inset-right))]">
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-3 py-2.5 ps-[max(0.75rem,env(safe-area-inset-left))] pe-[max(0.75rem,env(safe-area-inset-right))] sm:px-4 sm:py-3 lg:gap-3">
         <Link
           href={`/${locale}`}
-          className="inline-flex h-11 shrink-0 items-center gap-3 px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+          className="inline-flex h-10 shrink-0 items-center gap-3 px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 sm:h-11"
           aria-label="Noon"
         >
           <Image
             src={headerLogoUrl}
             alt="Noon"
-            width={56}
-            height={56}
+            width={52}
+            height={52}
             priority
-            className="h-11 w-auto shrink-0"
+            className="h-10 w-auto shrink-0 sm:h-11"
           />
         </Link>
 
@@ -127,17 +127,17 @@ export default async function Header({ locale }: { locale: Locale }) {
           <NavLink href={`/${locale}/join-us`} variant="top" tone={navTone}>{t.joinUs}</NavLink>
         </nav>
 
-        <div className="ms-auto flex items-center gap-1 sm:gap-2">
+        <div className="ms-auto flex min-w-0 items-center gap-0.5 sm:gap-2">
           <HeaderLocaleLink
             locale={locale}
-            className="inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-none px-2 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black sm:px-3"
+            className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-none px-1.5 text-sm font-extrabold text-black transition hover:bg-black/10 hover:text-black sm:h-11 sm:px-3 sm:text-base"
           />
 
           <CartLinkWithCount
             locale={locale}
             label={t.cart}
             initialCount={initialCartCount}
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-none px-2 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black sm:px-3"
+            className="inline-flex h-10 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-none px-1.5 text-sm font-extrabold text-black transition hover:bg-black/10 hover:text-black sm:h-11 sm:gap-1.5 sm:px-3 sm:text-base"
           />
 
           {user ? (
@@ -159,14 +159,14 @@ export default async function Header({ locale }: { locale: Locale }) {
             />
           ) : (
             <Link
-              href={`/${locale}/login`} 
+              href={`/${locale}/login`}
               className="hidden h-11 shrink-0 items-center justify-center whitespace-nowrap px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black lg:inline-flex"
             >
               {t.login}
             </Link>
           )}
 
-          <div className="lg:hidden">
+          <div className="shrink-0 lg:hidden">
             <Dropdown
               label={locale === "ar" ? "القائمة" : "Menu"}
               align="end"
@@ -193,7 +193,7 @@ export default async function Header({ locale }: { locale: Locale }) {
                 <div className="mt-2 border-t border-black/10 pt-2">
                   <Link
                     href={`/${locale}/login`}
-                    className="flex h-11 items-center justify-center rounded-lg bg-[#6d2e46] px-4 text-sm font-extrabold text-white transition hover:brightness-110"
+                    className="flex h-11 items-center justify-center rounded-none bg-[#6d2e46] px-4 text-sm font-extrabold text-white transition hover:brightness-110"
                   >
                     {t.login}
                   </Link>

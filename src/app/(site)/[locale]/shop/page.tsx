@@ -76,7 +76,7 @@ export default async function ShopPage({
 
   return (
     <div className="route-sharp pb-14">
-      <section className="relative mb-10 h-[16rem] w-full overflow-hidden sm:h-[19rem] md:h-[22rem]">
+      <section className="relative mb-8 h-[14rem] w-full overflow-hidden sm:mb-10 sm:h-[19rem] md:h-[22rem]">
         <Image
           src={shopPageContent.headerImage}
           alt={pageTitle}
@@ -87,11 +87,11 @@ export default async function ShopPage({
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/40 to-black/50" />
         <div className="absolute inset-0 mx-auto flex w-full max-w-6xl items-center justify-center px-4 text-center">
-          <h1 className="w-full text-4xl font-bold text-white sm:text-5xl">{pageTitle}</h1>
+          <h1 className="w-full text-3xl font-bold leading-tight text-white sm:text-5xl">{pageTitle}</h1>
         </div>
       </section>
 
-      <div className="mx-auto w-full max-w-6xl space-y-12 px-4 text-center">
+      <div className="mx-auto w-full max-w-6xl space-y-10 px-4 text-center sm:space-y-12">
         {categoriesWithProducts.length === 0 ? (
           <div className="border border-[color:var(--border)] bg-[color:var(--surface)] p-10 text-center shadow-sm">
             <p className="text-sm text-[color:var(--text-muted)]">{t.noCategories}</p>
@@ -109,8 +109,8 @@ export default async function ShopPage({
 
             return (
               <section key={category.id} className="space-y-4">
-                <h2 className="inline-flex items-center justify-center gap-2 text-3xl font-extrabold tracking-tight text-[color:var(--text)] sm:text-4xl">
-                  <FiBox className="size-7 text-coral" />
+                <h2 className="inline-flex items-center justify-center gap-2 text-2xl font-extrabold leading-tight text-[color:var(--text)] sm:text-4xl">
+                  <FiBox className="size-6 shrink-0 text-coral sm:size-7" />
                   {categoryTitle}
                 </h2>
 
@@ -119,19 +119,19 @@ export default async function ShopPage({
                     {t.noProductsInCategory}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                  <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-4">
                     {previewProducts.map((product) => (
                       <ShopProductCard key={product.id} product={product} locale={locale} />
                     ))}
                     <Link
                       href={`/${locale}/shop/${category.slug}`}
-                      className="group flex h-full flex-col items-center justify-center gap-3 border border-white/35 p-6 text-center shadow-sm transition hover:-translate-y-0.5 hover:brightness-95 hover:shadow-lg"
+                      className="group flex min-h-64 flex-col items-center justify-center gap-3 border border-white/35 p-5 text-center shadow-sm transition hover:-translate-y-0.5 hover:brightness-95 hover:shadow-lg sm:p-6"
                       style={{ backgroundColor: siteButtonColor, color: siteButtonTextColor }}
                     >
                       <span className="inline-flex size-14 items-center justify-center border border-white/35 bg-black/10">
                         <MoreArrowIcon className="size-6" />
                       </span>
-                      <p className="text-2xl font-extrabold tracking-tight">{t.moreProducts}</p>
+                      <p className="text-xl font-extrabold leading-tight sm:text-2xl">{t.moreProducts}</p>
                       <p className="w-full max-w-[24ch] text-center text-sm opacity-90">{t.viewAllProducts}</p>
                     </Link>
                   </div>
@@ -144,7 +144,7 @@ export default async function ShopPage({
         {discoverLinks.length > 0 ? (
           <section className="space-y-4 pt-2">
             <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.discoverMore}</h2>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {discoverLinks.map((link) => (
                 <a
                   key={link.id}

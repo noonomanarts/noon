@@ -27,7 +27,7 @@ function isPublicPath(pathname: string | null): boolean {
 }
 
 /**
- * Floating, round install button for the Noon PWA.
+ * Floating install button for the Noon PWA.
  * Positioned just above the WhatsApp floating button on the same side.
  *
  *   • Android/Chrome: triggers the native `beforeinstallprompt` flow.
@@ -127,13 +127,13 @@ export default function FloatingInstallButton({
   if (!canInstall) return null;
 
   const showWA = whatsapp.enabled && (whatsapp.showOnMobile || whatsapp.showOnDesktop);
-  const waSize = sanitizeNumber(whatsapp.buttonSizePx, 44, 96, 58);
-  const waBottom = Math.min(172, sanitizeNumber(whatsapp.bottomOffsetPx, 0, 120, 20) + 40);
-  const waSide = sanitizeNumber(whatsapp.sideOffsetPx, 0, 80, 20);
+  const waSize = sanitizeNumber(whatsapp.buttonSizePx, 40, 48, 46);
+  const waBottom = Math.min(132, sanitizeNumber(whatsapp.bottomOffsetPx, 0, 120, 20) + 24);
+  const waSide = sanitizeNumber(whatsapp.sideOffsetPx, 0, 80, 16);
   const waPosition = locale === 'ar' ? 'left' : 'right';
 
-  // Stack above WA button (12px gap). If WA is disabled, use its side/bottom defaults.
-  const gap = 12;
+  // Stack above WA button. If WA is disabled, use its side/bottom defaults.
+  const gap = 8;
   const bottomPx = showWA ? waBottom + waSize + gap : 60;
   const sidePx = waSide;
   const position = showWA ? waPosition : locale === 'ar' ? 'left' : 'right';
@@ -194,7 +194,7 @@ export default function FloatingInstallButton({
         <div
           role="tooltip"
           dir={isAr ? 'rtl' : 'ltr'}
-          className={`pointer-events-auto absolute ${tooltipSideClass} bottom-[calc(100%+10px)] w-[260px] rounded-2xl border border-zinc-200 bg-white p-3.5 text-start shadow-xl ring-1 ring-black/5 dark:border-zinc-700 dark:bg-zinc-900 dark:ring-white/5`}
+          className={`pointer-events-auto absolute ${tooltipSideClass} bottom-[calc(100%+10px)] w-[260px] rounded-none border border-zinc-200 bg-white p-3.5 text-start shadow-xl ring-1 ring-black/5 dark:border-zinc-700 dark:bg-zinc-900 dark:ring-white/5`}
         >
           <p className="text-sm font-semibold text-zinc-900 dark:text-white">{labelInstall}</p>
           <p className="mt-1 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
@@ -223,12 +223,12 @@ export default function FloatingInstallButton({
         onClick={handleClick}
         aria-label={labelInstall}
         title={labelInstall}
-        className={`${visibilityClass} group relative items-center justify-center rounded-full bg-gradient-to-br from-coral via-coral to-coral-light text-white shadow-[0_16px_32px_-14px_rgba(0,0,0,0.75)] ring-2 ring-white/70 transition hover:scale-[1.05] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-coral/40 dark:ring-zinc-900/70`}
+        className={`${visibilityClass} group relative items-center justify-center rounded-none border border-white/35 bg-coral text-white shadow-[0_14px_28px_-16px_rgba(0,0,0,0.75)] transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-coral/40`}
         style={{ width: waSize, height: waSize }}
       >
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 animate-ping rounded-full bg-coral opacity-20"
+          className="pointer-events-none absolute inset-0 animate-ping rounded-none bg-coral opacity-20"
         />
         <svg
           xmlns="http://www.w3.org/2000/svg"

@@ -176,6 +176,7 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-wrap: anywhere;
 }
 
 html[lang="en"] body {
@@ -185,6 +186,7 @@ html[lang="en"] body {
 html,
 body {
   scrollbar-gutter: stable;
+  min-width: 320px;
 }
 
 /* Smooth scrollbar transition */
@@ -277,7 +279,7 @@ body {
   .noon-pill {
     display: inline-flex;
     align-items: center;
-    border-radius: 9999px;
+    border-radius: 0;
     border: 1px solid var(--border);
     background-color: var(--surface);
     color: var(--text-muted);
@@ -295,7 +297,7 @@ body {
   .noon-btn-purple,
   .noon-btn-yellow {
     color: #fff;
-    border-radius: 0.5rem;
+    border-radius: 0;
     font-weight: 600;
     transition: all 180ms ease;
     box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.45);
@@ -353,7 +355,7 @@ body {
   .admin-panel input,
   .admin-panel select,
   .admin-panel textarea {
-    border-radius: 0.75rem;
+    border-radius: 0;
     border: 1px solid var(--border);
     background-color: var(--surface);
     color: var(--text);
@@ -385,7 +387,7 @@ body {
     border-style: solid !important;
     border-color: var(--input-border) !important;
     background-color: var(--muted) !important;
-    border-radius: 0.75rem;
+    border-radius: 0;
     padding: 0.6rem 0.85rem;
     font-size: 0.875rem;
     color: var(--text);
@@ -451,8 +453,25 @@ body {
   }
 }
 
+.site-sharp :is(a, button, [role="button"], input, select, textarea, dialog, [class*="rounded"]),
 .home-sharp :is(a, button, [role="button"], [class*="rounded"]) {
   border-radius: 0 !important;
+}
+
+.site-sharp * {
+  min-width: 0;
+}
+
+.site-sharp :is(img, video, canvas, iframe) {
+  max-width: 100%;
+}
+
+.site-sharp :is(button, a, input, select, textarea) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.site-sharp :is(button, a, [role="button"]) {
+  touch-action: manipulation;
 }
 
 .route-sharp * {
@@ -466,6 +485,76 @@ body {
 .route-sharp .keep-profile-round img,
 .route-sharp .keep-profile-round > img {
   border-radius: 9999px !important;
+}
+
+.site-sharp .footer-soft-frame {
+  border-radius: 18px !important;
+}
+
+.site-sharp .footer-soft-panel {
+  border-radius: 14px !important;
+}
+
+.site-sharp .footer-soft-row {
+  border-radius: 8px !important;
+}
+
+@media (min-width: 768px) {
+  .site-footer-desktop {
+    display: grid !important;
+    grid-template-columns:
+      minmax(200px, 1fr)
+      minmax(180px, 0.9fr)
+      minmax(300px, 1.25fr);
+    align-items: start;
+    column-gap: clamp(1.5rem, 3vw, 3rem);
+    row-gap: 2rem;
+  }
+
+  .site-footer-logo {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+}
+
+@media (min-width: 1200px) {
+  .site-footer-desktop {
+    grid-template-columns:
+      minmax(200px, 1fr)
+      minmax(180px, 0.9fr)
+      minmax(300px, 1.25fr)
+      minmax(96px, auto);
+    row-gap: 0;
+  }
+
+  .site-footer-logo {
+    grid-column: auto;
+    justify-self: end;
+  }
+
+  .site-footer-mobile {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .site-footer-desktop {
+    display: none !important;
+  }
+
+  .site-footer-mobile {
+    display: block !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .site-sharp :is(input, select, textarea) {
+    font-size: 16px !important;
+  }
+
+  .site-sharp :is(h1, h2, h3, p, span, a, button, label) {
+    overflow-wrap: anywhere;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

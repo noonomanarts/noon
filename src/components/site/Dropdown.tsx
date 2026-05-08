@@ -23,8 +23,8 @@ export function Dropdown({
   const alignClass = align === "end" ? "end-0" : "start-0";
   const hasCustomButtonClass = Boolean(buttonClassName?.trim());
   const baseButtonClass = hasCustomButtonClass
-    ? "inline-flex h-11 cursor-pointer list-none items-center select-none px-3 text-base font-extrabold transition focus-visible:outline-2 focus-visible:outline-offset-2"
-    : "inline-flex h-11 cursor-pointer list-none items-center select-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70";
+    ? "inline-flex h-10 cursor-pointer list-none items-center select-none px-2 text-sm font-extrabold transition focus-visible:outline-2 focus-visible:outline-offset-2 sm:h-11 sm:px-3 sm:text-base"
+    : "inline-flex h-10 cursor-pointer list-none items-center select-none px-2 text-sm font-extrabold text-white/95 transition hover:bg-white/14 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70 sm:h-11 sm:px-3 sm:text-base";
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -81,7 +81,7 @@ export function Dropdown({
       {isOpen && (
         <div
           className={[
-            `absolute ${alignClass} top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden bg-[color:var(--surface)]/98 p-2 shadow-xl`,
+            `absolute ${alignClass} top-full z-50 mt-1 w-[min(20rem,calc(100vw-1.5rem))] max-w-[calc(100vw-1.5rem)] overflow-hidden bg-[color:var(--surface)]/98 p-2 shadow-xl sm:mt-2 sm:w-72 sm:max-w-[calc(100vw-2rem)]`,
             panelClassName ?? "",
           ].join(" ")}
           style={panelStyle}

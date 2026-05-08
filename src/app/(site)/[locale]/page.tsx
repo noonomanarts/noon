@@ -244,12 +244,12 @@ function Section({
   sectionClassName?: string;
 }) {
   return (
-    <section className={`py-14 sm:py-16 ${sectionClassName ?? ""}`}>
+    <section className={`py-12 sm:py-16 ${sectionClassName ?? ""}`}>
       <div className="mx-auto w-full max-w-6xl px-4">
         <div className="mb-8 flex justify-center">
           <div className="w-full max-w-3xl text-center">
             <h2
-              className="text-2xl font-semibold tracking-tight text-[color:var(--text)] sm:text-3xl"
+              className="text-2xl font-semibold leading-tight text-[color:var(--text)] sm:text-3xl"
               style={{
                 fontFamily: isArabic
                   ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
@@ -432,7 +432,7 @@ export default async function HomePage({
   return (
     <div className="home-sharp relative overflow-x-clip pb-8">
       {showHero && (
-        <section className="relative isolate h-screen min-h-screen overflow-hidden border-b border-black/20">
+        <section className="relative isolate min-h-[calc(100dvh-4rem)] overflow-hidden border-b border-black/20">
           {heroBackgroundIsVideo ? (
             <video
               className="absolute inset-0 h-full w-full object-cover"
@@ -454,10 +454,10 @@ export default async function HomePage({
             />
           )}
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,8,7,0.25)_0%,rgba(9,8,7,0.45)_45%,rgba(9,8,7,0.68)_100%)]" />
-          <div className="relative z-10 mx-auto flex h-full min-h-screen w-full max-w-6xl items-center justify-center px-4 py-20 text-center">
+          <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-6xl items-center justify-center px-4 py-16 text-center sm:py-20">
             <div className="w-full max-w-5xl">
               <h1
-                className="text-4xl font-black leading-[1.2] tracking-[0.01em] text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:text-5xl lg:text-7xl"
+                className="text-3xl font-black leading-[1.15] text-white drop-shadow-[0_10px_30px_rgba(0,0,0,0.55)] sm:text-5xl lg:text-7xl"
                 style={{
                   fontFamily: isArabic
                     ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
@@ -466,10 +466,10 @@ export default async function HomePage({
               >
                 {heroHeadline}
               </h1>
-              <div className="mt-10 grid gap-4 sm:mx-auto sm:max-w-4xl sm:grid-cols-2">
+              <div className="mt-8 grid gap-3 sm:mx-auto sm:mt-10 sm:max-w-4xl sm:grid-cols-2 sm:gap-4">
                 <Link
                   href={heroUi.cookingHref}
-                  className="inline-flex w-full items-center justify-center border border-white/45 px-6 py-4 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:text-lg"
+                  className="inline-flex min-h-12 w-full items-center justify-center border border-white/45 px-5 py-3.5 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:px-6 sm:py-4 sm:text-lg"
                   style={{
                     backgroundColor: heroUi.cookingColor,
                     color: "#ffffff",
@@ -479,7 +479,7 @@ export default async function HomePage({
                 </Link>
                 <Link
                   href={heroUi.artsHref}
-                  className="inline-flex w-full items-center justify-center border border-white/45 px-6 py-4 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:text-lg"
+                  className="inline-flex min-h-12 w-full items-center justify-center border border-white/45 px-5 py-3.5 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:px-6 sm:py-4 sm:text-lg"
                   style={{
                     backgroundColor: heroUi.artsColor,
                     color: "#ffffff",
@@ -500,7 +500,7 @@ export default async function HomePage({
           sectionClassName="bg-gradient-to-l from-zinc-100 via-zinc-200/55 to-zinc-100 dark:from-zinc-800/70 dark:via-zinc-700/45 dark:to-zinc-800/70"
         >
         {upcomingItems.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 sm:gap-5 lg:grid-cols-3">
             {upcomingItems.map((c) => (
               <article
                 key={c.id}
@@ -510,7 +510,7 @@ export default async function HomePage({
                   <Image src={c.imageSrc} alt={c.title} fill className="object-cover transition duration-500 group-hover:scale-[1.03]" />
                 </Link>
                 <div className="flex flex-1 flex-col space-y-2 p-3 sm:space-y-3 sm:p-5">
-                  <h3 className="line-clamp-2 inline-flex items-start gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:gap-2 sm:text-lg">
+                  <h3 className="line-clamp-2 inline-flex items-start gap-1.5 text-base font-semibold leading-snug text-[color:var(--text)] sm:gap-2 sm:text-lg">
                     <FiBookOpen className="mt-0.5 size-3.5 shrink-0 text-purple-500 sm:size-4" />
                     <span>{c.title}</span>
                   </h3>
@@ -530,7 +530,7 @@ export default async function HomePage({
                     </p>
                     <Link
                       href={`/${locale}/classes/${c.slug}/book`}
-                      className="inline-flex w-full items-center justify-center gap-1 px-3 py-2 text-xs font-extrabold uppercase tracking-wide transition hover:brightness-95 sm:px-4 sm:py-3 sm:text-sm"
+                      className="inline-flex w-full items-center justify-center gap-1 px-4 py-3 text-sm font-extrabold uppercase transition hover:brightness-95"
                       style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
                     >
                       {upcomingBookNowLabel}
@@ -561,7 +561,7 @@ export default async function HomePage({
                     className="text-center"
                   >
                     <div
-                      className="text-5xl font-light leading-none tracking-[0.01em] text-[color:var(--text)] sm:text-6xl"
+                      className="text-5xl font-light leading-none text-[color:var(--text)] sm:text-6xl"
                       style={{
                         fontFamily: isArabic
                           ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
@@ -570,7 +570,7 @@ export default async function HomePage({
                     >
                       <AnimatedCounter value={numericValue} suffix={suffix} />
                     </div>
-                    <div className="mt-3 text-sm font-medium tracking-wide text-[color:var(--text-muted)] sm:text-base">
+                    <div className="mt-3 text-sm font-medium text-[color:var(--text-muted)] sm:text-base">
                       {item.label}
                     </div>
                   </div>

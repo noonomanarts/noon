@@ -74,11 +74,11 @@ export default function FloatingWhatsAppButton({
 
   const buttonColor = normalizeHexColor(settings.buttonColor, '#25d366');
   const iconColor = normalizeHexColor(settings.iconColor, '#ffffff');
-  const buttonSizePx = sanitizeNumber(settings.buttonSizePx, 44, 96, 58);
-  const iconSizePx = sanitizeNumber(settings.iconSizePx, 16, 42, 28);
-  const sideOffsetPx = sanitizeNumber(settings.sideOffsetPx, 0, 80, 20);
+  const buttonSizePx = sanitizeNumber(settings.buttonSizePx, 40, 48, 46);
+  const iconSizePx = sanitizeNumber(settings.iconSizePx, 20, 24, 23);
+  const sideOffsetPx = sanitizeNumber(settings.sideOffsetPx, 0, 80, 16);
   const baseBottomOffsetPx = sanitizeNumber(settings.bottomOffsetPx, 0, 120, 20);
-  const bottomOffsetPx = Math.min(172, baseBottomOffsetPx + 40);
+  const bottomOffsetPx = Math.min(132, baseBottomOffsetPx + 24);
   const position = locale === 'ar' ? 'left' : 'right';
   const text = settings.presetMessage.trim();
   const href = `https://api.whatsapp.com/send?phone=${phone}${text ? `&text=${encodeURIComponent(text)}` : ''}`;
@@ -102,7 +102,7 @@ export default function FloatingWhatsAppButton({
         rel="noopener noreferrer"
         aria-label={t.label}
         title={t.label}
-        className={`${visibilityClass} relative items-center justify-center rounded-full shadow-[0_16px_32px_-14px_rgba(0,0,0,0.75)] transition hover:scale-[1.03]`}
+        className={`${visibilityClass} relative items-center justify-center rounded-none border border-white/35 shadow-[0_14px_28px_-16px_rgba(0,0,0,0.75)] transition hover:-translate-y-0.5 hover:brightness-105`}
         style={{
           width: buttonSizePx,
           height: buttonSizePx,
@@ -112,7 +112,7 @@ export default function FloatingWhatsAppButton({
       >
         {settings.pulseEffect ? (
           <span
-            className="pointer-events-none absolute inset-0 animate-ping rounded-full opacity-30"
+            className="pointer-events-none absolute inset-0 animate-ping rounded-none opacity-25"
             style={{ backgroundColor: buttonColor }}
             aria-hidden="true"
           />

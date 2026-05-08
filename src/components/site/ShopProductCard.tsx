@@ -104,23 +104,23 @@ export default function ShopProductCard({
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col gap-2.5 p-3 text-center sm:gap-3 sm:p-5">
+      <div className="flex flex-1 flex-col gap-3 p-4 text-center sm:p-5">
         <div className="space-y-1">
-          <h3 className="line-clamp-2 text-[12px] font-semibold leading-[1.3] text-[color:var(--text)] sm:text-xl sm:leading-6">
+          <h3 className="line-clamp-2 text-base font-semibold leading-snug text-[color:var(--text)] sm:text-xl sm:leading-6">
             {name}
           </h3>
-          <p className="line-clamp-2 text-[9px] leading-4 text-[color:var(--text-muted)] sm:text-sm sm:leading-5">
+          <p className="line-clamp-2 text-xs leading-5 text-[color:var(--text-muted)] sm:text-sm">
             {description || t.noDescription}
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-1 text-[9px] sm:gap-2 sm:text-xs">
-          <span className="inline-flex items-center gap-1 rounded-md border border-teal/35 bg-teal/10 px-1.5 py-1 font-medium text-teal sm:gap-1.5 sm:px-3 sm:py-1.5">
+        <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+          <span className="inline-flex items-center gap-1.5 rounded-none border border-teal/35 bg-teal/10 px-3 py-1.5 font-medium text-teal">
             <FiPackage className="size-3.5" />
             {t.stock}: {product.stock_quantity}
           </span>
           <span
-            className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-1 font-medium sm:gap-1.5 sm:px-3 sm:py-1.5 ${
+            className={`inline-flex items-center gap-1.5 rounded-none border px-3 py-1.5 font-medium ${
               inStock
                 ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-800"
                 : "border-rose-500/35 bg-rose-500/10 text-rose-800"
@@ -132,7 +132,7 @@ export default function ShopProductCard({
         </div>
 
         <div className="space-y-1">
-          <p className="text-[17px] font-black text-[color:var(--text)] sm:text-2xl">
+          <p className="text-xl font-black leading-none text-[color:var(--text)] sm:text-2xl">
             {formatAmountWithCurrency(product.price, product.currency)}
           </p>
         </div>
@@ -145,7 +145,7 @@ export default function ShopProductCard({
             showFeedback={false}
             idleLabel={t.addToCart}
             loadingLabel={t.adding}
-            buttonClassName="inline-flex w-full items-center justify-center rounded-lg bg-[color:var(--primary)] px-2.5 py-1.5 text-[10px] font-semibold leading-tight tracking-[0.01em] text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50 sm:px-4 sm:py-2.5 sm:text-sm"
+            buttonClassName="inline-flex w-full items-center justify-center rounded-none bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold leading-tight tracking-[0.01em] text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
       </div>

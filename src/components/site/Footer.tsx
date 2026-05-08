@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiMail, FiMapPin, FiPhone } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiMail, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaTiktok, FaYoutube } from "react-icons/fa6";
 import { IoLogoFacebook, IoLogoInstagram } from "react-icons/io5";
 import type { CSSProperties } from "react";
@@ -143,105 +143,34 @@ export default async function Footer({ locale }: { locale: Locale }) {
   const homeHref = resolveFooterHref(locale, "/");
   const footerLogoUrl = resolveImagePath(footer.footerLogoUrl, defaultFooterAdminSettings.footerLogoUrl);
   const copyrightLabel = formatCopyrightText(footer.copyrightText, currentYear, footer.brandName);
+  const contactItems = [
+    locationHref
+      ? { href: locationHref, label: locationLinkLabel, icon: FiMapPin, external: true }
+      : { href: "", label: locationValue || "-", icon: FiMapPin, external: false },
+    phoneHref
+      ? { href: phoneHref, label: phoneValue, icon: FiPhone, external: false }
+      : { href: "", label: "-", icon: FiPhone, external: false },
+    emailHref
+      ? { href: emailHref, label: emailValue, icon: FiMail, external: false }
+      : { href: "", label: "-", icon: FiMail, external: false },
+  ];
+  const RowChevron = isArabic ? FiChevronLeft : FiChevronRight;
+  const footerTextColor = getReadableTextColor(headerColor);
 
   return (
-    <footer
-      className="relative overflow-hidden text-[color:var(--footer-text)]"
-      style={footerStyle}
-    >
-      <div className="mx-auto w-full max-w-6xl px-4 py-10">
-        <div className="grid gap-8 lg:grid-cols-[1.25fr_0.9fr_1.1fr]">
-          <div className="space-y-4">
-            <Link href={homeHref} className="inline-flex items-center">
-              <Image src={footerLogoUrl} alt={footer.brandName} width={88} height={88} className="h-16 w-auto" />
-            </Link>
-
-            <div
-              dir={isArabic ? "rtl" : "ltr"}
-              className="max-w-[25rem] space-y-2 rounded-2xl bg-[linear-gradient(135deg,var(--footer-panel),transparent)] p-3"
-            >
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-[color:var(--footer-panel)]/80 px-2.5 py-2">
-                <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.09em] text-[color:var(--footer-soft)]">
-                  <FiMapPin className="size-4" />
-                  {t.location}
-                </p>
-                {locationHref ? (
-                  <a
-                    className="rounded-lg bg-[color:var(--footer-panel-hover)] px-2.5 py-1.5 text-xs font-semibold text-[color:var(--footer-text)] transition hover:opacity-80"
-                    href={locationHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={locationHref}
-                  >
-                    {locationLinkLabel}
-                  </a>
-                ) : (
-                  <p className="text-sm font-semibold text-[color:var(--footer-text)]">{locationValue || "-"}</p>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-[color:var(--footer-panel)]/80 px-2.5 py-2">
-                <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.09em] text-[color:var(--footer-soft)]">
-                  <FiPhone className="size-4" />
-                  {t.phone}
-                </p>
-                {phoneHref ? (
-                  <a
-                    className="rounded-lg bg-[color:var(--footer-panel-hover)] px-2.5 py-1.5 text-xs font-semibold text-[color:var(--footer-text)] transition hover:opacity-80"
-                    href={phoneHref}
-                    dir="ltr"
-                  >
-                    {phoneValue}
-                  </a>
-                ) : (
-                  <span className="text-sm font-semibold text-[color:var(--footer-text)]" dir="ltr">-</span>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-[color:var(--footer-panel)]/80 px-2.5 py-2">
-                <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.09em] text-[color:var(--footer-soft)]">
-                  <FiMail className="size-4" />
-                  {t.email}
-                </p>
-                {emailHref ? (
-                  <a
-                    className="rounded-lg bg-[color:var(--footer-panel-hover)] px-2.5 py-1.5 text-xs font-semibold text-[color:var(--footer-text)] transition hover:opacity-80"
-                    href={emailHref}
-                  >
-                    {emailValue}
-                  </a>
-                ) : (
-                  <span className="text-sm font-semibold text-[color:var(--footer-text)]">-</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <h3 className="mb-3 text-sm font-black uppercase tracking-wider text-[color:var(--footer-text)]">{t.navigate}</h3>
-              <ul className="space-y-2.5 text-sm font-medium text-[color:var(--footer-muted)]">
-                {navLinks.map((item) => (
-                  <li key={`${item.href}-${item.label}`}>
-                    {/^(https?:\/\/|mailto:|tel:|#)/i.test(item.href) ? (
-                      <a href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
-                        {item.label}
-                      </a>
-                    ) : (
-                      <Link href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
-                        {item.label}
-                      </Link>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <h3 className="mb-3 text-sm font-black uppercase tracking-wider text-[color:var(--footer-text)]">{t.follow}</h3>
-              <div className="flex flex-wrap gap-3">
+    <footer className="w-full bg-[color:var(--background)]">
+      <div
+        className="w-full overflow-hidden text-[color:var(--footer-text)] shadow-[0_24px_70px_-45px_rgba(0,0,0,0.55)]"
+        style={footerStyle}
+      >
+        <div
+          dir="ltr"
+          className="site-footer-desktop mx-auto w-full max-w-7xl px-6 py-10 lg:px-10 xl:px-12"
+        >
+          <div dir={isArabic ? "rtl" : "ltr"} className="space-y-7 self-start text-center md:text-start">
+            <div className="space-y-4">
+              <h3 className="text-lg font-black text-[color:var(--footer-text)]">{t.follow}</h3>
+              <div className="flex justify-center gap-4 md:justify-start">
                 {socialLinks.map((item) => (
                   <a
                     key={`${item.icon}-${item.href}-${item.label}`}
@@ -250,7 +179,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
                     rel="noopener noreferrer"
                     aria-label={item.label}
                     title={item.label}
-                    className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[color:var(--footer-border)] bg-[color:var(--footer-panel)] text-[color:var(--footer-muted)] transition hover:-translate-y-0.5 hover:bg-[color:var(--footer-panel-hover)] hover:text-[color:var(--footer-text)]"
+                    className="footer-soft-row inline-flex size-12 items-center justify-center border border-[color:var(--footer-border)] text-[color:var(--footer-muted)] transition hover:bg-[color:var(--footer-panel-hover)] hover:text-[color:var(--footer-text)]"
                   >
                     <FooterSocialIcon icon={item.icon} />
                   </a>
@@ -258,39 +187,200 @@ export default async function Footer({ locale }: { locale: Locale }) {
               </div>
             </div>
 
-            <div>
-              <h3 className="mb-3 text-sm font-black uppercase tracking-wider text-[color:var(--footer-text)]">{t.legal}</h3>
-              <ul className="space-y-2.5 text-sm font-medium text-[color:var(--footer-muted)]">
+            <div className="space-y-4">
+              <h3 className="text-lg font-black text-[color:var(--footer-text)]">{t.legal}</h3>
+              <nav className="space-y-4" aria-label={t.legal}>
                 {legalLinks.map((item) => (
-                  <li key={`${item.href}-${item.label}`}>
-                    {/^(https?:\/\/|mailto:|tel:|#)/i.test(item.href) ? (
-                      <a href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
-                        {item.label}
-                      </a>
-                    ) : (
-                      <Link href={item.href} className="transition hover:text-[color:var(--footer-text)] hover:opacity-100">
-                        {item.label}
-                      </Link>
-                    )}
-                  </li>
+                  /^(https?:\/\/|mailto:|tel:|#)/i.test(item.href) ? (
+                    <a
+                      key={`${item.href}-${item.label}`}
+                      href={item.href}
+                      className="block text-sm font-black text-[color:var(--footer-muted)] transition hover:text-[color:var(--footer-text)]"
+                    >
+                      {item.label}
+                    </a>
+                  ) : (
+                    <Link
+                      key={`${item.href}-${item.label}`}
+                      href={item.href}
+                      className="block text-sm font-black text-[color:var(--footer-muted)] transition hover:text-[color:var(--footer-text)]"
+                    >
+                      {item.label}
+                    </Link>
+                  )
                 ))}
-              </ul>
+              </nav>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div style={{ backgroundColor: headerColor, color: getReadableTextColor(headerColor) }}>
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-6 text-xs font-semibold sm:flex-row sm:items-center sm:justify-between">
-          <p>{copyrightLabel}</p>
-          <a
-            href="https://sbc.om"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="transition hover:opacity-80"
-          >
-            Developed by SBC.OM
-          </a>
+          <div dir={isArabic ? "rtl" : "ltr"} className="space-y-4 self-start text-center md:text-start">
+            <h3 className="text-lg font-black text-[color:var(--footer-text)]">{t.navigate}</h3>
+            <nav className="space-y-4" aria-label={t.navigate}>
+              {navLinks.map((item, index) => {
+                const className = [
+                  "block text-sm font-black transition hover:text-[color:var(--footer-text)]",
+                  index === 0 ? "text-coral" : "text-[color:var(--footer-muted)]",
+                ].join(" ");
+
+                return /^(https?:\/\/|mailto:|tel:|#)/i.test(item.href) ? (
+                  <a
+                    key={`${item.href}-${item.label}`}
+                    href={item.href}
+                    className={className}
+                  >
+                    {item.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={`${item.href}-${item.label}`}
+                    href={item.href}
+                    className={className}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div dir="ltr" className="footer-soft-panel self-start bg-[color:var(--footer-panel)] p-3">
+            <div className="space-y-2">
+              {contactItems.map((item) => {
+                const Icon = item.icon;
+                const content = (
+                  <>
+                    <span className="min-w-0 flex-1 font-black">{item.label}</span>
+                    <span className="whitespace-nowrap font-black text-[color:var(--footer-text)]">
+                      {item.icon === FiMapPin ? t.location : item.icon === FiPhone ? t.phone : t.email}
+                    </span>
+                    <span className="footer-soft-row inline-flex size-10 shrink-0 items-center justify-center border border-[color:var(--footer-border)]">
+                      <Icon className="size-5" />
+                    </span>
+                  </>
+                );
+
+                return item.href ? (
+                  <a
+                    key={`${item.label}-${item.href}`}
+                    href={item.href}
+                    target={item.external ? "_blank" : undefined}
+                    rel={item.external ? "noopener noreferrer" : undefined}
+                    className="footer-soft-row flex min-h-12 items-center gap-3 bg-[color:var(--footer-panel-hover)] px-3 text-sm font-bold text-[color:var(--footer-muted)] transition hover:text-[color:var(--footer-text)]"
+                    dir={item.href === phoneHref ? "ltr" : undefined}
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  <p
+                    key={item.label}
+                    className="footer-soft-row flex min-h-12 items-center gap-3 bg-[color:var(--footer-panel-hover)] px-3 text-sm font-bold text-[color:var(--footer-muted)]"
+                  >
+                    {content}
+                  </p>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="site-footer-logo flex self-center justify-center md:self-start md:justify-end">
+            <Link href={homeHref} className="inline-flex items-center">
+              <Image src={footerLogoUrl} alt={footer.brandName} width={176} height={176} className="h-28 w-auto lg:h-32" />
+            </Link>
+          </div>
+        </div>
+
+          <div className="site-footer-mobile mx-auto w-full max-w-[30rem] px-4 py-5">
+          <div className="mb-6 flex justify-center">
+            <Link href={homeHref} className="inline-flex items-center">
+              <Image src={footerLogoUrl} alt={footer.brandName} width={220} height={220} className="h-32 w-auto sm:h-36" />
+            </Link>
+          </div>
+
+          <nav className="divide-y divide-white/12" aria-label={t.navigate}>
+            {[...navLinks, ...legalLinks].map((item) => (
+              /^(https?:\/\/|mailto:|tel:|#)/i.test(item.href) ? (
+                <a
+                  key={`${item.href}-${item.label}`}
+                  href={item.href}
+                  className="flex min-h-11 items-center justify-between gap-4 text-sm font-black text-[color:var(--footer-muted)]"
+                >
+                  <span>{item.label}</span>
+                  <RowChevron className="size-4" />
+                </a>
+              ) : (
+                <Link
+                  key={`${item.href}-${item.label}`}
+                  href={item.href}
+                  className="flex min-h-11 items-center justify-between gap-4 text-sm font-black text-[color:var(--footer-muted)]"
+                >
+                  <span>{item.label}</span>
+                  <RowChevron className="size-4" />
+                </Link>
+              )
+            ))}
+          </nav>
+
+          <div className="mt-4 space-y-2">
+            {contactItems.map((item) => {
+              const Icon = item.icon;
+              const className = "footer-soft-row flex min-h-11 items-center gap-3 bg-[color:var(--footer-panel-hover)] px-3 text-sm font-black text-[color:var(--footer-muted)]";
+              const content = (
+                <>
+                  <Icon className="size-5 shrink-0" />
+                  <span className="min-w-0 flex-1 text-center">{item.label}</span>
+                </>
+              );
+
+              return item.href ? (
+                <a
+                  key={`${item.label}-${item.href}`}
+                  href={item.href}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
+                  className={className}
+                  dir={item.href === phoneHref ? "ltr" : undefined}
+                >
+                  {content}
+                </a>
+              ) : (
+                <p key={item.label} className={className}>
+                  {content}
+                </p>
+              );
+            })}
+          </div>
+
+          {socialLinks.length > 0 ? (
+            <div className="mt-4 flex justify-center gap-6">
+              {socialLinks.map((item) => (
+                <a
+                  key={`${item.icon}-${item.href}-${item.label}`}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={item.label}
+                  title={item.label}
+                  className="text-[color:var(--footer-muted)] transition hover:text-[color:var(--footer-text)]"
+                >
+                  <FooterSocialIcon icon={item.icon} />
+                </a>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <div style={{ backgroundColor: headerColor, color: footerTextColor }}>
+          <div className="mx-auto flex w-full max-w-7xl flex-col-reverse gap-2 px-6 py-4 text-center text-xs font-black sm:flex-row sm:items-center sm:justify-between sm:text-start lg:px-10 xl:px-12">
+            <p>{copyrightLabel}</p>
+            <a
+              href="https://sbc.om"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition hover:opacity-80"
+            >
+              Developed by SBC.OM
+            </a>
+          </div>
         </div>
       </div>
     </footer>

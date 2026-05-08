@@ -29,7 +29,7 @@ export default async function SiteLocaleLayout({
   };
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="site-sharp flex min-h-dvh flex-col overflow-x-clip">
       <Header locale={locale} />
       <main className="route-sharp flex-1">{children}</main>
       <Footer locale={locale} />
