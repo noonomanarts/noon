@@ -613,7 +613,7 @@ export async function removeClassParticipant(params: {
       throw new Error('Class not found');
     }
 
-    if (String(classRow.status) === 'COMPLETED' || String(classRow.settlement_status || '') === 'CLOSED' || classRow.closed_at) {
+    if (String(classRow.settlement_status || '') === 'CLOSED' || classRow.closed_at) {
       throw new Error('Participants cannot be removed after settlement is closed.');
     }
 

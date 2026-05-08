@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getUserById, getAllUsers, createUser } from "@/lib/db/users";
+import { getUserById, getAllUsers, createUser, getUserByEmail, getUserByPhoneNormalized } from "@/lib/db/users";
 import { upsertWorkerPermissions } from "@/lib/db/worker";
 import type { UserRole, UserStatus } from "@/lib/db/types";
 
@@ -86,6 +86,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedEmail = String(data.email).trim().toLowerCase();
+    const normalizedPhone = String(data.phoneNumber).trim();
+
+    const existingEmail = await getUserByEmail(normalizedEmail);
+    if (existingEmail) {
+      return NextResponse.json(
+        { error: "Email already exists" },
+        { status: 409 }
+      );
+    }
+
+    const existingPhone = await getUserByPhoneNormalized(normalizedPhone);
+    if (existingPhone) {
+      return NextResponse.json(
+        { error: "Phone number already exists" },
+        { status: 409 }
+      );
+    }
+
     // Create user
     const role = mapRole(typeof data.role === "string" ? data.role : null) ?? "CUSTOMER";
     const workerPermissions =
@@ -100,19 +119,19 @@ export async function POST(request: NextRequest) {
         : null;
 
     const newUser = await createUser({
-      email: data.email,
+      email: normalizedEmail,
       password: data.password,
       fullName: data.fullName,
       role,
-      phoneNumber: data.phoneNumber,
+      phoneNumber: normalizedPhone,
       dateOfBirth: data.dob,
       preferredLanguage: data.preferredLanguage === "ar" ? "ARABIC" : "ENGLISH",
     });
 
     if (!newUser) {
       return NextResponse.json(
-        { error: "Email already exists" },
-        { status: 409 }
+        { error: "Unable to create user" },
+        { status: 500 }
       );
     }
 

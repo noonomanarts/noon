@@ -142,7 +142,10 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   const normalizedEmail = email.toLowerCase().trim();
   
   const result = await query(
-    `SELECT * FROM users WHERE email = $1`,
+    `SELECT *
+     FROM users
+     WHERE LOWER(TRIM(email)) = $1
+     LIMIT 1`,
     [normalizedEmail]
   );
   
