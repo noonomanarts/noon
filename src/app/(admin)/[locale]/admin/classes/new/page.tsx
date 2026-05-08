@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -60,6 +61,15 @@ interface FormData {
   status: ClassStatus;
   metaTitle: string;
   metaDescription: string;
+  finalRecipeTitle: string;
+  finalRecipeTitleAr: string;
+  finalRecipeBrief: string;
+  finalRecipeBriefAr: string;
+  finalRecipePdf: string;
+  finalRecipePdfAr: string;
+  finalRecipePdfFile: File | null;
+  finalRecipePdfArFile: File | null;
+  finalRecipeVisibleToCustomers: boolean;
 }
 
 interface FormErrors {
@@ -110,7 +120,16 @@ export default function NewClassPage() {
     registrationCloseAt: '',
     status: 'DRAFT',
     metaTitle: '',
-    metaDescription: ''
+    metaDescription: '',
+    finalRecipeTitle: '',
+    finalRecipeTitleAr: '',
+    finalRecipeBrief: '',
+    finalRecipeBriefAr: '',
+    finalRecipePdf: '',
+    finalRecipePdfAr: '',
+    finalRecipePdfFile: null,
+    finalRecipePdfArFile: null,
+    finalRecipeVisibleToCustomers: false,
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -181,7 +200,10 @@ export default function NewClassPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const nextValue = e.target instanceof HTMLInputElement && e.target.type === 'checkbox'
+      ? e.target.checked
+      : value;
+    setFormData((prev) => ({ ...prev, [name]: nextValue }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: '' }));
     }
@@ -280,6 +302,36 @@ export default function NewClassPage() {
     }));
   };
 
+  const handleRecipePdfUpload = (
+    field: 'finalRecipePdfFile' | 'finalRecipePdfArFile'
+  ) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      showNotification('error', isRTL ? 'يرجى اختيار ملف PDF صالح' : 'Please choose a valid PDF file');
+      return;
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      showNotification('error', isRTL ? 'يجب أن يكون ملف PDF أقل من 20MB' : 'PDF must be less than 20MB');
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [field]: file }));
+  };
+
+  const removeRecipePdf = (
+    urlField: 'finalRecipePdf' | 'finalRecipePdfAr',
+    fileField: 'finalRecipePdfFile' | 'finalRecipePdfArFile'
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [urlField]: '',
+      [fileField]: null,
+    }));
+  };
+
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
@@ -321,6 +373,24 @@ export default function NewClassPage() {
     return data.url;
   };
 
+  const uploadRecipePdf = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('folder', 'classes-recipes');
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!res.ok) {
+      throw new Error('Failed to upload recipe PDF');
+    }
+
+    const data = await res.json();
+    return data.url;
+  };
+
   const handleSaveAsDraft = async () => {
     if (!formData.title.trim()) {
       showNotification('error', isRTL ? 'العنوان بالإنجليزية مطلوب للحفظ كمسودة' : 'English title is required to save as draft');
@@ -333,6 +403,8 @@ export default function NewClassPage() {
     try {
       let mainImageUrl = formData.image;
       const galleryImageUrls: string[] = [];
+      let finalRecipePdfUrl = formData.finalRecipePdf;
+      let finalRecipePdfArUrl = formData.finalRecipePdfAr;
 
       if (formData.imageFile) {
         mainImageUrl = await uploadImage(formData.imageFile);
@@ -343,6 +415,14 @@ export default function NewClassPage() {
           const url = await uploadImage(file);
           galleryImageUrls.push(url);
         }
+      }
+
+      if (formData.finalRecipePdfFile) {
+        finalRecipePdfUrl = await uploadRecipePdf(formData.finalRecipePdfFile);
+      }
+
+      if (formData.finalRecipePdfArFile) {
+        finalRecipePdfArUrl = await uploadRecipePdf(formData.finalRecipePdfArFile);
       }
 
       setUploading(false);
@@ -368,6 +448,13 @@ export default function NewClassPage() {
         status: 'DRAFT',
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description || '',
+        finalRecipeTitle: formData.finalRecipeTitle || null,
+        finalRecipeTitleAr: formData.finalRecipeTitleAr || null,
+        finalRecipeBrief: formData.finalRecipeBrief || null,
+        finalRecipeBriefAr: formData.finalRecipeBriefAr || null,
+        finalRecipePdf: finalRecipePdfUrl || null,
+        finalRecipePdfAr: finalRecipePdfArUrl || null,
+        finalRecipeVisibleToCustomers: formData.finalRecipeVisibleToCustomers,
       };
 
       const res = await fetch('/api/admin/classes', {
@@ -409,6 +496,8 @@ export default function NewClassPage() {
     try {
       let mainImageUrl = formData.image;
       const galleryImageUrls: string[] = [];
+      let finalRecipePdfUrl = formData.finalRecipePdf;
+      let finalRecipePdfArUrl = formData.finalRecipePdfAr;
 
       // Upload main image if it's a file
       if (formData.imageFile) {
@@ -421,6 +510,14 @@ export default function NewClassPage() {
           const url = await uploadImage(file);
           galleryImageUrls.push(url);
         }
+      }
+
+      if (formData.finalRecipePdfFile) {
+        finalRecipePdfUrl = await uploadRecipePdf(formData.finalRecipePdfFile);
+      }
+
+      if (formData.finalRecipePdfArFile) {
+        finalRecipePdfArUrl = await uploadRecipePdf(formData.finalRecipePdfArFile);
       }
 
       setUploading(false);
@@ -445,7 +542,14 @@ export default function NewClassPage() {
         registrationCloseAt: formData.registrationCloseAt ? new Date(formData.registrationCloseAt).toISOString() : null,
         status: formData.status,
         metaTitle: formData.metaTitle || formData.title,
-        metaDescription: formData.metaDescription || formData.description
+        metaDescription: formData.metaDescription || formData.description,
+        finalRecipeTitle: formData.finalRecipeTitle || null,
+        finalRecipeTitleAr: formData.finalRecipeTitleAr || null,
+        finalRecipeBrief: formData.finalRecipeBrief || null,
+        finalRecipeBriefAr: formData.finalRecipeBriefAr || null,
+        finalRecipePdf: finalRecipePdfUrl || null,
+        finalRecipePdfAr: finalRecipePdfArUrl || null,
+        finalRecipeVisibleToCustomers: formData.finalRecipeVisibleToCustomers,
       };
 
       const res = await fetch('/api/admin/classes', {
@@ -1082,6 +1186,106 @@ export default function NewClassPage() {
               </label>
             </div>
           </div>
+        </div>
+
+        <div className={sectionCard}>
+          <div className="mb-4 flex items-center gap-3">
+            <div className="rounded-lg bg-emerald-500/10 p-2 dark:bg-emerald-500/20">
+              <MdDescription className="text-2xl text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              {isRTL ? 'الوصفة النهائية للعملاء' : 'Final Customer Recipe'}
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{isRTL ? 'المحتوى الإنجليزي' : 'English content'}</h3>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {isRTL ? 'عنوان الوصفة بالإنجليزية' : 'Recipe title in English'}
+                </label>
+                <input type="text" name="finalRecipeTitle" value={formData.finalRecipeTitle} onChange={handleInputChange} className={inputBase} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {isRTL ? 'نبذة الوصفة بالإنجليزية' : 'Recipe brief in English'}
+                </label>
+                <textarea name="finalRecipeBrief" value={formData.finalRecipeBrief} onChange={handleInputChange} rows={4} className={textareaBase} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {isRTL ? 'ملف الوصفة الإنجليزي (PDF)' : 'English recipe PDF'}
+                </label>
+                <input type="file" accept="application/pdf" onChange={handleRecipePdfUpload('finalRecipePdfFile')} className="hidden" id="final-recipe-pdf-en-upload" />
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <label htmlFor="final-recipe-pdf-en-upload" className="cursor-pointer rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500">
+                    {isRTL ? 'رفع PDF إنجليزي' : 'Upload English PDF'}
+                  </label>
+                  {formData.finalRecipePdfFile ? <span className="text-sm text-zinc-500 dark:text-zinc-400">{formData.finalRecipePdfFile.name}</span> : null}
+                  {!formData.finalRecipePdfFile && formData.finalRecipePdf ? (
+                    <Link href={formData.finalRecipePdf} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
+                      {isRTL ? 'فتح الملف الحالي' : 'Open current file'}
+                    </Link>
+                  ) : null}
+                  {(formData.finalRecipePdfFile || formData.finalRecipePdf) ? (
+                    <button type="button" onClick={() => removeRecipePdf('finalRecipePdf', 'finalRecipePdfFile')} className="text-sm font-medium text-rose-600 hover:underline dark:text-rose-400">
+                      {isRTL ? 'إزالة' : 'Remove'}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{isRTL ? 'المحتوى العربي' : 'Arabic content'}</h3>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {isRTL ? 'عنوان الوصفة بالعربية' : 'Recipe title in Arabic'}
+                </label>
+                <input type="text" name="finalRecipeTitleAr" value={formData.finalRecipeTitleAr} onChange={handleInputChange} className={inputBase} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {isRTL ? 'نبذة الوصفة بالعربية' : 'Recipe brief in Arabic'}
+                </label>
+                <textarea name="finalRecipeBriefAr" value={formData.finalRecipeBriefAr} onChange={handleInputChange} rows={4} className={textareaBase} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {isRTL ? 'ملف الوصفة العربي (PDF)' : 'Arabic recipe PDF'}
+                </label>
+                <input type="file" accept="application/pdf" onChange={handleRecipePdfUpload('finalRecipePdfArFile')} className="hidden" id="final-recipe-pdf-ar-upload" />
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <label htmlFor="final-recipe-pdf-ar-upload" className="cursor-pointer rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-500">
+                    {isRTL ? 'رفع PDF عربي' : 'Upload Arabic PDF'}
+                  </label>
+                  {formData.finalRecipePdfArFile ? <span className="text-sm text-zinc-500 dark:text-zinc-400">{formData.finalRecipePdfArFile.name}</span> : null}
+                  {!formData.finalRecipePdfArFile && formData.finalRecipePdfAr ? (
+                    <Link href={formData.finalRecipePdfAr} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400">
+                      {isRTL ? 'فتح الملف الحالي' : 'Open current file'}
+                    </Link>
+                  ) : null}
+                  {(formData.finalRecipePdfArFile || formData.finalRecipePdfAr) ? (
+                    <button type="button" onClick={() => removeRecipePdf('finalRecipePdfAr', 'finalRecipePdfArFile')} className="text-sm font-medium text-rose-600 hover:underline dark:text-rose-400">
+                      {isRTL ? 'إزالة' : 'Remove'}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <label className="mt-6 flex items-center gap-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <input
+              type="checkbox"
+              name="finalRecipeVisibleToCustomers"
+              checked={formData.finalRecipeVisibleToCustomers}
+              onChange={handleInputChange}
+              className="h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-500"
+            />
+            <span>{isRTL ? 'إظهار الوصفات في حسابات العملاء' : 'Show recipes in customer accounts'}</span>
+          </label>
         </div>
 
         {/* SEO (Optional) */}

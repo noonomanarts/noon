@@ -102,6 +102,9 @@ export async function GET(
           cs.final_recipe_title,
           cs.final_recipe_pdf,
           cs.final_recipe_brief,
+          cs.final_recipe_title_ar,
+          cs.final_recipe_pdf_ar,
+          cs.final_recipe_brief_ar,
           cs.final_recipe_visible_to_customers,
           cs.final_recipe_published_at,
           cs.admin_workshop_notes,
@@ -221,6 +224,9 @@ export async function PATCH(
       finalRecipeTitle?: string | null;
       finalRecipePdf?: string | null;
       finalRecipeBrief?: string | null;
+      finalRecipeTitleAr?: string | null;
+      finalRecipePdfAr?: string | null;
+      finalRecipeBriefAr?: string | null;
       finalRecipeVisibleToCustomers?: boolean;
       adminWorkshopNotes?: string | null;
       adminWorkshopNotesPhoto?: string | null;
@@ -237,6 +243,9 @@ export async function PATCH(
     const finalRecipeTitle = sanitizeText(body.finalRecipeTitle, 255);
     const finalRecipePdf = sanitizeText(body.finalRecipePdf, 500);
     const finalRecipeBrief = sanitizeText(body.finalRecipeBrief, 10000);
+    const finalRecipeTitleAr = sanitizeText(body.finalRecipeTitleAr, 255);
+    const finalRecipePdfAr = sanitizeText(body.finalRecipePdfAr, 500);
+    const finalRecipeBriefAr = sanitizeText(body.finalRecipeBriefAr, 10000);
     const finalRecipeVisibleToCustomers =
       typeof body.finalRecipeVisibleToCustomers === 'boolean' ? body.finalRecipeVisibleToCustomers : false;
 
@@ -255,16 +264,19 @@ export async function PATCH(
            final_recipe_title = $7,
            final_recipe_pdf = $8,
            final_recipe_brief = $9,
-           final_recipe_visible_to_customers = $10,
+           final_recipe_title_ar = $10,
+           final_recipe_pdf_ar = $11,
+           final_recipe_brief_ar = $12,
+           final_recipe_visible_to_customers = $13,
            final_recipe_published_at = CASE
-             WHEN $10 = true AND final_recipe_visible_to_customers = false THEN NOW()
-             WHEN $10 = false THEN NULL
+             WHEN $13 = true AND final_recipe_visible_to_customers = false THEN NOW()
+             WHEN $13 = false THEN NULL
              ELSE final_recipe_published_at
            END,
-           admin_workshop_notes = $11,
-           admin_workshop_notes_photo = $12,
+           admin_workshop_notes = $14,
+           admin_workshop_notes_photo = $15,
            updated_at = NOW()
-       WHERE id = $13
+       WHERE id = $16
        RETURNING
          id,
          class_id,
@@ -280,6 +292,9 @@ export async function PATCH(
          final_recipe_title,
          final_recipe_pdf,
          final_recipe_brief,
+         final_recipe_title_ar,
+         final_recipe_pdf_ar,
+         final_recipe_brief_ar,
          final_recipe_visible_to_customers,
          final_recipe_published_at,
          admin_workshop_notes,
@@ -295,6 +310,9 @@ export async function PATCH(
         finalRecipeTitle,
         finalRecipePdf,
         finalRecipeBrief,
+        finalRecipeTitleAr,
+        finalRecipePdfAr,
+        finalRecipeBriefAr,
         finalRecipeVisibleToCustomers,
         adminWorkshopNotes,
         adminWorkshopNotesPhoto,
@@ -306,7 +324,50 @@ export async function PATCH(
       return NextResponse.json({ error: 'Session not found.' }, { status: 404 });
     }
 
-    return NextResponse.json({ session: result.rows[0] });
+    const session = result.rows[0] as {
+      class_id: string;
+      final_recipe_title: string | null;
+      final_recipe_pdf: string | null;
+      final_recipe_brief: string | null;
+      final_recipe_title_ar: string | null;
+      final_recipe_pdf_ar: string | null;
+      final_recipe_brief_ar: string | null;
+      final_recipe_visible_to_customers: boolean;
+      final_recipe_published_at: string | null;
+      admin_workshop_notes: string | null;
+      admin_workshop_notes_photo: string | null;
+    };
+
+    await query(
+      `UPDATE classes
+       SET final_recipe_title = $1,
+           final_recipe_pdf = $2,
+           final_recipe_brief = $3,
+           final_recipe_title_ar = $4,
+           final_recipe_pdf_ar = $5,
+           final_recipe_brief_ar = $6,
+           final_recipe_visible_to_customers = $7,
+           final_recipe_published_at = CASE WHEN $7 = true THEN COALESCE($8::timestamptz, NOW()) ELSE NULL END,
+           admin_workshop_notes = COALESCE($9, admin_workshop_notes),
+           admin_workshop_notes_photo = COALESCE($10, admin_workshop_notes_photo),
+           updated_at = NOW()
+       WHERE id = $11`,
+      [
+        session.final_recipe_title,
+        session.final_recipe_pdf,
+        session.final_recipe_brief,
+        session.final_recipe_title_ar,
+        session.final_recipe_pdf_ar,
+        session.final_recipe_brief_ar,
+        session.final_recipe_visible_to_customers,
+        session.final_recipe_published_at,
+        session.admin_workshop_notes,
+        session.admin_workshop_notes_photo,
+        session.class_id,
+      ]
+    );
+
+    return NextResponse.json({ session });
   } catch (error) {
     console.error('Error updating recipe session:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -22,8 +22,11 @@ type ClassBookingDetails = {
   special_requests: string | null;
   start_date_time: string | Date | null;
   customer_recipe_pdf?: string | null;
+  customer_recipe_pdf_ar?: string | null;
   customer_recipe_title?: string | null;
+  customer_recipe_title_ar?: string | null;
   customer_recipe_brief?: string | null;
+  customer_recipe_brief_ar?: string | null;
 };
 
 type EventBookingDetails = {
@@ -186,6 +189,16 @@ export default async function AccountOrderDetailsPage({
   };
 
   if (classBooking) {
+    const recipeTitle = isArabic
+      ? classBooking.customer_recipe_title_ar || classBooking.customer_recipe_title
+      : classBooking.customer_recipe_title || classBooking.customer_recipe_title_ar;
+    const recipeBrief = isArabic
+      ? classBooking.customer_recipe_brief_ar || classBooking.customer_recipe_brief
+      : classBooking.customer_recipe_brief || classBooking.customer_recipe_brief_ar;
+    const recipePdf = isArabic
+      ? classBooking.customer_recipe_pdf_ar || classBooking.customer_recipe_pdf
+      : classBooking.customer_recipe_pdf || classBooking.customer_recipe_pdf_ar;
+
     return (
       <div className="mx-auto max-w-4xl space-y-6 px-4 py-10">
         <Link href={`/${locale}/account/orders`} className="text-sm font-semibold text-[color:var(--primary)] hover:underline">
@@ -242,13 +255,13 @@ export default async function AccountOrderDetailsPage({
 
           <div className="mt-4 rounded-2xl border border-[color:var(--border)] p-4 text-sm">
             <p className="font-medium text-[color:var(--text)]">{t.finalRecipe}</p>
-            {classBooking.customer_recipe_pdf || classBooking.customer_recipe_brief ? (
+            {recipePdf || recipeBrief ? (
               <div className="mt-2 space-y-2 text-[color:var(--text-muted)]">
-                <p className="font-medium text-[color:var(--text)]">{classBooking.customer_recipe_title || t.finalRecipe}</p>
-                {classBooking.customer_recipe_brief ? <p>{classBooking.customer_recipe_brief}</p> : null}
-                {classBooking.customer_recipe_pdf ? (
+                <p className="font-medium text-[color:var(--text)]">{recipeTitle || t.finalRecipe}</p>
+                {recipeBrief ? <p>{recipeBrief}</p> : null}
+                {recipePdf ? (
                   <Link
-                    href={classBooking.customer_recipe_pdf}
+                    href={recipePdf}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex rounded-lg bg-[color:var(--primary)] px-3 py-2 text-sm font-semibold text-white hover:opacity-90"

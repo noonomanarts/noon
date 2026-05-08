@@ -32,15 +32,22 @@ export async function POST(request: NextRequest) {
 
     const isImage = file.type.startsWith("image/");
     const isVideo = file.type.startsWith("video/");
+    const isPdf = file.type === "application/pdf";
 
-    if (!isImage && !isVideo) {
+    if (!isImage && !isVideo && !isPdf) {
       return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
     }
 
-    const maxFileSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+    const maxFileSize = isVideo ? 50 * 1024 * 1024 : isPdf ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
     if (file.size > maxFileSize) {
       return NextResponse.json(
-        { error: isVideo ? "Video size must be 50MB or less" : "Image size must be 5MB or less" },
+        {
+          error: isVideo
+            ? "Video size must be 50MB or less"
+            : isPdf
+              ? "PDF size must be 20MB or less"
+              : "Image size must be 5MB or less",
+        },
         { status: 400 }
       );
     }
@@ -50,7 +57,7 @@ export async function POST(request: NextRequest) {
     await mkdir(uploadDir, { recursive: true });
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const ext = path.extname(file.name) || ".jpg";
+    const ext = path.extname(file.name) || (isPdf ? ".pdf" : ".jpg");
     const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
     const filePath = path.join(uploadDir, fileName);
 

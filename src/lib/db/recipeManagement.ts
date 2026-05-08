@@ -13,10 +13,17 @@ export async function ensureRecipeManagementSchema(): Promise<void> {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS final_recipe_title VARCHAR(255)`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS final_recipe_pdf VARCHAR(500)`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS final_recipe_brief TEXT`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS final_recipe_title_ar VARCHAR(255)`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS final_recipe_pdf_ar VARCHAR(500)`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS final_recipe_brief_ar TEXT`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS final_recipe_visible_to_customers BOOLEAN NOT NULL DEFAULT FALSE`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS final_recipe_published_at TIMESTAMP WITH TIME ZONE`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS admin_workshop_notes TEXT`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS admin_workshop_notes_photo VARCHAR(500)`);
+
+    await query(`ALTER TABLE class_sessions ADD COLUMN IF NOT EXISTS final_recipe_title_ar VARCHAR(255)`);
+    await query(`ALTER TABLE class_sessions ADD COLUMN IF NOT EXISTS final_recipe_pdf_ar VARCHAR(500)`);
+    await query(`ALTER TABLE class_sessions ADD COLUMN IF NOT EXISTS final_recipe_brief_ar TEXT`);
 
     await query(`
       DO $$

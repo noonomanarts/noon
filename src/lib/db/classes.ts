@@ -6,6 +6,7 @@ import { generateUUID } from "./uuid";
 import type { ClassCategory as ClassCategoryType, ClassSubCategory, ClassStatus, ClassPublic } from "./types";
 import { ClassCategory } from "./types";
 import { ensureClassFinanceSchema } from "./classFinance";
+import { ensureRecipeManagementSchema } from "./recipeManagement";
 
 let classMinimumAgeSchemaReady: Promise<void> | null = null;
 
@@ -44,6 +45,7 @@ export async function findManyClasses(options: {
 }): Promise<ClassWithTrainer[]> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
+  await ensureRecipeManagementSchema();
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -104,6 +106,14 @@ export async function findManyClasses(options: {
     status: row.status,
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
+    finalRecipeTitle: row.final_recipe_title,
+    finalRecipePdf: row.final_recipe_pdf,
+    finalRecipeBrief: row.final_recipe_brief,
+    finalRecipeTitleAr: row.final_recipe_title_ar,
+    finalRecipePdfAr: row.final_recipe_pdf_ar,
+    finalRecipeBriefAr: row.final_recipe_brief_ar,
+    finalRecipeVisibleToCustomers: Boolean(row.final_recipe_visible_to_customers),
+    finalRecipePublishedAt: row.final_recipe_published_at,
     trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
     noonSharePercent: parseFloat(row.noon_share_percent || 0),
     expenseSharePercent: parseFloat(row.expense_share_percent || 0),
@@ -143,6 +153,7 @@ export async function findManyClassesPaginated(options: {
 }): Promise<{ classes: Record<string, unknown>[]; total: number }> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
+  await ensureRecipeManagementSchema();
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -216,6 +227,14 @@ export async function findManyClassesPaginated(options: {
     status: row.status,
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
+    finalRecipeTitle: row.final_recipe_title,
+    finalRecipePdf: row.final_recipe_pdf,
+    finalRecipeBrief: row.final_recipe_brief,
+    finalRecipeTitleAr: row.final_recipe_title_ar,
+    finalRecipePdfAr: row.final_recipe_pdf_ar,
+    finalRecipeBriefAr: row.final_recipe_brief_ar,
+    finalRecipeVisibleToCustomers: Boolean(row.final_recipe_visible_to_customers),
+    finalRecipePublishedAt: row.final_recipe_published_at,
     trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
     noonSharePercent: parseFloat(row.noon_share_percent || 0),
     expenseSharePercent: parseFloat(row.expense_share_percent || 0),
@@ -248,6 +267,7 @@ export async function findUniqueClass(
 ): Promise<Record<string, unknown> | null> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
+  await ensureRecipeManagementSchema();
   const conditions: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -300,6 +320,14 @@ export async function findUniqueClass(
     status: row.status,
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
+    finalRecipeTitle: row.final_recipe_title,
+    finalRecipePdf: row.final_recipe_pdf,
+    finalRecipeBrief: row.final_recipe_brief,
+    finalRecipeTitleAr: row.final_recipe_title_ar,
+    finalRecipePdfAr: row.final_recipe_pdf_ar,
+    finalRecipeBriefAr: row.final_recipe_brief_ar,
+    finalRecipeVisibleToCustomers: Boolean(row.final_recipe_visible_to_customers),
+    finalRecipePublishedAt: row.final_recipe_published_at,
     trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
     noonSharePercent: parseFloat(row.noon_share_percent || 0),
     expenseSharePercent: parseFloat(row.expense_share_percent || 0),
@@ -366,6 +394,13 @@ export async function createClass(data: {
   currency?: string;
   metaTitle?: string;
   metaDescription?: string;
+  finalRecipeTitle?: string;
+  finalRecipePdf?: string;
+  finalRecipeBrief?: string;
+  finalRecipeTitleAr?: string;
+  finalRecipePdfAr?: string;
+  finalRecipeBriefAr?: string;
+  finalRecipeVisibleToCustomers?: boolean;
   trainerSharePercent?: number;
   noonSharePercent?: number;
   expenseSharePercent?: number;
@@ -375,6 +410,7 @@ export async function createClass(data: {
 }): Promise<Record<string, unknown>> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
+  await ensureRecipeManagementSchema();
   const id = generateUUID();
   const now = new Date();
 
@@ -383,10 +419,13 @@ export async function createClass(data: {
       id, slug, title, title_ar, description, description_ar, category, sub_category,
       trainer_id, price, currency, seats_total, seats_available, duration_minutes,
       image, images, status, meta_title, meta_description,
+      final_recipe_title, final_recipe_pdf, final_recipe_brief,
+      final_recipe_title_ar, final_recipe_pdf_ar, final_recipe_brief_ar,
+      final_recipe_visible_to_customers, final_recipe_published_at,
       trainer_share_percent, noon_share_percent, expense_share_percent,
       start_date_time, end_date_time, registration_close_at,
       created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
     RETURNING *`,
     [
       id,
@@ -408,6 +447,14 @@ export async function createClass(data: {
       data.status || 'DRAFT',
       data.metaTitle || null,
       data.metaDescription || null,
+      data.finalRecipeTitle || null,
+      data.finalRecipePdf || null,
+      data.finalRecipeBrief || null,
+      data.finalRecipeTitleAr || null,
+      data.finalRecipePdfAr || null,
+      data.finalRecipeBriefAr || null,
+      data.finalRecipeVisibleToCustomers ?? false,
+      data.finalRecipeVisibleToCustomers ? now : null,
       data.trainerSharePercent ?? 0,
       data.noonSharePercent ?? 0,
       data.expenseSharePercent ?? 0,
@@ -440,6 +487,14 @@ export async function createClass(data: {
     status: row.status,
     metaTitle: row.meta_title,
     metaDescription: row.meta_description,
+    finalRecipeTitle: row.final_recipe_title,
+    finalRecipePdf: row.final_recipe_pdf,
+    finalRecipeBrief: row.final_recipe_brief,
+    finalRecipeTitleAr: row.final_recipe_title_ar,
+    finalRecipePdfAr: row.final_recipe_pdf_ar,
+    finalRecipeBriefAr: row.final_recipe_brief_ar,
+    finalRecipeVisibleToCustomers: Boolean(row.final_recipe_visible_to_customers),
+    finalRecipePublishedAt: row.final_recipe_published_at,
     trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
     noonSharePercent: parseFloat(row.noon_share_percent || 0),
     expenseSharePercent: parseFloat(row.expense_share_percent || 0),
@@ -480,6 +535,14 @@ export async function updateClass(
     currency: string;
     metaTitle: string;
     metaDescription: string;
+    finalRecipeTitle: string | null;
+    finalRecipePdf: string | null;
+    finalRecipeBrief: string | null;
+    finalRecipeTitleAr: string | null;
+    finalRecipePdfAr: string | null;
+    finalRecipeBriefAr: string | null;
+    finalRecipeVisibleToCustomers: boolean;
+    finalRecipePublishedAt: Date | null;
     publishedAt: Date | null;
     trainerSharePercent: number;
     noonSharePercent: number;
@@ -496,6 +559,7 @@ export async function updateClass(
 ): Promise<Record<string, unknown> | null> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
+  await ensureRecipeManagementSchema();
   const updates: string[] = [];
   const values: unknown[] = [];
   let paramIndex = 1;
@@ -518,6 +582,14 @@ export async function updateClass(
     currency: 'currency',
     metaTitle: 'meta_title',
     metaDescription: 'meta_description',
+    finalRecipeTitle: 'final_recipe_title',
+    finalRecipePdf: 'final_recipe_pdf',
+    finalRecipeBrief: 'final_recipe_brief',
+    finalRecipeTitleAr: 'final_recipe_title_ar',
+    finalRecipePdfAr: 'final_recipe_pdf_ar',
+    finalRecipeBriefAr: 'final_recipe_brief_ar',
+    finalRecipeVisibleToCustomers: 'final_recipe_visible_to_customers',
+    finalRecipePublishedAt: 'final_recipe_published_at',
     publishedAt: 'published_at',
     trainerSharePercent: 'trainer_share_percent',
     noonSharePercent: 'noon_share_percent',
@@ -872,6 +944,7 @@ export async function createOrUpdateClassReview(input: {
  * Get bookings by user ID
  */
 export async function getBookingsByUserId(userId: string) {
+  await ensureRecipeManagementSchema();
   const result = await query(
     `SELECT
       b.*,
@@ -884,9 +957,25 @@ export async function getBookingsByUserId(userId: string) {
         ELSE NULL
       END AS customer_recipe_pdf,
       CASE
+        WHEN c.final_recipe_visible_to_customers = true THEN COALESCE(c.final_recipe_pdf_ar, c.final_recipe_pdf, c.recipe_pdf)
+        ELSE NULL
+      END AS customer_recipe_pdf_ar,
+      CASE
         WHEN c.final_recipe_visible_to_customers = true THEN c.final_recipe_title
         ELSE NULL
-      END AS customer_recipe_title
+      END AS customer_recipe_title,
+      CASE
+        WHEN c.final_recipe_visible_to_customers = true THEN COALESCE(c.final_recipe_title_ar, c.final_recipe_title)
+        ELSE NULL
+      END AS customer_recipe_title_ar,
+      CASE
+        WHEN c.final_recipe_visible_to_customers = true THEN c.final_recipe_brief
+        ELSE NULL
+      END AS customer_recipe_brief,
+      CASE
+        WHEN c.final_recipe_visible_to_customers = true THEN COALESCE(c.final_recipe_brief_ar, c.final_recipe_brief)
+        ELSE NULL
+      END AS customer_recipe_brief_ar
      FROM bookings b
      LEFT JOIN classes c ON b.class_id = c.id
      WHERE b.user_id = $1
@@ -901,6 +990,7 @@ export async function getBookingsByUserId(userId: string) {
 }
 
 export async function getBookingByIdForUser(userId: string, bookingId: string) {
+  await ensureRecipeManagementSchema();
   const result = await query(
     `SELECT
       b.*,
@@ -914,13 +1004,25 @@ export async function getBookingByIdForUser(userId: string, bookingId: string) {
         ELSE NULL
       END AS customer_recipe_pdf,
       CASE
+        WHEN c.final_recipe_visible_to_customers = true THEN COALESCE(c.final_recipe_pdf_ar, c.final_recipe_pdf, c.recipe_pdf)
+        ELSE NULL
+      END AS customer_recipe_pdf_ar,
+      CASE
         WHEN c.final_recipe_visible_to_customers = true THEN c.final_recipe_title
         ELSE NULL
       END AS customer_recipe_title,
       CASE
+        WHEN c.final_recipe_visible_to_customers = true THEN COALESCE(c.final_recipe_title_ar, c.final_recipe_title)
+        ELSE NULL
+      END AS customer_recipe_title_ar,
+      CASE
         WHEN c.final_recipe_visible_to_customers = true THEN c.final_recipe_brief
         ELSE NULL
-      END AS customer_recipe_brief
+      END AS customer_recipe_brief,
+      CASE
+        WHEN c.final_recipe_visible_to_customers = true THEN COALESCE(c.final_recipe_brief_ar, c.final_recipe_brief)
+        ELSE NULL
+      END AS customer_recipe_brief_ar
      FROM bookings b
      LEFT JOIN classes c ON b.class_id = c.id
      WHERE b.user_id = $1 AND b.id = $2
@@ -935,6 +1037,62 @@ export async function getBookingByIdForUser(userId: string, bookingId: string) {
     ...row,
     total_amount: row.total_amount !== null && row.total_amount !== undefined ? Number(row.total_amount) : null,
   };
+}
+
+export async function getVisibleRecipesByUserId(userId: string) {
+  await ensureRecipeManagementSchema();
+
+  const result = await query(
+    `SELECT DISTINCT ON (b.class_id)
+      c.id AS class_id,
+      c.slug,
+      c.title,
+      c.title_ar,
+      c.image,
+      c.start_date_time,
+      c.final_recipe_title,
+      c.final_recipe_pdf,
+      c.final_recipe_brief,
+      c.final_recipe_title_ar,
+      c.final_recipe_pdf_ar,
+      c.final_recipe_brief_ar,
+      c.final_recipe_published_at,
+      b.id AS booking_id,
+      b.booking_number,
+      b.created_at AS booking_created_at
+     FROM bookings b
+     INNER JOIN classes c ON c.id = b.class_id
+     WHERE b.user_id = $1
+       AND b.status <> 'CANCELLED'
+       AND c.final_recipe_visible_to_customers = true
+       AND (
+         c.final_recipe_pdf IS NOT NULL
+         OR c.final_recipe_brief IS NOT NULL
+         OR c.final_recipe_pdf_ar IS NOT NULL
+         OR c.final_recipe_brief_ar IS NOT NULL
+       )
+     ORDER BY b.class_id, c.start_date_time DESC NULLS LAST, b.created_at DESC`,
+    [userId]
+  );
+
+  return result.rows.map((row) => ({
+    classId: row.class_id as string,
+    bookingId: row.booking_id as string,
+    bookingNumber: row.booking_number as string,
+    slug: row.slug as string,
+    classTitle: row.title as string,
+    classTitleAr: (row.title_ar as string | null) ?? null,
+    classImage: (row.image as string | null) ?? null,
+    startDateTime: (row.start_date_time as string | Date | null) ?? null,
+    finalRecipeTitle: (row.final_recipe_title as string | null) ?? null,
+    finalRecipePdf: (row.final_recipe_pdf as string | null) ?? null,
+    finalRecipeBrief: (row.final_recipe_brief as string | null) ?? null,
+    finalRecipeTitleAr: (row.final_recipe_title_ar as string | null) ?? null,
+    finalRecipePdfAr: (row.final_recipe_pdf_ar as string | null) ?? null,
+    finalRecipeBriefAr: (row.final_recipe_brief_ar as string | null) ?? null,
+    finalRecipePublishedAt: (row.final_recipe_published_at as string | Date | null) ?? null,
+    bookingCreatedAt: row.booking_created_at as string | Date,
+  }));
 }
 
 // Re-export ClassCategory for convenience

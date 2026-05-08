@@ -58,6 +58,9 @@ type RecipeSessionSummary = {
   final_recipe_title: string | null;
   final_recipe_pdf: string | null;
   final_recipe_brief: string | null;
+  final_recipe_title_ar: string | null;
+  final_recipe_pdf_ar: string | null;
+  final_recipe_brief_ar: string | null;
   final_recipe_visible_to_customers: boolean;
   final_recipe_published_at: string | null;
   admin_workshop_notes: string | null;
@@ -92,6 +95,9 @@ type RecipeFormState = {
   finalRecipeTitle: string;
   finalRecipePdf: string;
   finalRecipeBrief: string;
+  finalRecipeTitleAr: string;
+  finalRecipePdfAr: string;
+  finalRecipeBriefAr: string;
   finalRecipeVisibleToCustomers: boolean;
   adminWorkshopNotes: string;
   adminWorkshopNotesPhoto: string;
@@ -129,6 +135,9 @@ function createEmptyFormState(): RecipeFormState {
     finalRecipeTitle: '',
     finalRecipePdf: '',
     finalRecipeBrief: '',
+    finalRecipeTitleAr: '',
+    finalRecipePdfAr: '',
+    finalRecipeBriefAr: '',
     finalRecipeVisibleToCustomers: false,
     adminWorkshopNotes: '',
     adminWorkshopNotesPhoto: '',
@@ -149,6 +158,9 @@ function mapDetailToForm(detail: RecipeSessionDetail): RecipeFormState {
     finalRecipeTitle: detail.final_recipe_title ?? '',
     finalRecipePdf: detail.final_recipe_pdf ?? '',
     finalRecipeBrief: detail.final_recipe_brief ?? '',
+    finalRecipeTitleAr: detail.final_recipe_title_ar ?? '',
+    finalRecipePdfAr: detail.final_recipe_pdf_ar ?? '',
+    finalRecipeBriefAr: detail.final_recipe_brief_ar ?? '',
     finalRecipeVisibleToCustomers: detail.final_recipe_visible_to_customers,
     adminWorkshopNotes: detail.admin_workshop_notes ?? '',
     adminWorkshopNotesPhoto: detail.admin_workshop_notes_photo ?? '',
@@ -170,6 +182,9 @@ function serializeFormState(formState: RecipeFormState) {
     finalRecipeTitle: formState.finalRecipeTitle.trim(),
     finalRecipePdf: formState.finalRecipePdf.trim(),
     finalRecipeBrief: formState.finalRecipeBrief.trim(),
+    finalRecipeTitleAr: formState.finalRecipeTitleAr.trim(),
+    finalRecipePdfAr: formState.finalRecipePdfAr.trim(),
+    finalRecipeBriefAr: formState.finalRecipeBriefAr.trim(),
     adminWorkshopNotes: formState.adminWorkshopNotes.trim(),
     adminWorkshopNotesPhoto: formState.adminWorkshopNotesPhoto.trim(),
   });
@@ -255,6 +270,11 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
       title: isArabic ? 'عنوان الوصفة النهائية' : 'Final Recipe Title',
       pdf: isArabic ? 'ملف الوصفة النهائية (PDF)' : 'Final Recipe PDF URL',
       brief: isArabic ? 'الوصف النهائي للعملاء' : 'Final Customer Brief',
+      titleAr: isArabic ? 'عنوان الوصفة النهائية بالعربية' : 'Arabic Final Recipe Title',
+      pdfAr: isArabic ? 'ملف الوصفة العربية (PDF)' : 'Arabic Final Recipe PDF URL',
+      briefAr: isArabic ? 'الوصف النهائي بالعربية' : 'Arabic Final Customer Brief',
+      englishHeading: isArabic ? 'المحتوى الإنجليزي' : 'English content',
+      arabicHeading: isArabic ? 'المحتوى العربي' : 'Arabic content',
       visible: isArabic ? 'إظهار الوصفة للعملاء في حساباتهم' : 'Make final recipe visible to customers',
       publishedAt: isArabic ? 'تاريخ النشر' : 'Published At',
     },
@@ -418,6 +438,9 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
         finalRecipeTitle: formState.finalRecipeTitle.trim() || null,
         finalRecipePdf: formState.finalRecipePdf.trim() || null,
         finalRecipeBrief: formState.finalRecipeBrief.trim() || null,
+        finalRecipeTitleAr: formState.finalRecipeTitleAr.trim() || null,
+        finalRecipePdfAr: formState.finalRecipePdfAr.trim() || null,
+        finalRecipeBriefAr: formState.finalRecipeBriefAr.trim() || null,
         finalRecipeVisibleToCustomers: formState.finalRecipeVisibleToCustomers,
         adminWorkshopNotes: formState.adminWorkshopNotes.trim() || null,
         adminWorkshopNotesPhoto: formState.adminWorkshopNotesPhoto.trim() || null,
@@ -949,40 +972,83 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
 
                   {activeTab === 'final' ? (
                     <div className="space-y-4">
-                      <label className="space-y-1 text-sm">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.finalSection.title}</span>
-                        <input
-                          value={formState.finalRecipeTitle}
-                          onChange={(event) =>
-                            setFormState((previous) => ({ ...previous, finalRecipeTitle: event.target.value }))
-                          }
-                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-                        />
-                      </label>
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="space-y-4">
+                          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.finalSection.englishHeading}</p>
+                          <label className="space-y-1 text-sm">
+                            <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.finalSection.title}</span>
+                            <input
+                              value={formState.finalRecipeTitle}
+                              onChange={(event) =>
+                                setFormState((previous) => ({ ...previous, finalRecipeTitle: event.target.value }))
+                              }
+                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                            />
+                          </label>
 
-                      <label className="space-y-1 text-sm">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.finalSection.pdf}</span>
-                        <input
-                          value={formState.finalRecipePdf}
-                          onChange={(event) =>
-                            setFormState((previous) => ({ ...previous, finalRecipePdf: event.target.value }))
-                          }
-                          placeholder="https://..."
-                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-                        />
-                      </label>
+                          <label className="space-y-1 text-sm">
+                            <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.finalSection.pdf}</span>
+                            <input
+                              value={formState.finalRecipePdf}
+                              onChange={(event) =>
+                                setFormState((previous) => ({ ...previous, finalRecipePdf: event.target.value }))
+                              }
+                              placeholder="https://..."
+                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                            />
+                          </label>
 
-                      <label className="space-y-1 text-sm">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.finalSection.brief}</span>
-                        <textarea
-                          value={formState.finalRecipeBrief}
-                          onChange={(event) =>
-                            setFormState((previous) => ({ ...previous, finalRecipeBrief: event.target.value }))
-                          }
-                          rows={6}
-                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-                        />
-                      </label>
+                          <label className="space-y-1 text-sm">
+                            <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.finalSection.brief}</span>
+                            <textarea
+                              value={formState.finalRecipeBrief}
+                              onChange={(event) =>
+                                setFormState((previous) => ({ ...previous, finalRecipeBrief: event.target.value }))
+                              }
+                              rows={6}
+                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                            />
+                          </label>
+                        </div>
+
+                        <div className="space-y-4">
+                          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.finalSection.arabicHeading}</p>
+                          <label className="space-y-1 text-sm">
+                            <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.finalSection.titleAr}</span>
+                            <input
+                              value={formState.finalRecipeTitleAr}
+                              onChange={(event) =>
+                                setFormState((previous) => ({ ...previous, finalRecipeTitleAr: event.target.value }))
+                              }
+                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                            />
+                          </label>
+
+                          <label className="space-y-1 text-sm">
+                            <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.finalSection.pdfAr}</span>
+                            <input
+                              value={formState.finalRecipePdfAr}
+                              onChange={(event) =>
+                                setFormState((previous) => ({ ...previous, finalRecipePdfAr: event.target.value }))
+                              }
+                              placeholder="https://..."
+                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                            />
+                          </label>
+
+                          <label className="space-y-1 text-sm">
+                            <span className="font-medium text-zinc-700 dark:text-zinc-200">{t.finalSection.briefAr}</span>
+                            <textarea
+                              value={formState.finalRecipeBriefAr}
+                              onChange={(event) =>
+                                setFormState((previous) => ({ ...previous, finalRecipeBriefAr: event.target.value }))
+                              }
+                              rows={6}
+                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                            />
+                          </label>
+                        </div>
+                      </div>
 
                       <label
                         className={`inline-flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
