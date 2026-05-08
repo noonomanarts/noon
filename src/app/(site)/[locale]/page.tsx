@@ -469,7 +469,7 @@ export default async function HomePage({
               <div className="mt-8 grid gap-3 sm:mx-auto sm:mt-10 sm:max-w-4xl sm:grid-cols-2 sm:gap-4">
                 <Link
                   href={heroUi.cookingHref}
-                  className="inline-flex min-h-12 w-full items-center justify-center border border-white/45 px-5 py-3.5 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:px-6 sm:py-4 sm:text-lg"
+                  className="inline-flex min-h-12 w-full items-center justify-center px-5 py-3.5 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:px-6 sm:py-4 sm:text-lg"
                   style={{
                     backgroundColor: heroUi.cookingColor,
                     color: "#ffffff",
@@ -479,7 +479,7 @@ export default async function HomePage({
                 </Link>
                 <Link
                   href={heroUi.artsHref}
-                  className="inline-flex min-h-12 w-full items-center justify-center border border-white/45 px-5 py-3.5 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:px-6 sm:py-4 sm:text-lg"
+                  className="inline-flex min-h-12 w-full items-center justify-center px-5 py-3.5 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:px-6 sm:py-4 sm:text-lg"
                   style={{
                     backgroundColor: heroUi.artsColor,
                     color: "#ffffff",

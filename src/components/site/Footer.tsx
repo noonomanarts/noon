@@ -179,7 +179,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
                     rel="noopener noreferrer"
                     aria-label={item.label}
                     title={item.label}
-                    className="footer-soft-row inline-flex size-12 items-center justify-center border border-[color:var(--footer-border)] text-[color:var(--footer-muted)] transition hover:bg-[color:var(--footer-panel-hover)] hover:text-[color:var(--footer-text)]"
+                    className="inline-flex size-12 items-center justify-center text-[color:var(--footer-muted)] transition hover:bg-[color:var(--footer-panel-hover)] hover:text-[color:var(--footer-text)]"
                   >
                     <FooterSocialIcon icon={item.icon} />
                   </a>
