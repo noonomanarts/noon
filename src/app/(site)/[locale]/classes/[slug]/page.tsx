@@ -102,7 +102,6 @@ export default async function ClassDetailPage({
       isArabic ? "الموعد سيُعلن قريباً" : "Schedule coming soon",
     classOverview: isArabic ? "نظرة عامة" : "Class Overview",
     bookingCardTitle: isArabic ? "الحجز" : "Booking",
-    whatYouWillLearn: isArabic ? "ماذا ستتعلم" : "What you will learn",
     dateAndTime: isArabic ? "التاريخ والوقت" : "Date and time",
     trainerSection: isArabic ? "يقود الدورة" : "Led by",
     secureSeatNow: isArabic ? "ثبّت حجزك الآن" : "Secure your seat now",
@@ -167,28 +166,6 @@ export default async function ClassDetailPage({
         .filter((item): item is string => Boolean(item))
     )
   );
-  const learningHighlights = description
-    .split(/[\n\.!؟،؛]+/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 8)
-    .slice(0, 4);
-
-  if (learningHighlights.length === 0) {
-    learningHighlights.push(
-      ...(isArabic
-        ? [
-            "تطبيق عملي خطوة بخطوة داخل الورشة.",
-            "تعلّم تقنيات احترافية قابلة للتطبيق في المنزل.",
-            "نصائح مباشرة من المدرب لتحسين النتائج.",
-          ]
-        : [
-            "Hands-on practice with guided steps.",
-            "Professional techniques you can apply at home.",
-            "Direct trainer tips to improve your results.",
-          ])
-    );
-  }
-
   const formatDate = (date: Date | string) =>
     new Date(date).toLocaleDateString(isArabic ? "ar-OM-u-nu-latn" : "en-OM", {
       weekday: "long",
@@ -349,20 +326,6 @@ export default async function ClassDetailPage({
             <p className="mt-4 whitespace-pre-line text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
               {description}
             </p>
-          </article>
-
-          <article className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm sm:p-7">
-            <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.whatYouWillLearn}</h2>
-            <div className="mt-4 grid gap-3">
-              {learningHighlights.map((item, index) => (
-                <div
-                  key={`${item}-${index}`}
-                  className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3"
-                >
-                  <p className="text-sm leading-7 text-[color:var(--text)] sm:text-base">{item}</p>
-                </div>
-              ))}
-            </div>
           </article>
 
           {trainer ? (
