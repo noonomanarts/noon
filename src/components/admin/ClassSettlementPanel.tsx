@@ -181,19 +181,21 @@ export default function ClassSettlementPanel({
     expenseNotes: isArabic ? 'ملاحظات' : 'Notes',
     inventoryItem: isArabic ? 'المادة من المخزون' : 'Inventory Item',
     selectItem: isArabic ? 'اختر المادة' : 'Select item',
-    usageQuantity: isArabic ? 'الكمية التقديرية المخصومة' : 'Estimated Deducted Quantity',
+    usageQuantity: isArabic ? 'الكمية' : 'Quantity',
     unitCost: isArabic ? 'تكلفة الوحدة' : 'Unit Cost',
     lineTotal: isArabic ? 'إجمالي التكلفة' : 'Line Total',
-    manualMaterialCost: isArabic ? 'المبلغ التقديري المخصوم' : 'Estimated Deduction Amount',
+    manualMaterialCost: isArabic ? 'المبلغ' : 'Amount',
+    poolUsageAmount: isArabic ? 'المبلغ' : 'Amount',
     manualCostHint: isArabic
       ? 'أدخل فقط المبلغ التقريبي الذي تريد خصمه. لا حاجة لإدخال أو متابعة الوزن أو الكمية، فالنظام يتولى ذلك تلقائياً.'
       : 'Enter only the approximate amount to deduct. You do not need to enter or track weight or quantity; the system handles that automatically.',
     stockAvailable: isArabic ? 'المتوفر' : 'Available',
+    poolAvailableAmount: isArabic ? 'المتوفر' : 'Available',
     noInventoryItems: isArabic ? 'لا توجد مواد في المخزون بعد. أضفها من صفحة Inventory.' : 'No inventory items found yet. Add items from the Inventory page.',
     addInventoryUsage: isArabic ? 'إضافة سحب من المخزون' : 'Add Inventory Usage',
     inventoryHint: isArabic
-      ? 'اختر المادة ثم أدخل فقط المبلغ التقريبي المراد خصمه. سيحسب النظام الكمية والتكلفة تلقائياً حسب متوسط تكلفة المخزون.'
-      : 'Select an item, then enter only the approximate amount to deduct. The system will calculate quantity and cost automatically from inventory average cost.',
+      ? 'اختر المادة. إذا كانت من نوع Pool فاكتب فقط المبلغ المستخدم، أما المواد العادية فاكتب الكمية التقديرية فقط.'
+      : 'Select an item. For pool items, enter only the used amount. For regular items, enter only the approximate quantity to deduct.',
     remove: isArabic ? 'حذف' : 'Remove',
     grossRevenue: isArabic ? 'إجمالي الإيراد' : 'Gross Revenue',
     fixedCosts: isArabic ? 'التكاليف الثابتة' : 'Fixed Costs',
@@ -905,6 +907,7 @@ export default function ClassSettlementPanel({
                     const manualCostAmount = Number(item.manualCostAmount ?? 0);
                     const allowsManualCost = Boolean(catalogItem?.allowsManualCost);
                     const usesManualCost = allowsManualCost && manualCostAmount > 0;
+                    const availablePoolAmount = catalogItem ? Number((catalogItem.currentStock * catalogItem.averageUnitCost).toFixed(3)) : 0;
                     const resolvedQuantity = usesManualCost
                       ? (catalogItem && catalogItem.averageUnitCost > 0 ? Number((manualCostAmount / catalogItem.averageUnitCost).toFixed(3)) : 0)
                       : item.quantity;
@@ -960,7 +963,7 @@ export default function ClassSettlementPanel({
                             </select>
                           </label>
                           <label className="text-sm">
-                            <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{allowsManualCost ? t.manualMaterialCost : t.usageQuantity}</span>
+                            <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{allowsManualCost ? t.poolUsageAmount : t.usageQuantity}</span>
                             <input
                               type="number"
                               min="0"
@@ -999,14 +1002,16 @@ export default function ClassSettlementPanel({
                               className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                             />
                           </label>
-                          <div className="grid gap-2">
-                            <div className="text-sm">
-                              <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.unitCost}</span>
-                              <div className="rounded-xl border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
-                                {formatMoney(unitCost, snapshot.currency)}
+                          {allowsManualCost ? <div /> : (
+                            <div className="grid gap-2">
+                              <div className="text-sm">
+                                <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.unitCost}</span>
+                                <div className="rounded-xl border border-zinc-300 bg-zinc-50 px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+                                  {formatMoney(unitCost, snapshot.currency)}
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          )}
                         </div>
 
                         <div>
@@ -1039,7 +1044,9 @@ export default function ClassSettlementPanel({
 
                         {catalogItem ? (
                           <p className={`rounded-xl border px-3 py-2 text-xs ${hasShortage ? 'border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300' : 'border-zinc-200 bg-white text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400'}`}>
-                            {`${t.stockAvailable}: ${formatPlainNumber(catalogItem.currentStock)} ${catalogItem.unit}${hasShortage ? ` - ${t.insufficientStock}` : ''}`}
+                            {allowsManualCost
+                              ? `${t.poolAvailableAmount}: ${formatMoney(availablePoolAmount, snapshot.currency)}${hasShortage ? ` - ${t.insufficientStock}` : ''}`
+                              : `${t.stockAvailable}: ${formatPlainNumber(catalogItem.currentStock)} ${catalogItem.unit}${hasShortage ? ` - ${t.insufficientStock}` : ''}`}
                           </p>
                         ) : null}
                       </div>

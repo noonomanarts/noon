@@ -127,10 +127,10 @@ export default function EventSettlementPanel({
     addInventoryUsage: isArabic ? 'إضافة سحب' : 'Add Usage',
     inventoryItem: isArabic ? 'المادة' : 'Inventory Item',
     selectItem: isArabic ? 'اختر المادة' : 'Select item',
-    usageQuantity: isArabic ? 'الكمية التقديرية المخصومة' : 'Estimated Deducted Quantity',
+    usageQuantity: isArabic ? 'الكمية' : 'Quantity',
     unitCost: isArabic ? 'تكلفة الوحدة' : 'Unit Cost',
     lineTotal: isArabic ? 'الإجمالي' : 'Line Total',
-    manualMaterialCost: isArabic ? 'المبلغ التقديري المخصوم' : 'Estimated Deduction Amount',
+    manualMaterialCost: isArabic ? 'المبلغ' : 'Amount',
     manualCostHint: isArabic
       ? 'أدخل فقط المبلغ التقريبي المراد خصمه. لا حاجة لإدخال أو متابعة الوزن أو الكمية، فالنظام يتولى ذلك تلقائياً.'
       : 'Enter only the approximate amount to deduct. You do not need to enter or track weight or quantity; the system handles that automatically.',

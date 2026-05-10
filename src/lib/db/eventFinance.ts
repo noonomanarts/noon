@@ -12,6 +12,13 @@ type Queryable = {
   query: (text: string, values?: unknown[]) => Promise<{ rows: QueryResultRow[]; rowCount?: number | null }>;
 };
 
+function isInventoryPoolLikeRow(row: Pick<QueryResultRow, 'allows_manual_cost' | 'name' | 'unit'>): boolean {
+  const name = String(row.name ?? '').trim().toLowerCase();
+  const unit = String(row.unit ?? '').trim().toLowerCase();
+
+  return Boolean(row.allows_manual_cost) || name === 'general materials pool' || unit === 'credit';
+}
+
 type AdminFinanceEntryType = 'INCOME' | 'EXPENSE';
 
 export type EventExpenseItemInput = {
@@ -494,7 +501,7 @@ export async function replaceEventInventoryUsagePlans(params: {
 
   const itemIds = params.usageItems.map((item) => item.inventoryItemId);
   const itemsResult = await params.db.query(
-    `SELECT id, average_unit_cost, current_stock, allows_manual_cost
+    `SELECT id, name, unit, average_unit_cost, current_stock, allows_manual_cost
      FROM inventory_items
      WHERE id = ANY($1::uuid[])
      FOR UPDATE`,
@@ -514,7 +521,7 @@ export async function replaceEventInventoryUsagePlans(params: {
 
     const averageUnitCost = toMoney(itemRow.average_unit_cost);
     const availableStock = toMoney(itemRow.current_stock);
-    const allowsManualCost = Boolean(itemRow.allows_manual_cost);
+    const allowsManualCost = isInventoryPoolLikeRow(itemRow);
     const requestedManualCost = item.manualCostAmount == null ? null : toMoney(item.manualCostAmount);
     let quantity = toMoney(item.quantity);
     let unitCost = averageUnitCost;
@@ -576,8 +583,9 @@ export async function finalizeEventInventoryUsagePlans(params: {
             u.notes,
             i.name AS item_name,
             i.current_stock,
-            i.average_unit_cost,
-            i.allows_manual_cost
+                 i.average_unit_cost,
+                 i.allows_manual_cost,
+                 i.unit
      FROM event_inventory_usages u
      INNER JOIN inventory_items i ON i.id = u.inventory_item_id
      WHERE u.event_booking_id = $1
@@ -601,7 +609,7 @@ export async function finalizeEventInventoryUsagePlans(params: {
     }
 
     const averageUnitCost = toMoney(usageRow.average_unit_cost);
-    const allowsManualCost = Boolean(usageRow.allows_manual_cost);
+    const allowsManualCost = isInventoryPoolLikeRow(usageRow);
     const manualCostAmount = usageRow.manual_cost_amount == null ? null : toMoney(usageRow.manual_cost_amount);
     const savedUnitCost = toMoney(usageRow.unit_cost);
     const savedTotalCost = toMoney(usageRow.total_cost);

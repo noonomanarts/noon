@@ -5,6 +5,13 @@ type Queryable = {
   query: (text: string, values?: unknown[]) => Promise<{ rows: QueryResultRow[]; rowCount?: number | null }>;
 };
 
+function isInventoryPoolLikeRow(row: Pick<QueryResultRow, 'allows_manual_cost' | 'name' | 'unit'>): boolean {
+  const name = String(row.name ?? '').trim().toLowerCase();
+  const unit = String(row.unit ?? '').trim().toLowerCase();
+
+  return Boolean(row.allows_manual_cost) || name === 'general materials pool' || unit === 'credit';
+}
+
 export type InventoryItem = {
   id: string;
   name: string;
@@ -258,6 +265,13 @@ export async function ensureInventorySchema(): Promise<void> {
     await query(`CREATE INDEX IF NOT EXISTS idx_class_inventory_usages_item_id ON class_inventory_usages(inventory_item_id)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_class_inventory_usages_status ON class_inventory_usages(status)`);
     await query(`ALTER TABLE class_inventory_usages ADD COLUMN IF NOT EXISTS manual_cost_amount DECIMAL(12, 3)`);
+    await query(
+      `UPDATE inventory_items
+       SET allows_manual_cost = TRUE,
+           updated_at = NOW()
+       WHERE allows_manual_cost = FALSE
+         AND (LOWER(name) = 'general materials pool' OR LOWER(unit) = 'credit')`
+    );
 
     await query(
       `INSERT INTO inventory_items (
@@ -297,7 +311,7 @@ function mapInventoryItem(row: QueryResultRow): InventoryItem {
     totalPurchaseCost: toMoney(row.total_purchase_cost),
     totalConsumedCost: toMoney(row.total_consumed_cost),
     currency: String(row.currency || 'OMR'),
-    allowsManualCost: Boolean(row.allows_manual_cost),
+    allowsManualCost: isInventoryPoolLikeRow(row),
     isActive: Boolean(row.is_active),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -340,7 +354,7 @@ export async function listInventoryCatalog(db: Queryable = { query }): Promise<I
       currentStock,
       averageUnitCost: toMoney(row.average_unit_cost),
       reorderLevel,
-      allowsManualCost: Boolean(row.allows_manual_cost),
+      allowsManualCost: isInventoryPoolLikeRow(row),
       isLowStock: reorderLevel > 0 && currentStock <= reorderLevel,
     };
   });
@@ -873,7 +887,7 @@ export async function replaceClassInventoryUsagePlans(params: {
 
   const itemIds = normalized.map((item) => item.inventoryItemId);
   const itemsResult = await params.db.query(
-    `SELECT id, average_unit_cost, current_stock, allows_manual_cost
+    `SELECT id, name, unit, average_unit_cost, current_stock, allows_manual_cost
      FROM inventory_items
      WHERE id = ANY($1::uuid[])
      FOR UPDATE`,
@@ -893,7 +907,7 @@ export async function replaceClassInventoryUsagePlans(params: {
 
     const averageUnitCost = toMoney(itemRow.average_unit_cost);
     const availableStock = toMoney(itemRow.current_stock);
-    const allowsManualCost = Boolean(itemRow.allows_manual_cost);
+    const allowsManualCost = isInventoryPoolLikeRow(itemRow);
     const requestedManualCost = item.manualCostAmount == null ? null : toMoney(item.manualCostAmount);
     let quantity = toMoney(item.quantity);
     let unitCost = averageUnitCost;
@@ -956,7 +970,8 @@ export async function finalizeClassInventoryUsagePlans(params: {
             i.name AS item_name,
             i.current_stock,
           i.average_unit_cost,
-          i.allows_manual_cost
+          i.allows_manual_cost,
+          i.unit
      FROM class_inventory_usages u
      INNER JOIN inventory_items i ON i.id = u.inventory_item_id
      WHERE u.class_id = $1
@@ -982,7 +997,7 @@ export async function finalizeClassInventoryUsagePlans(params: {
     }
 
     const averageUnitCost = toMoney(usageRow.average_unit_cost);
-    const allowsManualCost = Boolean(usageRow.allows_manual_cost);
+    const allowsManualCost = isInventoryPoolLikeRow(usageRow);
     const manualCostAmount = usageRow.manual_cost_amount == null ? null : toMoney(usageRow.manual_cost_amount);
     const savedUnitCost = toMoney(usageRow.unit_cost);
     const savedTotalCost = toMoney(usageRow.total_cost);
