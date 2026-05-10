@@ -4,6 +4,21 @@ import Image from "next/image";
 import Link from "next/link";
 import { GiChefToque } from "react-icons/gi";
 
+function getLocalizedTrainerName(
+  locale: Locale,
+  trainer: { fullName: string | null | undefined; displayNameEn?: string | null; displayNameAr?: string | null },
+) {
+  const displayNameEn = trainer.displayNameEn?.trim();
+  const displayNameAr = trainer.displayNameAr?.trim();
+  const fullName = String(trainer.fullName ?? "").trim();
+
+  if (locale === "ar") {
+    return displayNameAr || displayNameEn || fullName;
+  }
+
+  return displayNameEn || displayNameAr || fullName;
+}
+
 export default async function TrainersPage({
   params,
 }: {
@@ -64,9 +79,11 @@ export default async function TrainersPage({
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {visibleTrainers.map(({ trainer, profile }) => {
-              const localizedTrainerName = locale === "ar"
-                ? profile?.displayNameAr?.trim() || trainer.fullName
-                : profile?.displayNameEn?.trim() || trainer.fullName;
+              const localizedTrainerName = getLocalizedTrainerName(locale, {
+                fullName: trainer.fullName,
+                displayNameEn: profile?.displayNameEn ?? trainer.displayNameEn,
+                displayNameAr: profile?.displayNameAr ?? trainer.displayNameAr,
+              });
 
               return (
                 <Link

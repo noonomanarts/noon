@@ -187,6 +187,22 @@ function containsArabicCharacters(value: string): boolean {
   return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/.test(value);
 }
 
+function getLocalizedTrainerName(
+  locale: Locale,
+  trainer: { fullName: string | null | undefined; displayNameEn?: string | null; displayNameAr?: string | null },
+  fallbackName: string,
+) {
+  const displayNameEn = trainer.displayNameEn?.trim();
+  const displayNameAr = trainer.displayNameAr?.trim();
+  const fullName = String(trainer.fullName ?? "").trim();
+
+  if (locale === "ar") {
+    return displayNameAr || displayNameEn || fullName || fallbackName;
+  }
+
+  return displayNameEn || displayNameAr || fullName || fallbackName;
+}
+
 export default async function TrainerProfilePage({
   params,
 }: {
@@ -243,9 +259,15 @@ export default async function TrainerProfilePage({
     unnamedTrainer: locale === "ar" ? "المدرب" : "Trainer",
   };
 
-  const localizedTrainerName = locale === "ar"
-    ? trainerProfile?.displayNameAr?.trim() || trainer.fullName?.trim() || t.unnamedTrainer
-    : trainerProfile?.displayNameEn?.trim() || (!containsArabicCharacters(trainer.fullName) ? trainer.fullName.trim() : "") || t.unnamedTrainer;
+  const localizedTrainerName = getLocalizedTrainerName(
+    locale,
+    {
+      fullName: trainer.fullName,
+      displayNameEn: trainerProfile?.displayNameEn,
+      displayNameAr: trainerProfile?.displayNameAr,
+    },
+    t.unnamedTrainer
+  );
   const localizedTrainerBio = locale === "ar"
     ? trainerProfile?.bioAr?.trim() || trainerProfile?.bio?.trim() || t.noBio
     : trainerProfile?.bioEn?.trim() || (trainerProfile?.bio?.trim() && !containsArabicCharacters(trainerProfile.bio) ? trainerProfile.bio.trim() : "") || t.noBio;

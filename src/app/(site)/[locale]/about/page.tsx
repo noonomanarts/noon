@@ -48,6 +48,21 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
+function getLocalizedTrainerName(
+  locale: Locale,
+  trainer: { fullName: string | null | undefined; displayNameEn?: string | null; displayNameAr?: string | null },
+) {
+  const displayNameEn = trainer.displayNameEn?.trim();
+  const displayNameAr = trainer.displayNameAr?.trim();
+  const fullName = String(trainer.fullName ?? "").trim();
+
+  if (locale === "ar") {
+    return displayNameAr || displayNameEn || fullName;
+  }
+
+  return displayNameEn || displayNameAr || fullName;
+}
+
 function formatOfferCard(item: string, locale: Locale) {
   const normalized = item.trim();
   const punctuation = locale === "ar" ? ["،", ":", "-", "("] : [":", ",", "-", "("];
@@ -285,9 +300,11 @@ export default async function AboutPage({
         {visibleTrainers.length > 0 ? (
           <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {visibleTrainers.map(({ trainer, profile }) => {
-              const localizedTrainerName = isArabic
-                ? profile?.displayNameAr?.trim() || String(trainer.fullName)
-                : profile?.displayNameEn?.trim() || String(trainer.fullName);
+              const localizedTrainerName = getLocalizedTrainerName(locale, {
+                fullName: trainer.fullName,
+                displayNameEn: profile?.displayNameEn ?? trainer.displayNameEn,
+                displayNameAr: profile?.displayNameAr ?? trainer.displayNameAr,
+              });
 
               return (
               <Link
