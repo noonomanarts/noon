@@ -106,6 +106,11 @@ export type ClassSettlementSnapshot = {
   canClose: boolean;
 };
 
+type PaidRevenueSummary = {
+  bookingsCount: number;
+  grossRevenue: number;
+};
+
 type FinanceClassRow = {
   id: string;
   title: string;
@@ -461,9 +466,32 @@ async function getParticipantRows(classId: string, db: Queryable): Promise<Class
   return rows;
 }
 
+async function getPaidRevenueSummary(classId: string, db: Queryable): Promise<PaidRevenueSummary> {
+  const result = await db.query(
+    `SELECT COUNT(*)::int AS bookings_count,
+            COALESCE(SUM(total_amount), 0) AS gross_revenue
+     FROM bookings
+     WHERE class_id = $1
+       AND payment_status = 'PAID'
+       AND (
+         status IN ('CONFIRMED', 'COMPLETED')
+         OR (status = 'CANCELLED' AND COALESCE(number_of_participants, 0) = 0)
+       )`,
+    [classId]
+  );
+
+  const row = result.rows[0];
+
+  return {
+    bookingsCount: Number(row?.bookings_count ?? 0),
+    grossRevenue: toMoney(row?.gross_revenue),
+  };
+}
+
 function buildSettlementSnapshot(args: {
   financeRow: FinanceClassRow;
   classFinanceSettings: ClassFinanceAdminSettings;
+  revenueSummary: PaidRevenueSummary;
   participants: ClassParticipantRow[];
   expenses: ClassExpenseItem[];
   inventoryUsageItems: ClassInventoryUsageItem[];
@@ -475,7 +503,7 @@ function buildSettlementSnapshot(args: {
     settledByUserId: string | null;
   } | null;
 }): ClassSettlementSnapshot {
-  const grossRevenue = toMoney(args.participants.reduce((sum, row) => sum + (row.participantIndex === 1 ? row.totalAmount : 0), 0));
+  const grossRevenue = args.revenueSummary.grossRevenue;
   const participantsCount = args.participants.length;
   const manualMaterialsCostAmount = toMoney(args.expenses.reduce((sum, item) => sum + item.amount, 0));
   const inventoryMaterialsCostAmount = toMoney(args.inventoryUsageItems.reduce((sum, item) => sum + item.totalCost, 0));
@@ -530,7 +558,7 @@ function buildSettlementSnapshot(args: {
       : null,
     finance,
     summary: {
-      bookingsCount: new Set(args.participants.map((row) => row.bookingId)).size,
+      bookingsCount: args.revenueSummary.bookingsCount,
       participantsCount,
       grossRevenue,
       fixedCostsAmount: finance.fixedCosts.total,
@@ -557,8 +585,9 @@ export async function getClassSettlementSnapshot(classId: string): Promise<Class
   const financeRow = await getClassFinanceRow(classId, { query });
   if (!financeRow) return null;
 
-  const [classFinanceSettings, participants, expenses, settlement, inventoryUsageItems, inventoryCatalog] = await Promise.all([
+  const [classFinanceSettings, revenueSummary, participants, expenses, settlement, inventoryUsageItems, inventoryCatalog] = await Promise.all([
     getClassFinanceSettings(),
+    getPaidRevenueSummary(classId, { query }),
     getParticipantRows(classId, { query }),
     getExpenseItems(classId, { query }),
     getSettlementRow(classId, { query }),
@@ -569,6 +598,7 @@ export async function getClassSettlementSnapshot(classId: string): Promise<Class
   return buildSettlementSnapshot({
     financeRow,
     classFinanceSettings,
+    revenueSummary,
     participants,
     expenses,
     inventoryUsageItems,
@@ -1090,8 +1120,9 @@ export async function saveClassSettlementDraft(args: {
       usageItems: inventoryUsageItems,
     });
 
-    const [classFinanceSettings, participants, expenses, savedInventoryUsageItems, inventoryCatalog] = await Promise.all([
+    const [classFinanceSettings, revenueSummary, participants, expenses, savedInventoryUsageItems, inventoryCatalog] = await Promise.all([
       getClassFinanceSettings(),
+      getPaidRevenueSummary(args.classId, client),
       getParticipantRows(args.classId, client),
       getExpenseItems(args.classId, client),
       listClassInventoryUsageItems(args.classId, client),
@@ -1101,6 +1132,7 @@ export async function saveClassSettlementDraft(args: {
     const snapshot = buildSettlementSnapshot({
       financeRow,
       classFinanceSettings,
+      revenueSummary,
       participants,
       expenses,
       inventoryUsageItems: savedInventoryUsageItems,
@@ -1179,8 +1211,9 @@ export async function closeClassSettlement(args: {
       usageItems: inventoryUsageItems,
     });
 
-    const [classFinanceSettings, participants, expenses, draftInventoryUsageItems, inventoryCatalog] = await Promise.all([
+    const [classFinanceSettings, revenueSummary, participants, expenses, draftInventoryUsageItems, inventoryCatalog] = await Promise.all([
       getClassFinanceSettings(),
+      getPaidRevenueSummary(args.classId, client),
       getParticipantRows(args.classId, client),
       getExpenseItems(args.classId, client),
       listClassInventoryUsageItems(args.classId, client),
@@ -1190,6 +1223,7 @@ export async function closeClassSettlement(args: {
     const draftSnapshot = buildSettlementSnapshot({
       financeRow,
       classFinanceSettings,
+      revenueSummary,
       participants,
       expenses,
       inventoryUsageItems: draftInventoryUsageItems,
@@ -1227,6 +1261,7 @@ export async function closeClassSettlement(args: {
     const snapshot = buildSettlementSnapshot({
       financeRow,
       classFinanceSettings,
+      revenueSummary,
       participants,
       expenses,
       inventoryUsageItems: postedInventoryUsageItems,

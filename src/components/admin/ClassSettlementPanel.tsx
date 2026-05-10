@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { calculateWorkshopFinanceBreakdown } from '@/lib/classFinanceRules';
 import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
-import { IoAdd, IoCheckmarkCircle, IoCubeOutline, IoPeopleOutline, IoReceiptOutline, IoWalletOutline } from 'react-icons/io5';
+import { IoAdd, IoCalendarOutline, IoCheckmarkCircle, IoCubeOutline, IoFlashOutline, IoPeopleOutline, IoReceiptOutline, IoSparklesOutline, IoTrashOutline, IoWalletOutline } from 'react-icons/io5';
 import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
 
 type ExpenseItem = {
@@ -209,6 +209,9 @@ export default function ClassSettlementPanel({
     language: isArabic ? 'اللغة' : 'Language',
     actions: isArabic ? 'الإجراءات' : 'Actions',
     finance: isArabic ? 'تفصيل الورشة المالي' : 'Workshop Finance Breakdown',
+    financeHint: isArabic
+      ? 'ملخص بصري واضح للتكاليف والإيراد قبل اعتماد الإغلاق.'
+      : 'A clear visual summary of revenue and costs before posting settlement.',
     kitchenUsage: isArabic ? 'استخدام المطبخ' : 'Kitchen Usage',
     workshopContent: isArabic ? 'محتوى الورشة' : 'Workshop Content',
     fixedCostFormula: isArabic ? 'تحسب تلقائياً من مدة الورشة وعدد المشاركين.' : 'Calculated automatically from workshop duration and participant count.',
@@ -218,8 +221,14 @@ export default function ClassSettlementPanel({
     closed: isArabic ? 'مغلق' : 'Closed',
     open: isArabic ? 'مفتوح' : 'Open',
     noParticipants: isArabic ? 'لا يوجد مشاركون مدفوعون لهذا الكلاس حتى الآن.' : 'No paid participants for this class yet.',
-    removeFromWorkshop: isArabic ? 'إزالة من الورشة' : 'Remove from workshop',
-    removeAndRefund: isArabic ? 'إزالة + إرجاع للمحفظة' : 'Remove + wallet refund',
+    removeFromWorkshop: isArabic ? 'إزالة فقط من الورشة' : 'Remove only',
+    removeAndRefund: isArabic ? 'إزالة مع إرجاع للمحفظة' : 'Remove + refund',
+    participantSectionHint: isArabic
+      ? 'على الجوال تظهر المشاركات كبطاقات واضحة، وعلى الشاشات الأكبر تظهر كجدول منظم مع أزرار ثابتة بدون كسر النص.'
+      : 'On mobile, participants are shown as clear cards. On larger screens, they appear in a structured table with single-line actions.',
+    participantEmail: isArabic ? 'البريد الإلكتروني' : 'Email',
+    participantBookingRef: isArabic ? 'رقم الحجز' : 'Booking Ref',
+    participantActions: isArabic ? 'إجراءات المشارك' : 'Participant actions',
     removing: isArabic ? 'جارٍ الإزالة...' : 'Removing...',
     removeConfirm: isArabic
       ? 'سيتم حذف هذا المشارك من الورشة بدون إرجاع مبلغ إلى المحفظة. هل تريد المتابعة؟'
@@ -227,9 +236,14 @@ export default function ClassSettlementPanel({
     refundConfirm: isArabic
       ? 'سيتم حذف هذا المشارك من الورشة وإرجاع حصته إلى المحفظة. هل تريد المتابعة؟'
       : 'This participant will be removed from the workshop and their share will be credited back to the wallet. Continue?',
-    participantRemoved: isArabic ? 'تمت إزالة المشارك من الورشة.' : 'Participant removed from the workshop.',
+    participantRemoved: isArabic ? 'تمت إزالة المشارك من الورشة بدون أي إرجاع للمبلغ.' : 'Participant removed from the workshop without a refund.',
     participantRefunded: isArabic ? 'تمت إزالة المشارك وإرجاع المبلغ إلى المحفظة.' : 'Participant removed and refunded to wallet.',
     noExpenses: isArabic ? 'لم يتم تسجيل أي تكلفة مواد بعد.' : 'No material costs recorded yet.',
+    manualExpensesHint: isArabic
+      ? 'أضف أي تكلفة مواد أو ملاحظات إضافية بشكل منظم قبل اعتماد التسوية.'
+      : 'Add any extra material cost or note in a structured way before posting the settlement.',
+    inventoryUsageEmpty: isArabic ? 'لا توجد عناصر سحب مسجلة بعد.' : 'No inventory usage entries added yet.',
+    inventoryUsageSummary: isArabic ? 'ملخص السحب' : 'Usage Summary',
     insufficientStock: isArabic ? 'الكمية المطلوبة أكبر من المتوفر في المخزون.' : 'Required quantity is greater than available stock.',
     closedAt: isArabic ? 'تاريخ الإغلاق' : 'Closed At',
     plannerHint: isArabic
@@ -238,6 +252,13 @@ export default function ClassSettlementPanel({
     negativeNoonFee: isArabic
       ? 'رسوم نون أصبحت سالبة. راجع تكاليف المواد أو الإيراد قبل الإغلاق.'
       : 'Noon fee is negative. Review material costs or revenue before closing.',
+    notesHint: isArabic
+      ? 'أي ملاحظات هنا تحفظ مع مسودة التسوية وتبقى مرجعاً للإدارة.'
+      : 'Notes saved here stay attached to the settlement draft for the admin team.',
+    settlementActions: isArabic ? 'إجراءات الإغلاق' : 'Settlement Actions',
+    settlementActionsHint: isArabic
+      ? 'راجع القيم النهائية هنا ثم احفظ المسودة أو اعتمد الإغلاق.'
+      : 'Review the final values here, then save the draft or post the settlement.',
     closingEffectsTitle: isArabic ? 'ما الذي سيحدث عند الإغلاق؟' : 'What happens on close?',
     closingEffects: isArabic
       ? 'سيتم إضافة أتعاب المدرب إلى المصروفات ومحفظة المدرب، وإضافة رسوم نون إلى الأرباح، وتسجيل تكاليف المواد اليدوية وتكاليف المخزون ضمن المصروفات، مع خصم الكميات المستخدمة من المخزون.'
@@ -376,6 +397,43 @@ export default function ClassSettlementPanel({
       && (financePreview?.noonFeeAmount ?? -1) >= 0
       && !hasInventoryShortage
   );
+  const summaryCards = [
+    {
+      title: t.grossRevenue,
+      value: formatMoney(snapshot?.summary.grossRevenue ?? 0, snapshot?.currency || 'OMR'),
+      icon: <IoWalletOutline className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />,
+      iconWrapClassName: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20',
+      valueClassName: 'text-emerald-700 dark:text-emerald-300',
+    },
+    {
+      title: t.fixedCosts,
+      value: formatMoney(financePreview?.fixedCosts.total ?? snapshot?.summary.fixedCostsAmount ?? 0, snapshot?.currency || 'OMR'),
+      icon: <IoReceiptOutline className="h-5 w-5 text-amber-700 dark:text-amber-300" />,
+      iconWrapClassName: 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20',
+      valueClassName: 'text-amber-700 dark:text-amber-300',
+    },
+    {
+      title: t.materialsCosts,
+      value: formatMoney(totalExpenseAmount, snapshot?.currency || 'OMR'),
+      icon: <IoCubeOutline className="h-5 w-5 text-sky-700 dark:text-sky-300" />,
+      iconWrapClassName: 'border-sky-200 bg-sky-50 dark:border-sky-900/40 dark:bg-sky-900/20',
+      valueClassName: 'text-sky-700 dark:text-sky-300',
+    },
+    {
+      title: t.trainerPayout,
+      value: formatMoney(financePreview?.trainerFee.amount ?? snapshot?.summary.trainerFeeAmount ?? 0, snapshot?.currency || 'OMR'),
+      icon: <IoPeopleOutline className="h-5 w-5 text-fuchsia-700 dark:text-fuchsia-300" />,
+      iconWrapClassName: 'border-fuchsia-200 bg-fuchsia-50 dark:border-fuchsia-900/40 dark:bg-fuchsia-900/20',
+      valueClassName: 'text-fuchsia-700 dark:text-fuchsia-300',
+    },
+    {
+      title: t.adminPayout,
+      value: formatMoney(financePreview?.noonFeeAmount ?? snapshot?.summary.noonFeeAmount ?? 0, snapshot?.currency || 'OMR'),
+      icon: <IoCheckmarkCircle className="h-5 w-5 text-[color:var(--noon-teal-strong)] dark:text-teal-300" />,
+      iconWrapClassName: 'border-teal-200 bg-teal-50 dark:border-teal-900/40 dark:bg-teal-900/20',
+      valueClassName: 'text-[color:var(--noon-teal-strong)] dark:text-teal-300',
+    },
+  ];
 
   const handleSaveDraft = async () => {
     setSaving(true);
@@ -624,37 +682,20 @@ export default function ClassSettlementPanel({
         </div>
       ) : null}
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-5">
-        <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.grossRevenue}</p>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-            {formatMoney(snapshot.summary.grossRevenue, snapshot.currency)}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.fixedCosts}</p>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-            {formatMoney(financePreview?.fixedCosts.total ?? snapshot.summary.fixedCostsAmount, snapshot.currency)}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.materialsCosts}</p>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-            {formatMoney(totalExpenseAmount, snapshot.currency)}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.trainerPayout}</p>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-            {formatMoney(financePreview?.trainerFee.amount ?? snapshot.summary.trainerFeeAmount, snapshot.currency)}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.adminPayout}</p>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-            {formatMoney(financePreview?.noonFeeAmount ?? snapshot.summary.noonFeeAmount, snapshot.currency)}
-          </p>
-        </div>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {summaryCards.map((card) => (
+          <div key={card.title} className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 p-4 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{card.title}</p>
+                <p className={`mt-3 whitespace-nowrap text-xl font-semibold ${card.valueClassName}`}>{card.value}</p>
+              </div>
+              <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${card.iconWrapClassName}`}>
+                {card.icon}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
@@ -664,51 +705,128 @@ export default function ClassSettlementPanel({
               <IoPeopleOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.participants}</h3>
             </div>
+            <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{t.participantSectionHint}</p>
             {snapshot.participants.length === 0 ? (
               <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{t.noParticipants}</p>
             ) : (
-              <div className="mt-4 overflow-x-auto">
-                <table className="min-w-full divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
+              <>
+                <div className="mt-4 grid gap-3 lg:hidden">
+                  {snapshot.participants.map((participant) => {
+                    const participantKey = `${participant.bookingId}-${participant.participantIndex}`;
+                    const isRemoving = removingParticipantKey === participantKey;
+
+                    return (
+                      <article
+                        key={participantKey}
+                        className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h4 className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{participant.participantName}</h4>
+                            <p className="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">{participant.customerName}</p>
+                          </div>
+                          <span className="shrink-0 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                            {participant.participantPreferredLanguage || '—'}
+                          </span>
+                        </div>
+
+                        <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                          <div className="min-w-0 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+                            <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.bookedBy}</dt>
+                            <dd className="mt-1 truncate font-medium text-zinc-800 dark:text-zinc-100">{participant.customerName}</dd>
+                          </div>
+                          <div className="min-w-0 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+                            <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.participantEmail}</dt>
+                            <dd className="mt-1 truncate font-medium text-zinc-800 dark:text-zinc-100">{participant.customerEmail || '—'}</dd>
+                          </div>
+                          <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+                            <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.classDate}</dt>
+                            <dd className="mt-1 font-medium text-zinc-800 dark:text-zinc-100">{formatDateTime(participant.classStartTime)}</dd>
+                          </div>
+                          <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+                            <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.participantBookingRef}</dt>
+                            <dd className="mt-1 font-medium text-zinc-800 dark:text-zinc-100">{participant.bookingNumber}</dd>
+                          </div>
+                          <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
+                            <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.dob}</dt>
+                            <dd className="mt-1 font-medium text-zinc-800 dark:text-zinc-100">{participant.participantDateOfBirth || '—'}</dd>
+                          </div>
+                        </dl>
+
+                        {canEdit ? (
+                          <div className="mt-4">
+                            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.participantActions}</p>
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                              <button
+                                type="button"
+                                onClick={() => void handleRemoveParticipant(participant, false)}
+                                disabled={isRemoving}
+                                className="inline-flex min-h-11 flex-1 items-center justify-center whitespace-nowrap rounded-xl border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                              >
+                                <IoTrashOutline className="me-2 h-4 w-4 shrink-0" />
+                                {isRemoving ? t.removing : t.removeFromWorkshop}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleRemoveParticipant(participant, true)}
+                                disabled={isRemoving}
+                                className="inline-flex min-h-11 flex-1 items-center justify-center whitespace-nowrap rounded-xl border border-amber-200 px-4 py-2.5 text-sm font-semibold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/20"
+                              >
+                                <IoWalletOutline className="me-2 h-4 w-4 shrink-0" />
+                                {isRemoving ? t.removing : t.removeAndRefund}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4 hidden overflow-x-auto lg:block">
+                  <table className="min-w-[1100px] divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
                   <thead>
                     <tr className="text-left text-zinc-500 dark:text-zinc-400">
-                      <th className="py-2 pe-4">{t.participantName}</th>
-                      <th className="py-2 pe-4">{t.bookedBy}</th>
-                      <th className="py-2 pe-4">{t.classDate}</th>
-                      <th className="py-2 pe-4">{t.booking}</th>
-                      <th className="py-2 pe-4">{t.dob}</th>
-                      <th className="py-2">{t.language}</th>
-                      {canEdit ? <th className="py-2 ps-4 text-right">{t.actions}</th> : null}
+                      <th className="py-2 pe-4 whitespace-nowrap">{t.participantName}</th>
+                      <th className="py-2 pe-4 whitespace-nowrap">{t.bookedBy}</th>
+                      <th className="py-2 pe-4 whitespace-nowrap">{t.classDate}</th>
+                      <th className="py-2 pe-4 whitespace-nowrap">{t.booking}</th>
+                      <th className="py-2 pe-4 whitespace-nowrap">{t.dob}</th>
+                      <th className="py-2 whitespace-nowrap">{t.language}</th>
+                      {canEdit ? <th className="py-2 ps-4 text-right whitespace-nowrap">{t.actions}</th> : null}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">
                     {snapshot.participants.map((participant) => (
                       <tr key={`${participant.bookingId}-${participant.participantIndex}`}>
-                        <td className="py-3 pe-4 font-medium text-zinc-900 dark:text-zinc-100">{participant.participantName}</td>
-                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">
-                          <div>{participant.customerName}</div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400">{participant.customerEmail || '—'}</div>
+                        <td className="py-3 pe-4 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{participant.participantName}</td>
+                        <td className="min-w-[220px] py-3 pe-4 text-zinc-600 dark:text-zinc-300">
+                          <div className="whitespace-nowrap">{participant.customerName}</div>
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[220px]">{participant.customerEmail || '—'}</div>
                         </td>
-                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{formatDateTime(participant.classStartTime)}</td>
-                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{participant.bookingNumber}</td>
-                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300">{participant.participantDateOfBirth || '—'}</td>
-                        <td className="py-3 text-zinc-600 dark:text-zinc-300">{participant.participantPreferredLanguage || '—'}</td>
+                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">{formatDateTime(participant.classStartTime)}</td>
+                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">{participant.bookingNumber}</td>
+                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">{participant.participantDateOfBirth || '—'}</td>
+                        <td className="py-3 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">{participant.participantPreferredLanguage || '—'}</td>
                         {canEdit ? (
                           <td className="py-3 ps-4">
-                            <div className="flex flex-wrap justify-end gap-2">
+                            <div className="flex justify-end gap-2 whitespace-nowrap">
                               <button
                                 type="button"
                                 onClick={() => void handleRemoveParticipant(participant, false)}
                                 disabled={removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}`}
-                                className="rounded-xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                                className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-xl border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
                               >
+                                <IoTrashOutline className="me-1.5 h-3.5 w-3.5 shrink-0" />
                                 {removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}` ? t.removing : t.removeFromWorkshop}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => void handleRemoveParticipant(participant, true)}
                                 disabled={removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}`}
-                                className="rounded-xl border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/20"
+                                className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-xl border border-amber-200 px-4 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/20"
                               >
+                                <IoWalletOutline className="me-1.5 h-3.5 w-3.5 shrink-0" />
                                 {removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}` ? t.removing : t.removeAndRefund}
                               </button>
                             </div>
@@ -718,7 +836,8 @@ export default function ClassSettlementPanel({
                     ))}
                   </tbody>
                 </table>
-              </div>
+                </div>
+              </>
             )}
           </div>
 
@@ -731,9 +850,33 @@ export default function ClassSettlementPanel({
 
             <div className="mt-4 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
               <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.manualExpenses}</h4>
+              <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{t.manualExpensesHint}</p>
               <div className="mt-3 space-y-3">
                 {expenseItems.map((item, index) => (
-                  <div key={`expense-${index}`} className="grid gap-3 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+                  <div key={`expense-${index}`} className="grid gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="inline-flex items-center gap-3 min-w-0">
+                        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
+                          <IoReceiptOutline className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{item.title || `${t.manualExpenses} ${index + 1}`}</p>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">{formatMoney(Number.isFinite(item.amount) ? item.amount : 0, snapshot.currency)}</p>
+                        </div>
+                      </div>
+                      {canEdit ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setExpenseItems((prev) => (prev.length > 1 ? prev.filter((_, rowIndex) => rowIndex !== index) : [emptyExpense()]))
+                          }
+                          className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-rose-200 px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                        >
+                          <IoTrashOutline className="h-4 w-4" />
+                          {t.remove}
+                        </button>
+                      ) : null}
+                    </div>
                     <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
                       <label className="text-sm">
                         <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.expenseTitle}</span>
@@ -743,7 +886,7 @@ export default function ClassSettlementPanel({
                             setExpenseItems((prev) => prev.map((row, rowIndex) => (rowIndex === index ? { ...row, title: event.target.value } : row)))
                           }
                           disabled={!canEdit}
-                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                         />
                       </label>
                       <label className="text-sm">
@@ -761,11 +904,11 @@ export default function ClassSettlementPanel({
                             )
                           }
                           disabled={!canEdit}
-                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                         />
                       </label>
                     </div>
-                    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)]">
                       <label className="text-sm">
                         <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.expenseNotes}</span>
                         <input
@@ -774,20 +917,9 @@ export default function ClassSettlementPanel({
                             setExpenseItems((prev) => prev.map((row, rowIndex) => (rowIndex === index ? { ...row, notes: event.target.value } : row)))
                           }
                           disabled={!canEdit}
-                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                         />
                       </label>
-                      {canEdit ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpenseItems((prev) => (prev.length > 1 ? prev.filter((_, rowIndex) => rowIndex !== index) : [emptyExpense()]))
-                          }
-                          className="self-end rounded-xl border border-rose-200 px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
-                        >
-                          {t.remove}
-                        </button>
-                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -797,7 +929,7 @@ export default function ClassSettlementPanel({
                 <button
                   type="button"
                   onClick={() => setExpenseItems((prev) => [...prev, emptyExpense()])}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  className="mt-4 inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 >
                   <IoAdd className="h-4 w-4" />
                   {t.addExpense}
@@ -817,7 +949,7 @@ export default function ClassSettlementPanel({
               ) : (
                 <div className="mt-3 space-y-3">
                   {inventoryUsageItems.length === 0 ? (
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.noExpenses}</p>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.inventoryUsageEmpty}</p>
                   ) : null}
                   {inventoryUsageItems.map((item, index) => {
                     const catalogItem = inventoryCatalogById.get(item.inventoryItemId);
@@ -832,7 +964,28 @@ export default function ClassSettlementPanel({
                     const lineTotal = usesManualCost ? Number(manualCostAmount.toFixed(3)) : Number((resolvedQuantity * unitCost).toFixed(3));
                     const hasShortage = canEdit && Boolean(catalogItem) && resolvedQuantity > (catalogItem?.currentStock ?? 0);
                     return (
-                      <div key={`inventory-usage-${index}`} className="grid gap-3 rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+                      <div key={`inventory-usage-${index}`} className="grid gap-3 rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="inline-flex min-w-0 items-center gap-3">
+                            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-sky-200 bg-sky-50 dark:border-sky-900/40 dark:bg-sky-900/20">
+                              <IoCubeOutline className="h-4 w-4 text-sky-700 dark:text-sky-300" />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{catalogItem?.name || `${t.inventoryUsage} ${index + 1}`}</p>
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.inventoryUsageSummary}: {formatMoney(lineTotal, snapshot.currency)}</p>
+                            </div>
+                          </div>
+                          {canEdit ? (
+                            <button
+                              type="button"
+                              onClick={() => setInventoryUsageItems((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}
+                              className="inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-rose-200 px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                            >
+                              <IoTrashOutline className="h-4 w-4" />
+                              {t.remove}
+                            </button>
+                          ) : null}
+                        </div>
                         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px]">
                           <label className="text-sm">
                             <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.inventoryItem}</span>
@@ -846,7 +999,7 @@ export default function ClassSettlementPanel({
                                   )
                                 )
                               }
-                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                             >
                               <option value="">{t.selectItem}</option>
                               {snapshot.inventoryCatalog.map((catalog) => (
@@ -877,7 +1030,7 @@ export default function ClassSettlementPanel({
                                   )
                                 )
                               }
-                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                             />
                           </label>
                           <div className="grid gap-2">
@@ -921,14 +1074,14 @@ export default function ClassSettlementPanel({
                                     })
                                   );
                                 }}
-                                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                               />
                             </label>
                             <p className="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">{t.manualCostHint}</p>
                           </div>
                         ) : null}
 
-                        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_auto]">
+                        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
                           <label className="text-sm">
                             <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.expenseNotes}</span>
                             <input
@@ -941,7 +1094,7 @@ export default function ClassSettlementPanel({
                                   )
                                 )
                               }
-                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                              className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                             />
                           </label>
                           <div className="text-sm">
@@ -950,19 +1103,10 @@ export default function ClassSettlementPanel({
                               {formatMoney(lineTotal, snapshot.currency)}
                             </div>
                           </div>
-                          {canEdit ? (
-                            <button
-                              type="button"
-                              onClick={() => setInventoryUsageItems((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}
-                              className="self-end rounded-xl border border-rose-200 px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
-                            >
-                              {t.remove}
-                            </button>
-                          ) : null}
                         </div>
 
                         {catalogItem ? (
-                          <p className={`text-xs ${hasShortage ? 'text-rose-600 dark:text-rose-300' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                          <p className={`rounded-xl border px-3 py-2 text-xs ${hasShortage ? 'border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300' : 'border-zinc-200 bg-white text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400'}`}>
                             {`${t.stockAvailable}: ${formatPlainNumber(catalogItem.currentStock)} ${catalogItem.unit}${hasShortage ? ` - ${t.insufficientStock}` : ''}`}
                           </p>
                         ) : null}
@@ -976,7 +1120,7 @@ export default function ClassSettlementPanel({
                 <button
                   type="button"
                   onClick={() => setInventoryUsageItems((prev) => [...prev, emptyInventoryUsage()])}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  className="mt-4 inline-flex min-h-11 items-center gap-2 whitespace-nowrap rounded-xl border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 >
                   <IoAdd className="h-4 w-4" />
                   {t.addInventoryUsage}
@@ -992,11 +1136,16 @@ export default function ClassSettlementPanel({
               <IoWalletOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.finance}</h3>
             </div>
-            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.fixedCostFormula}</p>
+            <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{t.financeHint}</p>
             <div className="mt-4 space-y-3 text-sm">
-              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-500 dark:text-zinc-400">{t.kitchenUsage}</span>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex min-w-0 items-center gap-3 text-zinc-500 dark:text-zinc-400">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20">
+                      <IoFlashOutline className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+                    </span>
+                    <span className="truncate">{t.kitchenUsage}</span>
+                  </span>
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                     {formatMoney(financePreview?.fixedCosts.kitchenUsageAmount ?? snapshot.finance.fixedCosts.kitchenUsageAmount, snapshot.currency)}
                   </span>
@@ -1005,9 +1154,14 @@ export default function ClassSettlementPanel({
                   {`${formatPlainNumber(snapshot.finance.fixedCosts.kitchenUsageRatePerHour)} x ${formatPlainNumber(financePreview?.fixedCosts.durationHours ?? snapshot.finance.fixedCosts.durationHours, { maxFractionDigits: 2 })} h`}
                 </p>
               </div>
-              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-500 dark:text-zinc-400">{t.workshopContent}</span>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex min-w-0 items-center gap-3 text-zinc-500 dark:text-zinc-400">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-teal-200 bg-teal-50 dark:border-teal-900/40 dark:bg-teal-900/20">
+                      <IoSparklesOutline className="h-4 w-4 text-[color:var(--noon-teal-strong)] dark:text-teal-300" />
+                    </span>
+                    <span className="truncate">{t.workshopContent}</span>
+                  </span>
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                     {formatMoney(financePreview?.fixedCosts.workshopContentAmount ?? snapshot.finance.fixedCosts.workshopContentAmount, snapshot.currency)}
                   </span>
@@ -1016,15 +1170,25 @@ export default function ClassSettlementPanel({
                   {`${formatPlainNumber(snapshot.finance.fixedCosts.workshopContentRatePerParticipant)} x ${snapshot.summary.participantsCount}`}
                 </p>
               </div>
-              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-500 dark:text-zinc-400">{t.materialsCosts}</span>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex min-w-0 items-center gap-3 text-zinc-500 dark:text-zinc-400">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 dark:border-sky-900/40 dark:bg-sky-900/20">
+                      <IoCubeOutline className="h-4 w-4 text-sky-700 dark:text-sky-300" />
+                    </span>
+                    <span className="truncate">{t.materialsCosts}</span>
+                  </span>
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">{formatMoney(totalExpenseAmount, snapshot.currency)}</span>
                 </div>
               </div>
-              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-500 dark:text-zinc-400">{t.trainerPayout}</span>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex min-w-0 items-center gap-3 text-zinc-500 dark:text-zinc-400">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-fuchsia-200 bg-fuchsia-50 dark:border-fuchsia-900/40 dark:bg-fuchsia-900/20">
+                      <IoPeopleOutline className="h-4 w-4 text-fuchsia-700 dark:text-fuchsia-300" />
+                    </span>
+                    <span className="truncate">{t.trainerPayout}</span>
+                  </span>
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                     {formatMoney(financePreview?.trainerFee.amount ?? snapshot.summary.trainerFeeAmount, snapshot.currency)}
                   </span>
@@ -1034,18 +1198,28 @@ export default function ClassSettlementPanel({
                   {`${t.trainerBase}: ${formatMoney(financePreview?.trainerFee.baseAmount ?? snapshot.summary.trainerFeeBaseAmount, snapshot.currency)} x ${formatPlainNumber(financePreview?.trainerFee.percent ?? snapshot.summary.trainerFeePercent, { maxFractionDigits: 0 })}%`}
                 </p>
               </div>
-              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-500 dark:text-zinc-400">{t.adminPayout}</span>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex min-w-0 items-center gap-3 text-zinc-500 dark:text-zinc-400">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20">
+                      <IoWalletOutline className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
+                    </span>
+                    <span className="truncate">{t.adminPayout}</span>
+                  </span>
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                     {formatMoney(financePreview?.noonFeeAmount ?? snapshot.summary.noonFeeAmount, snapshot.currency)}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.remainingAfterCosts}</p>
               </div>
-              <div className="rounded-xl bg-zinc-50 px-4 py-3 dark:bg-zinc-950/50">
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-500 dark:text-zinc-400">{t.totalCosts}</span>
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="inline-flex min-w-0 items-center gap-3 text-zinc-500 dark:text-zinc-400">
+                    <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 dark:border-rose-900/40 dark:bg-rose-900/20">
+                      <IoReceiptOutline className="h-4 w-4 text-rose-700 dark:text-rose-300" />
+                    </span>
+                    <span className="truncate">{t.totalCosts}</span>
+                  </span>
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                     {formatMoney(financePreview?.totalCostsAmount ?? snapshot.summary.totalCostsAmount, snapshot.currency)}
                   </span>
@@ -1055,32 +1229,46 @@ export default function ClassSettlementPanel({
           </div>
 
           <div className="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
-            <label className="text-sm">
+            <div className="flex items-center gap-2">
+              <IoReceiptOutline className="h-5 w-5 text-fuchsia-600 dark:text-fuchsia-300" />
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.notes}</h3>
+            </div>
+            <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{t.notesHint}</p>
+            <label className="mt-4 block text-sm">
               <span className="mb-1.5 block text-zinc-700 dark:text-zinc-200">{t.notes}</span>
               <textarea
                 rows={5}
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 disabled={!canEdit}
-                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
               />
             </label>
             {snapshot.settlement?.settledAt ? (
-              <div className="mt-4 rounded-xl bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:bg-zinc-950/50 dark:text-zinc-300">
-                <strong>{t.closedAt}:</strong> {formatDateTime(snapshot.settlement.settledAt)}
+              <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950/50 dark:text-zinc-300">
+                <div className="flex items-center gap-2">
+                  <IoCalendarOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
+                  <strong>{t.closedAt}:</strong>
+                  <span>{formatDateTime(snapshot.settlement.settledAt)}</span>
+                </div>
               </div>
             ) : null}
           </div>
 
           <div className="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
+            <div className="flex items-center gap-2">
+              <IoCheckmarkCircle className="h-5 w-5 text-[color:var(--noon-teal)]" />
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.settlementActions}</h3>
+            </div>
+            <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{t.settlementActionsHint}</p>
             <div className="space-y-3 text-sm">
-              <div className="flex items-center justify-between">
+              <div className="mt-4 flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
                 <span className="text-zinc-500 dark:text-zinc-400">{t.trainerPayout}</span>
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                   {formatMoney(financePreview?.trainerFee.amount ?? snapshot.summary.trainerFeeAmount, snapshot.currency)}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
                 <span className="text-zinc-500 dark:text-zinc-400">{t.adminPayout}</span>
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                   {formatMoney(financePreview?.noonFeeAmount ?? snapshot.summary.noonFeeAmount, snapshot.currency)}
@@ -1115,15 +1303,16 @@ export default function ClassSettlementPanel({
                   type="button"
                   onClick={() => void handleSaveDraft()}
                   disabled={saving}
-                  className="inline-flex items-center justify-center rounded-xl border border-zinc-300 px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-zinc-300 px-4 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 >
+                  <IoReceiptOutline className="h-4 w-4" />
                   {saving ? '...' : t.saveDraft}
                 </button>
                 <button
                   type="button"
                   onClick={() => void handleCloseClass()}
                   disabled={closing || !canClosePreview}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-[color:var(--noon-teal)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[color:var(--noon-teal)] px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <IoCheckmarkCircle className="h-4 w-4" />
                   {closing ? '...' : t.closingAction}
