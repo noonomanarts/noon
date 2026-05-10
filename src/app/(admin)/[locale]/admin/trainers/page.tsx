@@ -8,6 +8,9 @@ import { useParams } from 'next/navigation';
 interface Trainer {
   id: string;
   fullName: string;
+  displayNameEn?: string | null;
+  displayNameAr?: string | null;
+  displayOrder?: number | null;
   email: string;
   phoneNumber: string;
   profileImage: string | null;
@@ -25,6 +28,9 @@ interface Trainer {
       maxParticipants: number | null;
       percent: number;
     }>;
+    displayOrder?: number | null;
+    displayNameEn?: string | null;
+    displayNameAr?: string | null;
     isActive: boolean;
   } | null;
 }
@@ -143,6 +149,8 @@ export default function AdminTrainersPage() {
       trainers.filter(
         (trainer) =>
           trainer.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (trainer.profile?.displayNameEn || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (trainer.profile?.displayNameAr || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
           trainer.email.toLowerCase().includes(searchTerm.toLowerCase())
       ),
     [trainers, searchTerm]
@@ -237,6 +245,12 @@ export default function AdminTrainersPage() {
                     Trainer
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
+                    Public Names
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
+                    Order
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
                     Contact
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
@@ -256,7 +270,7 @@ export default function AdminTrainersPage() {
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {filteredTrainers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                    <td colSpan={8} className="px-6 py-12 text-center text-sm text-zinc-500 dark:text-zinc-400">
                       No trainers found
                     </td>
                   </tr>
@@ -288,6 +302,17 @@ export default function AdminTrainersPage() {
                               {trainer.profile?.expertise.slice(0, 2).join(', ') || 'No expertise set'}
                             </div>
                           </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1 text-sm">
+                          <div className="text-zinc-900 dark:text-white">EN: {trainer.profile?.displayNameEn || '—'}</div>
+                          <div className="text-zinc-500 dark:text-zinc-400">AR: {trainer.profile?.displayNameAr || '—'}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-zinc-900 dark:text-white">
+                          {trainer.profile?.displayOrder ?? '—'}
                         </div>
                       </td>
                       <td className="px-6 py-4">

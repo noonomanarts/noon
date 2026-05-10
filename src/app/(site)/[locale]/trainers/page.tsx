@@ -19,6 +19,15 @@ export default async function TrainersPage({
   const profileByUserId = new Map(
     profiles.map((profile) => [profile.userId, profile])
   );
+  const visibleTrainers = trainers
+    .map((trainer) => ({ trainer, profile: profileByUserId.get(trainer.id as string) ?? null }))
+    .filter((entry) => entry.profile?.isActive)
+    .sort((left, right) => {
+      const leftOrder = left.profile?.displayOrder ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = right.profile?.displayOrder ?? Number.MAX_SAFE_INTEGER;
+      if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+      return String(left.trainer.fullName).localeCompare(String(right.trainer.fullName));
+    });
 
   const t = {
     title: locale === "ar" ? "مدربونا" : "Our Trainers",
@@ -45,7 +54,7 @@ export default async function TrainersPage({
           </p>
         </div>
 
-        {trainers.length === 0 ? (
+        {visibleTrainers.length === 0 ? (
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-10 text-center dark:border-zinc-800 dark:bg-zinc-900">
             <GiChefToque className="mx-auto h-12 w-12 text-zinc-400" />
             <p className="mt-4 text-[color:var(--text-muted)] dark:text-zinc-400">
@@ -54,8 +63,11 @@ export default async function TrainersPage({
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {trainers.map((trainer) => {
-              const profile = profileByUserId.get(trainer.id as string);
+            {visibleTrainers.map(({ trainer, profile }) => {
+              const localizedTrainerName = locale === "ar"
+                ? profile?.displayNameAr?.trim() || trainer.fullName
+                : profile?.displayNameEn?.trim() || trainer.fullName;
+
               return (
                 <Link
                   key={trainer.id as string}
@@ -66,7 +78,7 @@ export default async function TrainersPage({
                     {trainer.profileImage ? (
                       <Image
                         src={trainer.profileImage as string}
-                        alt={trainer.fullName as string}
+                        alt={localizedTrainerName}
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-110"
                       />
@@ -78,7 +90,7 @@ export default async function TrainersPage({
                   </div>
                   <div className="p-5">
                     <h3 className="text-lg font-bold text-[color:var(--text)] dark:text-white">
-                      {trainer.fullName}
+                      {localizedTrainerName}
                     </h3>
                     {profile?.expertise && (profile.expertise as string[]).length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">

@@ -26,6 +26,7 @@ type SavedParticipant = {
   fullName: string;
   dateOfBirth: string;
   preferredLanguage: 'en' | 'ar';
+  gender: Gender | null;
 };
 
 type RegistrationType = 'self' | 'other' | 'both';
@@ -211,6 +212,10 @@ export default function ClassBookingClient({
     subtitle: isArabic ? 'حدد المشاركين وأكد الشروط ثم ادفع من المحفظة.' : 'Set participants, accept terms, then pay with wallet.',
     classDate: isArabic ? 'موعد الدورة' : 'Class Date',
     bookingFor: isArabic ? 'نوع التسجيل' : 'Registration Type',
+    audience: isArabic ? 'الفئة المناسبة' : 'Audience',
+    audienceMixed: isArabic ? 'مشترك' : 'Mixed',
+    audienceWomen: isArabic ? 'للنساء فقط' : 'Women only',
+    audienceMen: isArabic ? 'للرجال فقط' : 'Men only',
     self: isArabic ? 'أنا أحضر هذه الدورة' : 'I am attending this class',
     other: isArabic ? 'أسجل نيابة عن شخص آخر' : 'I am registering on behalf of someone else',
     both: isArabic ? 'أنا أحضر وأسجل أيضاً نيابة عن شخص آخر' : 'I am attending this class and registering on behalf of someone else',
@@ -365,6 +370,13 @@ export default function ClassBookingClient({
     }
   }, [isArabic, loadWallet, searchParams]);
 
+  const audienceLabel =
+    classData.audienceGender === 'FEMALE_ONLY'
+      ? t.audienceWomen
+      : classData.audienceGender === 'MALE_ONLY'
+        ? t.audienceMen
+        : t.audienceMixed;
+
   const updateOtherParticipant = (index: number, key: keyof Participant, value: string) => {
     setOtherParticipants((prev) => {
       const next = [...prev];
@@ -391,7 +403,7 @@ export default function ClassBookingClient({
         fullName: saved.fullName,
         dateOfBirth: saved.dateOfBirth,
         preferredLanguage: saved.preferredLanguage,
-        gender: prev[index]?.gender ?? '',
+        gender: saved.gender ?? prev[index]?.gender ?? '',
         partner: prev[index]?.partner ?? null,
       };
       return next;
@@ -645,6 +657,9 @@ export default function ClassBookingClient({
           {/* ── Registration Type ── */}
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.bookingFor}</h2>
+            <p className="mt-2 text-xs font-medium text-[color:var(--text-muted)]">
+              {t.audience}: <span className="text-[color:var(--text)]">{audienceLabel}</span>
+            </p>
             <div className="mt-4 grid gap-2">
               {([
                 { value: 'self' as RegistrationType, label: t.self },

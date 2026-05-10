@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import ClassHeaderSlideshow from "@/components/site/ClassHeaderSlideshow";
 import { getDefaultSitePageSettings, getSitePageByKey } from "@/lib/admin/sitePages";
-import { findTrainers } from "@/lib/db/trainers";
+import { findTrainerProfiles, findTrainers } from "@/lib/db/trainers";
 import { isLocale, type Locale } from "@/lib/locale";
 import { markdownToSafeHtml } from "@/lib/markdown";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
@@ -100,10 +100,21 @@ export default async function AboutPage({
   const fallbackSettings = fallbackPage ? getDefaultSitePageSettings(fallbackPage) : null;
   const settings = resolvedSettings ?? fallbackSettings;
   const liveTrainers = await findTrainers({ activeOnly: true });
+  const trainerProfiles = await findTrainerProfiles(liveTrainers.map((trainer) => String(trainer.id)));
 
   if (!settings) return null;
 
   const pick = (en: string, ar: string) => (isArabic ? ar : en).trim();
+  const trainerProfileByUserId = new Map(trainerProfiles.map((profile) => [profile.userId, profile]));
+  const visibleTrainers = liveTrainers
+    .map((trainer) => ({ trainer, profile: trainerProfileByUserId.get(String(trainer.id)) ?? null }))
+    .filter((entry) => entry.profile?.isActive)
+    .sort((left, right) => {
+      const leftOrder = left.profile?.displayOrder ?? Number.MAX_SAFE_INTEGER;
+      const rightOrder = right.profile?.displayOrder ?? Number.MAX_SAFE_INTEGER;
+      if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+      return String(left.trainer.fullName).localeCompare(String(right.trainer.fullName));
+    });
 
   const heading = pick(settings.headingEn, settings.headingAr) || (isArabic ? "من نحن" : "About Us");
   const intro =
@@ -271,9 +282,14 @@ export default async function AboutPage({
       <section id="trainers" className={`${styles.reveal} mt-12`} style={revealStyle(360)}>
         <SectionHeader title={trainersTitle} />
 
-        {liveTrainers.length > 0 ? (
+        {visibleTrainers.length > 0 ? (
           <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            {liveTrainers.map((trainer) => (
+            {visibleTrainers.map(({ trainer, profile }) => {
+              const localizedTrainerName = isArabic
+                ? profile?.displayNameAr?.trim() || String(trainer.fullName)
+                : profile?.displayNameEn?.trim() || String(trainer.fullName);
+
+              return (
               <Link
                 key={String(trainer.id)}
                 href={`/${locale}/trainers/${trainer.id}`}
@@ -286,9 +302,10 @@ export default async function AboutPage({
                     className="h-full w-full"
                   />
                 </div>
-                <p className="mt-3 text-base font-semibold text-[color:var(--text)] sm:mt-4 sm:text-lg">{trainer.fullName}</p>
+                <p className="mt-3 text-base font-semibold text-[color:var(--text)] sm:mt-4 sm:text-lg">{localizedTrainerName}</p>
               </Link>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="mt-6 border border-[color:var(--border)] p-6 text-sm text-[color:var(--text-muted)]">

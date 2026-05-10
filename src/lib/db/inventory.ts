@@ -904,14 +904,14 @@ export async function replaceClassInventoryUsagePlans(params: {
         throw new Error('Manual material cost is only allowed for inventory pool items.');
       }
       if (averageUnitCost <= 0) {
-        throw new Error('Manual-cost inventory pool has no purchase history yet. Add stock purchases before using manual material amount.');
+        throw new Error('This inventory item has no purchase history yet. Add stock purchases before using an estimated material amount.');
       }
       quantity = toMoney(requestedManualCost / averageUnitCost);
       if (quantity <= 0) {
-        throw new Error('Manual material cost is too small for the selected inventory pool average cost.');
+        throw new Error('Estimated material amount is too small for the selected inventory item average cost.');
       }
       if (quantity > availableStock) {
-        throw new Error('Insufficient stock in selected inventory pool for the requested manual material cost.');
+        throw new Error('Insufficient stock in selected inventory item for the requested estimated material amount.');
       }
       unitCost = toMoney(requestedManualCost / quantity);
       totalCost = requestedManualCost;

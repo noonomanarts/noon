@@ -322,6 +322,7 @@ async function ensureTrainerProfilesFinanceSchema(): Promise<void> {
   trainerProfilesFinanceSchemaReady = (async () => {
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS display_name_en VARCHAR(255)`);
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS display_name_ar VARCHAR(255)`);
+    await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS display_order INTEGER`);
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS bio_en TEXT`);
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS bio_ar TEXT`);
     await query(`ALTER TABLE trainer_profiles ADD COLUMN IF NOT EXISTS share_tiers JSONB NOT NULL DEFAULT '[]'::jsonb`);
@@ -420,6 +421,7 @@ function sanitizeFeaturedPreviousClassIds(value: unknown): string[] {
 export async function findTrainers(options?: {
   activeOnly?: boolean;
 }): Promise<TrainerPublic[]> {
+  await ensureTrainerProfilesFinanceSchema();
   const conditions = [`u.role = 'TRAINER'`];
 
   if (options?.activeOnly !== false) {
@@ -428,15 +430,21 @@ export async function findTrainers(options?: {
 
   const result = await query(
     `SELECT u.id, u.full_name, u.email, u.phone_number, u.profile_image,
-            u.date_of_birth, u.gender, u.status, u.created_at
+            u.date_of_birth, u.gender, u.status, u.created_at,
+            tp.display_name_en, tp.display_name_ar, tp.display_order
      FROM users u
+     LEFT JOIN trainer_profiles tp ON tp.user_id = u.id
      WHERE ${conditions.join(" AND ")}
-     ORDER BY u.full_name ASC`
+     ORDER BY COALESCE(tp.display_order, 2147483647) ASC,
+              COALESCE(NULLIF(tp.display_name_en, ''), NULLIF(tp.display_name_ar, ''), u.full_name) ASC`
   );
 
   return result.rows.map((row) => ({
     id: row.id,
     fullName: row.full_name,
+    displayNameEn: sanitizeText(row.display_name_en, 255),
+    displayNameAr: sanitizeText(row.display_name_ar, 255),
+    displayOrder: row.display_order == null ? null : Number(row.display_order),
     email: row.email,
     phoneNumber: row.phone_number,
     profileImage: row.profile_image,
@@ -481,6 +489,7 @@ export interface TrainerProfilePublic {
   userId: string;
   displayNameEn: string | null;
   displayNameAr: string | null;
+  displayOrder: number | null;
   bio: string | null;
   bioEn: string | null;
   bioAr: string | null;
@@ -511,6 +520,7 @@ export async function findTrainerProfiles(userIds: string[]): Promise<TrainerPro
     userId: row.user_id,
     displayNameEn: sanitizeText(row.display_name_en, 255),
     displayNameAr: sanitizeText(row.display_name_ar, 255),
+    displayOrder: row.display_order == null ? null : Number(row.display_order),
     bio: row.bio,
     bioEn: sanitizeText(row.bio_en, 5000),
     bioAr: sanitizeText(row.bio_ar, 5000),
@@ -616,6 +626,7 @@ export async function upsertTrainerProfile(data: {
   userId: string;
   displayNameEn?: string | null;
   displayNameAr?: string | null;
+  displayOrder?: number | null;
   bio?: string | null;
   bioEn?: string | null;
   bioAr?: string | null;
@@ -650,6 +661,15 @@ export async function upsertTrainerProfile(data: {
   if (hasOwnField(data, "displayNameAr")) {
     updates.push(`display_name_ar = $${paramIndex++}`);
     values.push(sanitizeText(data.displayNameAr, 255));
+  }
+
+  if (hasOwnField(data, "displayOrder")) {
+    const parsedDisplayOrder =
+      typeof data.displayOrder === "number" && Number.isFinite(data.displayOrder)
+        ? Math.max(0, Math.min(9999, Math.trunc(data.displayOrder)))
+        : null;
+    updates.push(`display_order = $${paramIndex++}`);
+    values.push(parsedDisplayOrder);
   }
 
   if (hasOwnField(data, "bio")) {
@@ -755,6 +775,7 @@ export async function getTrainerProfile(userId: string): Promise<TrainerProfileP
     userId: row.user_id,
     displayNameEn: sanitizeText(row.display_name_en, 255),
     displayNameAr: sanitizeText(row.display_name_ar, 255),
+    displayOrder: row.display_order == null ? null : Number(row.display_order),
     bio: row.bio,
     bioEn: sanitizeText(row.bio_en, 5000),
     bioAr: sanitizeText(row.bio_ar, 5000),

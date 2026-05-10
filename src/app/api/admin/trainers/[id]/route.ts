@@ -180,6 +180,12 @@ export async function PATCH(
     const status = typeof body.status === 'string' ? body.status.toUpperCase() : undefined;
     const displayNameEn = typeof body.displayNameEn === 'string' ? body.displayNameEn.trim() : undefined;
     const displayNameAr = typeof body.displayNameAr === 'string' ? body.displayNameAr.trim() : undefined;
+    const displayOrder =
+      typeof body.displayOrder === 'number' && Number.isFinite(body.displayOrder)
+        ? Math.max(0, Math.trunc(body.displayOrder))
+        : body.displayOrder === null
+          ? null
+          : undefined;
     const bio = typeof body.bio === 'string' ? body.bio.trim() : undefined;
     const bioEn = typeof body.bioEn === 'string' ? body.bioEn.trim() : undefined;
     const bioAr = typeof body.bioAr === 'string' ? body.bioAr.trim() : undefined;
@@ -272,6 +278,7 @@ export async function PATCH(
       userId: id,
       displayNameEn,
       displayNameAr,
+      displayOrder,
       bio,
       bioEn,
       bioAr,

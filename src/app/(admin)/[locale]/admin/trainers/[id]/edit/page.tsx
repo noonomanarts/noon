@@ -22,6 +22,7 @@ interface ManualUpcomingCourse {
 interface TrainerProfile {
   displayNameEn: string | null;
   displayNameAr: string | null;
+  displayOrder: number | null;
   bio: string;
   bioEn: string | null;
   bioAr: string | null;
@@ -131,6 +132,7 @@ export default function EditTrainerPage() {
   const [userStatus, setUserStatus] = useState<'ACTIVE' | 'INACTIVE' | 'SUSPENDED'>('ACTIVE');
   const [displayNameEn, setDisplayNameEn] = useState('');
   const [displayNameAr, setDisplayNameAr] = useState('');
+  const [displayOrder, setDisplayOrder] = useState<number | ''>('');
   const [bio, setBio] = useState('');
   const [bioEn, setBioEn] = useState('');
   const [bioAr, setBioAr] = useState('');
@@ -174,6 +176,7 @@ export default function EditTrainerPage() {
       if (data.profile) {
         setDisplayNameEn(data.profile.displayNameEn || '');
         setDisplayNameAr(data.profile.displayNameAr || '');
+        setDisplayOrder(typeof data.profile.displayOrder === 'number' ? data.profile.displayOrder : '');
         setBio(data.profile.bio || '');
         setBioEn(data.profile.bioEn || '');
         setBioAr(data.profile.bioAr || '');
@@ -234,6 +237,7 @@ export default function EditTrainerPage() {
       } else {
         setDisplayNameEn('');
         setDisplayNameAr('');
+        setDisplayOrder('');
         setBio('');
         setBioEn('');
         setBioAr('');
@@ -412,6 +416,7 @@ export default function EditTrainerPage() {
           status: userStatus,
           displayNameEn,
           displayNameAr,
+          displayOrder: displayOrder === '' ? null : displayOrder,
           bio,
           bioEn,
           bioAr,
@@ -568,6 +573,25 @@ export default function EditTrainerPage() {
                   dir="rtl"
                   className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                 />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-[220px_minmax(0,1fr)]">
+              <div>
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  About Page Order
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={displayOrder}
+                  onChange={(e) => setDisplayOrder(e.target.value === '' ? '' : Math.max(0, Number.parseInt(e.target.value, 10) || 0))}
+                  placeholder="0"
+                  className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                />
+              </div>
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-300">
+                Smaller numbers appear first on the About page and trainer listings. Leave empty to place this trainer after ordered profiles.
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">

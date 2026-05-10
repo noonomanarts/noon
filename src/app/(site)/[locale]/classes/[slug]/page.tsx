@@ -128,6 +128,10 @@ export default async function ClassDetailPage({
     noActiveSchedule:
       isArabic ? "لا يوجد موعد نشط لهذه الورشة حالياً، ويمكنك طلب إعادتها من القسم الجانبي." : "There is no active schedule for this workshop right now. You can request a repeat from the side panel.",
     minimumAge: isArabic ? "الحد الأدنى للعمر" : "Minimum Age",
+    audience: isArabic ? "الفئة المناسبة" : "Audience",
+    audienceMixed: isArabic ? "مشترك" : "Mixed",
+    audienceWomen: isArabic ? "للنساء فقط" : "Women only",
+    audienceMen: isArabic ? "للرجال فقط" : "Men only",
     yearsOld: isArabic ? "سنة فأكثر" : "years & above",
     registrationClosed: isArabic ? "تم إغلاق التسجيل" : "Registration closed",
     registrationClosedHint: isArabic
@@ -148,6 +152,12 @@ export default async function ClassDetailPage({
     : isArabic
       ? "متنوع"
       : "General";
+
+  const audienceLabel = classData.audienceGender === 'FEMALE_ONLY'
+    ? t.audienceWomen
+    : classData.audienceGender === 'MALE_ONLY'
+      ? t.audienceMen
+      : t.audienceMixed;
 
 
   const classImages = Array.from(
@@ -267,6 +277,13 @@ export default async function ClassDetailPage({
                 <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3">
                   <p className="text-xs font-medium text-[color:var(--text-muted)]">{t.subCategory}</p>
                   <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{subCategory}</p>
+                </div>
+                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3">
+                  <p className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--text-muted)]">
+                    <MdPerson className="h-4 w-4 text-[color:var(--primary)]" />
+                    {t.audience}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{audienceLabel}</p>
                 </div>
                 <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3">
                   <p className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--text-muted)]">

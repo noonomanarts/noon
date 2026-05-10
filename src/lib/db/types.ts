@@ -132,6 +132,9 @@ export interface UserPublic {
 export interface TrainerPublic {
   id: string;
   fullName: string;
+  displayNameEn?: string | null;
+  displayNameAr?: string | null;
+  displayOrder?: number | null;
   email: string;
   phoneNumber: string;
   profileImage: string | null;
@@ -144,6 +147,9 @@ export interface TrainerPublic {
 export interface TrainerProfile {
   id: string;
   user_id: string;
+  display_name_en?: string | null;
+  display_name_ar?: string | null;
+  display_order?: number | null;
   bio: string | null;
   expertise: string[];
   experience: number | null;

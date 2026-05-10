@@ -181,19 +181,19 @@ export default function ClassSettlementPanel({
     expenseNotes: isArabic ? 'ملاحظات' : 'Notes',
     inventoryItem: isArabic ? 'المادة من المخزون' : 'Inventory Item',
     selectItem: isArabic ? 'اختر المادة' : 'Select item',
-    usageQuantity: isArabic ? 'الكمية المستخدمة' : 'Used Quantity',
+    usageQuantity: isArabic ? 'الكمية التقديرية المخصومة' : 'Estimated Deducted Quantity',
     unitCost: isArabic ? 'تكلفة الوحدة' : 'Unit Cost',
     lineTotal: isArabic ? 'إجمالي التكلفة' : 'Line Total',
-    manualMaterialCost: isArabic ? 'تكلفة المواد (يدوي)' : 'Manual Material Cost',
+    manualMaterialCost: isArabic ? 'المبلغ التقديري المخصوم' : 'Estimated Deduction Amount',
     manualCostHint: isArabic
-      ? 'لهذا الصنف يمكن إدخال تكلفة يدوية مباشرة. سيتم خصم الكمية المكافئة تلقائياً من مخزون الصنف.'
-      : 'For this item you can enter a manual cost directly. The equivalent quantity will be deducted from this inventory pool automatically.',
+      ? 'أدخل فقط المبلغ التقريبي الذي تريد خصمه. لا حاجة لإدخال أو متابعة الوزن أو الكمية، فالنظام يتولى ذلك تلقائياً.'
+      : 'Enter only the approximate amount to deduct. You do not need to enter or track weight or quantity; the system handles that automatically.',
     stockAvailable: isArabic ? 'المتوفر' : 'Available',
     noInventoryItems: isArabic ? 'لا توجد مواد في المخزون بعد. أضفها من صفحة Inventory.' : 'No inventory items found yet. Add items from the Inventory page.',
     addInventoryUsage: isArabic ? 'إضافة سحب من المخزون' : 'Add Inventory Usage',
     inventoryHint: isArabic
-      ? 'اختر المادة والكمية ليتم احتساب التكلفة تلقائياً حسب متوسط تكلفة المخزون.'
-      : 'Select item and quantity to calculate material cost automatically from inventory average cost.',
+      ? 'اختر المادة ثم أدخل فقط المبلغ التقريبي المراد خصمه. سيحسب النظام الكمية والتكلفة تلقائياً حسب متوسط تكلفة المخزون.'
+      : 'Select an item, then enter only the approximate amount to deduct. The system will calculate quantity and cost automatically from inventory average cost.',
     remove: isArabic ? 'حذف' : 'Remove',
     grossRevenue: isArabic ? 'إجمالي الإيراد' : 'Gross Revenue',
     fixedCosts: isArabic ? 'التكاليف الثابتة' : 'Fixed Costs',
@@ -339,7 +339,7 @@ export default function ClassSettlementPanel({
       inventoryUsageItems.reduce((sum, item) => {
         const catalogItem = inventoryCatalogById.get(item.inventoryItemId);
         const manualCostAmount = Number(item.manualCostAmount ?? 0);
-        if (canEdit && catalogItem?.allowsManualCost && manualCostAmount > 0) {
+        if (catalogItem?.allowsManualCost && manualCostAmount > 0) {
           return sum + manualCostAmount;
         }
         const unitCost = canEdit ? (catalogItem?.averageUnitCost ?? item.unitCost ?? 0) : (item.unitCost ?? catalogItem?.averageUnitCost ?? 0);
@@ -709,7 +709,7 @@ export default function ClassSettlementPanel({
             {snapshot.participants.length === 0 ? (
               <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{t.noParticipants}</p>
             ) : (
-                <div className="mt-4 grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
+                <div className="mt-4 space-y-3">
                   {snapshot.participants.map((participant) => {
                     const participantKey = `${participant.bookingId}-${participant.participantIndex}`;
                     const isRemoving = removingParticipantKey === participantKey;
@@ -717,57 +717,51 @@ export default function ClassSettlementPanel({
                     return (
                       <article
                         key={participantKey}
-                        className="rounded-3xl border border-zinc-200 bg-gradient-to-br from-white via-zinc-50 to-zinc-100/70 p-4 shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-950/80"
+                        className="overflow-hidden rounded-3xl border border-zinc-200 bg-gradient-to-r from-white via-zinc-50 to-zinc-100/80 p-4 shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-950/80"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="inline-flex max-w-full items-center gap-2">
+                        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex min-w-0 items-start gap-3 xl:items-center">
                               <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 dark:border-teal-900/40 dark:bg-teal-900/20">
                                 <IoPeopleOutline className="h-4 w-4 text-[color:var(--noon-teal-strong)] dark:text-teal-300" />
                               </span>
-                              <div className="min-w-0">
-                                <h4 className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{participant.participantName}</h4>
-                                <p className="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">{participant.customerName}</p>
+                              <div className="grid min-w-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-center">
+                                <div className="min-w-0">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.participants}</p>
+                                  <h4 className="mt-1 truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{participant.participantName}</h4>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.bookedBy}</p>
+                                  <p className="mt-1 truncate text-sm font-medium text-zinc-800 dark:text-zinc-100">{participant.customerName}</p>
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.participantEmail}</p>
+                                  <p className="mt-1 truncate text-sm font-medium text-zinc-800 dark:text-zinc-100">{participant.customerEmail || '—'}</p>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                                  <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                                    {participant.participantPreferredLanguage || '—'}
+                                  </span>
+                                  <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold tracking-[0.04em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                                    {participant.participantDateOfBirth || '—'}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                          <div className="flex shrink-0 flex-col items-end gap-2">
-                            <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                              {participant.participantPreferredLanguage || '—'}
-                            </span>
-                            <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold tracking-[0.04em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                              {participant.bookingNumber}
-                            </span>
-                          </div>
                         </div>
 
-                        <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                          <div className="min-w-0 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
-                            <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.bookedBy}</dt>
-                            <dd className="mt-1 truncate font-medium text-zinc-800 dark:text-zinc-100">{participant.customerName}</dd>
-                          </div>
-                          <div className="min-w-0 rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
-                            <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.participantEmail}</dt>
-                            <dd className="mt-1 truncate font-medium text-zinc-800 dark:text-zinc-100">{participant.customerEmail || '—'}</dd>
-                          </div>
+                        <dl className="mt-4 grid grid-cols-1 gap-3 text-sm md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
                           <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
                             <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.classDate}</dt>
-                            <dd className="mt-1 font-medium text-zinc-800 dark:text-zinc-100">{formatDateTime(participant.classStartTime)}</dd>
-                          </div>
-                          <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
-                            <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.participantBookingRef}</dt>
-                            <dd className="mt-1 font-medium text-zinc-800 dark:text-zinc-100">{participant.bookingNumber}</dd>
-                          </div>
-                          <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900">
-                            <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.dob}</dt>
-                            <dd className="mt-1 font-medium text-zinc-800 dark:text-zinc-100">{participant.participantDateOfBirth || '—'}</dd>
+                            <dd className="mt-1 truncate font-medium text-zinc-800 dark:text-zinc-100">{formatDateTime(participant.classStartTime)}</dd>
                           </div>
                         </dl>
 
                         {canEdit ? (
                           <div className="mt-4">
                             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.participantActions}</p>
-                            <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-2 lg:grid-cols-2 xl:max-w-[28rem]">
                               <button
                                 type="button"
                                 onClick={() => void handleRemoveParticipant(participant, false)}
@@ -909,7 +903,8 @@ export default function ClassSettlementPanel({
                   {inventoryUsageItems.map((item, index) => {
                     const catalogItem = inventoryCatalogById.get(item.inventoryItemId);
                     const manualCostAmount = Number(item.manualCostAmount ?? 0);
-                    const usesManualCost = canEdit && Boolean(catalogItem?.allowsManualCost) && manualCostAmount > 0;
+                    const allowsManualCost = Boolean(catalogItem?.allowsManualCost);
+                    const usesManualCost = allowsManualCost && manualCostAmount > 0;
                     const resolvedQuantity = usesManualCost
                       ? (catalogItem && catalogItem.averageUnitCost > 0 ? Number((manualCostAmount / catalogItem.averageUnitCost).toFixed(3)) : 0)
                       : item.quantity;
@@ -941,7 +936,7 @@ export default function ClassSettlementPanel({
                             </button>
                           ) : null}
                         </div>
-                        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px]">
+                        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px_160px]">
                           <label className="text-sm">
                             <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.inventoryItem}</span>
                             <select
@@ -950,7 +945,7 @@ export default function ClassSettlementPanel({
                               onChange={(event) =>
                                 setInventoryUsageItems((prev) =>
                                   prev.map((row, rowIndex) =>
-                                    rowIndex === index ? { ...row, inventoryItemId: event.target.value } : row
+                                    rowIndex === index ? { ...row, inventoryItemId: event.target.value, quantity: 0, manualCostAmount: null } : row
                                   )
                                 )
                               }
@@ -965,26 +960,42 @@ export default function ClassSettlementPanel({
                             </select>
                           </label>
                           <label className="text-sm">
-                            <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.usageQuantity}</span>
+                            <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{allowsManualCost ? t.manualMaterialCost : t.usageQuantity}</span>
                             <input
                               type="number"
                               min="0"
                               step="0.001"
-                              value={resolvedQuantity}
-                              disabled={!canEdit || usesManualCost}
-                              onChange={(event) =>
+                              value={allowsManualCost ? (manualCostAmount > 0 ? manualCostAmount : '') : (Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : '')}
+                              disabled={!canEdit}
+                              onChange={(event) => {
+                                const nextValue = Number(event.target.value || 0);
                                 setInventoryUsageItems((prev) =>
-                                  prev.map((row, rowIndex) =>
-                                    rowIndex === index
-                                      ? {
-                                          ...row,
-                                          quantity: Number(event.target.value || 0),
-                                          manualCostAmount: catalogItem?.allowsManualCost ? null : row.manualCostAmount,
-                                        }
-                                      : row
-                                  )
-                                )
-                              }
+                                  prev.map((row, rowIndex) => {
+                                    if (rowIndex !== index) return row;
+                                    if (allowsManualCost) {
+                                      if (nextValue <= 0) {
+                                        return { ...row, manualCostAmount: null, quantity: 0 };
+                                      }
+
+                                      const nextQuantity = catalogItem && catalogItem.averageUnitCost > 0
+                                        ? Number((nextValue / catalogItem.averageUnitCost).toFixed(3))
+                                        : 0;
+
+                                      return {
+                                        ...row,
+                                        manualCostAmount: Number(nextValue.toFixed(3)),
+                                        quantity: nextQuantity,
+                                      };
+                                    }
+
+                                    return {
+                                      ...row,
+                                      manualCostAmount: null,
+                                      quantity: nextValue > 0 ? Number(nextValue.toFixed(3)) : 0,
+                                    };
+                                  })
+                                );
+                              }}
                               className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                             />
                           </label>
@@ -998,43 +1009,9 @@ export default function ClassSettlementPanel({
                           </div>
                         </div>
 
-                        {catalogItem?.allowsManualCost ? (
-                          <div>
-                            <label className="text-sm">
-                              <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.manualMaterialCost}</span>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.001"
-                                value={manualCostAmount > 0 ? manualCostAmount : ''}
-                                disabled={!canEdit}
-                                onChange={(event) => {
-                                  const nextManualAmount = Number(event.target.value || 0);
-                                  setInventoryUsageItems((prev) =>
-                                    prev.map((row, rowIndex) => {
-                                      if (rowIndex !== index) return row;
-                                      if (nextManualAmount <= 0) {
-                                        return { ...row, manualCostAmount: null };
-                                      }
-
-                                      const nextQuantity = catalogItem.averageUnitCost > 0
-                                        ? Number((nextManualAmount / catalogItem.averageUnitCost).toFixed(3))
-                                        : row.quantity;
-
-                                      return {
-                                        ...row,
-                                        manualCostAmount: Number(nextManualAmount.toFixed(3)),
-                                        quantity: nextQuantity,
-                                      };
-                                    })
-                                  );
-                                }}
-                                className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-                              />
-                            </label>
-                            <p className="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">{t.manualCostHint}</p>
-                          </div>
-                        ) : null}
+                        <div>
+                          {allowsManualCost ? <p className="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">{t.manualCostHint}</p> : null}
+                        </div>
 
                         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
                           <label className="text-sm">
