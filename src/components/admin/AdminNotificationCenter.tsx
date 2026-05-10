@@ -104,20 +104,18 @@ export default function AdminNotificationCenter({ locale }: AdminNotificationCen
     <div className="relative">
       <button
         onClick={() => setOpen((value) => !value)}
-        className="relative rounded-lg p-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+        className="relative rounded-lg p-2 text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
         aria-label={t.title}
       >
         <FiBell className="size-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-semibold flex items-center justify-center">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
+          <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500" aria-label={`${unreadCount}`} />
         )}
       </button>
 
       {open && (
         <div
-          className={`absolute top-11 ${locale === 'ar' ? 'left-0' : 'right-0'} z-[170] w-[360px] max-w-[90vw] overflow-hidden rounded-2xl border border-zinc-200/70 bg-white shadow-2xl dark:border-zinc-700/60 dark:bg-zinc-900`}
+          className={`absolute top-11 ${locale === 'ar' ? 'left-0' : 'right-0'} z-[170] w-[360px] max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950`}
           dir={locale === 'ar' ? 'rtl' : 'ltr'}
         >
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/70 px-4 py-3 dark:border-zinc-700/60">

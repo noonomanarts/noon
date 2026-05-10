@@ -453,6 +453,172 @@ body {
   }
 }
 
+@layer components {
+  .admin-panel {
+    --admin-bg: #f6f7f8;
+    --admin-surface: #ffffff;
+    --admin-surface-muted: #f3f4f6;
+    --admin-border: #e4e4e7;
+    --admin-text: #18181b;
+    --admin-muted: #71717a;
+    --admin-accent: #0f766e;
+    background: var(--admin-bg);
+    color: var(--admin-text);
+  }
+
+  .dark .admin-panel {
+    --admin-bg: #09090b;
+    --admin-surface: #111113;
+    --admin-surface-muted: #18181b;
+    --admin-border: #27272a;
+    --admin-text: #f4f4f5;
+    --admin-muted: #a1a1aa;
+    --admin-accent: #2dd4bf;
+  }
+
+  .admin-panel * {
+    min-width: 0;
+  }
+
+  .admin-panel :is(.rounded-md, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-3xl) {
+    border-radius: 8px !important;
+  }
+
+  .admin-panel :is(section, article, dialog, [class*="bg-white"]):is([class*="border"]) {
+    border-color: var(--admin-border) !important;
+  }
+
+  .admin-panel :is(section, article):is([class*="bg-white"]) {
+    background-color: var(--admin-surface) !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  }
+
+  .dark .admin-panel :is(section, article):is([class*="bg-white"]) {
+    background-color: var(--admin-surface) !important;
+    box-shadow: none !important;
+  }
+
+  .admin-panel :is(h1, h2, h3) {
+    letter-spacing: 0 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-panel h1 {
+    font-size: clamp(1.35rem, 1.8vw, 1.75rem) !important;
+    line-height: 1.25 !important;
+  }
+
+  .admin-panel :is(p, span, a, button, label, th, td) {
+    overflow-wrap: anywhere;
+  }
+
+  .admin-panel :is(button, a, input, select, textarea) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .admin-panel button,
+  .admin-panel a[role="button"],
+  .admin-panel a[class*="bg-"],
+  .admin-panel .noon-btn-teal,
+  .admin-panel .noon-btn-coral,
+  .admin-panel .noon-btn-purple,
+  .admin-panel .noon-btn-yellow {
+    border-radius: 8px !important;
+    transform: none !important;
+  }
+
+  .admin-panel .noon-btn-teal,
+  .admin-panel .noon-btn-coral,
+  .admin-panel .noon-btn-purple,
+  .admin-panel .noon-btn-yellow {
+    background: var(--admin-accent) !important;
+    color: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .admin-panel :is(input, select, textarea) {
+    min-height: 2.5rem;
+    border-color: var(--admin-border) !important;
+    background-color: var(--admin-surface) !important;
+    color: var(--admin-text) !important;
+  }
+
+  .admin-panel :is(input, select, textarea)::placeholder {
+    color: color-mix(in oklab, var(--admin-muted) 70%, transparent);
+  }
+
+  .admin-panel :is(input, select, textarea):focus {
+    border-color: var(--admin-accent) !important;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--admin-accent) 20%, transparent) !important;
+  }
+
+  .admin-panel table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .admin-panel thead {
+    background-color: var(--admin-surface-muted) !important;
+  }
+
+  .admin-panel th {
+    color: var(--admin-muted) !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap;
+  }
+
+  .admin-panel td {
+    vertical-align: middle;
+  }
+
+  .admin-panel tbody tr {
+    transition: background-color 160ms ease;
+  }
+
+  .admin-panel tbody tr:hover {
+    background-color: color-mix(in oklab, var(--admin-surface-muted) 70%, transparent) !important;
+  }
+
+  .admin-panel :is(.overflow-x-auto, [class*="overflow-x-auto"]) {
+    max-width: 100%;
+    scrollbar-gutter: auto;
+  }
+
+  .admin-panel :is(.shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl, [class*="shadow-"]) {
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
+  }
+
+  .dark .admin-panel :is(.shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl, [class*="shadow-"]) {
+    box-shadow: none !important;
+  }
+
+  .admin-panel :is([class*="bg-gradient-to-"]):not([class*="bg-clip-text"]):not([class*="text-transparent"]) {
+    background-image: none !important;
+  }
+
+  .admin-panel .admin-content-shell > :is(div, section, form) {
+    max-width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    .admin-panel :is(input, select, textarea) {
+      font-size: 16px !important;
+    }
+
+    .admin-panel :is(section, article):is([class*=" p-6"], [class*=" p-5"], [class*=" p-10"]) {
+      padding: 1rem !important;
+    }
+
+    .admin-panel table {
+      min-width: 640px;
+    }
+  }
+}
+
 .site-sharp :is(a, button, [role="button"], input, select, textarea, dialog, [class*="rounded"]),
 .home-sharp :is(a, button, [role="button"], [class*="rounded"]) {
   border-radius: 0 !important;

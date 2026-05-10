@@ -55,7 +55,7 @@ export default async function AdminLayout({
 
   const t = {
     adminPanel: locale === "ar" ? "لوحة الإدارة" : "Admin Panel",
-    management: locale === "ar" ? "مركز التحكم" : "Control Center",
+    management: "",
     overview: locale === "ar" ? "عام" : "Overview",
     finance: locale === "ar" ? "المالية" : "Finance",
     dashboard: locale === "ar" ? "الرئيسية" : "Dashboard",
@@ -203,7 +203,7 @@ export default async function AdminLayout({
       >
             <div className="flex h-full min-h-0 flex-col">
               {/* Logo */}
-              <div className="border-b border-zinc-200/80 bg-white/55 px-5 py-4 dark:border-zinc-800/80 dark:bg-white/[0.03]" dir={dir}>
+              <div className="border-b border-zinc-200/80 bg-white px-5 py-4 dark:border-zinc-800 dark:bg-zinc-950" dir={dir}>
                 <div className={`flex items-center gap-3 ${locale === "ar" ? "flex-row-reverse text-right" : "text-left"}`}>
                   <Link href={`/${locale}`} className="shrink-0" aria-label="Noon">
                     <Image
@@ -216,8 +216,7 @@ export default async function AdminLayout({
                     />
                   </Link>
                   <div className="min-w-0">
-                    <h2 className="text-sm font-semibold tracking-[0.03em] text-zinc-900 dark:text-white">{t.adminPanel}</h2>
-                    <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">{t.management}</p>
+                    <h2 className="truncate text-sm font-semibold text-zinc-950 dark:text-white">{t.adminPanel}</h2>
                   </div>
                 </div>
               </div>
@@ -266,13 +265,14 @@ export default async function AdminLayout({
                       logout: t.logout,
                       profile: t.profile,
                       accountSettings: t.accountSettings,
+                      logoUrl: headerLogoUrl,
                     }}
                     onLogoutAction={handleLogout}
                   />
                 </div>
 
                 <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-2 lg:gap-3">
-                  <div className="min-w-0 max-w-[8.5rem] sm:max-w-[9.75rem] md:max-w-none">
+                  <div className="hidden min-w-0 max-w-[8.5rem] sm:block sm:max-w-[9.75rem] md:max-w-none">
                     <AdminWalletDisplay locale={locale} userId={user.id} />
                   </div>
 
@@ -286,7 +286,7 @@ export default async function AdminLayout({
 
                   <Link
                     href={`/${locale}`}
-                    className="hidden shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:inline-flex sm:text-sm"
+                    className="hidden shrink-0 items-center whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 md:inline-flex sm:text-sm"
                   >
                     {t.viewSite}
                   </Link>
@@ -296,7 +296,7 @@ export default async function AdminLayout({
 
             {/* Content Area */}
             <OverlayScrollArea className="flex-1" options={{ overflow: { x: "hidden", y: "scroll" } }}>
-              <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+              <div className="admin-content-shell mx-auto w-full max-w-[1680px] p-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5 sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] xl:p-6">
                 {children}
               </div>
             </OverlayScrollArea>
