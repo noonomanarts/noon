@@ -704,6 +704,7 @@ export async function findClassBySlug(slug: string): Promise<{
   descriptionAr: string | null;
   category: string;
   subCategory: string | null;
+  audienceGender: ClassAudienceGender;
   image: string | null;
   images: string[];
   trainerId: string | null;
@@ -737,6 +738,7 @@ export async function findClassBySlug(slug: string): Promise<{
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    audienceGender: row.audience_gender || 'MIXED',
     image: row.image,
     images: row.images || [],
     trainerId: row.trainer_id,
