@@ -1,74 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Image from "next/image";
 import OverlayScrollArea from "@/components/site/OverlayScrollArea";
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
-import {
-  FiBell,
-  FiBookOpen,
-  FiCalendar,
-  FiCheckSquare,
-  FiGrid,
-  FiMail,
-  FiSettings,
-  FiShoppingBag,
-  FiShoppingCart,
-  FiThumbsUp,
-  FiTrendingUp,
-  FiUserCheck,
-  FiUsers,
-  FiFileText,
-  FiAward,
-  FiCreditCard,
-  FiPackage,
-  FiMessageSquare,
-  FiTag,
-  FiTruck,
-  FiPrinter,
-  FiRefreshCw,
-} from "react-icons/fi";
-
-const iconMap = {
-  FiGrid,
-  FiTrendingUp,
-  FiBookOpen,
-  FiCalendar,
-  FiCheckSquare,
-  FiAward,
-  FiUsers,
-  FiUserCheck,
-  FiCreditCard,
-  FiThumbsUp,
-  FiShoppingBag,
-  FiShoppingCart,
-  FiFileText,
-  FiSettings,
-  FiBell,
-  FiPackage,
-  FiMessageSquare,
-  FiMail,
-  FiTag,
-  FiTruck,
-  FiPrinter,
-  FiRefreshCw,
-} as const;
-
-type MenuItem = {
-  iconName: keyof typeof iconMap;
-  iconColor: string;
-  label: string;
-  href: string;
-  badgeCount?: number;
-};
-
-type MenuSection = {
-  section: string;
-  items: MenuItem[];
-};
+import AdminSidebarNav, { type AdminSidebarMenuSection } from "@/components/admin/AdminSidebarNav";
 
 type Props = {
-  menuItems: MenuSection[];
+  menuItems: AdminSidebarMenuSection[];
   user: {
     fullName: string;
     email: string;
@@ -81,6 +20,7 @@ type Props = {
     logout: string;
     profile: string;
     accountSettings: string;
+    logoUrl?: string;
   };
   onLogoutAction: () => void;
 };
@@ -138,9 +78,14 @@ export default function MobileSidebar({
           {/* Logo & Close Button */}
           <div className="flex h-14 items-center justify-between border-b border-zinc-200 px-4 ps-[max(1rem,env(safe-area-inset-left))] pe-[max(1rem,env(safe-area-inset-right))] dark:border-zinc-800 sm:h-16 sm:px-6" dir={dir}>
             <div className="flex items-center gap-3">
-              <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
-                <span className="text-lg font-bold">N</span>
-              </div>
+              <Image
+                src={translations.logoUrl || "/images/logo-noon.png"}
+                alt="Noon"
+                width={44}
+                height={44}
+                priority
+                className="h-9 w-auto shrink-0"
+              />
               <div className={locale === "ar" ? "text-right" : "text-left"}>
                 <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">
                   {translations.adminPanel}
@@ -164,38 +109,7 @@ export default function MobileSidebar({
           {/* Navigation */}
           <OverlayScrollArea className="flex-1" options={{ overflow: { x: "hidden", y: "scroll" } }}>
             <nav className="p-3 sm:p-4" dir={dir}>
-              <div className="space-y-6">
-                {menuItems.map((section) => (
-                  <div key={section.section}>
-                    <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                      {section.section}
-                    </h3>
-                    <div className="space-y-1">
-                      {section.items.map((item) => {
-                        const IconComponent = iconMap[item.iconName];
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setIsOpen(false)}
-                            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
-                          >
-                            <span className={`flex size-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 ${item.iconColor}`}>
-                              <IconComponent className="size-4" />
-                            </span>
-                            <span className="flex-1 truncate whitespace-nowrap">{item.label}</span>
-                            {typeof item.badgeCount === "number" && item.badgeCount > 0 ? (
-                              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[color:var(--noon-coral)] px-1.5 text-[11px] font-bold leading-none text-white">
-                                {item.badgeCount > 99 ? "99+" : item.badgeCount}
-                              </span>
-                            ) : null}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <AdminSidebarNav menuItems={menuItems} onNavigate={() => setIsOpen(false)} variant="mobile" />
             </nav>
           </OverlayScrollArea>
 

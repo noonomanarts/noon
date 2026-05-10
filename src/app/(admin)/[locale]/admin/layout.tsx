@@ -8,64 +8,14 @@ import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
 import AdminNotificationCenter from "@/components/admin/AdminNotificationCenter";
 import { AdminWalletDisplay } from "@/components/admin/AdminWalletDisplay";
+import AdminSidebarNav, {
+  type AdminSidebarMenuSection,
+} from "@/components/admin/AdminSidebarNav";
 import MobileSidebar from "@/components/admin/MobileSidebar";
 import OverlayScrollArea from "@/components/site/OverlayScrollArea";
 import { resolveHeaderBranding } from "@/lib/headerBranding";
 import { countTrainerWorkshopSuggestionsPendingReview } from "@/lib/db/trainers";
-import {
-  FiBell,
-  FiBookOpen,
-  FiCalendar,
-  FiGrid,
-  FiMail,
-  FiSettings,
-  FiShoppingBag,
-  FiThumbsUp,
-  FiTrendingUp,
-  FiUserCheck,
-  FiUsers,
-  FiFileText,
-  FiAward,
-  FiCreditCard,
-  FiPackage,
-  FiMessageSquare,
-  FiTag,
-  FiRefreshCw,
-} from "react-icons/fi";
 import { countPendingClassRepeatRequestGroups } from '@/lib/db/classRepeatRequests';
-
-type AdminIconName =
-  | "FiGrid"
-  | "FiTrendingUp"
-  | "FiBookOpen"
-  | "FiCalendar"
-  | "FiAward"
-  | "FiUsers"
-  | "FiUserCheck"
-  | "FiCreditCard"
-  | "FiThumbsUp"
-  | "FiShoppingBag"
-  | "FiFileText"
-  | "FiSettings"
-  | "FiBell"
-  | "FiPackage"
-  | "FiMessageSquare"
-  | "FiMail"
-  | "FiTag"
-  | "FiRefreshCw";
-
-type AdminMenuItem = {
-  iconName: AdminIconName;
-  iconColor: string;
-  label: string;
-  href: string;
-  badgeCount?: number;
-};
-
-type AdminMenuSection = {
-  section: string;
-  items: AdminMenuItem[];
-};
 
 export default async function AdminLayout({
   children,
@@ -151,7 +101,7 @@ export default async function AdminLayout({
     languageAr: "العربية",
   };
 
-  const menuItems: AdminMenuSection[] = isSocialMediaAdmin
+  const menuItems: AdminSidebarMenuSection[] = isSocialMediaAdmin
     ? [
         {
           section: t.classesEvents,
@@ -275,55 +225,7 @@ export default async function AdminLayout({
               {/* Navigation */}
               <OverlayScrollArea className="min-h-0 flex-1" options={{ overflow: { x: "hidden", y: "scroll" } }}>
                 <nav className="px-3 py-4" dir={dir}>
-                  <div className="space-y-5">
-                  {menuItems.map((section) => (
-                    <div key={section.section}>
-                      <h3 className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.28em] text-zinc-500/90 dark:text-zinc-400">
-                        {section.section}
-                      </h3>
-                      <div className="space-y-1">
-                        {section.items.map((item) => {
-                          const IconComponent = item.iconName === "FiGrid" ? FiGrid
-                            : item.iconName === "FiTrendingUp" ? FiTrendingUp
-                            : item.iconName === "FiBookOpen" ? FiBookOpen
-                            : item.iconName === "FiCalendar" ? FiCalendar
-                            : item.iconName === "FiAward" ? FiAward
-                            : item.iconName === "FiUsers" ? FiUsers
-                            : item.iconName === "FiUserCheck" ? FiUserCheck
-                            : item.iconName === "FiCreditCard" ? FiCreditCard
-                            : item.iconName === "FiThumbsUp" ? FiThumbsUp
-                            : item.iconName === "FiShoppingBag" ? FiShoppingBag
-                            : item.iconName === "FiFileText" ? FiFileText
-                            : item.iconName === "FiSettings" ? FiSettings
-                            : item.iconName === "FiMessageSquare" ? FiMessageSquare
-                            : item.iconName === "FiTag" ? FiTag
-                            : item.iconName === "FiPackage" ? FiPackage
-                            : item.iconName === "FiMail" ? FiMail
-                            : item.iconName === "FiRefreshCw" ? FiRefreshCw
-                            : FiBell;
-                          
-                          return (
-                            <Link
-                              key={item.href}
-                              href={item.href}
-                              className="group flex items-center gap-3 rounded-2xl border border-transparent px-3 py-2 text-[13px] font-medium text-zinc-700 transition-all duration-200 hover:border-orange-200/80 hover:bg-white/80 hover:text-zinc-950 hover:shadow-sm dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-white/[0.04] dark:hover:text-white"
-                            >
-                              <span className={`flex size-9 items-center justify-center rounded-xl bg-white/80 ring-1 ring-zinc-200/70 transition-transform duration-200 group-hover:scale-[1.04] dark:bg-zinc-900/90 dark:ring-zinc-800 ${item.iconColor}`}>
-                                <IconComponent className="size-4" />
-                              </span>
-                              <span className="flex-1 truncate whitespace-nowrap">{item.label}</span>
-                              {typeof item.badgeCount === "number" && item.badgeCount > 0 ? (
-                                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[color:var(--noon-coral)] px-1.5 text-[11px] font-bold leading-none text-white shadow-sm shadow-orange-300/50 dark:shadow-orange-950/40">
-                                  {item.badgeCount > 99 ? "99+" : item.badgeCount}
-                                </span>
-                              ) : null}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                  </div>
+                  <AdminSidebarNav menuItems={menuItems} />
                 </nav>
               </OverlayScrollArea>
 
