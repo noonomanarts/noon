@@ -20,6 +20,7 @@ import {
 } from 'react-icons/md';
 import { composeDurationMinutes, splitDurationMinutes } from '@/lib/formatDuration';
 import { defaultClassFinanceAdminSettings, type ClassFinanceAdminSettings } from '@/lib/adminSettings';
+import { formatNoonDateTimeLocalInput, noonDateTimeLocalInputToIso } from '@/lib/dateTime';
 
 type ClassCategory = 'COOKING' | 'ARTS_CRAFTS';
 type ClassSubCategory =
@@ -211,9 +212,9 @@ export default function EditClassPage() {
         currency: data.currency || 'AED',
         seatsTotal: data.seatsTotal?.toString() || '',
         durationMinutes: data.durationMinutes?.toString() || '',
-        startDateTime: data.startDateTime ? new Date(data.startDateTime).toISOString().slice(0, 16) : '',
-        endDateTime: data.endDateTime ? new Date(data.endDateTime).toISOString().slice(0, 16) : '',
-        registrationCloseAt: data.registrationCloseAt ? new Date(data.registrationCloseAt).toISOString().slice(0, 16) : '',
+        startDateTime: formatNoonDateTimeLocalInput(data.startDateTime),
+        endDateTime: formatNoonDateTimeLocalInput(data.endDateTime),
+        registrationCloseAt: formatNoonDateTimeLocalInput(data.registrationCloseAt),
         status: data.status || 'DRAFT',
         metaTitle: data.metaTitle || '',
         metaDescription: data.metaDescription || '',
@@ -532,9 +533,9 @@ export default function EditClassPage() {
         currency: formData.currency,
         seatsTotal: formData.seatsTotal ? parseInt(formData.seatsTotal) : 12,
         durationMinutes: formData.durationMinutes ? parseInt(formData.durationMinutes) : 120,
-        startDateTime: formData.startDateTime ? new Date(formData.startDateTime).toISOString() : null,
-        endDateTime: formData.endDateTime ? new Date(formData.endDateTime).toISOString() : null,
-        registrationCloseAt: formData.registrationCloseAt ? new Date(formData.registrationCloseAt).toISOString() : null,
+        startDateTime: noonDateTimeLocalInputToIso(formData.startDateTime),
+        endDateTime: noonDateTimeLocalInputToIso(formData.endDateTime),
+        registrationCloseAt: noonDateTimeLocalInputToIso(formData.registrationCloseAt),
         status: 'DRAFT',
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description || '',
@@ -638,9 +639,9 @@ export default function EditClassPage() {
         currency: formData.currency,
         seatsTotal: parseInt(formData.seatsTotal),
         durationMinutes: parseInt(formData.durationMinutes),
-        startDateTime: formData.startDateTime ? new Date(formData.startDateTime).toISOString() : null,
-        endDateTime: formData.endDateTime ? new Date(formData.endDateTime).toISOString() : null,
-        registrationCloseAt: formData.registrationCloseAt ? new Date(formData.registrationCloseAt).toISOString() : null,
+        startDateTime: noonDateTimeLocalInputToIso(formData.startDateTime),
+        endDateTime: noonDateTimeLocalInputToIso(formData.endDateTime),
+        registrationCloseAt: noonDateTimeLocalInputToIso(formData.registrationCloseAt),
         status: formData.status,
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description,

@@ -20,6 +20,7 @@ import {
 } from 'react-icons/md';
 import { composeDurationMinutes, splitDurationMinutes } from '@/lib/formatDuration';
 import { defaultClassFinanceAdminSettings, type ClassFinanceAdminSettings } from '@/lib/adminSettings';
+import { noonDateTimeLocalInputToIso } from '@/lib/dateTime';
 
 type ClassCategory = 'COOKING' | 'ARTS_CRAFTS';
 type ClassSubCategory =
@@ -446,9 +447,9 @@ export default function NewClassPage() {
         seatsTotal: formData.seatsTotal ? parseInt(formData.seatsTotal) : 12,
         seatsAvailable: formData.seatsTotal ? parseInt(formData.seatsTotal) : 12,
         durationMinutes: formData.durationMinutes ? parseInt(formData.durationMinutes) : 120,
-        startDateTime: formData.startDateTime ? new Date(formData.startDateTime).toISOString() : null,
-        endDateTime: formData.endDateTime ? new Date(formData.endDateTime).toISOString() : null,
-        registrationCloseAt: formData.registrationCloseAt ? new Date(formData.registrationCloseAt).toISOString() : null,
+        startDateTime: noonDateTimeLocalInputToIso(formData.startDateTime),
+        endDateTime: noonDateTimeLocalInputToIso(formData.endDateTime),
+        registrationCloseAt: noonDateTimeLocalInputToIso(formData.registrationCloseAt),
         status: 'DRAFT',
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description || '',
@@ -542,9 +543,9 @@ export default function NewClassPage() {
         seatsTotal: parseInt(formData.seatsTotal),
         seatsAvailable: parseInt(formData.seatsTotal),
         durationMinutes: parseInt(formData.durationMinutes),
-        startDateTime: formData.startDateTime ? new Date(formData.startDateTime).toISOString() : null,
-        endDateTime: formData.endDateTime ? new Date(formData.endDateTime).toISOString() : null,
-        registrationCloseAt: formData.registrationCloseAt ? new Date(formData.registrationCloseAt).toISOString() : null,
+        startDateTime: noonDateTimeLocalInputToIso(formData.startDateTime),
+        endDateTime: noonDateTimeLocalInputToIso(formData.endDateTime),
+        registrationCloseAt: noonDateTimeLocalInputToIso(formData.registrationCloseAt),
         status: formData.status,
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description,
