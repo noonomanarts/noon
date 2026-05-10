@@ -221,7 +221,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
         throw new ApiError('Class not found', 404);
       }
 
-      if (classRow.status !== 'PUBLISHED' && classRow.status !== 'COMPLETED') {
+      if (classRow.status !== 'PUBLISHED') {
         throw new ApiError('Class is not available for admin enrollment', 409);
       }
 

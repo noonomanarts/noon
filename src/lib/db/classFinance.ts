@@ -473,10 +473,7 @@ async function getPaidRevenueSummary(classId: string, db: Queryable): Promise<Pa
      FROM bookings
      WHERE class_id = $1
        AND payment_status = 'PAID'
-       AND (
-         status IN ('CONFIRMED', 'COMPLETED')
-         OR (status = 'CANCELLED' AND COALESCE(number_of_participants, 0) = 0)
-       )`,
+       AND status IN ('CONFIRMED', 'COMPLETED')`,
     [classId]
   );
 
@@ -673,25 +670,32 @@ export async function removeClassParticipant(params: {
     const rawParticipants: unknown[] = Array.isArray(bookingRow.participants)
       ? (bookingRow.participants as unknown[])
       : [];
-    const participantIndexZeroBased = params.participantIndex - 1;
+    const participantIndexCandidates = Array.from(
+      new Set(
+        params.participantIndex <= 0
+          ? [0]
+          : [params.participantIndex - 1, params.participantIndex]
+      )
+    ).filter((index) => index >= 0);
 
     let removedParticipantName = '';
     let nextParticipants: unknown[] = [];
     let paidParticipantsCount = 0;
 
     if (rawParticipants.length === 0) {
-      if (params.participantIndex !== 1) {
+      if (![0, 1].includes(params.participantIndex)) {
         throw new Error('Participant not found in booking.');
       }
       removedParticipantName = 'Participant';
       nextParticipants = [];
       paidParticipantsCount = Math.max(1, Number(bookingRow.number_of_participants ?? 1));
     } else {
-      if (participantIndexZeroBased < 0 || participantIndexZeroBased >= rawParticipants.length) {
+      const matchedParticipantIndex = participantIndexCandidates.find((index) => index < rawParticipants.length);
+      if (matchedParticipantIndex == null) {
         throw new Error('Participant not found in booking.');
       }
 
-      const target = rawParticipants[participantIndexZeroBased] as Record<string, unknown> | undefined;
+      const target = rawParticipants[matchedParticipantIndex] as Record<string, unknown> | undefined;
       if (target?.isFreePartner === true) {
         throw new Error('Free partner entries cannot be removed from this view.');
       }
@@ -699,7 +703,7 @@ export async function removeClassParticipant(params: {
       removedParticipantName = typeof target?.fullName === 'string' && target.fullName.trim().length > 0
         ? target.fullName.trim()
         : 'Participant';
-      nextParticipants = rawParticipants.filter((_: unknown, index: number) => index !== participantIndexZeroBased);
+      nextParticipants = rawParticipants.filter((_: unknown, index: number) => index !== matchedParticipantIndex);
       paidParticipantsCount = rawParticipants.reduce<number>((count, item) => {
         const row = item && typeof item === 'object' ? (item as Record<string, unknown>) : null;
         return row?.isFreePartner === true ? count : count + 1;
@@ -709,9 +713,10 @@ export async function removeClassParticipant(params: {
     const currentPaidParticipantsCount = Math.max(1, paidParticipantsCount || Number(bookingRow.number_of_participants ?? 1));
     const nextPaidParticipantsCount = Math.max(0, Number(bookingRow.number_of_participants ?? currentPaidParticipantsCount) - 1);
     const totalAmount = toMoney(bookingRow.total_amount);
-    const refundedAmount = params.refundToWallet
-      ? (nextPaidParticipantsCount === 0 ? totalAmount : toMoney(totalAmount / currentPaidParticipantsCount))
-      : 0;
+    const participantAmountShare = nextPaidParticipantsCount === 0
+      ? totalAmount
+      : toMoney(totalAmount / currentPaidParticipantsCount);
+    const refundedAmount = params.refundToWallet ? participantAmountShare : 0;
 
     let walletBalance: number | null = null;
     let walletAvailableBalance: number | null = null;
@@ -722,15 +727,14 @@ export async function removeClassParticipant(params: {
          SET participants = $2::jsonb,
              number_of_participants = 0,
              status = 'CANCELLED',
+             total_amount = 0,
              payment_status = CASE WHEN $3 THEN 'REFUNDED' ELSE payment_status END,
              updated_at = NOW()
          WHERE id = $1`,
         [params.bookingId, JSON.stringify(nextParticipants), params.refundToWallet]
       );
     } else {
-      const nextTotalAmount = params.refundToWallet
-        ? toMoney(totalAmount - refundedAmount)
-        : totalAmount;
+      const nextTotalAmount = toMoney(totalAmount - participantAmountShare);
 
       await client.query(
         `UPDATE bookings

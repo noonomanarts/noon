@@ -43,7 +43,7 @@ export async function POST(request: Request, props: Params) {
       return NextResponse.json({ error: 'Booking is required' }, { status: 400 });
     }
 
-    if (!Number.isInteger(participantIndex) || participantIndex < 1) {
+    if (!Number.isInteger(participantIndex) || participantIndex < 0) {
       return NextResponse.json({ error: 'Participant index is invalid' }, { status: 400 });
     }
 

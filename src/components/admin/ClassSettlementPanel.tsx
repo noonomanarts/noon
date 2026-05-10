@@ -709,8 +709,7 @@ export default function ClassSettlementPanel({
             {snapshot.participants.length === 0 ? (
               <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{t.noParticipants}</p>
             ) : (
-              <>
-                <div className="mt-4 grid gap-3 lg:hidden">
+                <div className="mt-4 grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
                   {snapshot.participants.map((participant) => {
                     const participantKey = `${participant.bookingId}-${participant.participantIndex}`;
                     const isRemoving = removingParticipantKey === participantKey;
@@ -718,16 +717,28 @@ export default function ClassSettlementPanel({
                     return (
                       <article
                         key={participantKey}
-                        className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/40"
+                        className="rounded-3xl border border-zinc-200 bg-gradient-to-br from-white via-zinc-50 to-zinc-100/70 p-4 shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-950/80"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h4 className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{participant.participantName}</h4>
-                            <p className="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">{participant.customerName}</p>
+                            <div className="inline-flex max-w-full items-center gap-2">
+                              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 dark:border-teal-900/40 dark:bg-teal-900/20">
+                                <IoPeopleOutline className="h-4 w-4 text-[color:var(--noon-teal-strong)] dark:text-teal-300" />
+                              </span>
+                              <div className="min-w-0">
+                                <h4 className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{participant.participantName}</h4>
+                                <p className="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-400">{participant.customerName}</p>
+                              </div>
+                            </div>
                           </div>
-                          <span className="shrink-0 rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
-                            {participant.participantPreferredLanguage || '—'}
-                          </span>
+                          <div className="flex shrink-0 flex-col items-end gap-2">
+                            <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                              {participant.participantPreferredLanguage || '—'}
+                            </span>
+                            <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold tracking-[0.04em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                              {participant.bookingNumber}
+                            </span>
+                          </div>
                         </div>
 
                         <dl className="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
@@ -756,7 +767,7 @@ export default function ClassSettlementPanel({
                         {canEdit ? (
                           <div className="mt-4">
                             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.participantActions}</p>
-                            <div className="flex flex-col gap-2 sm:flex-row">
+                            <div className="grid gap-2 sm:grid-cols-2">
                               <button
                                 type="button"
                                 onClick={() => void handleRemoveParticipant(participant, false)}
@@ -782,62 +793,6 @@ export default function ClassSettlementPanel({
                     );
                   })}
                 </div>
-
-                <div className="mt-4 hidden overflow-x-auto lg:block">
-                  <table className="min-w-[1100px] divide-y divide-zinc-200 text-sm dark:divide-zinc-800">
-                  <thead>
-                    <tr className="text-left text-zinc-500 dark:text-zinc-400">
-                      <th className="py-2 pe-4 whitespace-nowrap">{t.participantName}</th>
-                      <th className="py-2 pe-4 whitespace-nowrap">{t.bookedBy}</th>
-                      <th className="py-2 pe-4 whitespace-nowrap">{t.classDate}</th>
-                      <th className="py-2 pe-4 whitespace-nowrap">{t.booking}</th>
-                      <th className="py-2 pe-4 whitespace-nowrap">{t.dob}</th>
-                      <th className="py-2 whitespace-nowrap">{t.language}</th>
-                      {canEdit ? <th className="py-2 ps-4 text-right whitespace-nowrap">{t.actions}</th> : null}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">
-                    {snapshot.participants.map((participant) => (
-                      <tr key={`${participant.bookingId}-${participant.participantIndex}`}>
-                        <td className="py-3 pe-4 font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap">{participant.participantName}</td>
-                        <td className="min-w-[220px] py-3 pe-4 text-zinc-600 dark:text-zinc-300">
-                          <div className="whitespace-nowrap">{participant.customerName}</div>
-                          <div className="text-xs text-zinc-500 dark:text-zinc-400 truncate max-w-[220px]">{participant.customerEmail || '—'}</div>
-                        </td>
-                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">{formatDateTime(participant.classStartTime)}</td>
-                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">{participant.bookingNumber}</td>
-                        <td className="py-3 pe-4 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">{participant.participantDateOfBirth || '—'}</td>
-                        <td className="py-3 text-zinc-600 dark:text-zinc-300 whitespace-nowrap">{participant.participantPreferredLanguage || '—'}</td>
-                        {canEdit ? (
-                          <td className="py-3 ps-4">
-                            <div className="flex justify-end gap-2 whitespace-nowrap">
-                              <button
-                                type="button"
-                                onClick={() => void handleRemoveParticipant(participant, false)}
-                                disabled={removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}`}
-                                className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-xl border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
-                              >
-                                <IoTrashOutline className="me-1.5 h-3.5 w-3.5 shrink-0" />
-                                {removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}` ? t.removing : t.removeFromWorkshop}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => void handleRemoveParticipant(participant, true)}
-                                disabled={removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}`}
-                                className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-xl border border-amber-200 px-4 py-2 text-xs font-semibold text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-900/40 dark:text-amber-300 dark:hover:bg-amber-900/20"
-                              >
-                                <IoWalletOutline className="me-1.5 h-3.5 w-3.5 shrink-0" />
-                                {removingParticipantKey === `${participant.bookingId}-${participant.participantIndex}` ? t.removing : t.removeAndRefund}
-                              </button>
-                            </div>
-                          </td>
-                        ) : null}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                </div>
-              </>
             )}
           </div>
 
