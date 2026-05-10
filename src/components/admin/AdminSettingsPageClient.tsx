@@ -611,7 +611,7 @@ export default function AdminSettingsPageClient({
 
       <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div className="border-b border-zinc-200 px-4 dark:border-zinc-800">
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="flex min-w-max gap-2 overflow-x-auto">
             {[
               ['general', t.tabGeneral],
               ['class-finance', t.tabClassFinance],
@@ -621,7 +621,7 @@ export default function AdminSettingsPageClient({
               ['whatsapp-floating-button', t.tabWhatsappFloatingButton],
               ['backup', t.tabBackup],
             ].map(([tabId, label]) => (
-              <button key={tabId} type="button" onClick={() => setActiveTab(tabId as TabId)} className={`rounded-t-lg px-4 py-3 text-sm font-medium transition ${activeTab === tabId ? 'border-b-2 border-[color:var(--noon-teal)] text-[color:var(--noon-teal)]' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'}`}>
+              <button key={tabId} type="button" onClick={() => setActiveTab(tabId as TabId)} className={`shrink-0 whitespace-nowrap rounded-t-lg px-4 py-3 text-sm font-medium transition ${activeTab === tabId ? 'border-b-2 border-[color:var(--noon-teal)] text-[color:var(--noon-teal)]' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'}`}>
                 {label}
               </button>
             ))}
