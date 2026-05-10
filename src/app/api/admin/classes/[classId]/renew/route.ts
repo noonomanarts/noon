@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createClass, findUniqueClass } from '@/lib/db/classes';
+import type { ClassAudienceGender } from '@/lib/db/types';
 
 type Params = {
   params: Promise<{ classId: string }>;
@@ -50,6 +51,10 @@ export async function POST(_request: NextRequest, props: Params) {
       | 'POTTERY'
       | 'CRAFTS'
       | 'MIXED';
+    const sourceAudienceGender: ClassAudienceGender =
+      source.audienceGender === 'MALE_ONLY' || source.audienceGender === 'FEMALE_ONLY' || source.audienceGender === 'MIXED'
+        ? source.audienceGender
+        : 'MIXED';
 
     const slug = await buildRenewalSlug(sourceTitle);
 
@@ -61,7 +66,7 @@ export async function POST(_request: NextRequest, props: Params) {
       descriptionAr: sourceDescriptionAr || undefined,
       category: sourceCategory,
       subCategory: sourceSubCategory,
-      audienceGender: source.audienceGender,
+      audienceGender: sourceAudienceGender,
       trainerId: source.trainerId,
       price: Number(source.price || 0),
       seatsTotal: Number(source.seatsTotal || 1),
