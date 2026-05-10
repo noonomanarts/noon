@@ -1,6 +1,8 @@
 import { query } from '@/lib/db/pool';
 import { notifyRole, notifyUser } from '@/lib/notificationService';
 
+const NOON_TIME_ZONE = process.env.NOON_TIMEZONE || 'Asia/Muscat';
+
 type AppointmentReminderRow = {
   id: string;
   type: 'APPOINTMENT' | 'SCHEDULER';
@@ -25,6 +27,7 @@ function toTimeLabel(value: string): string {
     month: 'short',
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: NOON_TIME_ZONE,
   });
 }
 

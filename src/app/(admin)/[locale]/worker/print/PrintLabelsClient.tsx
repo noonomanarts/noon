@@ -56,6 +56,7 @@ export default function PrintLabelsClient({ locale, products }: Props) {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
+      timeZone: 'Asia/Muscat',
     }).format(date);
   };
 

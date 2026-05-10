@@ -54,6 +54,7 @@ export default function WorkerSalesClient({ locale, sales, canPrintBills }: Prop
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: 'Asia/Muscat',
     }).format(new Date(date));
   };
 

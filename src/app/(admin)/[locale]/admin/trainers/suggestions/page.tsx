@@ -40,6 +40,7 @@ function toLocalDate(value: string, locale: string): string {
   return date.toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB', {
     dateStyle: 'medium',
     timeStyle: 'short',
+    timeZone: 'Asia/Muscat',
   });
 }
 

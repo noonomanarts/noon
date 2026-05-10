@@ -3,6 +3,7 @@ import { buildPublicSiteUrl } from '@/lib/publicSiteUrl';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 
 let classWhatsAppNotificationSchemaReady: Promise<void> | null = null;
+const NOON_TIME_ZONE = process.env.NOON_TIMEZONE || 'Asia/Muscat';
 
 type DueWorkshopNotificationRow = {
   booking_id: string;
@@ -25,6 +26,7 @@ function formatClassDate(value: string, language: 'en' | 'ar'): string {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: NOON_TIME_ZONE,
   }).format(new Date(value));
 }
 
@@ -32,6 +34,7 @@ function formatClassTime(value: string, language: 'en' | 'ar'): string {
   return new Intl.DateTimeFormat(language === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: NOON_TIME_ZONE,
   }).format(new Date(value));
 }
 

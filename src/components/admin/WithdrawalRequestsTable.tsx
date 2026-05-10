@@ -367,7 +367,7 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
                       {request.reason?.trim() || '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-zinc-200">
-                      {new Date(request.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-US')}
+                      {new Date(request.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-US', { timeZone: 'Asia/Muscat' })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       {request.status === 'PENDING' ? (

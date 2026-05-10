@@ -240,6 +240,7 @@ export default function AdminPhotographerTasksClient({
       month: "short",
       day: "numeric",
       year: "numeric",
+      timeZone: 'Asia/Muscat',
     });
   }
 

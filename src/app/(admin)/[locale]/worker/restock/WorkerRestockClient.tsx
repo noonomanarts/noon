@@ -136,6 +136,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: 'Asia/Muscat',
     }).format(new Date(date));
   };
 
@@ -348,6 +349,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
+                        timeZone: 'Asia/Muscat',
                       }).format(new Date(restock.expiry_date))}
                     </p>
                   ) : null}

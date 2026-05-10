@@ -126,10 +126,12 @@ export default function AdminClassesPage() {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
+      timeZone: 'Asia/Muscat',
     });
     const timeFormatter = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
       hour: 'numeric',
       minute: '2-digit',
+      timeZone: 'Asia/Muscat',
     });
 
     const date = dateFormatter.format(startDate);

@@ -1015,7 +1015,9 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
                     <div className="text-sm text-[color:var(--text-muted)]">{transaction.reason}</div>
                   )}
                   <div className="text-xs text-[color:var(--text-subtle)]">
-                    {new Date(transaction.created_at).toLocaleDateString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
+                    {new Date(transaction.created_at).toLocaleDateString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
+                      timeZone: 'Asia/Muscat',
+                    })}
                   </div>
                   {transaction.type === 'WITHDRAWAL_REQUEST' && transaction.status === 'PENDING' && (
                     <button

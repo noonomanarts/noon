@@ -181,7 +181,12 @@ export default function EventBookingCompletionClient({ locale, token }: { locale
 
   const formatDate = (value: string | null) => {
     if (!value) return '-';
-    return new Date(value).toLocaleDateString(localeCode, { year: 'numeric', month: 'short', day: 'numeric' });
+    return new Date(value).toLocaleDateString(localeCode, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'Asia/Muscat',
+    });
   };
 
   const handleSubmit = async () => {

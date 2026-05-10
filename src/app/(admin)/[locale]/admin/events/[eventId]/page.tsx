@@ -152,7 +152,7 @@ export default function AdminEventDetailsPage({
   const formatDate = useMemo(
     () => (value: string | null) =>
       value
-        ? new Date(value).toLocaleDateString(localeCode, { year: "numeric", month: "short", day: "numeric" })
+        ? new Date(value).toLocaleDateString(localeCode, { year: "numeric", month: "short", day: "numeric", timeZone: 'Asia/Muscat' })
         : t.notSet,
     [localeCode, t.notSet]
   );
@@ -165,6 +165,7 @@ export default function AdminEventDetailsPage({
             day: "numeric",
             hour: "2-digit",
             minute: "2-digit",
+            timeZone: 'Asia/Muscat',
           })
         : t.notSet,
     [localeCode, t.notSet]

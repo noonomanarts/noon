@@ -36,6 +36,7 @@ function formatDateTime(value: string | null, locale: Locale): string {
   return date.toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en-GB', {
     dateStyle: 'medium',
     timeStyle: 'short',
+    timeZone: 'Asia/Muscat',
   });
 }
 

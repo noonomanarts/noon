@@ -171,7 +171,7 @@ export default function AdminNotificationCenter({ locale }: AdminNotificationCen
                         {localized.message}
                       </p>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
-                        {new Date(item.created_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
+                        {new Date(item.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
                       </p>
                     </div>
                     {!item.is_read && <span className="mt-1 size-2 rounded-full bg-indigo-500" />}

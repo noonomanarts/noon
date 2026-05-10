@@ -118,6 +118,7 @@ export default function AdminContactMessagesPageClient({
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric',
+                            timeZone: 'Asia/Muscat',
                           })}
                         </td>
                       </tr>

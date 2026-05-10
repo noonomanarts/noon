@@ -345,7 +345,7 @@ export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
     (value: string) => {
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return value;
-      return date.toLocaleString(isArabic ? 'ar-u-nu-latn' : 'en');
+      return date.toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' });
     },
     [isArabic]
   );

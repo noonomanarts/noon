@@ -224,6 +224,7 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
       return new Intl.DateTimeFormat(localeCode, {
         dateStyle: 'medium',
         timeStyle: 'short',
+        timeZone: 'Asia/Muscat',
       }).format(parsed);
     },
     [localeCode]

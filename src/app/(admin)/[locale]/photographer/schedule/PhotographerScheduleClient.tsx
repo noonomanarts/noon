@@ -94,6 +94,7 @@ export default function PhotographerScheduleClient({ locale, schedule }: Props) 
       weekday: "long",
       month: "long",
       day: "numeric",
+      timeZone: 'Asia/Muscat',
     });
   }
 
@@ -101,6 +102,7 @@ export default function PhotographerScheduleClient({ locale, schedule }: Props) 
     return new Date(iso).toLocaleTimeString(isRTL ? "ar-SA" : "en-US", {
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: 'Asia/Muscat',
     });
   }
 

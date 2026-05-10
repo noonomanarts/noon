@@ -1159,7 +1159,7 @@ export default function EditTrainerPage() {
                   const checked = featuredPreviousClassIds.includes(cls.id);
                   const date = cls.startDateTime ? new Date(cls.startDateTime) : null;
                   const dateLabel = date && !Number.isNaN(date.getTime())
-                    ? date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                    ? date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Muscat' })
                     : '—';
                   return (
                     <label

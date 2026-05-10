@@ -151,6 +151,7 @@ export default function WorkerOrdersClient({ locale, orders: initialOrders }: Pr
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: 'Asia/Muscat',
     }).format(new Date(date));
   };
 

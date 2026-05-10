@@ -278,24 +278,24 @@ export default function ShopOrderDetailsPageClient({
       <article className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
         <div className="space-y-1">
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {t.createdAt}: {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
+            {t.createdAt}: {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
           </p>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {t.paidAt}: {new Date(order.paid_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
+            {t.paidAt}: {new Date(order.paid_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
           </p>
           {order.shipped_at && (
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {t.shippedAt}: {new Date(order.shipped_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
+              {t.shippedAt}: {new Date(order.shipped_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
             </p>
           )}
           {order.delivered_at && (
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {t.deliveredAt}: {new Date(order.delivered_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
+              {t.deliveredAt}: {new Date(order.delivered_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
             </p>
           )}
           {order.cancelled_at && (
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {t.cancelledAt}: {new Date(order.cancelled_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
+              {t.cancelledAt}: {new Date(order.cancelled_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
             </p>
           )}
         </div>
@@ -525,7 +525,7 @@ export default function ShopOrderDetailsPageClient({
                     <span className="font-semibold">{statusLabelMap[entry.next_status][locale]}</span>
                   </p>
                   {entry.note && <p className="mt-0.5 text-zinc-500 dark:text-zinc-400">{entry.note}</p>}
-                  <p className="mt-0.5 text-zinc-500 dark:text-zinc-400">{new Date(entry.created_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}</p>
+                  <p className="mt-0.5 text-zinc-500 dark:text-zinc-400">{new Date(entry.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}</p>
                 </div>
               ))}
             </div>

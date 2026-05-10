@@ -141,6 +141,7 @@ export default function AdminJoinUsPageClient({
       day: "2-digit",
       month: "short",
       year: "numeric",
+      timeZone: 'Asia/Muscat',
     });
 
   const categoryLabel = (c: string | null) => {

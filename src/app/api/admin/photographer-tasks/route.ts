@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     recipientUserId: assignee.id,
     type: 'PHOTOGRAPHER_TASK_ASSIGNED',
     title: 'New Task Assigned',
-    message: `You have a new task: "${title.trim()}"${dueDate ? ` — Due: ${new Date(dueDate).toLocaleDateString()}` : ''}`,
+    message: `You have a new task: "${title.trim()}"${dueDate ? ` — Due: ${new Date(dueDate).toLocaleDateString('en-OM', { timeZone: 'Asia/Muscat' })}` : ''}`,
     data: { taskId: task.id, priority, photographerUserId: assignee.id },
   });
 

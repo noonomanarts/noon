@@ -659,7 +659,7 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
                   >
                     <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{className}</p>
                     <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                      {new Date(session.start_date_time).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM')}
+                      {new Date(session.start_date_time).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                       <span className={`inline-flex rounded-full px-2 py-0.5 font-semibold ${workflow?.classes}`}>{workflow?.label}</span>
@@ -706,7 +706,7 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
                       </p>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">{selectedSession.trainer_name || t.notAvailable}</p>
                       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                        {new Date(selectedSession.start_date_time).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM')}
+                        {new Date(selectedSession.start_date_time).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
                       </p>
                     </div>
                   </div>
@@ -824,7 +824,7 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
                                     <td className="py-2 pe-3 text-zinc-600 dark:text-zinc-300">{booking.number_of_participants}</td>
                                     <td className="py-2 pe-3 text-zinc-600 dark:text-zinc-300">{booking.status}</td>
                                     <td className="py-2 text-zinc-500 dark:text-zinc-400">
-                                      {new Date(booking.created_at).toLocaleDateString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM')}
+                                      {new Date(booking.created_at).toLocaleDateString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
                                     </td>
                                   </tr>
                                 ))}
@@ -1062,7 +1062,7 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
                           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                             {t.finalSection.publishedAt}:{' '}
                             {selectedSessionDetails.final_recipe_published_at
-                              ? new Date(selectedSessionDetails.final_recipe_published_at).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM')
+                              ? new Date(selectedSessionDetails.final_recipe_published_at).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })
                               : '-'}
                           </p>
                         </div>
@@ -1122,7 +1122,7 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
                                   <span className="font-semibold text-zinc-700 dark:text-zinc-200">{feedback.customer_name}</span>
                                   <span>
                                     <FiClock className="mr-1 inline size-3" />
-                                    {new Date(feedback.created_at).toLocaleDateString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM')} • ★ {feedback.rating}
+                                    {new Date(feedback.created_at).toLocaleDateString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })} • ★ {feedback.rating}
                                   </span>
                                 </div>
                                 <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">{feedback.comment || '-'}</p>

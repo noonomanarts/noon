@@ -154,6 +154,7 @@ function formatDateLabel(value: string): string {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone: 'Asia/Muscat',
   });
 }
 
@@ -161,9 +162,11 @@ function formatTimeRange(start: string, end: string): string {
   return `${new Date(start).toLocaleTimeString('en-OM', {
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: 'Asia/Muscat',
   })} - ${new Date(end).toLocaleTimeString('en-OM', {
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: 'Asia/Muscat',
   })}`;
 }
 
@@ -421,6 +424,7 @@ export default function AdminCalendarPage() {
       return currentMonth.toLocaleDateString('en-OM', {
         month: 'long',
         year: 'numeric',
+        timeZone: 'Asia/Muscat',
       });
     }
 
@@ -431,11 +435,13 @@ export default function AdminCalendarPage() {
         const startLabel = new Date(`${start}T00:00:00`).toLocaleDateString('en-OM', {
           day: 'numeric',
           month: 'short',
+          timeZone: 'Asia/Muscat',
         });
         const endLabel = new Date(`${end}T00:00:00`).toLocaleDateString('en-OM', {
           day: 'numeric',
           month: 'short',
           year: 'numeric',
+          timeZone: 'Asia/Muscat',
         });
         return `${startLabel} - ${endLabel}`;
       }
@@ -446,6 +452,7 @@ export default function AdminCalendarPage() {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
+      timeZone: 'Asia/Muscat',
     });
   }, [viewMode, currentMonth, weekDays, selectedDayDate]);
 
@@ -784,7 +791,7 @@ export default function AdminCalendarPage() {
                         <div className="hidden space-y-1.5 sm:block">
                           {dayEvents.slice(0, 2).map((event) => (
                             <div key={event.id} className={`rounded-xl px-2 py-1 text-[11px] font-medium ${EVENT_THEME[event.type].badge}`}>
-                              <p>{new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit' })}</p>
+                              <p>{new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Muscat' })}</p>
                               <p className="truncate">{event.title}</p>
                             </div>
                           ))}
@@ -859,7 +866,7 @@ export default function AdminCalendarPage() {
                         ) : (
                           dayEvents.slice(0, 3).map((event) => (
                             <div key={`mobile-${event.id}`} className={`rounded-lg px-2.5 py-2 text-xs font-medium ${EVENT_THEME[event.type].badge}`}>
-                              <p>{new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit' })}</p>
+                              <p>{new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Muscat' })}</p>
                               <p className="truncate">{event.title}</p>
                             </div>
                           ))
@@ -908,7 +915,7 @@ export default function AdminCalendarPage() {
                             ) : (
                               dayEvents.slice(0, 4).map((event) => (
                                 <div key={event.id} className={`rounded-lg px-2.5 py-2 text-xs font-medium ${EVENT_THEME[event.type].badge}`}>
-                                  <p>{new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit' })}</p>
+                                  <p>{new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Muscat' })}</p>
                                   <p className="truncate">{event.title}</p>
                                 </div>
                               ))
@@ -1023,7 +1030,7 @@ export default function AdminCalendarPage() {
                         {EVENT_THEME[event.type].label}
                       </span>
                       <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit' })}
+                        {new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Muscat' })}
                       </span>
                     </div>
                     <p className="mt-2 truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{event.title}</p>
@@ -1050,6 +1057,7 @@ export default function AdminCalendarPage() {
                           day: 'numeric',
                           hour: 'numeric',
                           minute: '2-digit',
+                          timeZone: 'Asia/Muscat',
                         })}
                       </p>
                     </div>

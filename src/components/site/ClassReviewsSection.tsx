@@ -267,7 +267,7 @@ export default function ClassReviewsSection({
                   </div>
                 </div>
                 <p className="text-xs text-[color:var(--text-subtle)]">
-                  {new Date(review.created_at).toLocaleDateString(isArabic ? "ar-OM-u-nu-latn" : "en-OM")}
+                  {new Date(review.created_at).toLocaleDateString(isArabic ? "ar-OM-u-nu-latn" : "en-OM", { timeZone: 'Asia/Muscat' })}
                 </p>
               </div>
               {review.comment ? (

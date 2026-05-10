@@ -282,7 +282,7 @@ export default async function AdminAnalyticsPage({
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
+                        {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
                       </td>
                       <td className="px-4 py-3">
                         <Link href={`/${locale}/admin/shop/orders/${order.id}`} className="text-sm font-medium text-[color:var(--noon-teal)] hover:opacity-90">

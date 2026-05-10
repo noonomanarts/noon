@@ -155,7 +155,11 @@ export default function EventSettlementPanel({
     if (!value) return '—';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '—';
-    return new Intl.DateTimeFormat(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+    return new Intl.DateTimeFormat(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: 'Asia/Muscat',
+    }).format(date);
   };
 
   const loadSnapshot = useCallback(async () => {

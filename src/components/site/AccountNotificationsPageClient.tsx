@@ -289,7 +289,9 @@ export function AccountNotificationsPageClient({ locale }: AccountNotificationsP
                       </div>
                       <p className="mt-1 text-sm text-[color:var(--text-muted)]">{localized.message}</p>
                       <p className="mt-2 text-xs text-[color:var(--text-subtle)]">
-                        {new Date(item.created_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
+                        {new Date(item.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
+                          timeZone: 'Asia/Muscat',
+                        })}
                       </p>
                     </div>
                   </div>

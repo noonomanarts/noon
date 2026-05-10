@@ -163,6 +163,7 @@ export default function AdminEventsPage() {
       year: "numeric",
       month: "short",
       day: "numeric",
+      timeZone: 'Asia/Muscat',
     });
   };
 

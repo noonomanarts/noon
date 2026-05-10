@@ -336,7 +336,7 @@ export default function AdminWhatsAppSessionsPageClient({ locale }: { locale: Lo
                     </div>
 
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {t.updatedAt}: {updatedAt.toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-GB')}
+                      {t.updatedAt}: {updatedAt.toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-GB', { timeZone: 'Asia/Muscat' })}
                     </p>
 
                     {session.lastError ? (

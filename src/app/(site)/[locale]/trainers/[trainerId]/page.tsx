@@ -84,6 +84,7 @@ function formatSessionDateTime(value: Date | string | null, locale: Locale): str
   return date.toLocaleString(locale === "ar" ? "ar-u-nu-latn" : "en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: 'Asia/Muscat',
   });
 }
 

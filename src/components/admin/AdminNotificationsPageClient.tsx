@@ -168,7 +168,7 @@ export default function AdminNotificationsPageClient({ locale }: AdminNotificati
                     </div>
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{localized.message}</p>
                     <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                      {new Date(item.created_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
+                      {new Date(item.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
                     </p>
                   </div>
                 </div>

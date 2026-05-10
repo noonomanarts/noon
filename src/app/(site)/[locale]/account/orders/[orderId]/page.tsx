@@ -89,6 +89,7 @@ function formatDateTime(locale: Locale, value: string | Date | null | undefined)
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: 'Asia/Muscat',
   });
 }
 
@@ -98,6 +99,7 @@ function formatDate(locale: Locale, value: string | Date | null | undefined) {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+    timeZone: 'Asia/Muscat',
   });
 }
 

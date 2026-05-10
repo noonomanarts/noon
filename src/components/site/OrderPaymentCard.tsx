@@ -63,6 +63,7 @@ function formatDateTime(locale: Locale, value: string | Date | null | undefined)
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
+    timeZone: 'Asia/Muscat',
   });
 }
 

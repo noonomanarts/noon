@@ -121,6 +121,7 @@ function formatDateTime(value: string | null | undefined, localeCode: string) {
   return new Intl.DateTimeFormat(localeCode, {
     dateStyle: 'medium',
     timeStyle: 'short',
+    timeZone: 'Asia/Muscat',
   }).format(date);
 }
 
@@ -132,6 +133,7 @@ function formatDate(value: string | null | undefined, localeCode: string) {
 
   return new Intl.DateTimeFormat(localeCode, {
     dateStyle: 'medium',
+    timeZone: 'Asia/Muscat',
   }).format(date);
 }
 

@@ -225,7 +225,12 @@ export async function POST(request: NextRequest) {
 
     // Notify photographer about new meetings/appointments
     if (type === 'APPOINTMENT' || type === 'SCHEDULER') {
-      const dateStr = new Date(startDateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const dateStr = new Date(startDateTime).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'Asia/Muscat',
+      });
       void notifyPhotographerDashboardUsers({
         type: 'PHOTOGRAPHER_MEETING_SCHEDULED',
         title: 'New Meeting Scheduled',

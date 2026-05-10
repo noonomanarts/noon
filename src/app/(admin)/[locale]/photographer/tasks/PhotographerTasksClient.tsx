@@ -263,6 +263,7 @@ export default function PhotographerTasksClient({ locale, initialTasks, initialT
       month: "short",
       day: "numeric",
       year: "numeric",
+      timeZone: 'Asia/Muscat',
     });
   }
 

@@ -95,6 +95,7 @@ export default function PrintShopOrderReceiptClient({
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'Asia/Muscat',
     }).format(new Date(value));
   };
 

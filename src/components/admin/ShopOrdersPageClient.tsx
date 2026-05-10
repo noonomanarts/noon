@@ -307,8 +307,8 @@ export default function ShopOrdersPageClient({ locale }: { locale: Locale }) {
                       {statusLabelMap[order.status][locale]}
                     </span>
 
-                    <span className="truncate whitespace-nowrap text-zinc-600 dark:text-zinc-400" title={new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}>
-                      {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn' : 'en')}
+                    <span className="truncate whitespace-nowrap text-zinc-600 dark:text-zinc-400" title={new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}>
+                      {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
                     </span>
 
                     <span className="whitespace-nowrap font-medium text-[color:var(--noon-teal)]">{t.openDetails}</span>

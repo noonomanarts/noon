@@ -73,12 +73,12 @@ export default function PhotographerDashboardClient({ locale, stats, upcomingSch
 
   function formatDate(iso: string) {
     const d = new Date(iso);
-    return d.toLocaleDateString(isRTL ? "ar-SA" : "en-US", { weekday: "short", month: "short", day: "numeric" });
+    return d.toLocaleDateString(isRTL ? "ar-SA" : "en-US", { weekday: "short", month: "short", day: "numeric", timeZone: 'Asia/Muscat' });
   }
 
   function formatTime(iso: string) {
     const d = new Date(iso);
-    return d.toLocaleTimeString(isRTL ? "ar-SA" : "en-US", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString(isRTL ? "ar-SA" : "en-US", { hour: "2-digit", minute: "2-digit", timeZone: 'Asia/Muscat' });
   }
 
   const statCards = [
