@@ -63,15 +63,15 @@ export default function AdminProfileMenu({
     <div ref={containerRef} className="relative" dir={dir}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex w-full items-center gap-3 rounded-lg bg-zinc-100 px-3 py-2 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+        className="flex w-full items-center gap-3 rounded-2xl border border-zinc-200/80 bg-white/80 px-3 py-2.5 shadow-sm transition-all hover:border-orange-200 hover:bg-white dark:border-zinc-800 dark:bg-zinc-900/90 dark:hover:border-zinc-700 dark:hover:bg-zinc-900"
       >
-        <div className="relative size-8 overflow-hidden rounded-full bg-zinc-900 text-sm font-semibold text-white dark:bg-white dark:text-zinc-900">
+        <div className="relative size-9 overflow-hidden rounded-2xl bg-zinc-900 text-sm font-semibold text-white dark:bg-white dark:text-zinc-900">
           {profileImage ? (
             <Image
               src={profileImage}
               alt={userName}
               fill
-              sizes="32px"
+              sizes="36px"
               className="object-cover"
             />
           ) : (
@@ -81,7 +81,7 @@ export default function AdminProfileMenu({
           )}
         </div>
         <div className="flex-1 min-w-0 text-start">
-          <p className="truncate text-sm font-medium text-zinc-900 dark:text-white">
+          <p className="truncate text-sm font-semibold text-zinc-900 dark:text-white">
             {userName}
           </p>
           <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
@@ -99,7 +99,7 @@ export default function AdminProfileMenu({
       </button>
 
       {isOpen && (
-        <div className={`absolute ${locale === "ar" ? "left-0" : "right-0"} bottom-full mb-2 w-56 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900`}>
+        <div className={`absolute ${locale === "ar" ? "left-0" : "right-0"} bottom-full mb-2 w-56 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl shadow-zinc-950/10 dark:border-zinc-800 dark:bg-zinc-900`}>
           <div className="p-1.5">
             <button
               onClick={() => {

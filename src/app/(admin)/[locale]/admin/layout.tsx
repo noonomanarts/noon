@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -9,6 +10,7 @@ import AdminNotificationCenter from "@/components/admin/AdminNotificationCenter"
 import { AdminWalletDisplay } from "@/components/admin/AdminWalletDisplay";
 import MobileSidebar from "@/components/admin/MobileSidebar";
 import OverlayScrollArea from "@/components/site/OverlayScrollArea";
+import { resolveHeaderBranding } from "@/lib/headerBranding";
 import { countTrainerWorkshopSuggestionsPendingReview } from "@/lib/db/trainers";
 import {
   FiBell,
@@ -91,6 +93,7 @@ export default async function AdminLayout({
   const isSocialMediaAdmin = user.role === "SOCIAL_MEDIA_ADMIN";
   const pendingSuggestedWorkshops = isSocialMediaAdmin ? 0 : await countTrainerWorkshopSuggestionsPendingReview();
   const pendingRepeatRequestGroups = isSocialMediaAdmin ? 0 : await countPendingClassRepeatRequestGroups();
+  const { headerLogoUrl } = await resolveHeaderBranding();
 
   async function handleLogout() {
     "use server";
@@ -102,43 +105,43 @@ export default async function AdminLayout({
 
   const t = {
     adminPanel: locale === "ar" ? "لوحة الإدارة" : "Admin Panel",
-    management: locale === "ar" ? "لوحة التحكم" : "Management Panel",
-    overview: locale === "ar" ? "نظرة عامة" : "Overview",
+    management: locale === "ar" ? "مركز التحكم" : "Control Center",
+    overview: locale === "ar" ? "عام" : "Overview",
     finance: locale === "ar" ? "المالية" : "Finance",
-    dashboard: locale === "ar" ? "لوحة التحكم" : "Dashboard",
-    analytics: locale === "ar" ? "التحليلات" : "Analytics",
-    financeReports: locale === "ar" ? "المالية والتقارير" : "Finance & Reports",
+    dashboard: locale === "ar" ? "الرئيسية" : "Dashboard",
+    analytics: locale === "ar" ? "التحليلات" : "Insights",
+    financeReports: locale === "ar" ? "المالية" : "Finance",
     inventory: locale === "ar" ? "المخزون" : "Inventory",
-    classesEvents: locale === "ar" ? "الورش والفعاليات" : "Classes & Events",
-    classes: locale === "ar" ? "الورش" : "Classes",
-    repeatRequests: locale === "ar" ? "طلبات إعادة الورش" : "Workshop Repeat Requests",
-    timetable: locale === "ar" ? "الجدول الزمني" : "Timetable",
+    classesEvents: locale === "ar" ? "البرامج" : "Programs",
+    classes: locale === "ar" ? "الدورات" : "Classes",
+    repeatRequests: locale === "ar" ? "الإعادات" : "Repeats",
+    timetable: locale === "ar" ? "التقويم" : "Calendar",
     events: locale === "ar" ? "الفعاليات" : "Events",
-    users: locale === "ar" ? "المستخدمون" : "Users",
+    users: locale === "ar" ? "الفريق" : "Team",
     customers: locale === "ar" ? "العملاء" : "Customers",
     trainers: locale === "ar" ? "المدربون" : "Trainers",
     suggestedWorkshops: locale === "ar" ? "المقترحات" : "Suggestions",
     payments: locale === "ar" ? "المدفوعات" : "Payments",
     content: locale === "ar" ? "المحتوى" : "Content",
     shop: locale === "ar" ? "المتجر" : "Shop",
-    shopCategories: locale === "ar" ? "تصنيفات المتجر" : "Shop Categories",
-    shopProducts: locale === "ar" ? "منتجات المتجر" : "Shop Products",
-    shopDiscoverMore: locale === "ar" ? "روابط Discover more" : "Discover More Links",
-    shopOrders: locale === "ar" ? "طلبات المتجر" : "Shop Orders",
-    promoCodes: locale === "ar" ? "أكواد الخصم" : "Promo Codes",
-    recommendations: locale === "ar" ? "التوصيات" : "Recommendations",
+    shopCategories: locale === "ar" ? "الفئات" : "Categories",
+    shopProducts: locale === "ar" ? "المنتجات" : "Products",
+    shopDiscoverMore: locale === "ar" ? "الروابط" : "Links",
+    shopOrders: locale === "ar" ? "الطلبات" : "Orders",
+    promoCodes: locale === "ar" ? "الخصومات" : "Codes",
+    recommendations: locale === "ar" ? "الترشيحات" : "Picks",
     recipes: locale === "ar" ? "الوصفات" : "Recipes",
     pages: locale === "ar" ? "الصفحات" : "Pages",
-    contactMessages: locale === "ar" ? "رسائل التواصل" : "Contact Messages",
-    joinUsApplications: locale === "ar" ? "طلبات الانضمام" : "Join Us Applications",
-    settings: locale === "ar" ? "الإعدادات" : "Settings",
-    paymentAlerts: "Payment Alerts",
-    notifications: locale === "ar" ? "الإشعارات" : "Notifications",
+    contactMessages: locale === "ar" ? "الرسائل" : "Messages",
+    joinUsApplications: locale === "ar" ? "الطلبات" : "Applications",
+    settings: locale === "ar" ? "النظام" : "System",
+    paymentAlerts: locale === "ar" ? "التنبيهات" : "Alerts",
+    notifications: locale === "ar" ? "الإشعارات" : "Notices",
     whatsapp: locale === "ar" ? "واتساب" : "WhatsApp",
-    whatsappSessions: locale === "ar" ? "سشنات واتساب" : "WhatsApp Sessions",
-    whatsappTemplates: locale === "ar" ? "تمبليتات واتساب" : "WhatsApp Templates",
+    whatsappSessions: locale === "ar" ? "الجلسات" : "Sessions",
+    whatsappTemplates: locale === "ar" ? "القوالب" : "Templates",
     email: locale === "ar" ? "البريد الإلكتروني" : "Email",
-    photographerTasks: locale === "ar" ? "مهام المصور" : "Photographer Tasks",
+    photographerTasks: locale === "ar" ? "المصور" : "Media Tasks",
     logout: locale === "ar" ? "تسجيل خروج" : "Logout",
     profile: locale === "ar" ? "الملف الشخصي" : "Profile",
     accountSettings: locale === "ar" ? "إعدادات الحساب" : "Account Settings",
@@ -185,7 +188,7 @@ export default async function AdminLayout({
             },
             { iconName: "FiCalendar" as const, iconColor: "text-sky-600 dark:text-sky-400", label: t.timetable, href: `/${locale}/admin/calendar` },
             { iconName: "FiAward" as const, iconColor: "text-rose-600 dark:text-rose-400", label: t.events, href: `/${locale}/admin/events` },
-            { iconName: "FiTag" as const, iconColor: "text-fuchsia-600 dark:text-fuchsia-400", label: locale === "ar" ? "إضافات الهدايا" : "Gift Add-ons", href: `/${locale}/admin/events/gift-addons` },
+            { iconName: "FiTag" as const, iconColor: "text-fuchsia-600 dark:text-fuchsia-400", label: locale === "ar" ? "الهدايا" : "Add-ons", href: `/${locale}/admin/events/gift-addons` },
           ],
         },
         {
@@ -242,28 +245,40 @@ export default async function AdminLayout({
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <div className="admin-panel flex min-h-dvh overflow-hidden bg-zinc-50 dark:bg-zinc-950" lang={locale} dir={dir}>
+    <div className="admin-panel flex min-h-dvh overflow-hidden bg-zinc-100 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100" lang={locale} dir={dir}>
       {/* Sidebar */}
-      <aside className={`hidden w-64 flex-shrink-0 border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 lg:block ${locale === "ar" ? "border-l" : "border-r"}`}>
-            <div className="flex h-full flex-col">
+      <div className="hidden w-64 shrink-0 lg:block xl:w-72" aria-hidden="true" />
+      <aside
+        className={`fixed inset-y-0 z-20 hidden w-64 overflow-hidden border-zinc-200/80 bg-[linear-gradient(180deg,rgba(255,248,242,0.98),rgba(255,255,255,0.94))] shadow-[0_0_0_1px_rgba(228,228,231,0.7),0_24px_60px_-36px_rgba(24,24,27,0.45)] backdrop-blur dark:border-zinc-800/80 dark:bg-[linear-gradient(180deg,rgba(23,23,34,0.98),rgba(10,10,15,0.96))] dark:shadow-[0_0_0_1px_rgba(39,39,42,0.85),0_24px_60px_-36px_rgba(0,0,0,0.7)] lg:block xl:w-72 ${locale === "ar" ? "right-0 border-l" : "left-0 border-r"}`}
+      >
+            <div className="flex h-full min-h-0 flex-col">
               {/* Logo */}
-              <div className="flex h-16 items-center gap-3 border-b border-zinc-200 px-6 dark:border-zinc-800" dir={dir}>
-                <div className="flex size-8 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
-                  <span className="text-lg font-bold">N</span>
-                </div>
-                <div className={locale === "ar" ? "text-right" : "text-left"}>
-                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-white">{t.adminPanel}</h2>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.management}</p>
+              <div className="border-b border-zinc-200/80 bg-white/55 px-5 py-4 dark:border-zinc-800/80 dark:bg-white/[0.03]" dir={dir}>
+                <div className={`flex items-center gap-3 ${locale === "ar" ? "flex-row-reverse text-right" : "text-left"}`}>
+                  <Link href={`/${locale}`} className="shrink-0" aria-label="Noon">
+                    <Image
+                      src={headerLogoUrl}
+                      alt="Noon"
+                      width={56}
+                      height={56}
+                      priority
+                      className="h-11 w-auto"
+                    />
+                  </Link>
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-semibold tracking-[0.03em] text-zinc-900 dark:text-white">{t.adminPanel}</h2>
+                    <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">{t.management}</p>
+                  </div>
                 </div>
               </div>
 
               {/* Navigation */}
-              <OverlayScrollArea className="flex-1" options={{ overflow: { x: "hidden", y: "scroll" } }}>
-                <nav className="p-4" dir={dir}>
-                  <div className="space-y-6">
+              <OverlayScrollArea className="min-h-0 flex-1" options={{ overflow: { x: "hidden", y: "scroll" } }}>
+                <nav className="px-3 py-4" dir={dir}>
+                  <div className="space-y-5">
                   {menuItems.map((section) => (
                     <div key={section.section}>
-                      <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                      <h3 className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.28em] text-zinc-500/90 dark:text-zinc-400">
                         {section.section}
                       </h3>
                       <div className="space-y-1">
@@ -291,14 +306,14 @@ export default async function AdminLayout({
                             <Link
                               key={item.href}
                               href={item.href}
-                              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
+                              className="group flex items-center gap-3 rounded-2xl border border-transparent px-3 py-2 text-[13px] font-medium text-zinc-700 transition-all duration-200 hover:border-orange-200/80 hover:bg-white/80 hover:text-zinc-950 hover:shadow-sm dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:bg-white/[0.04] dark:hover:text-white"
                             >
-                              <span className={`flex size-8 items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 ${item.iconColor}`}>
+                              <span className={`flex size-9 items-center justify-center rounded-xl bg-white/80 ring-1 ring-zinc-200/70 transition-transform duration-200 group-hover:scale-[1.04] dark:bg-zinc-900/90 dark:ring-zinc-800 ${item.iconColor}`}>
                                 <IconComponent className="size-4" />
                               </span>
                               <span className="flex-1 truncate whitespace-nowrap">{item.label}</span>
                               {typeof item.badgeCount === "number" && item.badgeCount > 0 ? (
-                                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[color:var(--noon-coral)] px-1.5 text-[11px] font-bold leading-none text-white">
+                                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[color:var(--noon-coral)] px-1.5 text-[11px] font-bold leading-none text-white shadow-sm shadow-orange-300/50 dark:shadow-orange-950/40">
                                   {item.badgeCount > 99 ? "99+" : item.badgeCount}
                                 </span>
                               ) : null}
@@ -313,7 +328,7 @@ export default async function AdminLayout({
               </OverlayScrollArea>
 
               {/* User Profile Menu */}
-              <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
+              <div className="border-t border-zinc-200/80 bg-white/50 px-3 pb-3 pt-2.5 dark:border-zinc-800/80 dark:bg-white/[0.03]">
                 <AdminProfileMenu
                   userName={user.fullName}
                   userEmail={user.email}
@@ -332,7 +347,7 @@ export default async function AdminLayout({
           {/* Main Content */}
           <main className="flex flex-1 flex-col overflow-hidden">
             {/* Top Bar */}
-            <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white pt-[env(safe-area-inset-top)] dark:border-zinc-800 dark:bg-zinc-900" dir={dir}>
+            <header className="sticky top-0 z-30 border-b border-zinc-200/80 bg-white/90 pt-[env(safe-area-inset-top)] backdrop-blur dark:border-zinc-800/80 dark:bg-zinc-900/90" dir={dir}>
               <div className="flex h-14 items-center justify-between gap-2 px-3 ps-[max(0.75rem,env(safe-area-inset-left))] pe-[max(0.75rem,env(safe-area-inset-right))] sm:h-16 sm:gap-3 sm:px-4 lg:px-6">
                 <div className="flex min-w-0 items-center gap-3 sm:gap-4">
                   <MobileSidebar
