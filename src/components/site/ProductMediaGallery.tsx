@@ -23,13 +23,11 @@ export default function ProductMediaGallery({
     [images]
   );
   const [activeIndex, setActiveIndex] = useState(0);
-  const activeImage = preparedImages[activeIndex] ?? null;
+  const normalizedActiveIndex = preparedImages.length > 0 ? activeIndex % preparedImages.length : 0;
+  const activeImage = preparedImages[normalizedActiveIndex] ?? null;
 
   useEffect(() => {
-    if (preparedImages.length <= 1) {
-      setActiveIndex(0);
-      return;
-    }
+    if (preparedImages.length <= 1) return;
 
     const autoplayTimer = window.setInterval(() => {
       setActiveIndex((currentIndex) => (currentIndex + 1) % preparedImages.length);
@@ -69,7 +67,7 @@ export default function ProductMediaGallery({
           </p>
           <div className="grid grid-cols-5 gap-2 sm:grid-cols-6">
             {preparedImages.map((imageUrl, index) => {
-              const isActive = index === activeIndex;
+              const isActive = index === normalizedActiveIndex;
               return (
                 <button
                   key={`${imageUrl}-${index}`}
