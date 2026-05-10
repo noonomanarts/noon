@@ -626,11 +626,9 @@ export async function removeClassParticipant(params: {
     await client.query('BEGIN');
 
     const classResult = await client.query(
-      `SELECT c.id, c.title, c.title_ar, c.currency, c.status, c.closed_at,
-              s.status AS settlement_status
-       FROM classes c
-       LEFT JOIN class_settlements s ON s.class_id = c.id
-       WHERE c.id = $1
+      `SELECT id, title, title_ar, currency, status, closed_at
+       FROM classes
+       WHERE id = $1
        FOR UPDATE`,
       [params.classId]
     );
@@ -640,7 +638,16 @@ export async function removeClassParticipant(params: {
       throw new Error('Class not found');
     }
 
-    if (String(classRow.settlement_status || '') === 'CLOSED' || classRow.closed_at) {
+    const settlementResult = await client.query(
+      `SELECT status
+       FROM class_settlements
+       WHERE class_id = $1
+       FOR UPDATE`,
+      [params.classId]
+    );
+    const settlementRow = settlementResult.rows[0];
+
+    if (String(settlementRow?.status || '') === 'CLOSED' || classRow.closed_at) {
       throw new Error('Participants cannot be removed after settlement is closed.');
     }
 
