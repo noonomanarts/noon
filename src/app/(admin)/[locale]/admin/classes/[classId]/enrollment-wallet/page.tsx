@@ -12,6 +12,7 @@ type ClassDetails = {
   price: number;
   currency: string;
   subCategory?: string | null;
+  audienceGender?: 'MALE_ONLY' | 'FEMALE_ONLY' | 'MIXED' | null;
   minimumAge?: number | null;
   seatsTotal: number;
   seatsBooked: number;
@@ -130,6 +131,7 @@ export default function AdminClassEnrollmentWalletPage({
         currency={classData.currency}
         seatsAvailable={Math.max(0, classData.seatsTotal - (classData.seatsBooked ?? 0))}
         classSubCategory={classData.subCategory}
+        audienceGender={classData.audienceGender}
         minimumAge={classData.minimumAge}
         locale={locale}
         onChangedAction={async () => {

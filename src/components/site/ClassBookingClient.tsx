@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import type { Gender } from '@/lib/db/types';
 
 const DISPLAY_TIMEZONE = 'Asia/Muscat';
 
@@ -12,6 +13,7 @@ type Participant = {
   fullName: string;
   dateOfBirth: string;
   preferredLanguage: 'en' | 'ar';
+  gender: Gender | '';
 };
 
 type ParticipantWithPartner = Participant & {
@@ -33,6 +35,7 @@ type CurrentUserLite = {
   email: string;
   phoneNumber: string;
   dateOfBirth: string | null;
+  gender: Gender | null;
   preferredLanguage: 'ENGLISH' | 'ARABIC';
 };
 
@@ -64,6 +67,7 @@ function emptyParticipant(): ParticipantWithPartner {
     fullName: '',
     dateOfBirth: '',
     preferredLanguage: 'en',
+    gender: '',
     partner: null,
   };
 }
@@ -73,6 +77,7 @@ function buildSelfParticipant(user: CurrentUserLite): ParticipantWithPartner {
     fullName: user.fullName.trim(),
     dateOfBirth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : '',
     preferredLanguage: user.preferredLanguage === 'ARABIC' ? 'ar' : 'en',
+    gender: user.gender ?? '',
     partner: null,
   };
 }
@@ -82,7 +87,16 @@ function emptyPartner(): Participant {
     fullName: '',
     dateOfBirth: '',
     preferredLanguage: 'en',
+    gender: '',
   };
+}
+
+function participantMatchesAudience(audienceGender: string | null | undefined, gender: Gender | '') {
+  if (!gender) return false;
+  if (!audienceGender || audienceGender === 'MIXED') return true;
+  if (audienceGender === 'MALE_ONLY') return gender === 'MALE';
+  if (audienceGender === 'FEMALE_ONLY') return gender === 'FEMALE';
+  return true;
 }
 
 function calculateAgeFromDateString(dateOfBirth: string, today: Date): number {
@@ -93,46 +107,6 @@ function calculateAgeFromDateString(dateOfBirth: string, today: Date): number {
     age -= 1;
   }
   return age;
-}
-
-function getTerms(locale: Locale, isMomKid: boolean): { title: string; lines: string[] } {
-  if (isMomKid) {
-    return {
-      title: locale === 'ar' ? 'شروط ورش الأم والطفل' : 'Mom & Kid Workshop Terms',
-      lines:
-        locale === 'ar'
-          ? [
-              'الحجز مؤكد بعد إتمام الدفع من المحفظة.',
-              'يلتزم ولي الأمر بتقديم بيانات صحيحة لجميع المشاركين.',
-              'في حالة عدم الحضور لا يتم استرداد نقدي، ويكون التعويض عبر رصيد المحفظة حسب سياسة نون.',
-              'يجب الالتزام بتعليمات السلامة طوال مدة الورشة.',
-            ]
-          : [
-              'Booking is confirmed only after successful wallet payment.',
-              'Parent/guardian must provide accurate details for all participants.',
-              'No cash refunds for no-shows; compensation is handled via wallet credit per Noon policy.',
-              'All participants must follow safety instructions during the workshop.',
-            ],
-    };
-  }
-
-  return {
-    title: locale === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions',
-    lines:
-      locale === 'ar'
-        ? [
-            'الحجز مؤكد بعد إتمام الدفع من المحفظة.',
-            'إلغاء الحجز يتم وفق سياسة نون، وأي تعويض يكون عبر رصيد المحفظة.',
-            'يجب حضور جميع المشاركين في الوقت المحدد للجلسة.',
-            'الموافقة على هذه الشروط إلزامية قبل الدفع.',
-          ]
-        : [
-            'Booking is confirmed only after successful wallet payment.',
-            'Cancellations follow Noon policy; compensation is handled via wallet credit.',
-            'All participants must attend at the scheduled session time.',
-            'Accepting these terms is required before payment.',
-          ],
-  };
 }
 
 export default function ClassBookingClient({
@@ -150,6 +124,7 @@ export default function ClassBookingClient({
     price: number;
     currency: string;
     subCategory: string | null;
+    audienceGender?: 'MALE_ONLY' | 'FEMALE_ONLY' | 'MIXED' | null;
     minimumAge?: number | null;
     startDateTime: string | null;
     endDateTime: string | null;
@@ -161,10 +136,9 @@ export default function ClassBookingClient({
 }) {
   const isArabic = locale === 'ar';
   const searchParams = useSearchParams();
-  const selfDefaultParticipant = useMemo(() => buildSelfParticipant(currentUser), [currentUser]);
+  const [selfParticipant, setSelfParticipant] = useState<ParticipantWithPartner>(() => buildSelfParticipant(currentUser));
   const [bookingFor, setBookingFor] = useState<RegistrationType>('self');
   const [otherCount, setOtherCount] = useState(1);
-  const [selfPartner, setSelfPartner] = useState<Participant | null>(null);
   const [otherParticipants, setOtherParticipants] = useState<ParticipantWithPartner[]>([emptyParticipant()]);
   const [savedList, setSavedList] = useState<SavedParticipant[]>([]);
   const [loadingSaved, setLoadingSaved] = useState(false);
@@ -185,14 +159,15 @@ export default function ClassBookingClient({
   const paidParticipants = (selfIncluded ? 1 : 0) + (othersIncluded ? otherCount : 0);
   const allParticipants: ParticipantWithPartner[] = useMemo(() => {
     const list: ParticipantWithPartner[] = [];
-    if (selfIncluded) list.push(selfDefaultParticipant);
+    if (selfIncluded) list.push(selfParticipant);
     if (othersIncluded) list.push(...otherParticipants.slice(0, otherCount));
     return list;
-  }, [selfIncluded, othersIncluded, selfDefaultParticipant, otherParticipants, otherCount]);
-  const payableParticipants = allParticipants.map(({ fullName, dateOfBirth, preferredLanguage }) => ({
+  }, [selfIncluded, othersIncluded, selfParticipant, otherParticipants, otherCount]);
+  const payableParticipants = allParticipants.map(({ fullName, dateOfBirth, preferredLanguage, gender }) => ({
     fullName,
     dateOfBirth,
     preferredLanguage,
+    gender,
   }));
   const freePartners = allParticipants
     .map((participant) => participant.partner)
@@ -203,7 +178,6 @@ export default function ClassBookingClient({
   const totalAmount = Number((classData.price * paidParticipants).toFixed(3));
   const hasEnoughBalance = (wallet?.balance ?? 0) >= totalAmount;
   const isMomKid = classData.subCategory === 'MOM_AND_KID';
-  const terms = getTerms(locale, isMomKid);
   const classDateLabel = classData.startDateTime
     ? new Date(classData.startDateTime).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
         weekday: 'short',
@@ -248,6 +222,7 @@ export default function ClassBookingClient({
     partnerDetails: isArabic ? 'بيانات الشريك المجاني' : 'Free Partner Details',
     fullName: isArabic ? 'الاسم الكامل' : 'Full Name',
     dateOfBirth: isArabic ? 'تاريخ الميلاد' : 'Date of Birth',
+    gender: isArabic ? 'الجنس' : 'Gender',
     preferredLanguage: isArabic ? 'اللغة المفضلة' : 'Preferred Language',
     specialRequests: isArabic ? 'ملاحظات / طلبات خاصة' : 'Special Requests / Notes',
     agree: isArabic ? 'أوافق على الشروط والأحكام' : 'I agree to the terms and conditions',
@@ -260,6 +235,8 @@ export default function ClassBookingClient({
     goOrders: isArabic ? 'عرض طلباتي' : 'View My Orders',
     goClass: isArabic ? 'العودة للدورة' : 'Back to Class',
     required: isArabic ? 'يرجى إكمال بيانات كل مشارك.' : 'Please complete each participant entry.',
+    genderRequired: isArabic ? 'يرجى تحديد الجنس لكل مشارك.' : 'Please select a gender for each participant.',
+    audienceMismatch: isArabic ? 'أحد المشاركين لا يطابق فئة الجنس المسموح بها لهذه الدورة.' : 'A participant does not match this class gender eligibility.',
     invalidDob: isArabic ? 'تاريخ الميلاد غير صالح.' : 'Invalid date of birth.',
     termsRequired: isArabic ? 'يجب الموافقة على الشروط قبل الدفع.' : 'You must accept terms before payment.',
     seatsError: isArabic ? 'عدد المشاركين أكبر من المقاعد المتاحة.' : 'Participants exceed available seats.',
@@ -325,16 +302,20 @@ export default function ClassBookingClient({
   }, [loadSavedParticipants]);
 
   useEffect(() => {
+    setSelfParticipant(buildSelfParticipant(currentUser));
+  }, [currentUser]);
+
+  useEffect(() => {
     if (isMomKid && bookingFor === 'both') {
       setBookingFor('other');
     }
   }, [bookingFor, isMomKid]);
 
   useEffect(() => {
-    if (!selfIncluded || !isMomKid || !needsFreePartner(selfDefaultParticipant.dateOfBirth)) {
-      setSelfPartner(null);
+    if (!selfIncluded || !isMomKid || !needsFreePartner(selfParticipant.dateOfBirth)) {
+      setSelfParticipant((current) => ({ ...current, partner: null }));
     }
-  }, [isMomKid, needsFreePartner, selfDefaultParticipant.dateOfBirth, selfIncluded]);
+  }, [isMomKid, needsFreePartner, selfParticipant.dateOfBirth, selfIncluded]);
 
   /* Keep otherParticipants array in sync with otherCount */
   useEffect(() => {
@@ -410,6 +391,7 @@ export default function ClassBookingClient({
         fullName: saved.fullName,
         dateOfBirth: saved.dateOfBirth,
         preferredLanguage: saved.preferredLanguage,
+        gender: prev[index]?.gender ?? '',
         partner: prev[index]?.partner ?? null,
       };
       return next;
@@ -432,10 +414,22 @@ export default function ClassBookingClient({
   };
 
   const setSelfPartnerValue = (key: keyof Participant, value: string) => {
-    setSelfPartner((prev) => ({
-      ...(prev ?? emptyPartner()),
-      [key]: value,
+    setSelfParticipant((prev) => ({
+      ...prev,
+      partner: {
+        ...(prev.partner ?? emptyPartner()),
+        [key]: value,
+      },
     }));
+  };
+
+  const updateSelfParticipant = (key: keyof Participant, value: string) => {
+    setSelfParticipant((prev) => {
+      const next = { ...prev, [key]: value };
+      return key === 'dateOfBirth' && !needsFreePartner(String(value))
+        ? { ...next, partner: null }
+        : next;
+    });
   };
 
   const validateParticipants = (): boolean => {
@@ -451,6 +445,16 @@ export default function ClassBookingClient({
     for (const participant of allParticipants) {
       if (participant.fullName.trim().length === 0 || participant.dateOfBirth.trim().length === 0) {
         setError(t.required);
+        return false;
+      }
+
+      if (!participant.gender) {
+        setError(t.genderRequired);
+        return false;
+      }
+
+      if (!participantMatchesAudience(classData.audienceGender, participant.gender)) {
+        setError(t.audienceMismatch);
         return false;
       }
 
@@ -486,6 +490,16 @@ export default function ClassBookingClient({
             || partner.dateOfBirth.trim().length === 0
           ) {
             setError(t.momKidPartnerRequired);
+            return false;
+          }
+
+          if (!partner.gender) {
+            setError(t.genderRequired);
+            return false;
+          }
+
+          if (!participantMatchesAudience(classData.audienceGender, partner.gender)) {
+            setError(t.audienceMismatch);
             return false;
           }
 
@@ -560,6 +574,7 @@ export default function ClassBookingClient({
                 fullName: p.fullName.trim(),
                 dateOfBirth: p.dateOfBirth,
                 preferredLanguage: p.preferredLanguage,
+                gender: p.gender,
               }),
             }).catch(() => {});
           }
@@ -700,7 +715,7 @@ export default function ClassBookingClient({
                     <label className="text-sm">
                       <span className="mb-1.5 block text-[color:var(--text)]">{t.fullName}</span>
                       <input
-                        value={selfDefaultParticipant.fullName}
+                        value={selfParticipant.fullName}
                         readOnly
                         disabled
                         className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-sm text-[color:var(--text)] opacity-70 cursor-not-allowed"
@@ -710,16 +725,40 @@ export default function ClassBookingClient({
                       <span className="mb-1.5 block text-[color:var(--text)]">{t.dateOfBirth}</span>
                       <input
                         type="date"
-                        value={selfDefaultParticipant.dateOfBirth}
-                        readOnly
-                        disabled
-                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-sm text-[color:var(--text)] opacity-70 cursor-not-allowed"
+                        value={selfParticipant.dateOfBirth}
+                        onChange={(event) => updateSelfParticipant('dateOfBirth', event.target.value)}
+                        readOnly={Boolean(currentUser.dateOfBirth)}
+                        disabled={Boolean(currentUser.dateOfBirth)}
+                        max={new Date().toISOString().split('T')[0]}
+                        className={`w-full rounded-xl border border-[color:var(--border)] px-3 py-2 text-sm text-[color:var(--text)] ${
+                          currentUser.dateOfBirth
+                            ? 'bg-[color:var(--muted)] opacity-70 cursor-not-allowed'
+                            : 'bg-[color:var(--surface)]'
+                        }`}
                       />
+                    </label>
+                    <label className="text-sm">
+                      <span className="mb-1.5 block text-[color:var(--text)]">{t.gender}</span>
+                      <select
+                        value={selfParticipant.gender}
+                        onChange={(event) => updateSelfParticipant('gender', event.target.value)}
+                        disabled={Boolean(currentUser.gender)}
+                        className={`w-full rounded-xl border border-[color:var(--border)] px-3 py-2 text-sm text-[color:var(--text)] ${
+                          currentUser.gender
+                            ? 'bg-[color:var(--muted)] opacity-70 cursor-not-allowed'
+                            : 'bg-[color:var(--surface)]'
+                        }`}
+                      >
+                        <option value="">{isArabic ? 'غير محدد' : 'Not set'}</option>
+                        <option value="MALE">{isArabic ? 'ذكر' : 'Male'}</option>
+                        <option value="FEMALE">{isArabic ? 'أنثى' : 'Female'}</option>
+                        <option value="OTHER">{isArabic ? 'أخرى' : 'Other'}</option>
+                      </select>
                     </label>
                     <label className="text-sm">
                       <span className="mb-1.5 block text-[color:var(--text)]">{t.preferredLanguage}</span>
                       <select
-                        value={selfDefaultParticipant.preferredLanguage}
+                        value={selfParticipant.preferredLanguage}
                         disabled
                         className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-sm text-[color:var(--text)] opacity-70 cursor-not-allowed"
                       >
@@ -728,14 +767,14 @@ export default function ClassBookingClient({
                       </select>
                     </label>
                   </div>
-                  {isMomKid && needsFreePartner(selfDefaultParticipant.dateOfBirth) ? (
+                  {isMomKid && needsFreePartner(selfParticipant.dateOfBirth) ? (
                     <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800/50 dark:bg-amber-900/20">
                       <p className="mb-3 text-sm font-semibold text-[color:var(--text)]">{t.yourPartnerDetails}</p>
                       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         <label className="text-sm">
                           <span className="mb-1.5 block text-[color:var(--text)]">{t.fullName}</span>
                           <input
-                            value={selfPartner?.fullName ?? ''}
+                            value={selfParticipant.partner?.fullName ?? ''}
                             onChange={(event) => setSelfPartnerValue('fullName', event.target.value)}
                             placeholder={t.fullName}
                             autoComplete="name"
@@ -746,16 +785,29 @@ export default function ClassBookingClient({
                           <span className="mb-1.5 block text-[color:var(--text)]">{t.dateOfBirth}</span>
                           <input
                             type="date"
-                            value={selfPartner?.dateOfBirth ?? ''}
+                            value={selfParticipant.partner?.dateOfBirth ?? ''}
                             onChange={(event) => setSelfPartnerValue('dateOfBirth', event.target.value)}
                             max={new Date().toISOString().split('T')[0]}
                             className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
                           />
                         </label>
                         <label className="text-sm">
+                          <span className="mb-1.5 block text-[color:var(--text)]">{t.gender}</span>
+                          <select
+                            value={selfParticipant.partner?.gender ?? ''}
+                            onChange={(event) => setSelfPartnerValue('gender', event.target.value)}
+                            className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                          >
+                            <option value="">{isArabic ? 'اختر الجنس' : 'Select gender'}</option>
+                            <option value="MALE">{isArabic ? 'ذكر' : 'Male'}</option>
+                            <option value="FEMALE">{isArabic ? 'أنثى' : 'Female'}</option>
+                            <option value="OTHER">{isArabic ? 'أخرى' : 'Other'}</option>
+                          </select>
+                        </label>
+                        <label className="text-sm">
                           <span className="mb-1.5 block text-[color:var(--text)]">{t.preferredLanguage}</span>
                           <select
-                            value={selfPartner?.preferredLanguage ?? 'en'}
+                            value={selfParticipant.partner?.preferredLanguage ?? 'en'}
                             onChange={(event) => setSelfPartnerValue('preferredLanguage', event.target.value)}
                             className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
                           >
@@ -819,6 +871,19 @@ export default function ClassBookingClient({
                       />
                     </label>
                     <label className="text-sm">
+                      <span className="mb-1.5 block text-[color:var(--text)]">{t.gender}</span>
+                      <select
+                        value={participant.gender}
+                        onChange={(event) => updateOtherParticipant(index, 'gender', event.target.value)}
+                        className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                      >
+                        <option value="">{isArabic ? 'اختر الجنس' : 'Select gender'}</option>
+                        <option value="MALE">{isArabic ? 'ذكر' : 'Male'}</option>
+                        <option value="FEMALE">{isArabic ? 'أنثى' : 'Female'}</option>
+                        <option value="OTHER">{isArabic ? 'أخرى' : 'Other'}</option>
+                      </select>
+                    </label>
+                    <label className="text-sm">
                       <span className="mb-1.5 block text-[color:var(--text)]">{t.preferredLanguage}</span>
                       <select
                         value={participant.preferredLanguage}
@@ -853,6 +918,19 @@ export default function ClassBookingClient({
                             max={new Date().toISOString().split('T')[0]}
                             className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
                           />
+                        </label>
+                        <label className="text-sm">
+                          <span className="mb-1.5 block text-[color:var(--text)]">{t.gender}</span>
+                          <select
+                            value={participant.partner?.gender ?? ''}
+                            onChange={(event) => updateOtherPartner(index, 'gender', event.target.value)}
+                            className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                          >
+                            <option value="">{isArabic ? 'اختر الجنس' : 'Select gender'}</option>
+                            <option value="MALE">{isArabic ? 'ذكر' : 'Male'}</option>
+                            <option value="FEMALE">{isArabic ? 'أنثى' : 'Female'}</option>
+                            <option value="OTHER">{isArabic ? 'أخرى' : 'Other'}</option>
+                          </select>
                         </label>
                         <label className="text-sm">
                           <span className="mb-1.5 block text-[color:var(--text)]">{t.preferredLanguage}</span>

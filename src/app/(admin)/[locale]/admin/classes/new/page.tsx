@@ -31,6 +31,7 @@ type ClassSubCategory =
   | 'CRAFTS'
   | 'POTTERY';
 type ClassStatus = 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED';
+type ClassAudienceGender = 'MALE_ONLY' | 'FEMALE_ONLY' | 'MIXED';
 
 interface Trainer {
   id: string;
@@ -46,6 +47,7 @@ interface FormData {
   descriptionAr: string;
   category: ClassCategory | '';
   subCategory: ClassSubCategory | '';
+  audienceGender: ClassAudienceGender;
   image: string;
   imageFile: File | null;
   images: string[];
@@ -106,6 +108,7 @@ export default function NewClassPage() {
     descriptionAr: '',
     category: '',
     subCategory: '',
+    audienceGender: 'MIXED',
     image: '',
     imageFile: null,
     images: [],
@@ -434,6 +437,7 @@ export default function NewClassPage() {
         descriptionAr: formData.descriptionAr || '',
         category: formData.category || null,
         subCategory: formData.subCategory || null,
+        audienceGender: formData.audienceGender,
         image: mainImageUrl || null,
         images: galleryImageUrls.length > 0 ? galleryImageUrls : formData.images,
         trainerId: formData.trainerId || null,
@@ -529,6 +533,7 @@ export default function NewClassPage() {
         descriptionAr: formData.descriptionAr,
         category: formData.category,
         subCategory: formData.subCategory,
+        audienceGender: formData.audienceGender,
         image: mainImageUrl,
         images: galleryImageUrls.length > 0 ? galleryImageUrls : formData.images,
         trainerId: formData.trainerId,
@@ -834,6 +839,22 @@ export default function NewClassPage() {
                   {errors.subCategory}
                 </p>
               )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {isRTL ? 'الفئة المستهدفة' : 'Audience'}
+              </label>
+              <select
+                name="audienceGender"
+                value={formData.audienceGender}
+                onChange={handleInputChange}
+                className={selectBase}
+              >
+                <option value="MIXED">{isRTL ? 'مشترك' : 'Mixed'}</option>
+                <option value="FEMALE_ONLY">{isRTL ? 'للنساء فقط' : 'Women only'}</option>
+                <option value="MALE_ONLY">{isRTL ? 'للرجال فقط' : 'Men only'}</option>
+              </select>
             </div>
 
             {/* Trainer */}

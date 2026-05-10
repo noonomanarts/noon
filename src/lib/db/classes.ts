@@ -3,7 +3,7 @@
  */
 import { query } from "./pool";
 import { generateUUID } from "./uuid";
-import type { ClassCategory as ClassCategoryType, ClassSubCategory, ClassStatus, ClassPublic } from "./types";
+import type { ClassAudienceGender, ClassCategory as ClassCategoryType, ClassSubCategory, ClassStatus, ClassPublic } from "./types";
 import { ClassCategory } from "./types";
 import { ensureClassFinanceSchema } from "./classFinance";
 import { ensureRecipeManagementSchema } from "./recipeManagement";
@@ -19,6 +19,7 @@ async function ensureClassMinimumAgeSchema(): Promise<void> {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS minimum_age INTEGER DEFAULT NULL`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS show_minimum_age BOOLEAN NOT NULL DEFAULT FALSE`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS registration_close_at TIMESTAMP WITH TIME ZONE`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS audience_gender VARCHAR(20) NOT NULL DEFAULT 'MIXED'`);
   })();
 
   return classMinimumAgeSchemaReady;
@@ -95,6 +96,7 @@ export async function findManyClasses(options: {
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    audienceGender: row.audience_gender || 'MIXED',
     image: row.image,
     images: row.images || [],
     trainerId: row.trainer_id,
@@ -407,6 +409,7 @@ export async function createClass(data: {
   startDateTime?: Date | string | null;
   endDateTime?: Date | string | null;
   registrationCloseAt?: Date | string | null;
+  audienceGender?: ClassAudienceGender;
 }): Promise<Record<string, unknown>> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
@@ -417,6 +420,7 @@ export async function createClass(data: {
   const result = await query(
     `INSERT INTO classes (
       id, slug, title, title_ar, description, description_ar, category, sub_category,
+      audience_gender,
       trainer_id, price, currency, seats_total, seats_available, duration_minutes,
       image, images, status, meta_title, meta_description,
       final_recipe_title, final_recipe_pdf, final_recipe_brief,
@@ -425,7 +429,7 @@ export async function createClass(data: {
       trainer_share_percent, noon_share_percent, expense_share_percent,
       start_date_time, end_date_time, registration_close_at,
       created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36)
     RETURNING *`,
     [
       id,
@@ -436,6 +440,7 @@ export async function createClass(data: {
       data.descriptionAr || null,
       data.category,
       data.subCategory,
+      data.audienceGender || 'MIXED',
       data.trainerId,
       data.price,
       data.currency || 'OMR',
@@ -476,6 +481,7 @@ export async function createClass(data: {
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    audienceGender: row.audience_gender || 'MIXED',
     trainerId: row.trainer_id,
     price: parseFloat(row.price),
     currency: row.currency,
@@ -554,6 +560,7 @@ export async function updateClass(
     startDateTime: Date | string | null;
     endDateTime: Date | string | null;
     registrationCloseAt: Date | string | null;
+    audienceGender: ClassAudienceGender;
     seatsBooked: number;
   }>
 ): Promise<Record<string, unknown> | null> {
@@ -571,6 +578,7 @@ export async function updateClass(
     descriptionAr: 'description_ar',
     category: 'category',
     subCategory: 'sub_category',
+    audienceGender: 'audience_gender',
     trainerId: 'trainer_id',
     price: 'price',
     seatsTotal: 'seats_total',
@@ -636,6 +644,7 @@ export async function updateClass(
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    audienceGender: row.audience_gender || 'MIXED',
     trainerId: row.trainer_id,
     price: parseFloat(row.price),
     currency: row.currency,

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getPaymentMethodLabel } from '@/lib/paymentMethod';
+import type { Gender } from '@/lib/db/types';
 
 type AdminUser = {
   id: string;
@@ -10,6 +11,7 @@ type AdminUser = {
   phoneNumber: string;
   preferredLanguage: 'ENGLISH' | 'ARABIC';
   dateOfBirth: string | null;
+  gender: Gender | null;
 };
 
 type ActionKind = 'TOPUP' | 'DEDUCT' | 'ENROLL_AND_DEDUCT';
@@ -19,6 +21,7 @@ type Participant = {
   fullName: string;
   dateOfBirth: string;
   preferredLanguage: ParticipantLanguage;
+  gender: Gender | '';
 };
 type ParticipantWithPartner = Participant & {
   partner: Participant | null;
@@ -29,6 +32,7 @@ function emptyParticipant(): ParticipantWithPartner {
     fullName: '',
     dateOfBirth: '',
     preferredLanguage: 'en',
+    gender: '',
     partner: null,
   };
 }
@@ -38,7 +42,16 @@ function emptyPartner(): Participant {
     fullName: '',
     dateOfBirth: '',
     preferredLanguage: 'en',
+    gender: '',
   };
+}
+
+function participantMatchesAudience(audienceGender: string | null | undefined, gender: Gender | '') {
+  if (!gender) return false;
+  if (!audienceGender || audienceGender === 'MIXED') return true;
+  if (audienceGender === 'MALE_ONLY') return gender === 'MALE';
+  if (audienceGender === 'FEMALE_ONLY') return gender === 'FEMALE';
+  return true;
 }
 
 function calculateAgeFromDateString(dateOfBirth: string, today: Date): number {
@@ -58,6 +71,7 @@ export default function AdminClassMemberWalletPanel({
   currency,
   seatsAvailable,
   classSubCategory,
+  audienceGender,
   minimumAge,
   locale,
   onChangedAction,
@@ -68,6 +82,7 @@ export default function AdminClassMemberWalletPanel({
   currency: string;
   seatsAvailable: number;
   classSubCategory?: string | null;
+  audienceGender?: 'MALE_ONLY' | 'FEMALE_ONLY' | 'MIXED' | null;
   minimumAge?: number | null;
   locale: string;
   onChangedAction?: () => Promise<void> | void;
@@ -124,6 +139,7 @@ export default function AdminClassMemberWalletPanel({
         ...first,
         fullName: first.fullName || selectedUser.fullName || '',
         dateOfBirth: first.dateOfBirth || (selectedUser.dateOfBirth ? String(selectedUser.dateOfBirth).slice(0, 10) : ''),
+        gender: first.gender || selectedUser.gender || '',
         preferredLanguage: selectedUser.preferredLanguage === 'ARABIC' ? 'ar' : 'en',
         partner: needsFreePartner(first.dateOfBirth || (selectedUser.dateOfBirth ? String(selectedUser.dateOfBirth).slice(0, 10) : ''))
           ? (first.partner ?? emptyPartner())
@@ -164,6 +180,7 @@ export default function AdminClassMemberWalletPanel({
             phoneNumber: string;
             preferredLanguage: 'ENGLISH' | 'ARABIC';
             dateOfBirth: string | null;
+            gender: Gender | null;
           }>;
         };
 
@@ -223,6 +240,7 @@ export default function AdminClassMemberWalletPanel({
     description: isArabic ? 'الوصف' : 'Description',
     participantName: isArabic ? 'اسم المشارك' : 'Participant name',
     participantDob: isArabic ? 'تاريخ الميلاد' : 'Date of birth',
+    participantGender: isArabic ? 'الجنس' : 'Gender',
     participantLang: isArabic ? 'لغة المشارك' : 'Participant language',
     participantsCount: isArabic ? 'عدد المشاركين' : 'Number of Participants',
     participants: isArabic ? 'بيانات المشاركين' : 'Participants Details',
@@ -238,6 +256,8 @@ export default function AdminClassMemberWalletPanel({
     noUsers: isArabic ? 'لا يوجد عملاء متاحون حالياً.' : 'No customers are available at the moment.',
     chooseUser: isArabic ? 'يجب اختيار عميل أولاً.' : 'Please select a customer first.',
     chooseParticipant: isArabic ? 'أكمل بيانات جميع المشاركين قبل التسجيل.' : 'Complete all participant details before enrollment.',
+    genderRequired: isArabic ? 'حدد الجنس لكل مشارك قبل التسجيل.' : 'Select a gender for each participant before enrollment.',
+    audienceMismatch: isArabic ? 'أحد المشاركين لا يطابق فئة الجنس المسموح بها لهذه الدورة.' : 'A participant does not match this class gender eligibility.',
     invalidDob: isArabic ? 'تاريخ الميلاد غير صالح.' : 'Invalid date of birth.',
     seatsError: isArabic ? 'عدد المشاركين أكبر من المقاعد المتاحة.' : 'Participants exceed available seats.',
     ageTooYoung: isArabic
@@ -294,6 +314,16 @@ export default function AdminClassMemberWalletPanel({
         return false;
       }
 
+      if (!participant.gender) {
+        setError(t.genderRequired);
+        return false;
+      }
+
+      if (!participantMatchesAudience(audienceGender, participant.gender)) {
+        setError(t.audienceMismatch);
+        return false;
+      }
+
       const dob = new Date(`${participant.dateOfBirth}T00:00:00`);
       if (Number.isNaN(dob.getTime()) || dob.getTime() > today.getTime()) {
         setError(t.invalidDob);
@@ -319,6 +349,16 @@ export default function AdminClassMemberWalletPanel({
           const partner = participant.partner;
           if (!partner || !partner.fullName.trim() || !partner.dateOfBirth.trim()) {
             setError(t.momKidPartnerRequired);
+            return false;
+          }
+
+          if (!partner.gender) {
+            setError(t.genderRequired);
+            return false;
+          }
+
+          if (!participantMatchesAudience(audienceGender, partner.gender)) {
+            setError(t.audienceMismatch);
             return false;
           }
 
@@ -365,10 +405,11 @@ export default function AdminClassMemberWalletPanel({
           amount: Number(amount),
           description,
           numberOfParticipants: participantCount,
-          participants: payableParticipants.map(({ fullName, dateOfBirth, preferredLanguage }) => ({
+          participants: payableParticipants.map(({ fullName, dateOfBirth, preferredLanguage, gender }) => ({
             fullName,
             dateOfBirth,
             preferredLanguage,
+            gender,
           })),
           freePartners,
           specialRequests,
@@ -576,6 +617,20 @@ export default function AdminClassMemberWalletPanel({
                   </label>
 
                   <label className="space-y-1 text-sm">
+                    <span className="text-zinc-600 dark:text-zinc-300">{t.participantGender}</span>
+                    <select
+                      value={participant.gender}
+                      onChange={(event) => updateParticipant(index, 'gender', event.target.value)}
+                      className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                    >
+                      <option value="">{isArabic ? 'اختر الجنس' : 'Select gender'}</option>
+                      <option value="MALE">{isArabic ? 'ذكر' : 'Male'}</option>
+                      <option value="FEMALE">{isArabic ? 'أنثى' : 'Female'}</option>
+                      <option value="OTHER">{isArabic ? 'أخرى' : 'Other'}</option>
+                    </select>
+                  </label>
+
+                  <label className="space-y-1 text-sm">
                     <span className="text-zinc-600 dark:text-zinc-300">{t.participantLang}</span>
                     <select
                       value={participant.preferredLanguage}
@@ -610,6 +665,20 @@ export default function AdminClassMemberWalletPanel({
                           max={new Date().toISOString().split('T')[0]}
                           className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                         />
+                      </label>
+
+                      <label className="space-y-1 text-sm">
+                        <span className="text-zinc-600 dark:text-zinc-300">{t.participantGender}</span>
+                        <select
+                          value={participant.partner?.gender ?? ''}
+                          onChange={(event) => updatePartner(index, 'gender', event.target.value)}
+                          className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                        >
+                          <option value="">{isArabic ? 'اختر الجنس' : 'Select gender'}</option>
+                          <option value="MALE">{isArabic ? 'ذكر' : 'Male'}</option>
+                          <option value="FEMALE">{isArabic ? 'أنثى' : 'Female'}</option>
+                          <option value="OTHER">{isArabic ? 'أخرى' : 'Other'}</option>
+                        </select>
                       </label>
 
                       <label className="space-y-1 text-sm">

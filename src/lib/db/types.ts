@@ -6,6 +6,7 @@
 export type UserRole = 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN' | 'PHOTOGRAPHER' | 'WORKER';
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+export type ClassAudienceGender = 'MALE_ONLY' | 'FEMALE_ONLY' | 'MIXED';
 export type PreferredLanguage = 'ENGLISH' | 'ARABIC';
 export type ClassCategory = 'COOKING' | 'ARTS_CRAFTS';
 export type ClassSubCategory =
@@ -192,6 +193,7 @@ export interface Class {
   description_ar: string | null;
   category: ClassCategory;
   sub_category: ClassSubCategory;
+  audience_gender: ClassAudienceGender;
   image: string | null;
   images: string[];
   trainer_id: string;
@@ -218,6 +220,7 @@ export interface ClassPublic {
   descriptionAr: string | null;
   category: ClassCategory;
   subCategory: ClassSubCategory;
+  audienceGender: ClassAudienceGender;
   image: string | null;
   images: string[];
   trainerId: string;

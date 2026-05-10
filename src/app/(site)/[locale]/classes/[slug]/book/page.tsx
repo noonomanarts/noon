@@ -103,6 +103,7 @@ export default async function ClassBookingPage({
           price: classData.price,
           currency: classData.currency,
           subCategory: classData.subCategory,
+          audienceGender: classData.audienceGender,
           minimumAge: classData.minimumAge,
           startDateTime: classData.startDateTime ? classData.startDateTime.toISOString() : null,
           endDateTime: classData.endDateTime ? classData.endDateTime.toISOString() : null,
@@ -115,6 +116,7 @@ export default async function ClassBookingPage({
           email: user.email,
           phoneNumber: user.phoneNumber,
           dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : null,
+          gender: user.gender,
           preferredLanguage: user.preferredLanguage,
         }}
       />

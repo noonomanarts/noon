@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { pool } from '@/lib/db/pool';
-import type { PaymentMethod } from '@/lib/db/types';
+import type { Gender, PaymentMethod } from '@/lib/db/types';
 import { getUserById } from '@/lib/db/users';
 import { adminAddWalletCredit, adminDeductWalletCredit, addBonusPoints } from '@/lib/db/wallet';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
@@ -12,8 +12,27 @@ type ParticipantPayload = {
   fullName: string;
   dateOfBirth: string;
   preferredLanguage: 'en' | 'ar';
+  gender: Gender;
   isFreePartner?: boolean;
 };
+
+function parseGender(value: unknown): Gender | null {
+  if (value === 'MALE' || value === 'FEMALE' || value === 'OTHER') {
+    return value;
+  }
+  return null;
+}
+
+function validateClassAudienceGender(audienceGender: unknown, participantGender: Gender): boolean {
+  const normalizedAudience = audienceGender === 'MALE_ONLY' || audienceGender === 'FEMALE_ONLY' || audienceGender === 'MIXED'
+    ? audienceGender
+    : 'MIXED';
+
+  if (normalizedAudience === 'MIXED') return true;
+  if (normalizedAudience === 'MALE_ONLY') return participantGender === 'MALE';
+  if (normalizedAudience === 'FEMALE_ONLY') return participantGender === 'FEMALE';
+  return true;
+}
 
 type Payload = {
   action?: ActionType;
@@ -62,8 +81,9 @@ function parseParticipants(value: unknown, isFreePartner = false): ParticipantPa
     const fullName = normalizeText(row.fullName, 240);
     const dateOfBirth = normalizeText(row.dateOfBirth, 20);
     const preferredLanguage = normalizeText(row.preferredLanguage, 10);
+    const gender = parseGender(row.gender);
 
-    if (!fullName || !dateOfBirth) {
+    if (!fullName || !dateOfBirth || !gender) {
       continue;
     }
 
@@ -80,6 +100,7 @@ function parseParticipants(value: unknown, isFreePartner = false): ParticipantPa
       fullName,
       dateOfBirth,
       preferredLanguage: preferredLanguage as 'en' | 'ar',
+      gender,
       isFreePartner,
     });
 
@@ -209,7 +230,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
       await client.query('BEGIN');
 
       const classResult = await client.query(
-        `SELECT id, title, title_ar, price, currency, seats_total, seats_booked, status, start_date_time, sub_category, minimum_age
+        `SELECT id, title, title_ar, price, currency, seats_total, seats_booked, status, start_date_time, sub_category, minimum_age, audience_gender
          FROM classes
          WHERE id = $1
          FOR UPDATE`,
@@ -257,6 +278,18 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
           || partnerAges.some((age) => age < 10)
         )) {
           throw new ApiError('Children aged 5-9 must be registered with a 10+ partner, and both names must be provided.', 400);
+        }
+      }
+
+      for (const participant of participants) {
+        if (!validateClassAudienceGender(classRow.audience_gender, participant.gender)) {
+          throw new ApiError('This participant does not match the gender eligibility for this class.', 400);
+        }
+      }
+
+      for (const partner of freePartners) {
+        if (!validateClassAudienceGender(classRow.audience_gender, partner.gender)) {
+          throw new ApiError('This participant does not match the gender eligibility for this class.', 400);
         }
       }
 

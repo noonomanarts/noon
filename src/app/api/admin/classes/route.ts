@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
       descriptionAr,
       category,
       subCategory,
+      audienceGender,
       trainerId,
       price,
       seatsTotal,
@@ -151,6 +152,7 @@ export async function POST(request: NextRequest) {
       'MIXED',
     ];
     const validStatuses = ['DRAFT', 'PUBLISHED', 'CANCELLED', 'COMPLETED'];
+    const validAudienceGenders = ['MALE_ONLY', 'FEMALE_ONLY', 'MIXED'];
 
     if (category && !validCategories.includes(category)) {
       return NextResponse.json(
@@ -169,6 +171,13 @@ export async function POST(request: NextRequest) {
     if (status && !validStatuses.includes(status)) {
       return NextResponse.json(
         { error: 'Invalid status' },
+        { status: 400 }
+      );
+    }
+
+    if (audienceGender && !validAudienceGenders.includes(audienceGender)) {
+      return NextResponse.json(
+        { error: 'Invalid audience gender' },
         { status: 400 }
       );
     }
@@ -222,6 +231,7 @@ export async function POST(request: NextRequest) {
       descriptionAr: descriptionAr || '',
       category: resolvedCategory,
       subCategory: resolvedSubCategory,
+      audienceGender: audienceGender || 'MIXED',
       trainerId: resolvedTrainerId,
       price: resolvedPrice,
       seatsTotal: resolvedSeatsTotal,

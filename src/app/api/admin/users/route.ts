@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
       role,
       phoneNumber: normalizedPhone,
       dateOfBirth: data.dob,
+      gender: data.gender ?? null,
       preferredLanguage: data.preferredLanguage === "ar" ? "ARABIC" : "ENGLISH",
     });
 

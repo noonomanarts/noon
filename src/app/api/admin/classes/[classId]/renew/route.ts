@@ -61,6 +61,7 @@ export async function POST(_request: NextRequest, props: Params) {
       descriptionAr: sourceDescriptionAr || undefined,
       category: sourceCategory,
       subCategory: sourceSubCategory,
+      audienceGender: source.audienceGender,
       trainerId: source.trainerId,
       price: Number(source.price || 0),
       seatsTotal: Number(source.seatsTotal || 1),

@@ -6,6 +6,7 @@ import { addBonusPoints } from '@/lib/db/wallet';
 import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import { isRegistrationClosed } from '@/lib/classRegistration';
+import type { Gender } from '@/lib/db/types';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -22,8 +23,27 @@ type ParticipantPayload = {
   fullName: string;
   dateOfBirth: string;
   preferredLanguage: 'en' | 'ar';
+  gender: Gender;
   isFreePartner?: boolean;
 };
+
+function parseGender(value: unknown): Gender | null {
+  if (value === 'MALE' || value === 'FEMALE' || value === 'OTHER') {
+    return value;
+  }
+  return null;
+}
+
+function validateClassAudienceGender(audienceGender: unknown, participantGender: Gender): boolean {
+  const normalizedAudience = audienceGender === 'MALE_ONLY' || audienceGender === 'FEMALE_ONLY' || audienceGender === 'MIXED'
+    ? audienceGender
+    : 'MIXED';
+
+  if (normalizedAudience === 'MIXED') return true;
+  if (normalizedAudience === 'MALE_ONLY') return participantGender === 'MALE';
+  if (normalizedAudience === 'FEMALE_ONLY') return participantGender === 'FEMALE';
+  return true;
+}
 
 function calculateAgeFromDateString(dateOfBirth: string, today: Date): number {
   const dob = new Date(`${dateOfBirth}T00:00:00`);
@@ -55,9 +75,10 @@ function parseParticipants(value: unknown, isFreePartner = false): ParticipantPa
     const lastName = parseSafeString(row.lastName, 120);
     const dateOfBirth = parseSafeString(row.dateOfBirth, 20);
     const preferredLanguage = parseSafeString(row.preferredLanguage, 10);
+    const gender = parseGender(row.gender);
     const normalizedFullName = fullName || [firstName, lastName].filter(Boolean).join(' ').trim();
 
-    if (!normalizedFullName || !dateOfBirth) {
+    if (!normalizedFullName || !dateOfBirth || !gender) {
       continue;
     }
 
@@ -74,6 +95,7 @@ function parseParticipants(value: unknown, isFreePartner = false): ParticipantPa
       fullName: normalizedFullName,
       dateOfBirth,
       preferredLanguage: preferredLanguage as 'en' | 'ar',
+      gender,
       isFreePartner,
     });
 
@@ -198,8 +220,8 @@ export async function POST(request: NextRequest) {
     await client.query('BEGIN');
 
     const classResult = await client.query(
-      `SELECT c.id, c.title, c.title_ar, c.price, c.currency, c.seats_total, c.seats_booked,
-              c.status, c.sub_category, c.minimum_age, c.start_date_time, c.registration_close_at
+            `SELECT c.id, c.title, c.title_ar, c.price, c.currency, c.seats_total, c.seats_booked,
+              c.status, c.sub_category, c.minimum_age, c.start_date_time, c.registration_close_at, c.audience_gender
        FROM classes c
        WHERE c.id = $1
        FOR UPDATE`,
@@ -256,6 +278,18 @@ export async function POST(request: NextRequest) {
         || partnerAges.some((age) => age < 10)
       )) {
         throw new ApiError('Children aged 5-9 must be registered with a 10+ partner, and both names must be provided.', 400);
+      }
+    }
+
+    for (const participant of participants) {
+      if (!validateClassAudienceGender(classRow.audience_gender, participant.gender)) {
+        throw new ApiError('This participant does not match the gender eligibility for this class.', 400);
+      }
+    }
+
+    for (const partner of freePartners) {
+      if (!validateClassAudienceGender(classRow.audience_gender, partner.gender)) {
+        throw new ApiError('This participant does not match the gender eligibility for this class.', 400);
       }
     }
 
