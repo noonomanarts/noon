@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { formatNoonDateTime } from '@/lib/dateTime';
 import type { Locale } from '@/lib/locale';
 import { formatDurationClock } from '@/lib/formatDuration';
 
@@ -18,27 +19,24 @@ type AvailabilityResponse = {
 };
 
 function formatDay(locale: Locale, value: string) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
+  return formatNoonDateTime(`${value}T00:00:00`, locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
-    timeZone: 'Asia/Muscat',
   });
 }
 
 function formatSlot(locale: Locale, value: string) {
-  return new Date(`2000-01-01T${value}:00+04:00`).toLocaleTimeString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
+  return formatNoonDateTime(`2000-01-01T${value}:00+04:00`, locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     hour: 'numeric',
     minute: '2-digit',
-    timeZone: 'Asia/Muscat',
   });
 }
 
 function formatMonth(locale: Locale, value: string) {
-  return new Date(`${value}-01T00:00:00`).toLocaleDateString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
+  return formatNoonDateTime(`${value}-01T00:00:00`, locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     month: 'long',
     year: 'numeric',
-    timeZone: 'Asia/Muscat',
   });
 }
 
@@ -209,9 +207,10 @@ export default function PublicEventAvailabilityPicker({
 
   const weekDayHeaders = useMemo(() => {
     return Array.from({ length: 7 }).map((_, index) =>
-      new Date(`2025-01-${String(5 + index).padStart(2, '0')}T00:00:00`).toLocaleDateString(
+      formatNoonDateTime(
+        `2025-01-${String(5 + index).padStart(2, '0')}T00:00:00`,
         locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM',
-        { weekday: 'short', timeZone: 'Asia/Muscat' }
+        { weekday: 'short' }
       )
     );
   }, [locale]);

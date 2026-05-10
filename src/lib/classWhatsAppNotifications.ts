@@ -1,9 +1,9 @@
 import { query } from '@/lib/db/pool';
+import { formatNoonDateTime } from '@/lib/dateTime';
 import { buildPublicSiteUrl } from '@/lib/publicSiteUrl';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 
 let classWhatsAppNotificationSchemaReady: Promise<void> | null = null;
-const NOON_TIME_ZONE = process.env.NOON_TIMEZONE || 'Asia/Muscat';
 
 type DueWorkshopNotificationRow = {
   booking_id: string;
@@ -21,21 +21,19 @@ function normalizeLanguage(preferredLanguage: string | null | undefined): 'en' |
 }
 
 function formatClassDate(value: string, language: 'en' | 'ar'): string {
-  return new Intl.DateTimeFormat(language === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
+  return formatNoonDateTime(value, language === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    timeZone: NOON_TIME_ZONE,
-  }).format(new Date(value));
+  });
 }
 
 function formatClassTime(value: string, language: 'en' | 'ar'): string {
-  return new Intl.DateTimeFormat(language === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
+  return formatNoonDateTime(value, language === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     hour: 'numeric',
     minute: '2-digit',
-    timeZone: NOON_TIME_ZONE,
-  }).format(new Date(value));
+  });
 }
 
 async function ensureClassWhatsAppNotificationSchema(): Promise<void> {

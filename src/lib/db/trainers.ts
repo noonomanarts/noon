@@ -1559,7 +1559,7 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
     const month = new Date(String(row.month_start));
     return {
       monthStart: month.toISOString(),
-      monthLabel: month.toLocaleDateString("en", { year: "numeric", month: "long", timeZone: "UTC" }),
+      monthLabel: month.toLocaleDateString("en-OM", { year: "numeric", month: "long", timeZone: "Asia/Muscat" }),
       currency: sanitizeText(row.currency, 10) || "OMR",
       workshopsCount: Number(row.workshops_count || 0),
       participantsCount: Number(row.participants_count || 0),

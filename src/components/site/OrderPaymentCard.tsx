@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { formatNoonDateTime } from '@/lib/dateTime';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import { getPaymentMethodLabel } from '@/lib/paymentMethod';
@@ -57,13 +58,12 @@ function formatAmount(value: number | null, currency: string) {
 function formatDateTime(locale: Locale, value: string | Date | null | undefined) {
   if (!value) return null;
 
-  return new Date(value).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
+  return formatNoonDateTime(value, locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    timeZone: 'Asia/Muscat',
   });
 }
 

@@ -1,7 +1,6 @@
 import { query } from '@/lib/db/pool';
+import { formatNoonDateTime } from '@/lib/dateTime';
 import { notifyRole, notifyUser } from '@/lib/notificationService';
-
-const NOON_TIME_ZONE = process.env.NOON_TIMEZONE || 'Asia/Muscat';
 
 type AppointmentReminderRow = {
   id: string;
@@ -21,13 +20,12 @@ type AppointmentReminderRow = {
 };
 
 function toTimeLabel(value: string): string {
-  return new Date(value).toLocaleString('en-OM', {
+  return formatNoonDateTime(value, 'en-OM', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
     hour: 'numeric',
     minute: '2-digit',
-    timeZone: NOON_TIME_ZONE,
   });
 }
 

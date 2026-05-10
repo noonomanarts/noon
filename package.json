@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint && node scripts/check-explicit-timezone.js",
     "db:migrate": "node scripts/run-migrations.js",
     "db:seed": "tsx scripts/seed.ts",
     "pwa:icons": "node scripts/generate-pwa-icons.js"
