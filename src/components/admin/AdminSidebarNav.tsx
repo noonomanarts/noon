@@ -16,11 +16,14 @@ import {
   FiRefreshCw,
   FiSettings,
   FiShoppingBag,
+  FiShoppingCart,
   FiTag,
   FiThumbsUp,
   FiTrendingUp,
+  FiTruck,
   FiUserCheck,
   FiUsers,
+  FiPrinter,
 } from "react-icons/fi";
 
 const iconMap = {
@@ -42,6 +45,9 @@ const iconMap = {
   FiMail,
   FiTag,
   FiRefreshCw,
+  FiShoppingCart,
+  FiTruck,
+  FiPrinter,
 } as const;
 
 export type AdminSidebarIconName = keyof typeof iconMap;

@@ -5,7 +5,13 @@ type Queryable = {
   query: (text: string, values?: unknown[]) => Promise<{ rows: QueryResultRow[]; rowCount?: number | null }>;
 };
 
-function isInventoryPoolLikeRow(row: Pick<QueryResultRow, 'allows_manual_cost' | 'name' | 'unit'>): boolean {
+type InventoryPoolLikeRow = {
+  allows_manual_cost?: unknown;
+  name?: unknown;
+  unit?: unknown;
+};
+
+function isInventoryPoolLikeRow(row: InventoryPoolLikeRow): boolean {
   const name = String(row.name ?? '').trim().toLowerCase();
   const unit = String(row.unit ?? '').trim().toLowerCase();
 
