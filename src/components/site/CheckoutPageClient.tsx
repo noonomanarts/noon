@@ -243,7 +243,12 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
     backToCart: isArabic ? 'العودة للسلة' : 'Back to cart',
     required: isArabic ? 'هذا الحقل مطلوب' : 'This field is required',
-    locationRequired: isArabic ? 'يرجى تحديد لوكيشن التوصيل على الخريطة.' : 'Please pick the delivery location on the map.',
+    shippingRequired: isArabic
+      ? 'يرجى إكمال بيانات التوصيل المطلوبة أولاً.'
+      : 'Please complete the required delivery details first.',
+    locationRequired: isArabic
+      ? 'يرجى تحديد موقع التوصيل على الخريطة قبل المتابعة.'
+      : 'Please choose the delivery location on the map before continuing.',
     items: isArabic ? 'منتجات' : 'items',
   };
   const checkoutTextBoxClassName =
@@ -478,7 +483,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     setError(null);
 
     if (requiredMissing) {
-      setError(t.required);
+      setError(t.shippingRequired);
       return;
     }
 
@@ -585,7 +590,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     }
 
     if (requiredMissing) {
-      setError(t.required);
+      setError(t.shippingRequired);
       return;
     }
 
@@ -649,7 +654,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     requiredMissing,
     selectedLocation,
     t.locationRequired,
-    t.required,
+    t.shippingRequired,
   ]);
 
   useEffect(() => {
@@ -1082,7 +1087,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                 <button
                   type="button"
                   onClick={() => void handleTopup()}
-                  disabled={topupLoading || shortfallAmount <= 0}
+                  disabled={topupLoading || shortfallAmount <= 0 || requiredMissing || isLocationMissing}
                   className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-emerald-400/60 px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-500/10 disabled:opacity-60"
                 >
                   {topupLoading ? t.processing : t.payShortfall}
