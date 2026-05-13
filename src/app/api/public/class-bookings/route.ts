@@ -6,6 +6,7 @@ import { addBonusPoints } from '@/lib/db/wallet';
 import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import { isRegistrationClosed } from '@/lib/classRegistration';
+import { prepareAmwalPayment } from '@/lib/amwal';
 import type { Gender } from '@/lib/db/types';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -26,6 +27,12 @@ type ParticipantPayload = {
   gender: Gender;
   isFreePartner?: boolean;
 };
+
+type BookingPaymentMethod = 'WALLET' | 'ONLINE';
+
+function parsePaymentMethod(value: unknown): BookingPaymentMethod {
+  return value === 'ONLINE' ? 'ONLINE' : 'WALLET';
+}
 
 function parseGender(value: unknown): Gender | null {
   if (value === 'MALE' || value === 'FEMALE' || value === 'OTHER') {
@@ -130,6 +137,10 @@ async function insertBookingWithRetry(args: {
   totalAmount: number;
   currency: string;
   specialRequests: string | null;
+  status: 'PENDING' | 'CONFIRMED';
+  paymentMethod: BookingPaymentMethod;
+  paymentStatus: 'PENDING' | 'PAID';
+  paidAt: Date | null;
 }): Promise<Record<string, unknown>> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
@@ -139,10 +150,10 @@ async function insertBookingWithRetry(args: {
            total_amount, currency, status, payment_method, payment_status, paid_at,
            terms_accepted, terms_accepted_at, special_requests, created_at, updated_at
          ) VALUES (
-           $1, $2, $3, $4::jsonb, $5, $6, $7, 'CONFIRMED', 'WALLET', 'PAID', NOW(),
-           TRUE, NOW(), $8, NOW(), NOW()
+           $1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11,
+           TRUE, NOW(), $12, NOW(), NOW()
          )
-         RETURNING id, booking_number, total_amount, currency, number_of_participants`,
+         RETURNING id, booking_number, total_amount, currency, number_of_participants, payment_method, payment_status`,
         [
           generateBookingNumber(),
           args.userId,
@@ -151,6 +162,10 @@ async function insertBookingWithRetry(args: {
           args.numberOfParticipants,
           args.totalAmount,
           args.currency,
+          args.status,
+          args.paymentMethod,
+          args.paymentStatus,
+          args.paidAt,
           args.specialRequests,
         ]
       );
@@ -191,6 +206,8 @@ export async function POST(request: NextRequest) {
   }
 
   const classId = parseSafeString(body.classId, 64);
+  const locale = parseSafeString(body.locale, 5) || 'en';
+  const paymentMethod = parsePaymentMethod(body.paymentMethod);
   const numberOfParticipants = normalizeParticipantCount(body.numberOfParticipants);
   const termsAccepted = body.termsAccepted === true;
   const specialRequests = parseSafeString(body.specialRequests, 3000);
@@ -306,6 +323,62 @@ export async function POST(request: NextRequest) {
       throw new ApiError('Not enough seats available', 409);
     }
 
+    const unitPrice = Number(classRow.price ?? 0);
+    const bookingCurrency = (classRow.currency as string) || 'OMR';
+    const totalAmount = Number((unitPrice * numberOfParticipants).toFixed(3));
+
+    if (paymentMethod === 'ONLINE') {
+      const booking = await insertBookingWithRetry({
+        client,
+        userId: user.id,
+        classId,
+        participants: storedParticipants,
+        numberOfParticipants,
+        totalAmount,
+        currency: bookingCurrency,
+        specialRequests: specialRequests || null,
+        status: 'PENDING',
+        paymentMethod: 'ONLINE',
+        paymentStatus: 'PENDING',
+        paidAt: null,
+      });
+
+      const amwalPayment = prepareAmwalPayment({
+        amount: totalAmount,
+        currency: bookingCurrency,
+        reference: String(booking.booking_number),
+        locale,
+        purpose: 'CLASS_BOOKING',
+        contact: {
+          fullName: user.fullName || 'Noon Customer',
+          email: user.email || 'payments@noonomanarts.com',
+          phoneNumber: user.phoneNumber || '',
+        },
+        bookingNumber: String(booking.booking_number),
+      });
+
+      await client.query('COMMIT');
+
+      return NextResponse.json({
+        success: true,
+        booking: {
+          id: booking.id as string,
+          bookingNumber: booking.booking_number as string,
+          totalAmount: Number(booking.total_amount ?? totalAmount),
+          currency: (booking.currency as string) || bookingCurrency,
+          numberOfParticipants: Number(booking.number_of_participants ?? numberOfParticipants),
+          classTitle: (classRow.title_ar as string | null) || (classRow.title as string),
+          paymentMethod: 'ONLINE',
+          paymentStatus: 'PENDING',
+        },
+        checkout: {
+          scriptUrl: amwalPayment.scriptUrl,
+          config: amwalPayment.config,
+          reference: String(booking.booking_number),
+        },
+      });
+    }
+
     let walletResult = await client.query(
       `SELECT id, user_id, balance, available_balance, currency
        FROM wallets
@@ -326,9 +399,6 @@ export async function POST(request: NextRequest) {
     const wallet = walletResult.rows[0];
     const walletBalance = Number(wallet.balance ?? 0);
     const walletAvailable = Number(wallet.available_balance ?? wallet.balance ?? 0);
-    const unitPrice = Number(classRow.price ?? 0);
-    const bookingCurrency = (classRow.currency as string) || 'OMR';
-    const totalAmount = Number((unitPrice * numberOfParticipants).toFixed(3));
 
     if ((wallet.currency as string) !== bookingCurrency) {
       throw new ApiError('Wallet currency does not match class currency', 409);
@@ -364,6 +434,10 @@ export async function POST(request: NextRequest) {
       totalAmount,
       currency: bookingCurrency,
       specialRequests: specialRequests || null,
+      status: 'CONFIRMED',
+      paymentMethod: 'WALLET',
+      paymentStatus: 'PAID',
+      paidAt: new Date(),
     });
 
     await client.query(

@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import { getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
 import type { Gender } from '@/lib/db/types';
 
 const DISPLAY_TIMEZONE = 'Asia/Muscat';
@@ -30,6 +30,7 @@ type SavedParticipant = {
 };
 
 type RegistrationType = 'self' | 'other' | 'both';
+type BookingPaymentMethod = 'ONLINE' | 'WALLET';
 
 type CurrentUserLite = {
   fullName: string;
@@ -55,12 +56,25 @@ type BookingResult = {
     currency: string;
     numberOfParticipants: number;
     classTitle: string;
+    paymentMethod?: BookingPaymentMethod;
+    paymentStatus?: 'PENDING' | 'PAID' | 'FAILED';
   };
   wallet: {
     balance: number;
     available_balance: number;
     currency: string;
   };
+};
+
+type OnlineBookingPayload = {
+  success: true;
+  booking: BookingResult['booking'];
+  checkout?: {
+    scriptUrl: string;
+    config: Record<string, unknown>;
+    reference: string;
+  };
+  wallet?: BookingResult['wallet'];
 };
 
 function emptyParticipant(): ParticipantWithPartner {
@@ -136,9 +150,9 @@ export default function ClassBookingClient({
   currentUser: CurrentUserLite;
 }) {
   const isArabic = locale === 'ar';
-  const searchParams = useSearchParams();
   const [selfParticipant, setSelfParticipant] = useState<ParticipantWithPartner>(() => buildSelfParticipant(currentUser));
   const [bookingFor, setBookingFor] = useState<RegistrationType>('self');
+  const [paymentMethod, setPaymentMethod] = useState<BookingPaymentMethod>('ONLINE');
   const [otherCount, setOtherCount] = useState(1);
   const [otherParticipants, setOtherParticipants] = useState<ParticipantWithPartner[]>([emptyParticipant()]);
   const [savedList, setSavedList] = useState<SavedParticipant[]>([]);
@@ -209,7 +223,9 @@ export default function ClassBookingClient({
 
   const t = {
     title: isArabic ? 'إتمام حجز الدورة' : 'Complete Class Booking',
-    subtitle: isArabic ? 'حدد المشاركين وأكد الشروط ثم ادفع من المحفظة.' : 'Set participants, accept terms, then pay with wallet.',
+    subtitle: isArabic
+      ? 'اختر المشاركين وطريقة الدفع ثم أكمل الحجز.'
+      : 'Choose participants and payment, then complete your booking.',
     classDate: isArabic ? 'موعد الدورة' : 'Class Date',
     bookingFor: isArabic ? 'نوع التسجيل' : 'Registration Type',
     audience: isArabic ? 'الفئة المناسبة' : 'Audience',
@@ -231,9 +247,23 @@ export default function ClassBookingClient({
     preferredLanguage: isArabic ? 'اللغة المفضلة' : 'Preferred Language',
     specialRequests: isArabic ? 'ملاحظات / طلبات خاصة' : 'Special Requests / Notes',
     agree: isArabic ? 'أوافق على الشروط والأحكام' : 'I agree to the terms and conditions',
+    paymentMethod: isArabic ? 'اختر طريقة الدفع' : 'Choose payment method',
+    payNow: isArabic ? 'ادفع الآن' : 'Pay now',
+    payNowHint: isArabic
+      ? 'دفع إلكتروني مباشر.'
+      : 'Pay online now.',
+    walletOption: isArabic ? 'استخدم رصيد المحفظة' : 'Use wallet credit',
+    walletHint: isArabic
+      ? 'متاح إذا كان الرصيد كافياً.'
+      : 'Available when your balance is enough.',
+    walletManageHint: isArabic
+      ? 'شحن المحفظة من حسابي > المحفظة.'
+      : 'Add credit from My Account > Wallet.',
+    openWallet: isArabic ? 'المحفظة' : 'Wallet',
     walletBalance: isArabic ? 'الرصيد المتاح للدفع داخل الموقع' : 'Wallet Balance for Website Payments',
     total: isArabic ? 'الإجمالي' : 'Total',
-    submit: isArabic ? 'تأكيد ودفع الحجز' : 'Confirm & Pay Booking',
+    submitWallet: isArabic ? 'ادفع من المحفظة' : 'Pay with wallet',
+    submitOnline: isArabic ? 'ادفع الآن' : 'Pay now',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
     successTitle: isArabic ? 'تم تأكيد الحجز بنجاح' : 'Booking Confirmed Successfully',
     bookingNumber: isArabic ? 'رقم الحجز' : 'Booking Number',
@@ -247,7 +277,9 @@ export default function ClassBookingClient({
     seatsError: isArabic ? 'عدد المشاركين أكبر من المقاعد المتاحة.' : 'Participants exceed available seats.',
     soldOut: isArabic ? 'المقاعد مكتملة' : 'Sold out',
     noSeats: isArabic ? 'المقاعد ممتلئة حالياً.' : 'This class is currently full.',
-    insufficient: isArabic ? 'رصيد المحفظة المستخدم داخل الموقع غير كافٍ لإتمام الدفع.' : 'Your website wallet balance is insufficient for this payment.',
+    insufficient: isArabic ? 'رصيد المحفظة غير كافٍ.' : 'Wallet balance is not enough.',
+    paymentCancelled: isArabic ? 'تم إلغاء الدفع.' : 'Payment was cancelled.',
+    paymentFailed: isArabic ? 'فشل الدفع. حاول مرة أخرى.' : 'Payment failed. Please try again.',
     yourDetails: isArabic ? 'بياناتك (تلقائية)' : 'Your Details (auto-filled)',
     yourPartnerDetails: isArabic ? 'بيانات الشريك المجاني' : 'Free Partner Details',
     selectSaved: isArabic ? 'اختر مشارك محفوظ...' : 'Select saved participant...',
@@ -350,25 +382,10 @@ export default function ClassBookingClient({
   }, [maxOthersAllowed, otherCount]);
 
   useEffect(() => {
-    const topupStatus = searchParams.get('topup');
-    if (!topupStatus) return;
-
-    if (topupStatus === 'paid') {
-      setMessage(isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.');
-      setError(null);
-      void loadWallet();
-      return;
+    if (paymentMethod === 'WALLET' && !hasEnoughBalance) {
+      setPaymentMethod('ONLINE');
     }
-
-    if (topupStatus === 'failed') {
-      setError(isArabic ? 'فشلت عملية شحن المحفظة.' : 'Wallet top-up failed.');
-      return;
-    }
-
-    if (topupStatus === 'cancelled') {
-      setError(isArabic ? 'تم إلغاء عملية شحن المحفظة.' : 'Wallet top-up was cancelled.');
-    }
-  }, [isArabic, loadWallet, searchParams]);
+  }, [hasEnoughBalance, paymentMethod]);
 
   const audienceLabel =
     classData.audienceGender === 'FEMALE_ONLY'
@@ -536,19 +553,40 @@ export default function ClassBookingClient({
       return false;
     }
 
-    if (!hasEnoughBalance) {
-      setError(t.insufficient);
-      return false;
-    }
-
     return true;
   };
+
+  const saveOtherParticipants = useCallback(() => {
+    if (!othersIncluded) {
+      return;
+    }
+
+    for (const participant of otherParticipants.slice(0, otherCount)) {
+      if (participant.fullName.trim()) {
+        void fetch('/api/public/saved-participants', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fullName: participant.fullName.trim(),
+            dateOfBirth: participant.dateOfBirth,
+            preferredLanguage: participant.preferredLanguage,
+            gender: participant.gender,
+          }),
+        }).catch(() => {});
+      }
+    }
+  }, [otherCount, otherParticipants, othersIncluded]);
 
   const submitBooking = async () => {
     setError(null);
     setMessage(null);
 
     if (!validateParticipants()) {
+      return;
+    }
+
+    if (paymentMethod === 'WALLET' && !hasEnoughBalance) {
+      setError(t.insufficient);
       return;
     }
 
@@ -559,6 +597,8 @@ export default function ClassBookingClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           classId: classData.id,
+          locale,
+          paymentMethod,
           numberOfParticipants: paidParticipants,
           participants: payableParticipants,
           freePartners,
@@ -567,31 +607,84 @@ export default function ClassBookingClient({
         }),
       });
 
-      const payload = await response.json().catch(() => ({}));
+      const payload = (await response.json().catch(() => ({}))) as OnlineBookingPayload & { error?: string };
       if (!response.ok || payload?.success !== true) {
         throw new Error(typeof payload?.error === 'string' ? payload.error : 'Booking failed.');
       }
 
-      setResult(payload as BookingResult);
-      setWallet((payload as BookingResult).wallet);
+      if (paymentMethod === 'ONLINE') {
+        const checkout = payload.checkout;
+        const reference = payload.checkout?.reference;
 
-      /* Auto-save other participants for future bookings (fire & forget) */
-      if (othersIncluded) {
-        for (const p of otherParticipants.slice(0, otherCount)) {
-          if (p.fullName.trim()) {
-            void fetch('/api/public/saved-participants', {
+        if (!checkout || !reference) {
+          throw new Error(isArabic ? 'بيانات الدفع غير مكتملة.' : 'Payment details are incomplete.');
+        }
+
+        await startAmwalCheckout({
+          checkout,
+          onComplete: async (gatewayPayload) => {
+            const callbackResponse = await fetch('/api/public/class-bookings/payment/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reference, gatewayPayload }),
+            });
+            const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as {
+              error?: string;
+              paymentStatus?: 'PAID' | 'FAILED';
+              booking?: BookingResult['booking'];
+            };
+
+            if (!callbackResponse.ok) {
+              throw new Error(callbackPayload.error || 'Failed to confirm payment');
+            }
+
+            if (callbackPayload.paymentStatus !== 'PAID' || !callbackPayload.booking) {
+              throw new Error(t.paymentFailed);
+            }
+
+            setResult({
+              success: true,
+              booking: callbackPayload.booking,
+              wallet: wallet ?? {
+                balance: 0,
+                available_balance: 0,
+                currency: classData.currency,
+              },
+            });
+            saveOtherParticipants();
+          },
+          onCancel: () => {
+            void fetch('/api/public/class-bookings/payment/callback', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                fullName: p.fullName.trim(),
-                dateOfBirth: p.dateOfBirth,
-                preferredLanguage: p.preferredLanguage,
-                gender: p.gender,
+                reference,
+                gatewayPayload: {
+                  status: 'CANCELLED',
+                  message: 'Checkout cancelled by user',
+                },
               }),
-            }).catch(() => {});
-          }
-        }
+            }).catch(() => undefined);
+
+            setError(t.paymentCancelled);
+          },
+          onError: async (gatewayPayload) => {
+            await fetch('/api/public/class-bookings/payment/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reference, gatewayPayload: getAmwalCheckoutErrorPayload(gatewayPayload) }),
+            }).catch(() => undefined);
+
+            setError(t.paymentFailed);
+          },
+        });
+
+        return;
       }
+
+      setResult(payload as BookingResult);
+      setWallet((payload as BookingResult).wallet);
+      saveOtherParticipants();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Booking failed.');
     } finally {
@@ -995,6 +1088,56 @@ export default function ClassBookingClient({
           <h2 className="text-lg font-semibold text-[color:var(--text)]">
             {isArabic && classData.titleAr ? classData.titleAr : classData.title}
           </h2>
+          <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
+            <p className="text-sm font-semibold text-[color:var(--text)]">{t.paymentMethod}</p>
+            <div className="mt-3 space-y-2">
+              <label className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition ${
+                paymentMethod === 'ONLINE'
+                  ? 'border-[color:var(--primary)] bg-[color:var(--primary)]/5'
+                  : 'border-[color:var(--border)] bg-[color:var(--surface)]'
+              }`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  checked={paymentMethod === 'ONLINE'}
+                  onChange={() => setPaymentMethod('ONLINE')}
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block font-semibold text-[color:var(--text)]">{t.payNow}</span>
+                  <span className="block text-xs text-[color:var(--text-muted)]">{t.payNowHint}</span>
+                </span>
+              </label>
+              <label className={`flex items-start gap-3 rounded-xl border px-3 py-3 text-sm transition ${
+                hasEnoughBalance ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'
+              } ${
+                paymentMethod === 'WALLET'
+                  ? 'border-[color:var(--primary)] bg-[color:var(--primary)]/5'
+                  : 'border-[color:var(--border)] bg-[color:var(--surface)]'
+              }`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  checked={paymentMethod === 'WALLET'}
+                  onChange={() => setPaymentMethod('WALLET')}
+                  disabled={!hasEnoughBalance}
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block font-semibold text-[color:var(--text)]">{t.walletOption}</span>
+                  <span className="block text-xs text-[color:var(--text-muted)]">{t.walletHint}</span>
+                </span>
+              </label>
+            </div>
+            {!hasEnoughBalance ? (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-300">
+                <p>{t.walletManageHint}</p>
+                <Link href={`/${locale}/account/wallet?returnUrl=${encodeURIComponent(`/${locale}/classes/${slug}/book`)}`} className="mt-2 inline-flex font-semibold text-[color:var(--primary)] hover:underline">
+                  {t.openWallet}
+                </Link>
+              </div>
+            ) : null}
+          </div>
           <div className="mt-4 space-y-2 text-sm text-[color:var(--text)]">
             <div className="flex items-center justify-between">
               <span>{t.classDate}</span>
@@ -1021,29 +1164,22 @@ export default function ClassBookingClient({
           <button
             type="button"
             onClick={() => {
-              if (!hasEnoughBalance) {
-                const returnUrl = `/${locale}/classes/${slug}/book`;
-                window.location.href = `/${locale}/account/wallet?returnUrl=${encodeURIComponent(returnUrl)}`;
-                return;
-              }
               void submitBooking();
             }}
-            disabled={processing || loadingWallet || !hasBookableSeats}
+            disabled={processing || loadingWallet || !hasBookableSeats || (paymentMethod === 'WALLET' && !hasEnoughBalance)}
             className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {processing
               ? t.processing
-              : hasEnoughBalance
-                ? t.submit
-                : isArabic
-                  ? 'شحن المحفظة وإتمام الحجز'
-                  : 'Top Up Wallet & Complete Booking'}
+              : paymentMethod === 'WALLET'
+                ? t.submitWallet
+                : t.submitOnline}
           </button>
           {!hasEnoughBalance && hasBookableSeats && !loadingWallet && (
             <p className="mt-2 text-center text-xs text-amber-700 dark:text-amber-400">
               {isArabic
-                ? `رصيدك الحالي غير كافٍ. تحتاج ${formatAmountWithCurrency(totalAmount - (wallet?.balance ?? 0), classData.currency)} إضافية لإتمام الحجز.`
-                : `Your balance is insufficient. You need ${formatAmountWithCurrency(totalAmount - (wallet?.balance ?? 0), classData.currency)} more to complete this booking.`}
+                ? `رصيد المحفظة الحالي غير كافٍ. تحتاج ${formatAmountWithCurrency(totalAmount - (wallet?.balance ?? 0), classData.currency)} إضافية لاستخدام الدفع بالمحفظة.`
+                : `Your wallet balance is not enough yet. You need ${formatAmountWithCurrency(totalAmount - (wallet?.balance ?? 0), classData.currency)} more to use wallet payment.`}
             </p>
           )}
         </aside>

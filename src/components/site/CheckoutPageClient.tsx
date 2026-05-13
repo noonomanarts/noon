@@ -159,15 +159,15 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     promoPlaceholder: isArabic ? 'مثال: NOON20' : 'Example: NOON20',
     total: isArabic ? 'الإجمالي النهائي' : 'Total',
     payWallet: isArabic ? 'الدفع من المحفظة' : 'Pay with Wallet',
-    payShortfall: isArabic ? 'ادفعي المتبقي' : 'Pay the rest',
+    payShortfall: isArabic ? 'ادفعي المتبقي' : 'Pay remaining',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
     insufficient: isArabic
-      ? 'رصيدك ما يكفي للطلب كامل. بنخصم اللي عندك من المحفظة، وتدفعي بس الباقي.'
-      : 'Your wallet balance is not enough for the full order. We will use what you have in your wallet, and you only pay the rest.',
-    topupTitle: isArabic ? 'شحن المحفظة' : 'Top Up Wallet',
+      ? 'رصيد المحفظة غير كافٍ. ادفعي المتبقي فقط.'
+      : 'Wallet balance is not enough. Pay the remaining amount only.',
+    topupTitle: isArabic ? 'ادفعي المتبقي' : 'Pay Remaining',
     topupHint: isArabic
-      ? 'الموجود في محفظتك بينخصم لحاله، فالمطلوب منك الآن فقط قيمة النقص.'
-      : 'What you already have in your wallet will be used automatically, so you only need to pay the missing amount now.',
+      ? 'سيتم استخدام رصيد المحفظة تلقائياً.'
+      : 'Your wallet balance will be used automatically.',
     topupAmount: isArabic ? 'المبلغ المتبقي' : 'Remaining Amount',
     topupRedirect: isArabic
       ? 'لحظة، بنفتح لك نافذة الدفع.'
@@ -177,11 +177,11 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
       : 'The remaining amount was received. Finishing your order now.',
     shortfall: isArabic ? 'الباقي عليك' : 'Left to pay',
     shortfallHelp: isArabic
-      ? 'هذا فقط المبلغ اللي تحتاجي تدفعيه الآن عشان يكتمل الطلب.'
-      : 'This is the only amount you need to pay now to complete your order.',
+      ? 'هذا هو المبلغ المطلوب الآن.'
+      : 'This is the amount due now.',
     paymentCtaHint: isArabic
-      ? 'إذا ضغطتي الزر، ستفتح نافذة أمول باي لدفع هذا المبلغ فقط.'
-      : 'When you continue, an Amwal Pay window will open for this remaining amount only.',
+      ? 'سيتم فتح نافذة الدفع لهذا المبلغ.'
+      : 'A payment window will open for this amount.',
     successTitle: isArabic ? 'تم تأكيد الطلب بنجاح' : 'Order confirmed successfully',
     orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',
     continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
@@ -346,7 +346,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         setResumeAfterTopup(true);
       }
     }
-  }, [isArabic, loadData, restoreCheckoutDraft, searchParams, t.topupResume]);
+  }, [isArabic, loadData, locale, restoreCheckoutDraft, searchParams, t.topupResume]);
 
   useEffect(() => {
     if (!cart || cart.items.length === 0) {
@@ -880,7 +880,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     <span className="font-medium">{t.shortfall}</span>
                     <span className="font-semibold">{formatAmountWithCurrency(shortfallAmount, currency)}</span>
                   </div>
-                  <p className="mt-1 text-[11px] leading-5 text-amber-700 dark:text-amber-300">
+                  <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">
                     {t.shortfallHelp}
                   </p>
                 </div>
@@ -928,7 +928,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             {!hasEnoughBalance ? (
               <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center dark:border-emerald-900/40 dark:bg-emerald-900/20">
                 <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">{t.topupTitle}</h3>
-                <p className="mt-1 text-xs leading-6 text-emerald-800 dark:text-emerald-300">{t.topupHint}</p>
+                <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">{t.topupHint}</p>
                 <div className="mt-3 grid gap-2 rounded-xl border border-emerald-300/60 bg-white/70 p-3 text-sm dark:bg-emerald-950/20">
                   <div className="flex items-center justify-between text-emerald-900 dark:text-emerald-200">
                     <span>{t.walletBalance}</span>
@@ -943,7 +943,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     <span className="text-base font-bold">{formatAmountWithCurrency(shortfallAmount, currency)}</span>
                   </div>
                 </div>
-                <p className="mt-3 text-[11px] leading-5 text-emerald-700 dark:text-emerald-300">{t.paymentCtaHint}</p>
                 <button
                   type="button"
                   onClick={() => void handleTopup()}

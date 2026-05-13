@@ -208,7 +208,7 @@ function buildOutgoingSecureHash(config: Omit<AmwalSmartBoxConfig, 'SecureHash'>
 function buildOrderItems(input: {
   amount: number;
   reference: string;
-  purpose: 'WALLET_TOPUP' | 'EVENT_BOOKING';
+  purpose: 'WALLET_TOPUP' | 'EVENT_BOOKING' | 'CLASS_BOOKING';
   bookingNumber?: string;
 }): AmwalOrderItem[] {
   if (input.purpose === 'WALLET_TOPUP') {
@@ -224,7 +224,7 @@ function buildOrderItems(input: {
 
   return [
     {
-      Name: 'Event Booking Payment',
+      Name: input.purpose === 'CLASS_BOOKING' ? 'Class Booking Payment' : 'Event Booking Payment',
       DescriptionOne: `Booking: ${input.bookingNumber || input.reference}`,
       DescriptionTwo: 'Quantity: 1',
       Price: formatOmrPrice(input.amount),
@@ -249,7 +249,7 @@ export function prepareAmwalPayment(input: {
   currency: string;
   reference: string;
   locale: string;
-  purpose: 'WALLET_TOPUP' | 'EVENT_BOOKING';
+  purpose: 'WALLET_TOPUP' | 'EVENT_BOOKING' | 'CLASS_BOOKING';
   contact: BillingContact;
   bookingNumber?: string;
 }): AmwalPreparedPayment {

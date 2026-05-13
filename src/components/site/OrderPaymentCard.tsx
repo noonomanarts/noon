@@ -143,14 +143,14 @@ export function OrderPaymentCard({
     title: isArabic ? 'حالة الدفع' : 'Payment Status',
     total: isArabic ? 'الإجمالي المطلوب' : 'Amount Due',
     method: isArabic ? 'طريقة الدفع' : 'Payment Method',
-    walletBalance: isArabic ? 'الرصيد المتاح للدفع داخل الموقع' : 'Wallet Balance for Website Payments',
-    topupTitle: isArabic ? 'شحن المحفظة' : 'Top Up Wallet',
-    topupHint: isArabic ? 'يمكنك شحن المحفظة والعودة لإتمام الدفع مباشرة.' : 'Top up your wallet and complete payment right away.',
-    topupAmount: isArabic ? 'مبلغ الشحن' : 'Top Up Amount',
-    topupAction: isArabic ? 'شحن الآن' : 'Top Up Now',
+    walletBalance: isArabic ? 'رصيد المحفظة' : 'Wallet Balance',
+    topupTitle: isArabic ? 'شحن المحفظة' : 'Add Wallet Credit',
+    topupHint: isArabic ? 'أضيفي رصيداً ثم أعيدي المحاولة.' : 'Add credit and try again.',
+    topupAmount: isArabic ? 'المبلغ' : 'Amount',
+    topupAction: isArabic ? 'شحن' : 'Add Credit',
     payAction: isArabic ? 'الدفع من المحفظة' : 'Pay With Wallet',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
-    insufficient: isArabic ? 'رصيد المحفظة المستخدم داخل الموقع غير كافٍ لإتمام الدفع.' : 'Your website wallet balance is not enough for this payment.',
+    insufficient: isArabic ? 'رصيد المحفظة غير كافٍ.' : 'Wallet balance is not enough.',
     paid: isArabic ? 'مدفوع' : 'Paid',
     pending: isArabic ? 'بانتظار الدفع' : 'Pending Payment',
     refunded: isArabic ? 'مسترجع' : 'Refunded',
@@ -161,13 +161,13 @@ export function OrderPaymentCard({
       ? 'سيتم تفعيل الدفع بعد أن يحدد الأدمن السعر النهائي لهذا الحجز.'
       : 'Payment will open after the admin sets the final price for this booking.',
     waitingApproval: isArabic
-      ? 'تم حجز الوقت مؤقتاً. بعد موافقة الأدمن سيتاح الدفع من المحفظة.'
-      : 'The selected slot is held. Wallet payment opens after admin approval.',
+      ? 'بانتظار موافقة الإدارة.'
+      : 'Waiting for admin approval.',
     paidHint: isArabic ? 'تم استلام الدفعة بنجاح.' : 'This order has been paid successfully.',
     paidAt: isArabic ? 'تاريخ الدفع' : 'Paid At',
     readyToPay: isArabic ? 'الحجز جاهز للدفع من المحفظة.' : 'This booking is ready for wallet payment.',
     cancelled: isArabic ? 'تم إلغاء هذا الطلب.' : 'This order has been cancelled.',
-    retry: isArabic ? 'يمكنك إعادة المحاولة بعد تجهيز الرصيد.' : 'You can retry once your wallet balance is ready.',
+    retry: isArabic ? 'أعيدي المحاولة بعد شحن الرصيد.' : 'Try again after adding credit.',
     topupRedirect: isArabic
       ? 'سيتم فتح نافذة الدفع الآن.'
       : 'The payment window will open now.',
@@ -244,7 +244,7 @@ export function OrderPaymentCard({
     nextParams.delete('topup');
     const nextUrl = nextParams.toString() ? `${pathname}?${nextParams.toString()}` : pathname;
     router.replace(nextUrl, { scroll: false });
-  }, [canPayEventOrder, loadWallet, pathname, router, searchParams, t.topupCancelled, t.topupFailed, t.topupPaid]);
+  }, [canPayEventOrder, loadWallet, locale, pathname, router, searchParams, t.topupCancelled, t.topupFailed, t.topupPaid]);
 
   const handleTopup = async () => {
     setError(null);
