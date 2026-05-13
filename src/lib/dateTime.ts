@@ -69,3 +69,20 @@ export function noonDateTimeLocalInputToIso(value: string | null | undefined): s
   const date = new Date(utcMs);
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
+
+export function isQuarterHourDateTimeValue(value: NoonDateInput | null | undefined): boolean {
+  if (value == null || value === '') return true;
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const match = trimmed.match(/T\d{2}:(\d{2})(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})?$/);
+    if (match) {
+      return Number(match[1]) % 15 === 0;
+    }
+  }
+
+  const date = toValidDate(value);
+  if (!date) return false;
+
+  return date.getUTCMinutes() % 15 === 0 && date.getUTCSeconds() === 0 && date.getUTCMilliseconds() === 0;
+}

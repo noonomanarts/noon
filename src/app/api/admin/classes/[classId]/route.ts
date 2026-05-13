@@ -4,6 +4,7 @@ import { findUniqueClass, updateClass, deleteClass, countClassBookings } from '@
 import { cleanupClosedClassSettlement } from '@/lib/db/classFinance';
 import { query } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
+import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
 
 type Params = {
   params: Promise<{ classId: string }>;
@@ -73,6 +74,27 @@ export async function PUT(request: NextRequest, props: Params) {
     const body = await request.json();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { slug: _, ...updateData } = body;
+
+    if (updateData.startDateTime && !isQuarterHourDateTimeValue(updateData.startDateTime)) {
+      return NextResponse.json(
+        { error: 'Start date & time minutes must be 00, 15, 30, or 45' },
+        { status: 400 }
+      );
+    }
+
+    if (updateData.endDateTime && !isQuarterHourDateTimeValue(updateData.endDateTime)) {
+      return NextResponse.json(
+        { error: 'End date & time minutes must be 00, 15, 30, or 45' },
+        { status: 400 }
+      );
+    }
+
+    if (updateData.registrationCloseAt && !isQuarterHourDateTimeValue(updateData.registrationCloseAt)) {
+      return NextResponse.json(
+        { error: 'Registration close minutes must be 00, 15, 30, or 45' },
+        { status: 400 }
+      );
+    }
 
     const updatedClass = await updateClass(params.classId, updateData);
 

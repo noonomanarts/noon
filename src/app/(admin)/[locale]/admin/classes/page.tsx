@@ -366,7 +366,7 @@ export default function AdminClassesPage() {
         </div>
         <Link
           href={`/${locale}/admin/classes/new`}
-          className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-teal to-teal/80 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:from-teal/90 hover:to-teal/70"
+          className="inline-flex items-center gap-2 rounded-lg border border-teal-900 bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-teal-900/20 transition-all hover:bg-teal-800 hover:shadow-lg hover:shadow-teal-900/30 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
         >
           <IoAdd className="h-5 w-5" />
           Add New Class

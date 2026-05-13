@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { findManyClassesPaginated, createClass, findUniqueClass } from '@/lib/db/classes';
 import { verifyTrainer } from '@/lib/db/trainers';
 import { query } from '@/lib/db/pool';
+import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
 
 // GET: List all classes
 export async function GET(request: NextRequest) {
@@ -185,6 +186,27 @@ export async function POST(request: NextRequest) {
     if (currency && currency !== 'OMR') {
       return NextResponse.json(
         { error: 'Invalid currency' },
+        { status: 400 }
+      );
+    }
+
+    if (startDateTime && !isQuarterHourDateTimeValue(startDateTime)) {
+      return NextResponse.json(
+        { error: 'Start date & time minutes must be 00, 15, 30, or 45' },
+        { status: 400 }
+      );
+    }
+
+    if (endDateTime && !isQuarterHourDateTimeValue(endDateTime)) {
+      return NextResponse.json(
+        { error: 'End date & time minutes must be 00, 15, 30, or 45' },
+        { status: 400 }
+      );
+    }
+
+    if (registrationCloseAt && !isQuarterHourDateTimeValue(registrationCloseAt)) {
+      return NextResponse.json(
+        { error: 'Registration close minutes must be 00, 15, 30, or 45' },
         { status: 400 }
       );
     }

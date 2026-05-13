@@ -863,7 +863,7 @@ export default function EditTrainerPage() {
               />
               {featuredMediaType !== 'YOUTUBE' ? (
                 <div className="mt-3 flex items-center gap-3">
-                  <label className="inline-flex cursor-pointer items-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                  <label className="inline-flex cursor-pointer items-center rounded-lg border border-blue-900 bg-blue-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-800 dark:border-blue-800 dark:bg-blue-700 dark:text-white dark:hover:bg-blue-600">
                     {uploadingFeaturedMedia ? 'Uploading...' : featuredMediaType === 'VIDEO' ? 'Upload Video' : 'Upload Image'}
                     <input
                       type="file"
@@ -956,7 +956,7 @@ export default function EditTrainerPage() {
                     <button
                       type="button"
                       onClick={() => removeManualUpcomingCourse(course.id)}
-                      className="rounded-md border border-rose-200 px-2.5 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                      className="rounded-md border border-rose-900 bg-rose-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-rose-700 dark:border-rose-800 dark:bg-rose-700 dark:text-white dark:hover:bg-rose-600"
                     >
                       Remove
                     </button>
@@ -1046,7 +1046,7 @@ export default function EditTrainerPage() {
                       />
                       {course.mediaType !== 'YOUTUBE' ? (
                         <div className="mt-2 flex items-center gap-3">
-                          <label className="inline-flex cursor-pointer items-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                          <label className="inline-flex cursor-pointer items-center rounded-lg border border-blue-900 bg-blue-700 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-blue-800 dark:border-blue-800 dark:bg-blue-700 dark:text-white dark:hover:bg-blue-600">
                             {uploadingManualMediaId === course.id ? 'Uploading...' : course.mediaType === 'VIDEO' ? 'Upload Video' : 'Upload Image'}
                             <input
                               type="file"
@@ -1139,14 +1139,14 @@ export default function EditTrainerPage() {
                 <button
                   type="button"
                   onClick={() => setFeaturedPreviousClassIds(trainerClasses.map((c) => c.id))}
-                  className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                  className="rounded-lg border border-slate-900 bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 dark:border-slate-800 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
                 >
                   Select all
                 </button>
                 <button
                   type="button"
                   onClick={() => setFeaturedPreviousClassIds([])}
-                  className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                  className="rounded-lg border border-slate-900 bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 dark:border-slate-800 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
                 >
                   Clear
                 </button>
@@ -1281,7 +1281,7 @@ export default function EditTrainerPage() {
                   <button
                     type="button"
                     onClick={() => setShareTiers((prev) => (prev.length > 1 ? prev.filter((_, rowIndex) => rowIndex !== index) : prev))}
-                    className="rounded-lg border border-rose-200 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                    className="rounded-lg border border-rose-900 bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-700 dark:border-rose-800 dark:bg-rose-700 dark:text-white dark:hover:bg-rose-600"
                   >
                     Remove
                   </button>
@@ -1300,7 +1300,7 @@ export default function EditTrainerPage() {
                   },
                 ])
               }
-              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              className="rounded-lg border border-slate-900 bg-slate-700 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 dark:border-slate-800 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600"
             >
               Add Tier
             </button>
@@ -1327,7 +1327,7 @@ export default function EditTrainerPage() {
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 px-6 py-3 font-semibold text-white shadow-sm transition-all hover:from-blue-700 hover:to-cyan-700 hover:shadow-md disabled:opacity-50 sm:flex-initial"
+            className="flex-1 rounded-lg border border-blue-900 bg-blue-700 px-6 py-3 font-semibold text-white shadow-md shadow-blue-900/20 transition-all hover:bg-blue-800 hover:shadow-lg hover:shadow-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-initial"
           >
             {saving ? 'Saving...' : 'Save Profile'}
           </button>

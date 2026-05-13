@@ -20,7 +20,7 @@ import {
 } from 'react-icons/md';
 import { composeDurationMinutes, splitDurationMinutes } from '@/lib/formatDuration';
 import { defaultClassFinanceAdminSettings, type ClassFinanceAdminSettings } from '@/lib/adminSettings';
-import { formatNoonDateTimeLocalInput, noonDateTimeLocalInputToIso } from '@/lib/dateTime';
+import { formatNoonDateTimeLocalInput, isQuarterHourDateTimeValue, noonDateTimeLocalInputToIso } from '@/lib/dateTime';
 
 type ClassCategory = 'COOKING' | 'ARTS_CRAFTS';
 type ClassSubCategory =
@@ -441,6 +441,9 @@ export default function EditClassPage() {
     if (!formData.durationMinutes) newErrors.durationMinutes = 'Duration is required';
     else if (parseInt(formData.durationMinutes) < 1) newErrors.durationMinutes = 'Duration must be positive';
     if (!formData.startDateTime) newErrors.startDateTime = 'Start date & time is required';
+    else if (!isQuarterHourDateTimeValue(formData.startDateTime)) newErrors.startDateTime = 'Minutes must be 00, 15, 30, or 45';
+    if (formData.endDateTime && !isQuarterHourDateTimeValue(formData.endDateTime)) newErrors.endDateTime = 'Minutes must be 00, 15, 30, or 45';
+    if (formData.registrationCloseAt && !isQuarterHourDateTimeValue(formData.registrationCloseAt)) newErrors.registrationCloseAt = 'Minutes must be 00, 15, 30, or 45';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -1110,6 +1113,7 @@ export default function EditClassPage() {
                 name="startDateTime"
                 value={formData.startDateTime}
                 onChange={handleInputChange}
+                step="900"
                 className={`${inputBase} ${
                   errors.startDateTime ? 'border-red-500 dark:border-red-400' : ''
                 }`}
@@ -1132,6 +1136,7 @@ export default function EditClassPage() {
                 name="endDateTime"
                 value={formData.endDateTime}
                 onChange={handleInputChange}
+                step="900"
                 className={inputBase}
               />
             </div>
@@ -1146,6 +1151,7 @@ export default function EditClassPage() {
                 name="registrationCloseAt"
                 value={formData.registrationCloseAt}
                 onChange={handleInputChange}
+                step="900"
                 className={inputBase}
               />
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
