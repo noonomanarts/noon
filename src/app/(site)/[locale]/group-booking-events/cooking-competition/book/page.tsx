@@ -156,7 +156,7 @@ export default function CookingCompetitionBookingPage() {
     step: locale === 'ar' ? 'الخطوة' : 'Step',
     next: locale === 'ar' ? 'التالي' : 'Next',
     back: locale === 'ar' ? 'رجوع' : 'Back',
-    submit: locale === 'ar' ? 'إرسال الطلب' : 'Submit Request',
+    submit: locale === 'ar' ? 'أضف إلى السلة' : 'Add to Cart',
     
     // Step 1
     step1Title: locale === 'ar' ? 'اختر التاريخ والوقت' : 'Select Date & Time',
@@ -226,11 +226,11 @@ export default function CookingCompetitionBookingPage() {
     specialRequests: locale === 'ar' ? 'طلبات خاصة/ملاحظات' : 'Special Requests/Notes',
     
     // Step 4
-    confirmationTitle: locale === 'ar' ? 'شكراً لطلبك!' : 'Thank you for your request!',
+    confirmationTitle: locale === 'ar' ? 'تمت إضافة الطلب إلى السلة' : 'Request added to cart',
     confirmationMessage: locale === 'ar'
-      ? 'سيقوم فريقنا بمراجعة التفاصيل والتواصل معك قريباً لتأكيد التوفر وإتمام الحجز.'
-      : 'Our team will review the details and contact you shortly to confirm availability and finalize your booking.',
-    backToHome: locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home',
+      ? 'يمكنك متابعة الحجز من السلة. سيُراجع فريقنا الطلب بعد إرساله.'
+      : 'You can continue from the cart. Our team will review the request after it is submitted.',
+    backToHome: locale === 'ar' ? 'الذهاب إلى السلة' : 'Go to Cart',
     selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
     invalidEmail: locale === 'ar' ? 'يرجى إدخال بريد إلكتروني صحيح.' : 'Please enter a valid email address.',
     invalidPhone: locale === 'ar' ? 'يرجى إدخال رقم هاتف صحيح.' : 'Please enter a valid phone number.',
@@ -242,7 +242,7 @@ export default function CookingCompetitionBookingPage() {
     fullNameRequired: locale === 'ar' ? 'يرجى إدخال الاسم الكامل.' : 'Please enter full name.',
     emailRequired: locale === 'ar' ? 'يرجى إدخال البريد الإلكتروني.' : 'Please enter email.',
     phoneRequired: locale === 'ar' ? 'يرجى إدخال رقم الهاتف.' : 'Please enter phone number.',
-    submitError: locale === 'ar' ? 'حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.' : 'Failed to submit booking. Please try again.',
+    submitError: locale === 'ar' ? 'حدث خطأ أثناء إضافة الطلب. حاول مرة أخرى.' : 'Failed to add request. Please try again.',
     bookingNumber: locale === 'ar' ? 'رقم الحجز' : 'Booking Number',
     dateInPast: locale === 'ar' ? 'لا يمكن اختيار تاريخ في الماضي.' : 'Selected date cannot be in the past.',
     bookingSummary: locale === 'ar' ? 'ملخص الحجز' : 'Booking Summary',
@@ -368,11 +368,8 @@ export default function CookingCompetitionBookingPage() {
 
     setLoading(true);
     try {
-      const requestPayload = {
-        eventType: 'COOKING_COMPETITION' as const,
+      const payload = {
         preferredLanguage: locale,
-        selectedDate: bookingData.selectedDate,
-        selectedTime: bookingData.selectedTime,
         packageType: bookingData.packageType,
         gifts: bookingData.gifts,
         fullName: bookingData.fullName?.trim(),
@@ -383,20 +380,26 @@ export default function CookingCompetitionBookingPage() {
         specialRequests: bookingData.specialRequests?.trim(),
       };
 
-      const response = await fetch('/api/public/event-bookings', {
+      const response = await fetch('/api/cart/event-bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload),
+        body: JSON.stringify({
+          eventType: 'COOKING_COMPETITION',
+          selectedDate: bookingData.selectedDate,
+          selectedTime: bookingData.selectedTime,
+          estimatedTotal: estimatedTotalAmount,
+          currency: 'OMR',
+          payload,
+        }),
       });
 
-      const payload = await response.json().catch(() => ({} as Record<string, unknown>));
+      const result = await response.json().catch(() => ({} as Record<string, unknown>));
       if (response.ok) {
-        const serverBookingNumber =
-          typeof payload.bookingNumber === 'string' ? payload.bookingNumber : null;
-        setBookingNumber(serverBookingNumber);
+        setBookingNumber(null);
+        window.dispatchEvent(new CustomEvent('cart:changed'));
         setCurrentStep(4);
       } else {
-        setError(typeof payload.error === 'string' ? payload.error : t.submitError);
+        setError(typeof result.error === 'string' ? result.error : t.submitError);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -835,7 +838,7 @@ export default function CookingCompetitionBookingPage() {
               </p>
             ) : null}
             <button
-              onClick={() => router.push(`/${locale}`)}
+              onClick={() => router.push(`/${locale}/cart`)}
               className="rounded-xl px-8 py-4 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
               style={{ background: 'var(--noon-coral-gradient)' }}
             >

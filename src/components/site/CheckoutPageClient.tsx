@@ -8,7 +8,9 @@ import { MuscatLocationPicker } from '@/components/site/MuscatLocationPicker';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import { buildAmwalErrorUiMessage, getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
 
-type CartApiItem = {
+type ShopCartApiItem = {
+  id: string;
+  kind: 'SHOP_PRODUCT';
   productId: string;
   quantity: number;
   lineTotal: number;
@@ -22,11 +24,46 @@ type CartApiItem = {
   };
 };
 
+type ClassCartApiItem = {
+  id: string;
+  kind: 'CLASS_BOOKING';
+  classId: string;
+  slug: string;
+  title: string;
+  titleAr: string | null;
+  image: string | null;
+  startDateTime: string | null;
+  price: number;
+  currency: string;
+  numberOfParticipants: number;
+  lineTotal: number;
+};
+
+type EventCartApiItem = {
+  id: string;
+  kind: 'EVENT_BOOKING';
+  eventType: 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY';
+  title: string;
+  titleAr: string;
+  selectedDate: string;
+  selectedTime: string;
+  estimatedTotal: number | null;
+  currency: string;
+  lineTotal: number | null;
+};
+
+type CartApiItem = ShopCartApiItem | ClassCartApiItem | EventCartApiItem;
+
 type CartPayload = {
   items: CartApiItem[];
   summary: {
     totalQuantity: number;
     subtotal: number;
+    payableNowTotal: number;
+    requestOnlyTotal: number;
+    shopItemsCount: number;
+    classItemsCount: number;
+    eventItemsCount: number;
     currency: string;
   };
 };
@@ -50,16 +87,14 @@ type WalletTopupCheckoutPayload = {
 
 type CheckoutResult = {
   success: boolean;
-  order: {
-    id: string;
-    orderNumber: string;
-    subtotal: number;
-    discountAmount: number;
-    promoCode: string | null;
-    shippingFee: number;
-    totalAmount: number;
+  summary: {
+    shopOrderId: string | null;
+    shopOrderNumber: string | null;
+    shopTotal: number;
+    payableTotal: number;
     currency: string;
-    itemsCount: number;
+    classBookingsCount: number;
+    eventRequestsCount: number;
   };
   wallet: {
     balance: number;
@@ -128,12 +163,12 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const t = {
     title: isArabic ? 'إتمام الطلب' : 'Checkout',
     subtitle: isArabic
-      ? 'راجعي بيانات التوصيل وكمّلي الطلب.'
-      : 'Review your delivery details and complete your order.',
+      ? 'راجعي العناصر وأكملي الدفع أو إرسال الطلبات.'
+      : 'Review your items and complete payment or request submission.',
     loading: isArabic ? 'جاري تحميل بيانات الطلب...' : 'Loading checkout data...',
     loginRequired: isArabic ? 'يرجى تسجيل الدخول لإتمام الطلب.' : 'Please login to complete checkout.',
     goToLogin: isArabic ? 'تسجيل الدخول' : 'Go to login',
-    empty: isArabic ? 'السلة فارغة. أضف منتجات أولاً.' : 'Your cart is empty. Add products first.',
+    empty: isArabic ? 'السلة فارغة.' : 'Your cart is empty.',
     goToCart: isArabic ? 'العودة للسلة' : 'Back to cart',
     goToShop: isArabic ? 'الذهاب للمتجر' : 'Go to shop',
     shippingInfo: isArabic ? 'معلومات الشحن' : 'Shipping Information',
@@ -147,6 +182,14 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     notes: isArabic ? 'ملاحظات (اختياري)' : 'Notes (Optional)',
     onlyMuscat: isArabic ? 'التوصيل داخل مسقط فقط.' : 'Delivery is available in Muscat only.',
     orderSummary: isArabic ? 'ملخص الطلب' : 'Order Summary',
+    bookingsSummary: isArabic ? 'الحجوزات والطلبات' : 'Bookings & Requests',
+    classBooking: isArabic ? 'حجز دورة' : 'Class Booking',
+    eventRequest: isArabic ? 'طلب فعالية' : 'Event Request',
+    participants: isArabic ? 'المشاركون' : 'Participants',
+    payableNow: isArabic ? 'المطلوب الآن' : 'Payable Now',
+    requestOnlyTotal: isArabic ? 'طلبات بدون دفع الآن' : 'Requests only',
+    submitRequests: isArabic ? 'إرسال الطلب' : 'Submit request',
+    requestOnlyHint: isArabic ? 'لن يتم خصم أي مبلغ الآن.' : 'No payment will be charged now.',
     walletBalance: isArabic ? 'رصيد المحفظة' : 'Wallet Balance',
     walletUsed: isArabic ? 'سيتم الخصم من المحفظة' : 'Will be paid from wallet',
     subtotal: isArabic ? 'الإجمالي الفرعي' : 'Subtotal',
@@ -157,7 +200,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     removePromo: isArabic ? 'إزالة' : 'Remove',
     promoApplied: isArabic ? 'تم تطبيق كود الخصم' : 'Promo code applied',
     promoPlaceholder: isArabic ? 'مثال: NOON20' : 'Example: NOON20',
-    total: isArabic ? 'الإجمالي النهائي' : 'Total',
+    total: isArabic ? 'الإجمالي' : 'Total',
     payWallet: isArabic ? 'الدفع من المحفظة' : 'Pay with Wallet',
     payShortfall: isArabic ? 'ادفعي المتبقي' : 'Pay remaining',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
@@ -182,8 +225,10 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     paymentCtaHint: isArabic
       ? 'سيتم فتح نافذة الدفع لهذا المبلغ.'
       : 'A payment window will open for this amount.',
-    successTitle: isArabic ? 'تم تأكيد الطلب بنجاح' : 'Order confirmed successfully',
+    successTitle: isArabic ? 'تمت العملية بنجاح' : 'Checkout completed successfully',
     orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',
+    classBookingsDone: isArabic ? 'حجوزات الدورات' : 'Class bookings',
+    eventRequestsDone: isArabic ? 'طلبات الفعاليات' : 'Event requests',
     continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
     backToCart: isArabic ? 'العودة للسلة' : 'Back to cart',
     required: isArabic ? 'هذا الحقل مطلوب' : 'This field is required',
@@ -210,32 +255,37 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     setUnauthorized(false);
 
     try {
-      const [cartRes, walletRes] = await Promise.all([
-        fetch('/api/cart', { cache: 'no-store' }),
-        fetch('/api/wallet/balance', { cache: 'no-store' }),
-      ]);
+      const cartRes = await fetch('/api/cart', { cache: 'no-store' });
 
       if (!cartRes.ok) {
         const errPayload = await cartRes.json().catch(() => ({}));
         throw new Error(typeof errPayload?.error === 'string' ? errPayload.error : 'Failed to load cart');
       }
 
+      const cartPayload = (await cartRes.json()) as CartPayload;
+      setCart(cartPayload);
+
+      if ((cartPayload.summary.payableNowTotal ?? 0) <= 0) {
+        setWallet(null);
+        setUnauthorized(false);
+        return;
+      }
+
+      const walletRes = await fetch('/api/wallet/balance', { cache: 'no-store' });
+
       if (walletRes.status === 401) {
         setUnauthorized(true);
-      } else if (!walletRes.ok) {
+        setWallet(null);
+        return;
+      }
+
+      if (!walletRes.ok) {
         const errPayload = await walletRes.json().catch(() => ({}));
         throw new Error(typeof errPayload?.error === 'string' ? errPayload.error : 'Failed to load wallet');
       }
 
-      const cartPayload = (await cartRes.json()) as CartPayload;
-      setCart(cartPayload);
-
-      if (walletRes.ok) {
-        const walletPayload = (await walletRes.json()) as WalletPayload;
-        setWallet(walletPayload);
-      } else {
-        setWallet(null);
-      }
+      const walletPayload = (await walletRes.json()) as WalletPayload;
+      setWallet(walletPayload);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Failed to load checkout data');
     } finally {
@@ -249,15 +299,20 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   const subtotal = cart?.summary.subtotal ?? 0;
   const currency = cart?.summary.currency ?? wallet?.currency ?? 'OMR';
+  const hasShopItems = (cart?.summary.shopItemsCount ?? 0) > 0;
+  const hasClassItems = (cart?.summary.classItemsCount ?? 0) > 0;
+  const hasEventItems = (cart?.summary.eventItemsCount ?? 0) > 0;
   const discountAmount = appliedPromo?.discountAmount ?? 0;
-  const discountedSubtotal = Number(Math.max(0, subtotal - discountAmount).toFixed(3));
-  const total = Number((discountedSubtotal + SHIPPING_FEE).toFixed(3));
+  const basePayableNow = cart?.summary.payableNowTotal ?? 0;
+  const total = Number((Math.max(0, basePayableNow - discountAmount) + (hasShopItems ? SHIPPING_FEE : 0)).toFixed(3));
   const walletBalance = wallet?.balance ?? 0;
   const hasEnoughBalance = walletBalance >= total;
   const shortfallAmount = Number(Math.max(0, total - walletBalance).toFixed(3));
   const walletUsedAmount = Number(Math.min(walletBalance, total).toFixed(3));
   const hasItems = (cart?.items.length ?? 0) > 0;
-  const isLocationMissing = selectedLocation === null;
+  const requiresAuthenticatedCheckout = basePayableNow > 0;
+  const isRequestOnlyCart = hasEventItems && basePayableNow <= 0;
+  const isLocationMissing = hasShopItems && selectedLocation === null;
 
   const persistCheckoutDraft = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -297,12 +352,14 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
   const requiredMissing = useMemo(() => {
     return (
-      form.area.trim().length === 0 ||
-      form.streetAddress.trim().length === 0 ||
-      form.recipientFullName.trim().length === 0 ||
-      form.recipientPhone.trim().length === 0
+      hasShopItems && (
+        form.area.trim().length === 0 ||
+        form.streetAddress.trim().length === 0 ||
+        form.recipientFullName.trim().length === 0 ||
+        form.recipientPhone.trim().length === 0
+      )
     );
-  }, [form]);
+  }, [form, hasShopItems]);
 
   useEffect(() => {
     const topupStatus = searchParams.get('topup');
@@ -518,7 +575,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
     setProcessing(true);
     try {
-      const response = await fetch('/api/shop/checkout', {
+      const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -544,7 +601,12 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         summary: {
           totalQuantity: 0,
           subtotal: 0,
-          currency: payload.order.currency,
+          payableNowTotal: 0,
+          requestOnlyTotal: 0,
+          shopItemsCount: 0,
+          classItemsCount: 0,
+          eventItemsCount: 0,
+          currency: payload.summary.currency,
         },
       });
       window.dispatchEvent(new CustomEvent('cart:changed', { detail: { count: 0 } }));
@@ -613,7 +675,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     );
   }
 
-  if (unauthorized) {
+  if (unauthorized && requiresAuthenticatedCheckout) {
     return (
       <div className="checkout-page relative overflow-x-clip pb-16">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[30rem]">
@@ -646,12 +708,20 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         <div className="mx-auto w-full max-w-3xl px-4 py-12">
           <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-7 text-center shadow-sm">
             <h1 className="text-2xl font-semibold text-emerald-900 dark:text-emerald-200">{t.successTitle}</h1>
-            <p className="mt-3 text-sm text-emerald-800 dark:text-emerald-300">
-              {t.orderNumber}: <span className="font-semibold">{checkoutResult.order.orderNumber}</span>
-            </p>
+            {checkoutResult.summary.shopOrderNumber ? (
+              <p className="mt-3 text-sm text-emerald-800 dark:text-emerald-300">
+                {t.orderNumber}: <span className="font-semibold">{checkoutResult.summary.shopOrderNumber}</span>
+              </p>
+            ) : null}
             <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-300">
-              {t.total}: {formatAmountWithCurrency(checkoutResult.order.totalAmount, checkoutResult.order.currency)}
+              {t.total}: {formatAmountWithCurrency(checkoutResult.summary.payableTotal, checkoutResult.summary.currency)}
             </p>
+            {checkoutResult.summary.classBookingsCount > 0 ? (
+              <p className="mt-1 text-sm text-emerald-800 dark:text-emerald-300">{t.classBookingsDone}: {checkoutResult.summary.classBookingsCount}</p>
+            ) : null}
+            {checkoutResult.summary.eventRequestsCount > 0 ? (
+              <p className="mt-1 text-sm text-emerald-800 dark:text-emerald-300">{t.eventRequestsDone}: {checkoutResult.summary.eventRequestsCount}</p>
+            ) : null}
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link
                 href={`/${locale}/shop`}
@@ -731,6 +801,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
           <section className="space-y-6">
+            {hasShopItems ? (
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm">
               <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.shippingInfo}</h2>
               <p className="mt-1 text-xs text-[color:var(--text-subtle)]">{t.onlyMuscat}</p>
@@ -804,23 +875,36 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                 </label>
               </div>
             </div>
+            ) : null}
 
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm">
-              <h3 className="text-base font-semibold text-[color:var(--text)]">{t.orderSummary}</h3>
+              <h3 className="text-base font-semibold text-[color:var(--text)]">{hasShopItems ? t.orderSummary : t.bookingsSummary}</h3>
               <div className="mt-3 space-y-2">
                 {(cart?.items ?? []).map((item) => (
                   <div
-                    key={item.productId}
+                    key={item.id}
                     className="flex items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-sm"
                   >
-                    <Link
-                      href={`/${locale}/shop/product/${item.product.slug}`}
-                      className="line-clamp-1 max-w-[75%] font-medium text-[color:var(--text)] hover:underline"
-                    >
-                      {isArabic ? item.product.name_ar : item.product.name_en} x{item.quantity}
-                    </Link>
+                    {item.kind === 'SHOP_PRODUCT' ? (
+                      <Link
+                        href={`/${locale}/shop/product/${item.product.slug}`}
+                        className="line-clamp-1 max-w-[75%] font-medium text-[color:var(--text)] hover:underline"
+                      >
+                        {isArabic ? item.product.name_ar : item.product.name_en} x{item.quantity}
+                      </Link>
+                    ) : item.kind === 'CLASS_BOOKING' ? (
+                      <Link href={`/${locale}/classes/${item.slug}`} className="line-clamp-1 max-w-[75%] font-medium text-[color:var(--text)] hover:underline">
+                        {(isArabic && item.titleAr ? item.titleAr : item.title)} • {t.participants}: {item.numberOfParticipants}
+                      </Link>
+                    ) : (
+                      <span className="line-clamp-1 max-w-[75%] font-medium text-[color:var(--text)]">
+                        {(isArabic ? item.titleAr : item.title)} • {item.selectedDate} {item.selectedTime}
+                      </span>
+                    )}
                     <span className="text-[color:var(--text-muted)]">
-                      {formatAmountWithCurrency(item.lineTotal, item.product.currency)}
+                      {item.lineTotal != null
+                        ? formatAmountWithCurrency(item.lineTotal, item.kind === 'SHOP_PRODUCT' ? item.product.currency : item.currency)
+                        : t.requestOnlyTotal}
                     </span>
                   </div>
                 ))}
@@ -831,6 +915,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
           <aside className="h-fit rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm lg:sticky lg:top-24">
             <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.orderSummary}</h2>
             <div className="mt-4 space-y-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 text-sm text-[color:var(--text)]">
+              {hasShopItems ? (
               <div className="space-y-2 rounded-lg border border-[color:var(--border)] bg-[color:var(--surface)] p-3">
                 <label className="block text-xs font-medium text-[color:var(--text-muted)]">{t.promoCode}</label>
                 <div className="flex gap-2">
@@ -862,19 +947,24 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                   </div>
                 ) : null}
               </div>
+              ) : null}
+              {!isRequestOnlyCart ? (
               <div className="flex items-center justify-between">
                 <span>{t.walletBalance}</span>
                 <span className="font-semibold">
                   {formatAmountWithCurrency(walletBalance, currency)}
                 </span>
               </div>
+              ) : null}
+              {!isRequestOnlyCart && total > 0 ? (
               <div className="flex items-center justify-between">
                 <span>{t.walletUsed}</span>
                 <span className="font-semibold text-emerald-700 dark:text-emerald-300">
                   {formatAmountWithCurrency(walletUsedAmount, currency)}
                 </span>
               </div>
-              {!hasEnoughBalance ? (
+              ) : null}
+              {!isRequestOnlyCart && !hasEnoughBalance ? (
                 <div className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-900/10">
                   <div className="flex items-center justify-between text-amber-800 dark:text-amber-200">
                     <span className="font-medium">{t.shortfall}</span>
@@ -886,19 +976,27 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                 </div>
               ) : null}
               <div className="flex items-center justify-between">
-                <span>{t.subtotal}</span>
-                <span>{formatAmountWithCurrency(subtotal, currency)}</span>
+                <span>{hasShopItems || hasClassItems ? t.payableNow : t.requestOnlyTotal}</span>
+                <span>{formatAmountWithCurrency(total, currency)}</span>
               </div>
-              {discountAmount > 0 ? (
+              {hasShopItems && discountAmount > 0 ? (
                 <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-300">
                   <span>{t.discount}</span>
                   <span>-{formatAmountWithCurrency(discountAmount, currency)}</span>
                 </div>
               ) : null}
+              {hasShopItems ? (
               <div className="flex items-center justify-between">
                 <span>{t.shipping}</span>
                 <span>{formatAmountWithCurrency(SHIPPING_FEE, currency)}</span>
               </div>
+              ) : null}
+              {hasEventItems ? (
+                <div className="flex items-center justify-between">
+                  <span>{t.requestOnlyTotal}</span>
+                  <span>{formatAmountWithCurrency(cart?.summary.requestOnlyTotal ?? 0, currency)}</span>
+                </div>
+              ) : null}
               <div className="mt-2 border-t border-[color:var(--border)] pt-2 text-base font-semibold">
                 <div className="flex items-center justify-between">
                   <span>{t.total}</span>
@@ -919,13 +1017,17 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             <button
               type="button"
               onClick={() => void submitCheckout()}
-              disabled={processing || requiredMissing || isLocationMissing || !hasEnoughBalance}
+              disabled={processing || requiredMissing || isLocationMissing || (!isRequestOnlyCart && !hasEnoughBalance)}
               className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {processing ? t.processing : t.payWallet}
+              {processing ? t.processing : isRequestOnlyCart ? t.submitRequests : t.payWallet}
             </button>
 
-            {!hasEnoughBalance ? (
+            {isRequestOnlyCart ? (
+              <p className="mt-3 text-xs text-[color:var(--text-subtle)]">{t.requestOnlyHint}</p>
+            ) : null}
+
+            {!isRequestOnlyCart && !hasEnoughBalance && total > 0 ? (
               <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center dark:border-emerald-900/40 dark:bg-emerald-900/20">
                 <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">{t.topupTitle}</h3>
                 <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">{t.topupHint}</p>

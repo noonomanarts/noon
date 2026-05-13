@@ -52,7 +52,7 @@ export default function PrivateClassBookingPage() {
     step: locale === 'ar' ? 'الخطوة' : 'Step',
     next: locale === 'ar' ? 'التالي' : 'Next',
     back: locale === 'ar' ? 'رجوع' : 'Back',
-    submit: locale === 'ar' ? 'إرسال الطلب' : 'Submit Request',
+    submit: locale === 'ar' ? 'أضف إلى السلة' : 'Add to Cart',
     
     selectDateTime: locale === 'ar' ? 'اختر التاريخ والوقت' : 'Select Date & Time',
     selectDate: locale === 'ar' ? 'التاريخ' : 'Date',
@@ -73,11 +73,11 @@ export default function PrivateClassBookingPage() {
     numberOfParticipants: locale === 'ar' ? 'عدد المشاركين' : 'Number of Participants',
     specialRequests: locale === 'ar' ? 'طلبات خاصة' : 'Special Requests',
     
-    confirmationTitle: locale === 'ar' ? 'شكراً لطلبك!' : 'Thank you for your request!',
+    confirmationTitle: locale === 'ar' ? 'تمت إضافة الطلب إلى السلة' : 'Request added to cart',
     confirmationMessage: locale === 'ar'
-      ? 'سيقوم فريقنا بمراجعة التفاصيل والتواصل معك قريباً لتأكيد التوفر وإتمام الحجز.'
-      : 'Our team will review the details and contact you shortly to confirm availability and finalize your booking.',
-    backToHome: locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home',
+      ? 'يمكنك متابعة التسوق أو الذهاب إلى السلة لإكمال الطلب. سيُراجع فريقنا الطلب بعد إرساله.'
+      : 'You can keep shopping or go to cart to continue. Our team will review the request after it is submitted.',
+    backToHome: locale === 'ar' ? 'الذهاب إلى السلة' : 'Go to Cart',
     selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
     dateRequired: locale === 'ar' ? 'يرجى اختيار التاريخ.' : 'Please select a date.',
     timeRequired: locale === 'ar' ? 'يرجى اختيار الوقت.' : 'Please select a time.',
@@ -178,30 +178,33 @@ export default function PrivateClassBookingPage() {
 
     setLoading(true);
     try {
-      const requestPayload = {
-        eventType: 'PRIVATE_CLASS' as const,
-        preferredLanguage: locale,
-        classType: formData.classType,
-        selectedDate: formData.selectedDate,
-        selectedTime: formData.selectedTime,
-        numberOfParticipants: Number(formData.numberOfParticipants),
-        preferredDish: formData.preferredDish.trim(),
-        fullName: formData.fullName.trim(),
-        email: formData.email.trim(),
-        phoneNumber: formData.phoneNumber.trim(),
-        companyOrGroupName: formData.companyOrGroupName.trim(),
-        specialRequests: formData.specialRequests.trim(),
-      };
-
-      const response = await fetch('/api/public/event-bookings', {
+      const response = await fetch('/api/cart/event-bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload),
+        body: JSON.stringify({
+          eventType: 'PRIVATE_CLASS',
+          selectedDate: formData.selectedDate,
+          selectedTime: formData.selectedTime,
+          estimatedTotal: privateTotal,
+          currency: 'OMR',
+          payload: {
+            preferredLanguage: locale,
+            classType: formData.classType,
+            numberOfParticipants: Number(formData.numberOfParticipants),
+            preferredDish: formData.preferredDish.trim(),
+            fullName: formData.fullName.trim(),
+            email: formData.email.trim(),
+            phoneNumber: formData.phoneNumber.trim(),
+            companyOrGroupName: formData.companyOrGroupName.trim(),
+            specialRequests: formData.specialRequests.trim(),
+          },
+        }),
       });
 
       const payload = await response.json().catch(() => ({} as Record<string, unknown>));
       if (response.ok) {
-        setBookingNumber(typeof payload.bookingNumber === 'string' ? payload.bookingNumber : null);
+        setBookingNumber(null);
+        window.dispatchEvent(new CustomEvent('cart:changed'));
         setStep(4);
       } else {
         setError(typeof payload.error === 'string' ? payload.error : t.submitError);
@@ -427,7 +430,7 @@ export default function PrivateClassBookingPage() {
               </p>
             ) : null}
             <button
-              onClick={() => router.push(`/${locale}`)}
+              onClick={() => router.push(`/${locale}/cart`)}
               className="rounded-xl bg-[color:var(--primary)] px-6 py-3 font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
             >
               {t.backToHome}

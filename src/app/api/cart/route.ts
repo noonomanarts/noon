@@ -9,11 +9,15 @@ export async function GET() {
     const cartCookie = cookieStore.get(CART_COOKIE_NAME)?.value;
     const cart = parseCartCookie(cartCookie);
 
-    const productIds = cart.items.map((item) => item.productId);
+    const shopItems = cart.items.filter((item) => item.kind === 'SHOP_PRODUCT');
+    const classItems = cart.items.filter((item) => item.kind === 'CLASS_BOOKING');
+    const eventItems = cart.items.filter((item) => item.kind === 'EVENT_BOOKING');
+
+    const productIds = shopItems.map((item) => item.productId);
     const products = await getShopProductsByIdsForPublic(productIds);
     const productMap = new Map(products.map((product) => [product.id, product]));
 
-    const items = cart.items
+    const hydratedShopItems = shopItems
       .map((item) => {
         const product = productMap.get(item.productId);
         if (!product) return null;
@@ -24,6 +28,8 @@ export async function GET() {
         const lineTotal = product.price * quantity;
 
         return {
+          id: item.id,
+          kind: item.kind,
           productId: product.id,
           quantity,
           lineTotal,
@@ -44,15 +50,43 @@ export async function GET() {
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
 
-    const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
-    const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
+    const hydratedClassItems = classItems.map((item) => ({
+      ...item,
+      lineTotal: Number((item.price * item.numberOfParticipants).toFixed(3)),
+    }));
+
+    const hydratedEventItems = eventItems.map((item) => ({
+      ...item,
+      lineTotal: item.estimatedTotal,
+    }));
+
+    const items = [...hydratedShopItems, ...hydratedClassItems, ...hydratedEventItems];
+    const totalQuantity =
+      hydratedShopItems.reduce((sum, item) => sum + item.quantity, 0) +
+      hydratedClassItems.length +
+      hydratedEventItems.length;
+    const subtotal = items.reduce((sum, item) => sum + Number(item.lineTotal ?? 0), 0);
+    const payableNowTotal =
+      hydratedShopItems.reduce((sum, item) => sum + item.lineTotal, 0) +
+      hydratedClassItems.reduce((sum, item) => sum + item.lineTotal, 0);
+    const requestOnlyTotal = hydratedEventItems.reduce((sum, item) => sum + Number(item.lineTotal ?? 0), 0);
+    const firstItemCurrency = items[0]
+      ? items[0].kind === 'SHOP_PRODUCT'
+        ? items[0].product.currency
+        : items[0].currency
+      : 'OMR';
 
     return NextResponse.json({
       items,
       summary: {
         totalQuantity,
         subtotal,
-        currency: items[0]?.product.currency ?? 'OMR',
+        payableNowTotal,
+        requestOnlyTotal,
+        shopItemsCount: hydratedShopItems.length,
+        classItemsCount: hydratedClassItems.length,
+        eventItemsCount: hydratedEventItems.length,
+        currency: firstItemCurrency,
       },
     });
   } catch (error) {

@@ -6,7 +6,9 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
-type CartApiItem = {
+type ShopCartApiItem = {
+  id: string;
+  kind: 'SHOP_PRODUCT';
   productId: string;
   quantity: number;
   lineTotal: number;
@@ -25,14 +27,60 @@ type CartApiItem = {
   };
 };
 
+type ClassCartApiItem = {
+  id: string;
+  kind: 'CLASS_BOOKING';
+  classId: string;
+  slug: string;
+  title: string;
+  titleAr: string | null;
+  image: string | null;
+  startDateTime: string | null;
+  price: number;
+  currency: string;
+  numberOfParticipants: number;
+  lineTotal: number;
+};
+
+type EventCartApiItem = {
+  id: string;
+  kind: 'EVENT_BOOKING';
+  eventType: 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY';
+  title: string;
+  titleAr: string;
+  selectedDate: string;
+  selectedTime: string;
+  estimatedTotal: number | null;
+  currency: string;
+  lineTotal: number | null;
+};
+
+type CartApiItem = ShopCartApiItem | ClassCartApiItem | EventCartApiItem;
+
 type CartPayload = {
   items: CartApiItem[];
   summary: {
     totalQuantity: number;
     subtotal: number;
+    payableNowTotal: number;
+    requestOnlyTotal: number;
+    shopItemsCount: number;
+    classItemsCount: number;
+    eventItemsCount: number;
     currency: string;
   };
 };
+
+function hasRenderableProduct(item: CartApiItem): item is ShopCartApiItem {
+  return (
+    item.kind === 'SHOP_PRODUCT'
+    && typeof item.product === 'object'
+    && item.product !== null
+    && typeof item.product.slug === 'string'
+    && typeof item.product.name_en === 'string'
+    && typeof item.product.currency === 'string'
+  );
+}
 
 export default function CartPageClient({ locale }: { locale: Locale }) {
   const isArabic = locale === 'ar';
@@ -44,9 +92,15 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
   const t = {
     title: isArabic ? 'السلة' : 'Shopping Cart',
     subtitle: isArabic ? 'محصولات انتخاب‌شده را بررسی و برای پرداخت آماده کنید.' : 'Review your selected products and continue to checkout.',
+    subtitleMixed: isArabic ? 'راجع المنتجات والحجوزات قبل المتابعة.' : 'Review your products and bookings before checkout.',
     empty: isArabic ? 'السلة فارغة حالياً.' : 'Your cart is currently empty.',
     backToShop: isArabic ? 'العودة للمتجر' : 'Back to shop',
     category: isArabic ? 'التصنيف' : 'Category',
+    classBooking: isArabic ? 'حجز دورة' : 'Class Booking',
+    eventRequest: isArabic ? 'طلب فعالية' : 'Event Request',
+    participants: isArabic ? 'المشاركون' : 'Participants',
+    eventDate: isArabic ? 'التاريخ' : 'Date',
+    requestOnly: isArabic ? 'طلب فقط' : 'Request only',
     qty: isArabic ? 'الكمية' : 'Quantity',
     price: isArabic ? 'السعر' : 'Price',
     total: isArabic ? 'الإجمالي' : 'Total',
@@ -58,6 +112,8 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
     loading: isArabic ? 'جاري تحميل السلة...' : 'Loading cart...',
     noImage: isArabic ? 'بدون صورة' : 'No image',
     items: isArabic ? 'منتجات' : 'items',
+    estimatedTotal: isArabic ? 'الإجمالي التقديري' : 'Estimated Total',
+    payableNow: isArabic ? 'المطلوب الآن' : 'Payable Now',
   };
 
   const loadCart = useCallback(async () => {
@@ -74,7 +130,19 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
       const nextPayload = (await response.json()) as CartPayload;
       setPayload(nextPayload);
     } catch (loadError) {
-      setPayload({ items: [], summary: { totalQuantity: 0, subtotal: 0, currency: 'OMR' } });
+      setPayload({
+        items: [],
+        summary: {
+          totalQuantity: 0,
+          subtotal: 0,
+          payableNowTotal: 0,
+          requestOnlyTotal: 0,
+          shopItemsCount: 0,
+          classItemsCount: 0,
+          eventItemsCount: 0,
+          currency: 'OMR',
+        },
+      });
       setError(loadError instanceof Error ? loadError.message : 'Failed to load cart');
     } finally {
       setLoading(false);
@@ -132,6 +200,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
 
   const currency = payload?.summary.currency ?? 'OMR';
   const subtotal = payload?.summary.subtotal ?? 0;
+  const payableNowTotal = payload?.summary.payableNowTotal ?? 0;
   const items = payload?.items ?? [];
   const hasItems = items.length > 0;
 
@@ -146,7 +215,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
         <section className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 text-center shadow-sm sm:p-9">
           <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)] sm:text-4xl">{t.title}</h1>
           <p className="mx-auto mt-2 max-w-2xl text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
-            {t.subtitle}
+            {payload?.summary && (payload.summary.classItemsCount > 0 || payload.summary.eventItemsCount > 0) ? t.subtitleMixed : t.subtitle}
           </p>
         </section>
 
@@ -173,74 +242,142 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
         ) : (
           <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
             <section className="space-y-3">
-              {items.map((item) => (
-                <article
-                  key={item.productId}
-                  className="grid gap-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 shadow-sm md:grid-cols-[100px_1fr_auto] md:items-center"
-                >
-                  <div className="relative h-24 w-full overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] md:w-24">
-                    {item.product.image ? (
-                      <Image src={item.product.image} alt={isArabic ? item.product.name_ar : item.product.name_en} fill sizes="96px" className="object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-xs text-[color:var(--text-subtle)]">{t.noImage}</div>
-                    )}
-                  </div>
+              {items.map((item) => {
+                const isRenderableShopItem = hasRenderableProduct(item);
+                const product = isRenderableShopItem ? item.product : null;
+                const imageSrc = product?.image ?? (item.kind === 'CLASS_BOOKING' ? item.image ?? null : null);
+                const shopTitle = product ? (isArabic ? product.name_ar : product.name_en) : null;
+                const itemTitle = shopTitle
+                  ? shopTitle
+                  : item.kind === 'CLASS_BOOKING'
+                    ? (isArabic && item.titleAr ? item.titleAr : item.title)
+                    : item.kind === 'EVENT_BOOKING'
+                      ? (isArabic ? item.titleAr : item.title)
+                      : t.noImage;
+                const shopHref = product ? `/${locale}/shop/product/${product.slug}` : null;
+                const shopCategory = product ? (isArabic ? product.category_name_ar : product.category_name_en) : null;
+                const shopUnitPrice = product ? formatAmountWithCurrency(product.price, product.currency) : null;
+                const shopLineTotal = product ? formatAmountWithCurrency(item.lineTotal, product.currency) : null;
+                const shopMaxQuantity = product?.stock_quantity ?? 0;
 
-                  <div className="space-y-1 text-center">
-                    <Link href={`/${locale}/shop/product/${item.product.slug}`} className="line-clamp-1 text-sm font-semibold text-[color:var(--text)] hover:underline">
-                      {isArabic ? item.product.name_ar : item.product.name_en}
-                    </Link>
-                    <p className="text-xs text-[color:var(--text-subtle)]">
-                      {t.category}: {isArabic ? item.product.category_name_ar : item.product.category_name_en}
-                    </p>
-                    <p className="text-sm font-semibold text-[color:var(--text)]">
-                      {formatAmountWithCurrency(item.product.price, item.product.currency)}
-                    </p>
-                  </div>
+                return (
+                  <article
+                    key={item.id}
+                    className="grid gap-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 shadow-sm md:grid-cols-[100px_1fr_auto] md:items-center"
+                  >
+                    <div className="relative h-24 w-full overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] md:w-24">
+                      {imageSrc ? (
+                        <Image
+                          src={imageSrc}
+                          alt={itemTitle ?? t.noImage}
+                          fill
+                          sizes="96px"
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-xs text-[color:var(--text-subtle)]">{t.noImage}</div>
+                      )}
+                    </div>
 
-                  <div className="flex flex-col items-center space-y-2 text-center">
-                    <div className="inline-flex items-center overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]">
+                    <div className="space-y-1 text-center">
+                      {isRenderableShopItem ? (
+                        <>
+                          {shopHref ? (
+                            <Link href={shopHref} className="line-clamp-1 text-sm font-semibold text-[color:var(--text)] hover:underline">
+                              {itemTitle}
+                            </Link>
+                          ) : (
+                            <p className="line-clamp-1 text-sm font-semibold text-[color:var(--text)]">{itemTitle}</p>
+                          )}
+                          {shopCategory ? (
+                            <p className="text-xs text-[color:var(--text-subtle)]">
+                              {t.category}: {shopCategory}
+                            </p>
+                          ) : null}
+                          {shopUnitPrice ? (
+                            <p className="text-sm font-semibold text-[color:var(--text)]">{shopUnitPrice}</p>
+                          ) : null}
+                        </>
+                      ) : item.kind === 'CLASS_BOOKING' ? (
+                        <>
+                          <Link href={`/${locale}/classes/${item.slug}`} className="line-clamp-1 text-sm font-semibold text-[color:var(--text)] hover:underline">
+                            {itemTitle}
+                          </Link>
+                          <p className="text-xs text-[color:var(--text-subtle)]">{t.classBooking}</p>
+                          <p className="text-xs text-[color:var(--text-subtle)]">{t.participants}: {item.numberOfParticipants}</p>
+                          <p className="text-sm font-semibold text-[color:var(--text)]">{formatAmountWithCurrency(item.lineTotal, item.currency)}</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="line-clamp-1 text-sm font-semibold text-[color:var(--text)]">{itemTitle}</p>
+                          <p className="text-xs text-[color:var(--text-subtle)]">{t.eventRequest}</p>
+                          <p className="text-xs text-[color:var(--text-subtle)]">{t.eventDate}: {item.selectedDate} • {item.selectedTime}</p>
+                          <p className="text-sm font-semibold text-[color:var(--text)]">
+                            {item.lineTotal != null ? formatAmountWithCurrency(item.lineTotal, item.currency) : t.requestOnly}
+                          </p>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col items-center space-y-2 text-center">
+                      {isRenderableShopItem ? (
+                        <>
+                          <div className="inline-flex items-center overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]">
+                            <button
+                              type="button"
+                              disabled={savingItemId === item.id || item.quantity <= 1}
+                              onClick={() => void updateQuantity(item.id, item.quantity - 1)}
+                              className="px-2 py-1 text-sm text-[color:var(--text)] hover:bg-[color:var(--surface)] disabled:opacity-40"
+                              aria-label={t.decrease}
+                            >
+                              −
+                            </button>
+                            <span className="px-3 py-1 text-sm text-[color:var(--text)]">{item.quantity}</span>
+                            <button
+                              type="button"
+                              disabled={savingItemId === item.id || item.quantity >= shopMaxQuantity}
+                              onClick={() => void updateQuantity(item.id, item.quantity + 1)}
+                              className="px-2 py-1 text-sm text-[color:var(--text)] hover:bg-[color:var(--surface)] disabled:opacity-40"
+                              aria-label={t.increase}
+                            >
+                              +
+                            </button>
+                          </div>
+                          {shopLineTotal ? (
+                            <p className="text-xs text-[color:var(--text-subtle)]">{t.total}: {shopLineTotal}</p>
+                          ) : null}
+                        </>
+                      ) : item.kind === 'CLASS_BOOKING' ? (
+                        <p className="text-xs text-[color:var(--text-subtle)]">{t.total}: {formatAmountWithCurrency(item.lineTotal, item.currency)}</p>
+                      ) : (
+                        <p className="text-xs text-[color:var(--text-subtle)]">{t.estimatedTotal}: {item.lineTotal != null ? formatAmountWithCurrency(item.lineTotal, item.currency) : t.requestOnly}</p>
+                      )}
                       <button
                         type="button"
-                        disabled={savingItemId === item.productId || item.quantity <= 1}
-                        onClick={() => void updateQuantity(item.productId, item.quantity - 1)}
-                        className="px-2 py-1 text-sm text-[color:var(--text)] hover:bg-[color:var(--surface)] disabled:opacity-40"
-                        aria-label={t.decrease}
+                        disabled={savingItemId === item.id}
+                        onClick={() => void removeItem(item.id)}
+                        className="text-xs font-medium text-rose-700 hover:underline disabled:opacity-50 dark:text-rose-300"
                       >
-                        −
-                      </button>
-                      <span className="px-3 py-1 text-sm text-[color:var(--text)]">{item.quantity}</span>
-                      <button
-                        type="button"
-                        disabled={savingItemId === item.productId || item.quantity >= item.product.stock_quantity}
-                        onClick={() => void updateQuantity(item.productId, item.quantity + 1)}
-                        className="px-2 py-1 text-sm text-[color:var(--text)] hover:bg-[color:var(--surface)] disabled:opacity-40"
-                        aria-label={t.increase}
-                      >
-                        +
+                        {t.remove}
                       </button>
                     </div>
-                    <p className="text-xs text-[color:var(--text-subtle)]">{t.total}: {formatAmountWithCurrency(item.lineTotal, item.product.currency)}</p>
-                    <button
-                      type="button"
-                      disabled={savingItemId === item.productId}
-                      onClick={() => void removeItem(item.productId)}
-                      className="text-xs font-medium text-rose-700 hover:underline disabled:opacity-50 dark:text-rose-300"
-                    >
-                      {t.remove}
-                    </button>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </section>
 
             <aside className="h-fit rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm lg:sticky lg:top-24">
               <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 text-center">
-                <p className="text-sm text-[color:var(--text-muted)]">{t.subtotal}</p>
+                <p className="text-sm text-[color:var(--text-muted)]">{payload?.summary.eventItemsCount ? t.estimatedTotal : t.subtotal}</p>
                 <p className="mt-2 text-2xl font-semibold text-[color:var(--text)]">{formatAmountWithCurrency(subtotal, currency)}</p>
                 <p className="mt-1 text-xs text-[color:var(--text-subtle)]">
                   {payload?.summary.totalQuantity ?? 0} {t.items}
                 </p>
+                {payload?.summary && payload.summary.classItemsCount + payload.summary.shopItemsCount > 0 ? (
+                  <p className="mt-2 text-xs text-[color:var(--text-muted)]">
+                    {t.payableNow}: {formatAmountWithCurrency(payableNowTotal, currency)}
+                  </p>
+                ) : null}
               </div>
               <Link
                 href={`/${locale}/checkout`}

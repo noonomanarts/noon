@@ -50,7 +50,7 @@ export default function BirthdayPartyBookingPage() {
     step: locale === 'ar' ? 'الخطوة' : 'Step',
     next: locale === 'ar' ? 'التالي' : 'Next',
     back: locale === 'ar' ? 'رجوع' : 'Back',
-    submit: locale === 'ar' ? 'إرسال الطلب' : 'Submit Request',
+    submit: locale === 'ar' ? 'أضف إلى السلة' : 'Add to Cart',
     
     selectDateTime: locale === 'ar' ? 'اختر التاريخ والوقت' : 'Select Date & Time',
     selectDate: locale === 'ar' ? 'التاريخ' : 'Date',
@@ -81,11 +81,11 @@ export default function BirthdayPartyBookingPage() {
     phoneNumber: locale === 'ar' ? 'رقم الهاتف' : 'Phone Number',
     specialRequests: locale === 'ar' ? 'طلبات خاصة' : 'Special Requests',
     
-    confirmationTitle: locale === 'ar' ? 'شكراً لطلبك!' : 'Thank you for your request!',
+    confirmationTitle: locale === 'ar' ? 'تمت إضافة الطلب إلى السلة' : 'Request added to cart',
     confirmationMessage: locale === 'ar'
-      ? 'سيقوم فريقنا بمراجعة التفاصيل والتواصل معك قريباً لتأكيد التوفر وإتمام الحجز.'
-      : 'Our team will review the details and contact you shortly to confirm availability and finalize your booking.',
-    backToHome: locale === 'ar' ? 'العودة للرئيسية' : 'Back to Home',
+      ? 'يمكنك متابعة الحجز من السلة. سيُراجع فريقنا الطلب بعد إرساله من هناك.'
+      : 'You can continue from the cart. Our team will review the request after it is submitted there.',
+    backToHome: locale === 'ar' ? 'الذهاب إلى السلة' : 'Go to Cart',
     selectTimePlaceholder: locale === 'ar' ? 'اختر الوقت...' : 'Select time...',
     dateRequired: locale === 'ar' ? 'يرجى اختيار التاريخ.' : 'Please select a date.',
     timeRequired: locale === 'ar' ? 'يرجى اختيار الوقت.' : 'Please select a time.',
@@ -210,29 +210,32 @@ export default function BirthdayPartyBookingPage() {
 
     setLoading(true);
     try {
-      const requestPayload = {
-        eventType: 'BIRTHDAY_PARTY' as const,
-        preferredLanguage: locale,
-        selectedDate: formData.selectedDate,
-        selectedTime: formData.selectedTime,
-        birthdayPackage: selectedTier.id,
-        numberOfParticipants: selectedTier.maxParticipants,
-        childAge: Number(formData.childAge),
-        fullName: formData.fullName.trim(),
-        email: formData.email.trim(),
-        phoneNumber: formData.phoneNumber.trim(),
-        specialRequests: formData.specialRequests.trim(),
-      };
-
-      const response = await fetch('/api/public/event-bookings', {
+      const response = await fetch('/api/cart/event-bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestPayload),
+        body: JSON.stringify({
+          eventType: 'BIRTHDAY_PARTY',
+          selectedDate: formData.selectedDate,
+          selectedTime: formData.selectedTime,
+          estimatedTotal: birthdayTotal,
+          currency: 'OMR',
+          payload: {
+            preferredLanguage: locale,
+            birthdayPackage: selectedTier.id,
+            numberOfParticipants: selectedTier.maxParticipants,
+            childAge: Number(formData.childAge),
+            fullName: formData.fullName.trim(),
+            email: formData.email.trim(),
+            phoneNumber: formData.phoneNumber.trim(),
+            specialRequests: formData.specialRequests.trim(),
+          },
+        }),
       });
 
       const payload = await response.json().catch(() => ({} as Record<string, unknown>));
       if (response.ok) {
-        setBookingNumber(typeof payload.bookingNumber === 'string' ? payload.bookingNumber : null);
+        setBookingNumber(null);
+        window.dispatchEvent(new CustomEvent('cart:changed'));
         setStep(4);
       } else {
         setError(typeof payload.error === 'string' ? payload.error : t.submitError);
@@ -559,7 +562,7 @@ export default function BirthdayPartyBookingPage() {
             ) : null}
             <div className="mx-auto flex max-w-md flex-col gap-4">
               <button
-                onClick={() => router.push(`/${locale}`)}
+                onClick={() => router.push(`/${locale}/cart`)}
                 className="rounded-xl bg-gradient-to-r from-coral to-coral-light px-8 py-4 font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
               >
                 {t.backToHome}

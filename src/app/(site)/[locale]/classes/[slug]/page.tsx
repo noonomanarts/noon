@@ -24,6 +24,7 @@ import { ClassCategory } from "@/lib/db/types";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { formatDurationClock } from "@/lib/formatDuration";
 import { isLocale, type Locale } from "@/lib/locale";
+import { markdownToSafeHtml } from "@/lib/markdown";
 import { getCurrentUser } from "@/lib/session";
 import {
   isRegistrationClosed,
@@ -142,6 +143,7 @@ export default async function ClassDetailPage({
   const description =
     (isArabic ? classData.descriptionAr : classData.description) ||
     (isArabic ? "لا يوجد وصف متاح حالياً." : "No description available.");
+  const descriptionHtml = markdownToSafeHtml(description);
 
   const subCategory = classData.subCategory
     ? classData.subCategory
@@ -323,9 +325,10 @@ export default async function ClassDetailPage({
               <HiSparkles className={`h-5 w-5 ${isCooking ? "text-coral" : "text-purple"}`} />
               <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.classOverview}</h2>
             </div>
-            <p className="mt-4 whitespace-pre-line text-sm leading-7 text-[color:var(--text-muted)] sm:text-base">
-              {description}
-            </p>
+            <div
+              className="mt-4 text-sm text-[color:var(--text-muted)] sm:text-base [&_a]:font-medium [&_blockquote]:text-[color:var(--text-muted)] [&_code]:text-[color:var(--text)] [&_h1]:text-[color:var(--text)] [&_h2]:text-[color:var(--text)] [&_h3]:text-[color:var(--text)] [&_h4]:text-[color:var(--text)] [&_h5]:text-[color:var(--text)] [&_h6]:text-[color:var(--text)] [&_li]:leading-7 [&_ol]:text-[color:var(--text-muted)] [&_p]:text-[color:var(--text-muted)] [&_pre]:my-4 [&_strong]:text-[color:var(--text)] [&_ul]:text-[color:var(--text-muted)]"
+              dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+            />
           </article>
 
           {trainer ? (
