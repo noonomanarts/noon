@@ -9,6 +9,7 @@ import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotificat
 import { getWorkersWithOrdersPermission } from '@/lib/db/worker';
 import { notifyUser } from '@/lib/notificationService';
 import { createShopSaleCostExpenseEntry, createShopSaleFinanceEntry } from '@/lib/db/finance';
+import type { ShopCartItem } from '@/lib/cart';
 
 const SHIPPING_FEE = 2;
 const DELIVERY_CITY = 'Muscat';
@@ -53,6 +54,15 @@ function generateOrderNumber(): string {
   const d = String(now.getUTCDate()).padStart(2, '0');
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `SO-${y}${m}${d}-${random}`;
+}
+
+function isShopCartItem(item: unknown): item is ShopCartItem {
+  return Boolean(
+    item
+    && typeof item === 'object'
+    && (item as { kind?: unknown }).kind === 'SHOP_PRODUCT'
+    && typeof (item as { productId?: unknown }).productId === 'string'
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -106,6 +116,12 @@ export async function POST(request: NextRequest) {
 
     if (!Array.isArray(cart.items) || cart.items.length === 0) {
       return NextResponse.json({ error: 'Your cart is empty' }, { status: 400 });
+    }
+
+    const shopCartItems = cart.items.filter(isShopCartItem);
+
+    if (shopCartItems.length === 0) {
+      return NextResponse.json({ error: 'Your cart does not contain shop items' }, { status: 400 });
     }
 
     const client = await pool.connect();
@@ -197,7 +213,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Wallet not found' }, { status: 404 });
       }
 
-      const productIds = cart.items.map((item) => item.productId.trim()).filter((id) => id.length > 0);
+      const productIds = shopCartItems.map((item) => item.productId.trim()).filter((id) => id.length > 0);
       const productResult = await client.query(
         `SELECT p.id, p.slug, p.name_en, p.name_ar, p.image, p.price, p.cost, p.currency, p.stock_quantity, p.is_active,
                 c.is_active AS category_is_active
@@ -227,7 +243,7 @@ export async function POST(request: NextRequest) {
         image: string | null;
       }> = [];
 
-      for (const cartItem of cart.items) {
+      for (const cartItem of shopCartItems) {
         const product = productMap.get(cartItem.productId);
         if (!product) {
           await client.query('ROLLBACK');

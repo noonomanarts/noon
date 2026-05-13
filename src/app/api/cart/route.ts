@@ -20,7 +20,19 @@ export async function GET() {
     const hydratedShopItems = shopItems
       .map((item) => {
         const product = productMap.get(item.productId);
-        if (!product) return null;
+        if (
+          !product
+          || typeof product.id !== 'string'
+          || typeof product.slug !== 'string'
+          || typeof product.name_en !== 'string'
+          || typeof product.name_ar !== 'string'
+          || typeof product.currency !== 'string'
+          || typeof product.category_name_en !== 'string'
+          || typeof product.category_name_ar !== 'string'
+          || typeof product.category_slug !== 'string'
+        ) {
+          return null;
+        }
 
         const quantity = Math.max(1, Math.min(item.quantity, Math.max(0, product.stock_quantity)));
         if (quantity <= 0) return null;

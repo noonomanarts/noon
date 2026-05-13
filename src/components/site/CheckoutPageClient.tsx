@@ -68,6 +68,17 @@ type CartPayload = {
   };
 };
 
+function hasRenderableProduct(item: CartApiItem): item is ShopCartApiItem {
+  return (
+    item.kind === 'SHOP_PRODUCT'
+    && typeof item.product === 'object'
+    && item.product !== null
+    && typeof item.product.slug === 'string'
+    && typeof item.product.name_en === 'string'
+    && typeof item.product.currency === 'string'
+  );
+}
+
 type WalletPayload = {
   balance: number;
   available_balance: number;
@@ -465,6 +476,16 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const handleTopup = async () => {
     setMessage(null);
     setError(null);
+
+    if (requiredMissing) {
+      setError(t.required);
+      return;
+    }
+
+    if (isLocationMissing) {
+      setError(t.locationRequired);
+      return;
+    }
 
     const amount = shortfallAmount;
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -880,34 +901,47 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm">
               <h3 className="text-base font-semibold text-[color:var(--text)]">{hasShopItems ? t.orderSummary : t.bookingsSummary}</h3>
               <div className="mt-3 space-y-2">
-                {(cart?.items ?? []).map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-sm"
-                  >
-                    {item.kind === 'SHOP_PRODUCT' ? (
-                      <Link
-                        href={`/${locale}/shop/product/${item.product.slug}`}
-                        className="line-clamp-1 max-w-[75%] font-medium text-[color:var(--text)] hover:underline"
-                      >
-                        {isArabic ? item.product.name_ar : item.product.name_en} x{item.quantity}
-                      </Link>
-                    ) : item.kind === 'CLASS_BOOKING' ? (
-                      <Link href={`/${locale}/classes/${item.slug}`} className="line-clamp-1 max-w-[75%] font-medium text-[color:var(--text)] hover:underline">
-                        {(isArabic && item.titleAr ? item.titleAr : item.title)} • {t.participants}: {item.numberOfParticipants}
-                      </Link>
-                    ) : (
-                      <span className="line-clamp-1 max-w-[75%] font-medium text-[color:var(--text)]">
-                        {(isArabic ? item.titleAr : item.title)} • {item.selectedDate} {item.selectedTime}
-                      </span>
-                    )}
-                    <span className="text-[color:var(--text-muted)]">
-                      {item.lineTotal != null
-                        ? formatAmountWithCurrency(item.lineTotal, item.kind === 'SHOP_PRODUCT' ? item.product.currency : item.currency)
-                        : t.requestOnlyTotal}
-                    </span>
-                  </div>
-                ))}
+                {(cart?.items ?? []).map((item) => {
+                  const shopItem = hasRenderableProduct(item) ? item : null;
+                  const product = shopItem?.product ?? null;
+                  const shopHref = product ? `/${locale}/shop/product/${product.slug}` : null;
+                  const shopQuantityLabel = shopItem ? ` x${shopItem.quantity}` : '';
+                  const itemLabel = product
+                    ? `${isArabic ? product.name_ar : product.name_en}${shopQuantityLabel}`
+                    : item.kind === 'CLASS_BOOKING'
+                      ? `${isArabic && item.titleAr ? item.titleAr : item.title} • ${t.participants}: ${item.numberOfParticipants}`
+                      : item.kind === 'EVENT_BOOKING'
+                        ? `${isArabic ? item.titleAr : item.title} • ${item.selectedDate} ${item.selectedTime}`
+                        : t.items;
+                  const lineTotalLabel = item.lineTotal != null
+                    ? formatAmountWithCurrency(item.lineTotal, product ? product.currency : item.kind === 'SHOP_PRODUCT' ? currency : item.currency)
+                    : t.requestOnlyTotal;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-sm"
+                    >
+                      {product && shopHref ? (
+                        <Link
+                          href={shopHref}
+                          className="line-clamp-1 max-w-[75%] font-medium text-[color:var(--text)] hover:underline"
+                        >
+                          {itemLabel}
+                        </Link>
+                      ) : item.kind === 'CLASS_BOOKING' ? (
+                        <Link href={`/${locale}/classes/${item.slug}`} className="line-clamp-1 max-w-[75%] font-medium text-[color:var(--text)] hover:underline">
+                          {itemLabel}
+                        </Link>
+                      ) : (
+                        <span className="line-clamp-1 max-w-[75%] font-medium text-[color:var(--text)]">
+                          {itemLabel}
+                        </span>
+                      )}
+                      <span className="text-[color:var(--text-muted)]">{lineTotalLabel}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </section>

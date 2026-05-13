@@ -47,7 +47,10 @@ export default async function Header({ locale }: { locale: Locale }) {
   const user = sessionId ? await getUserById(sessionId) : null;
   const cartCookie = cookieStore.get(CART_COOKIE_NAME)?.value;
   const initialCart = parseCartCookie(cartCookie);
-  const initialCartCount = initialCart.items.reduce((sum, item) => sum + item.quantity, 0);
+  const initialCartCount = initialCart.items.reduce(
+    (sum, item) => sum + (item.kind === 'SHOP_PRODUCT' ? item.quantity : 1),
+    0
+  );
   const { headerColor, headerLogoUrl } = await resolveHeaderBranding();
   const navTone: "dark" | "light" = "light";
   const dropdownButtonClass = "whitespace-nowrap text-black hover:bg-black/10 hover:text-black focus-visible:outline-black/60";
