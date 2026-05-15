@@ -71,6 +71,35 @@ type CartPayload = {
   };
 };
 
+function isValidCartItem(item: unknown): item is CartApiItem {
+  if (!item || typeof item !== 'object') return false;
+
+  const candidate = item as Partial<CartApiItem> & { kind?: unknown };
+
+  if (candidate.kind === 'SHOP_PRODUCT') {
+    return typeof (candidate as Partial<ShopCartApiItem>).id === 'string'
+      && typeof (candidate as Partial<ShopCartApiItem>).productId === 'string'
+      && typeof (candidate as Partial<ShopCartApiItem>).quantity === 'number'
+      && typeof (candidate as Partial<ShopCartApiItem>).lineTotal === 'number';
+  }
+
+  if (candidate.kind === 'CLASS_BOOKING') {
+    return typeof (candidate as Partial<ClassCartApiItem>).id === 'string'
+      && typeof (candidate as Partial<ClassCartApiItem>).slug === 'string'
+      && typeof (candidate as Partial<ClassCartApiItem>).title === 'string'
+      && typeof (candidate as Partial<ClassCartApiItem>).currency === 'string'
+      && typeof (candidate as Partial<ClassCartApiItem>).lineTotal === 'number';
+  }
+
+  if (candidate.kind === 'EVENT_BOOKING') {
+    return typeof (candidate as Partial<EventCartApiItem>).id === 'string'
+      && typeof (candidate as Partial<EventCartApiItem>).title === 'string'
+      && typeof (candidate as Partial<EventCartApiItem>).currency === 'string';
+  }
+
+  return false;
+}
+
 function hasRenderableProduct(item: CartApiItem): item is ShopCartApiItem {
   return (
     item.kind === 'SHOP_PRODUCT'
@@ -201,7 +230,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
   const currency = payload?.summary.currency ?? 'OMR';
   const subtotal = payload?.summary.subtotal ?? 0;
   const payableNowTotal = payload?.summary.payableNowTotal ?? 0;
-  const items = payload?.items ?? [];
+  const items = Array.isArray(payload?.items) ? payload.items.filter(isValidCartItem) : [];
   const hasItems = items.length > 0;
 
   return (
