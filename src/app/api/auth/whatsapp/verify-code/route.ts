@@ -8,7 +8,7 @@ import {
   normalizePhoneDigits,
   recordUserLogin,
 } from '@/lib/db/users';
-import type { UserRole } from '@/lib/db/types';
+import type { Gender, UserRole } from '@/lib/db/types';
 import { validateWhatsAppVerificationCode, type WhatsAppVerificationPurpose } from '@/lib/db/whatsappAuth';
 import { isEnglishPassword } from '@/lib/passwordPolicy';
 import { getSessionCookieOptions, SESSION_COOKIE_NAME } from '@/lib/sessionCookie';
@@ -20,6 +20,7 @@ type RegisterData = {
   lastName?: string;
   email?: string;
   dateOfBirth?: string;
+  gender?: Gender;
   preferredLanguage?: 'en' | 'ar';
   password?: string;
   acceptedTerms?: boolean;
@@ -67,6 +68,10 @@ function getVerifyErrorMessage(reason: string, locale: 'en' | 'ar'): string {
 
 function toPreferredLanguage(value: 'en' | 'ar' | undefined): 'ENGLISH' | 'ARABIC' {
   return value === 'ar' ? 'ARABIC' : 'ENGLISH';
+}
+
+function parseGender(value: unknown): Gender | null {
+  return value === 'MALE' || value === 'FEMALE' || value === 'OTHER' ? value : null;
 }
 
 export async function POST(request: Request) {
@@ -126,9 +131,10 @@ export async function POST(request: Request) {
       const email = typeof registerData.email === 'string' ? registerData.email.trim().toLowerCase() : '';
       const password = typeof registerData.password === 'string' ? registerData.password : '';
       const dateOfBirth = typeof registerData.dateOfBirth === 'string' ? registerData.dateOfBirth : '';
+      const gender = parseGender(registerData.gender);
       const acceptedTerms = registerData.acceptedTerms === true;
 
-      if (!firstName || !lastName || !email || !password || !dateOfBirth) {
+      if (!firstName || !lastName || !email || !password || !dateOfBirth || !gender) {
         return NextResponse.json(
           {
             error: isArabic ? 'بيانات التسجيل غير مكتملة.' : 'Registration data is incomplete.',
@@ -207,6 +213,7 @@ export async function POST(request: Request) {
         fullName,
         phoneNumber: normalizedPhone,
         dateOfBirth,
+        gender,
         preferredLanguage: toPreferredLanguage(registerData.preferredLanguage),
       });
 

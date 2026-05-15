@@ -2,12 +2,13 @@ import * as bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { changePassword, getUserByEmail, getUserById, getUserByPhone, updateUser } from '@/lib/db/users';
-import type { PreferredLanguage } from '@/lib/db/types';
+import type { Gender, PreferredLanguage } from '@/lib/db/types';
 
 type SettingsPayload = {
   fullName?: string;
   phoneNumber?: string;
   profileImage?: string | null;
+  gender?: Gender | null;
   preferredLanguage?: PreferredLanguage;
   currentPassword?: string;
   newPassword?: string;
@@ -26,6 +27,18 @@ async function requireAuthenticatedUser() {
 
 function sanitizePreferredLanguage(value: unknown): PreferredLanguage {
   return value === 'ARABIC' ? 'ARABIC' : 'ENGLISH';
+}
+
+function sanitizeGender(value: unknown): Gender | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  return value === 'MALE' || value === 'FEMALE' || value === 'OTHER' ? value : undefined;
 }
 
 function sanitizeProfileImage(value: unknown): string | null | undefined {
@@ -64,6 +77,7 @@ export async function GET() {
         fullName: user.fullName,
         phoneNumber: user.phoneNumber,
         profileImage: user.profileImage,
+        gender: user.gender,
         preferredLanguage: user.preferredLanguage,
       },
     });
@@ -86,6 +100,7 @@ export async function PATCH(request: Request) {
     const fullName = typeof body.fullName === 'string' ? body.fullName.trim() : user.fullName;
     const phoneNumber = typeof body.phoneNumber === 'string' ? body.phoneNumber.trim() : user.phoneNumber;
     const preferredLanguage = sanitizePreferredLanguage(body.preferredLanguage);
+    const gender = sanitizeGender(body.gender);
     const profileImage = sanitizeProfileImage(body.profileImage);
 
     if (fullName.length < 2 || fullName.length > 120) {
@@ -132,6 +147,7 @@ export async function PATCH(request: Request) {
     const updatedUser = await updateUser(user.id, {
       full_name: fullName,
       phone_number: phoneNumber,
+      gender,
       preferred_language: preferredLanguage,
       profile_image: profileImage,
     });
@@ -148,6 +164,7 @@ export async function PATCH(request: Request) {
         fullName: updatedUser.fullName,
         phoneNumber: updatedUser.phoneNumber,
         profileImage: updatedUser.profileImage,
+        gender: updatedUser.gender,
         preferredLanguage: updatedUser.preferredLanguage,
       },
     });

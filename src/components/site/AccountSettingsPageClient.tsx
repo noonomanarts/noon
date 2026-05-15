@@ -5,6 +5,7 @@ import { useMemo, useRef, useState } from 'react';
 import { FiLock, FiSave, FiShield, FiUser } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 import PasswordInput from '@/components/site/PasswordInput';
+import type { Gender } from '@/lib/db/types';
 
 type AccountSettingsUser = {
   id: string;
@@ -12,6 +13,7 @@ type AccountSettingsUser = {
   fullName: string;
   phoneNumber: string;
   profileImage: string | null;
+  gender: Gender | null;
   preferredLanguage: 'ENGLISH' | 'ARABIC';
 };
 
@@ -37,6 +39,7 @@ export default function AccountSettingsPageClient({
     fullName: initialUser.fullName,
     phoneNumber: initialUser.phoneNumber,
     profileImage: initialUser.profileImage ?? '',
+    gender: initialUser.gender ?? '',
     preferredLanguage: initialUser.preferredLanguage,
     currentPassword: '',
     newPassword: '',
@@ -54,6 +57,10 @@ export default function AccountSettingsPageClient({
     email: isArabic ? 'البريد الإلكتروني' : 'Email',
     phoneNumber: isArabic ? 'رقم الهاتف' : 'Phone Number',
     profileImage: isArabic ? 'الصورة الشخصية' : 'Profile Photo',
+    gender: isArabic ? 'الجنس' : 'Gender',
+    male: isArabic ? 'ذكر' : 'Male',
+    female: isArabic ? 'أنثى' : 'Female',
+    other: isArabic ? 'آخر' : 'Other',
     uploadPhoto: isArabic ? 'رفع صورة جديدة' : 'Upload New Photo',
     removePhoto: isArabic ? 'إزالة الصورة' : 'Remove Photo',
     uploadHint: isArabic ? 'PNG / JPG حتى 5MB' : 'PNG / JPG up to 5MB',
@@ -100,6 +107,7 @@ export default function AccountSettingsPageClient({
           fullName: form.fullName,
           phoneNumber: form.phoneNumber,
           profileImage: form.profileImage.trim() || null,
+          gender: form.gender || null,
           preferredLanguage: form.preferredLanguage,
         }),
       });
@@ -118,6 +126,7 @@ export default function AccountSettingsPageClient({
         fullName: payload.user?.fullName ?? previous.fullName,
         phoneNumber: payload.user?.phoneNumber ?? previous.phoneNumber,
         profileImage: payload.user?.profileImage ?? '',
+        gender: payload.user?.gender ?? previous.gender,
         preferredLanguage: payload.user?.preferredLanguage ?? previous.preferredLanguage,
       }));
       setInfo(t.updated);
@@ -182,6 +191,7 @@ export default function AccountSettingsPageClient({
           fullName: form.fullName,
           phoneNumber: form.phoneNumber,
           profileImage: form.profileImage.trim() || null,
+          gender: form.gender || null,
           preferredLanguage: form.preferredLanguage,
           currentPassword: form.currentPassword,
           newPassword: form.newPassword,
@@ -338,6 +348,24 @@ export default function AccountSettingsPageClient({
                   onChange={(event) => setForm((previous) => ({ ...previous, phoneNumber: event.target.value }))}
                   className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
                 />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="text-[color:var(--text-muted)]">{t.gender}</span>
+                <select
+                  value={form.gender}
+                  onChange={(event) =>
+                    setForm((previous) => ({
+                      ...previous,
+                      gender: event.target.value as Gender | '',
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2.5 text-[color:var(--text)] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[color:var(--focus)]"
+                >
+                  <option value="">{t.gender}</option>
+                  <option value="MALE">{t.male}</option>
+                  <option value="FEMALE">{t.female}</option>
+                  <option value="OTHER">{t.other}</option>
+                </select>
               </label>
               <label className="space-y-1 text-sm sm:col-span-2">
                 <span className="text-[color:var(--text-muted)]">{t.preferredLanguage}</span>

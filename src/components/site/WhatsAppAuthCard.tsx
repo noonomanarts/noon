@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import PasswordInput from '@/components/site/PasswordInput';
 import CountryCodeSelect from '@/components/site/CountryCodeSelect';
+import type { Gender } from '@/lib/db/types';
 import { isEnglishPassword } from '@/lib/passwordPolicy';
 
 type Locale = 'en' | 'ar';
@@ -14,6 +15,7 @@ type RegisterForm = {
   lastName: string;
   email: string;
   dateOfBirth: string;
+  gender: Gender | '';
   preferredLanguage: 'en' | 'ar';
   password: string;
   confirmPassword: string;
@@ -43,6 +45,7 @@ export default function WhatsAppAuthCard({
     lastName: '',
     email: '',
     dateOfBirth: '',
+    gender: '',
     preferredLanguage: locale,
     password: '',
     confirmPassword: '',
@@ -87,9 +90,13 @@ export default function WhatsAppAuthCard({
       lastName: isArabic ? 'الاسم الأخير' : 'Last Name',
       email: isArabic ? 'البريد الإلكتروني' : 'Email Address',
       dateOfBirth: isArabic ? 'تاريخ الميلاد' : 'Date of Birth',
+      gender: isArabic ? 'الجنس' : 'Gender',
       preferredLanguage: isArabic ? 'اللغة المفضلة' : 'Preferred Language',
       password: isArabic ? 'كلمة المرور' : 'Password',
       confirmPassword: isArabic ? 'تأكيد كلمة المرور' : 'Confirm Password',
+      male: isArabic ? 'ذكر' : 'Male',
+      female: isArabic ? 'أنثى' : 'Female',
+      other: isArabic ? 'آخر' : 'Other',
       english: isArabic ? 'الإنجليزية' : 'English',
       arabic: isArabic ? 'العربية' : 'Arabic',
       needPhone: isArabic ? 'يرجى إدخال رقم الهاتف.' : 'Please enter a phone number.',
@@ -103,6 +110,7 @@ export default function WhatsAppAuthCard({
       passRuleHint: isArabic
         ? 'استخدم لوحة مفاتيح إنجليزية فقط. لن يتم قبول أحرف عربية في كلمة المرور.'
         : 'Use English keyboard only. Arabic characters are not accepted in password.',
+      genderRequired: isArabic ? 'يرجى تحديد الجنس.' : 'Please select a gender.',
       missingRegisterFields: isArabic ? 'يرجى إكمال بيانات التسجيل المطلوبة.' : 'Please complete required registration fields.',
       invalidEmail: isArabic ? 'البريد الإلكتروني غير صحيح.' : 'Invalid email address.',
       termsRequired: isArabic ? 'يجب الموافقة على الشروط والأحكام لإكمال التسجيل.' : 'You must accept the Terms & Conditions to register.',
@@ -127,9 +135,13 @@ export default function WhatsAppAuthCard({
     }
 
     if (purpose === 'register') {
-      const { firstName, lastName, email, dateOfBirth, password, confirmPassword, acceptedTerms } = registerForm;
+      const { firstName, lastName, email, dateOfBirth, gender, password, confirmPassword, acceptedTerms } = registerForm;
       if (!firstName.trim() || !lastName.trim() || !email.trim() || !dateOfBirth || !password) {
         setError(t.missingRegisterFields);
+        return;
+      }
+      if (!gender) {
+        setError(t.genderRequired);
         return;
       }
       if (password.length < 8) {
@@ -229,6 +241,7 @@ export default function WhatsAppAuthCard({
                   lastName: registerForm.lastName,
                   email: registerForm.email,
                   dateOfBirth: registerForm.dateOfBirth,
+                  gender: registerForm.gender,
                   preferredLanguage: registerForm.preferredLanguage,
                   password: registerForm.password,
                   acceptedTerms: registerForm.acceptedTerms,
@@ -296,7 +309,7 @@ export default function WhatsAppAuthCard({
               />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <input
                 type="email"
                 value={registerForm.email}
@@ -311,6 +324,18 @@ export default function WhatsAppAuthCard({
                 max={new Date().toISOString().split('T')[0]}
                 className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
               />
+              <select
+                value={registerForm.gender}
+                onChange={(event) =>
+                  setRegisterForm((prev) => ({ ...prev, gender: event.target.value as Gender | '' }))
+                }
+                className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              >
+                <option value="">{t.gender}</option>
+                <option value="MALE">{t.male}</option>
+                <option value="FEMALE">{t.female}</option>
+                <option value="OTHER">{t.other}</option>
+              </select>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
