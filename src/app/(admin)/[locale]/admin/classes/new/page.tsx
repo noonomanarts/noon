@@ -109,7 +109,7 @@ export default function NewClassPage() {
     descriptionAr: '',
     category: '',
     subCategory: '',
-    audienceGender: 'MIXED',
+    audienceGender: 'FEMALE_ONLY',
     image: '',
     imageFile: null,
     images: [],

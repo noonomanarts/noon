@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
       descriptionAr: descriptionAr || '',
       category: resolvedCategory,
       subCategory: resolvedSubCategory,
-      audienceGender: audienceGender || 'MIXED',
+      audienceGender: audienceGender || 'FEMALE_ONLY',
       trainerId: resolvedTrainerId,
       price: resolvedPrice,
       seatsTotal: resolvedSeatsTotal,

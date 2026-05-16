@@ -20,6 +20,7 @@ async function ensureClassMinimumAgeSchema(): Promise<void> {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS show_minimum_age BOOLEAN NOT NULL DEFAULT FALSE`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS registration_close_at TIMESTAMP WITH TIME ZONE`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS audience_gender VARCHAR(20) NOT NULL DEFAULT 'MIXED'`);
+    await query(`ALTER TABLE classes ALTER COLUMN audience_gender SET DEFAULT 'FEMALE_ONLY'`);
   })();
 
   return classMinimumAgeSchemaReady;
@@ -218,6 +219,7 @@ export async function findManyClassesPaginated(options: {
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    audienceGender: row.audience_gender || 'FEMALE_ONLY',
     image: row.image,
     images: row.images || [],
     trainerId: row.trainer_id,
@@ -311,6 +313,7 @@ export async function findUniqueClass(
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    audienceGender: row.audience_gender || 'FEMALE_ONLY',
     image: row.image,
     images: row.images || [],
     trainerId: row.trainer_id,
@@ -440,7 +443,7 @@ export async function createClass(data: {
       data.descriptionAr || null,
       data.category,
       data.subCategory,
-      data.audienceGender || 'MIXED',
+      data.audienceGender || 'FEMALE_ONLY',
       data.trainerId,
       data.price,
       data.currency || 'OMR',
@@ -481,7 +484,7 @@ export async function createClass(data: {
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
-    audienceGender: row.audience_gender || 'MIXED',
+    audienceGender: row.audience_gender || 'FEMALE_ONLY',
     trainerId: row.trainer_id,
     price: parseFloat(row.price),
     currency: row.currency,
