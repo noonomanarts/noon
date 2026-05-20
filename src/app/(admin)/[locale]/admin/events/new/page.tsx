@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { MdArrowBack, MdSave } from "react-icons/md";
+import { QuarterHourTimeSelect } from "@/components/admin/QuarterHourDateTimeInput";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import {
   getBirthdayPartyTotal,
@@ -474,11 +475,10 @@ export default function AdminNewEventPage({
 
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
             {t.selectedTime}
-            <input
+            <QuarterHourTimeSelect
               required
-              placeholder="14:00"
               value={form.selectedTime}
-              onChange={(e) => setForm((prev) => ({ ...prev, selectedTime: e.target.value }))}
+              onChange={(value) => setForm((prev) => ({ ...prev, selectedTime: value }))}
               className="mt-1 w-full rounded-xl border border-zinc-300 bg-transparent px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:text-zinc-100"
             />
           </label>

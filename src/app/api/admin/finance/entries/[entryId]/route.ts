@@ -4,6 +4,7 @@ import {
   updateAdminFinanceEntry,
   type AdminFinanceEntryType,
 } from '@/lib/db/finance';
+import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
 import { requireAdminSession } from '../../_auth';
 
 function mapValidationStatus(error: unknown): number {
@@ -44,6 +45,10 @@ export async function PATCH(
       notes?: string | null;
       metadata?: Record<string, unknown>;
     };
+
+    if (body.occurredAt !== undefined && !isQuarterHourDateTimeValue(body.occurredAt)) {
+      return NextResponse.json({ error: 'Finance date/time minutes must be 00, 15, 30, or 45' }, { status: 400 });
+    }
 
     const entry = await updateAdminFinanceEntry(entryId, {
       type: body.type,

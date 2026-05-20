@@ -41,7 +41,6 @@ type ClassWithSessions = {
   trainer: { id: string; fullName: string; profileImage: string | null } | null;
   startDateTime: Date | null;
   endDateTime: Date | null;
-  seatsAvailable: number;
   status: string;
 };
 
@@ -183,7 +182,6 @@ export default async function CookingClassesPage({
     trainer: cls.trainer ? { id: cls.trainer.id, fullName: cls.trainer.fullName, profileImage: cls.trainer.profileImage } : null,
     startDateTime: cls.startDateTime ?? null,
     endDateTime: cls.endDateTime ?? null,
-    seatsAvailable: cls.seatsTotal - (cls.seatsBooked ?? 0),
     status: cls.status,
   }));
 
@@ -203,7 +201,6 @@ export default async function CookingClassesPage({
     momAndKid: isArabic ? "الأم والطفل" : "Mom & Kid",
     other: isArabic ? "أخرى" : "Other",
     bookNow: isArabic ? "احجز" : "Book",
-    available: isArabic ? "متاح" : "available",
     noClasses: isArabic
       ? "لا توجد دروس طبخ منشورة حالياً."
       : "No published cooking classes right now.",

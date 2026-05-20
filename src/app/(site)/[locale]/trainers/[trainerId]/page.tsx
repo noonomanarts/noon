@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { FaInstagram } from "react-icons/fa6";
-import { FiBookOpen, FiCalendar, FiClock, FiExternalLink, FiUsers } from "react-icons/fi";
+import { FiBookOpen, FiCalendar, FiClock, FiExternalLink } from "react-icons/fi";
 import { GiChefToque } from "react-icons/gi";
 import { HiSparkles } from "react-icons/hi2";
 import { findTrainerById, findTrainerClasses, getTrainerProfile } from "@/lib/db/trainers";
@@ -34,9 +34,6 @@ type UpcomingItem =
       price: number;
       currency: string;
       scheduledAt: string | null;
-      seatsTotal: number | null;
-      seatsBooked: number;
-      seatsAvailable: number;
     };
 
 function toExternalUrl(value: string): string {
@@ -249,7 +246,6 @@ export default async function TrainerProfilePage({
     experience: locale === "ar" ? "الخبرة" : "Experience",
     years: locale === "ar" ? "سنة" : "years",
     scheduledAt: locale === "ar" ? "الموعد" : "Scheduled",
-    seats: locale === "ar" ? "المقاعد" : "Seats",
     manualCourse: locale === "ar" ? "دورة مضافة يدوياً" : "Manual Course",
     classCourse: locale === "ar" ? "دورة مباشرة" : "Live Class",
     noBio:
@@ -314,8 +310,6 @@ export default async function TrainerProfilePage({
     })),
     ...upcomingClasses.map((cls) => {
       const startDt = cls.startDateTime ? new Date(cls.startDateTime).toISOString() : null;
-      const seatsTotal = cls.seatsTotal ?? null;
-      const seatsBooked = cls.seatsBooked ?? 0;
       return {
         kind: "class" as const,
         id: cls.id,
@@ -326,9 +320,6 @@ export default async function TrainerProfilePage({
         price: cls.price,
         currency: cls.currency,
         scheduledAt: startDt,
-        seatsTotal,
-        seatsBooked: Number(seatsBooked),
-        seatsAvailable: Math.max(0, (seatsTotal ?? 0) - Number(seatsBooked)),
       };
     }),
   ].sort((left, right) => getSortTime(left.scheduledAt) - getSortTime(right.scheduledAt));
@@ -535,14 +526,7 @@ export default async function TrainerProfilePage({
                         </div>
                       ) : null}
 
-                      {item.kind === "class" ? (
-                        <div className="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400 sm:gap-2 sm:text-sm">
-                          <FiUsers className="h-4 w-4 text-coral" />
-                          <span>
-                            {t.seats}: {item.seatsBooked}/{item.seatsTotal ?? "-"} ({item.seatsAvailable} {locale === "ar" ? "متاح" : "available"})
-                          </span>
-                        </div>
-                      ) : item.description ? (
+                      {item.kind === "manual" && item.description ? (
                         <p className="line-clamp-2 text-xs text-zinc-600 dark:text-zinc-400 sm:text-sm">{item.description}</p>
                       ) : null}
 

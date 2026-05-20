@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiCheck, FiX, FiTag } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
+import QuarterHourDateTimeInput from '@/components/admin/QuarterHourDateTimeInput';
 
 type PromoCode = {
   id: string;
@@ -286,10 +287,9 @@ export default function AdminPromoCodesPageClient({ locale }: { locale: Locale }
             {/* Starts at */}
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{t.startsAt}</label>
-              <input
-                type="datetime-local"
+              <QuarterHourDateTimeInput
                 value={form.startsAt ?? ''}
-                onChange={(e) => setForm({ ...form, startsAt: e.target.value || null })}
+                onChange={(value) => setForm({ ...form, startsAt: value || null })}
                 className={inputCls}
               />
             </div>
@@ -297,10 +297,9 @@ export default function AdminPromoCodesPageClient({ locale }: { locale: Locale }
             {/* Expires at */}
             <div>
               <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">{t.expiresAt}</label>
-              <input
-                type="datetime-local"
+              <QuarterHourDateTimeInput
                 value={form.expiresAt ?? ''}
-                onChange={(e) => setForm({ ...form, expiresAt: e.target.value || null })}
+                onChange={(value) => setForm({ ...form, expiresAt: value || null })}
                 className={inputCls}
               />
             </div>

@@ -22,11 +22,11 @@ import {
   getStandardCompetitionTotal,
 } from '@/lib/competitionPricing';
 import { resolveEventGiftSelections } from '@/lib/eventGiftAddOns';
+import { isQuarterHourTimeValue } from '@/lib/dateTime';
 
 const EVENT_TYPES = new Set(['COOKING_COMPETITION', 'PRIVATE_CLASS', 'BIRTHDAY_PARTY']);
 const PACKAGE_TYPES = new Set(['STANDARD', 'PREMIUM']);
 const PRIVATE_CLASS_TYPES = new Set(['cooking', 'arts-crafts']);
-const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 function parseSafeString(value: unknown, maxLength = 255): string {
   if (typeof value !== 'string') return '';
@@ -101,9 +101,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!TIME_PATTERN.test(selectedTime)) {
+    if (!isQuarterHourTimeValue(selectedTime)) {
       return NextResponse.json(
-        { error: 'Invalid time format' },
+        { error: 'Time minutes must be 00, 15, 30, or 45' },
         { status: 400 }
       );
     }

@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import { roundDateToQuarterHour } from '@/lib/dateTime';
 import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
+import QuarterHourDateTimeInput from '@/components/admin/QuarterHourDateTimeInput';
 
 type EntryType = 'ALL' | 'INCOME' | 'EXPENSE';
 type PersistedEntryType = Exclude<EntryType, 'ALL'>;
@@ -156,7 +158,7 @@ function buildEndIso(dateOnly: string): string | null {
 }
 
 function defaultOccurredAt(): string {
-  const now = new Date();
+  const now = roundDateToQuarterHour();
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
@@ -1031,10 +1033,9 @@ export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
 
                 <label className="text-sm text-zinc-700 dark:text-zinc-200">
                   <span className="mb-1 block">{t.occurredAt}</span>
-                  <input
-                    type="datetime-local"
+                  <QuarterHourDateTimeInput
                     value={entryForm.occurredAt}
-                    onChange={(event) => setEntryForm((prev) => ({ ...prev, occurredAt: event.target.value }))}
+                    onChange={(value) => setEntryForm((prev) => ({ ...prev, occurredAt: value }))}
                     className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
                   />
                 </label>

@@ -25,6 +25,7 @@ import {
   isEventSlotAvailable,
   shouldCreateCleaningBlock,
 } from '@/lib/calendar';
+import { isQuarterHourTimeValue } from '@/lib/dateTime';
 import { getUserById } from '@/lib/db/users';
 
 async function requireAdmin() {
@@ -113,6 +114,10 @@ export async function PUT(request: NextRequest, props: Params) {
     const body = await request.json();
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { bookingNumber: _, ...updateData } = body;
+
+    if (updateData.selectedTime !== undefined && !isQuarterHourTimeValue(String(updateData.selectedTime || ''))) {
+      return NextResponse.json({ error: 'Time minutes must be 00, 15, 30, or 45' }, { status: 400 });
+    }
 
     const existingEvent = await findUniqueEventBooking({ id: params.eventId });
     if (!existingEvent) {

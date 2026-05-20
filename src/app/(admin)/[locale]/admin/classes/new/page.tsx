@@ -21,6 +21,7 @@ import {
 import { composeDurationMinutes, splitDurationMinutes } from '@/lib/formatDuration';
 import { defaultClassFinanceAdminSettings, type ClassFinanceAdminSettings } from '@/lib/adminSettings';
 import { isQuarterHourDateTimeValue, noonDateTimeLocalInputToIso } from '@/lib/dateTime';
+import QuarterHourDateTimeInput from '@/components/admin/QuarterHourDateTimeInput';
 
 type ClassCategory = 'COOKING' | 'ARTS_CRAFTS';
 type ClassSubCategory =
@@ -989,17 +990,16 @@ export default function NewClassPage() {
             </div>
 
             {/* Start Date & Time */}
-            <div>
+            <div className="md:col-span-3">
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'تاريخ ووقت البدء' : 'Start Date & Time'}
                 <span className="text-red-500">*</span>
               </label>
-              <input
-                type="datetime-local"
+              <QuarterHourDateTimeInput
                 name="startDateTime"
                 value={formData.startDateTime}
-                onChange={handleInputChange}
-                step="900"
+                onChange={(value) => setFormData((prev) => ({ ...prev, startDateTime: value }))}
+                required
                 className={`${inputBase} ${
                   errors.startDateTime ? 'border-red-500 dark:border-red-400' : ''
                 }`}
@@ -1013,16 +1013,14 @@ export default function NewClassPage() {
             </div>
 
             {/* End Date & Time */}
-            <div>
+            <div className="md:col-span-3">
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'تاريخ ووقت الانتهاء' : 'End Date & Time'}
               </label>
-              <input
-                type="datetime-local"
+              <QuarterHourDateTimeInput
                 name="endDateTime"
                 value={formData.endDateTime}
-                onChange={handleInputChange}
-                step="900"
+                onChange={(value) => setFormData((prev) => ({ ...prev, endDateTime: value }))}
                 className={inputBase}
               />
             </div>
@@ -1032,12 +1030,10 @@ export default function NewClassPage() {
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {isRTL ? 'إغلاق التسجيل' : 'Registration closes at'}
               </label>
-              <input
-                type="datetime-local"
+              <QuarterHourDateTimeInput
                 name="registrationCloseAt"
                 value={formData.registrationCloseAt}
-                onChange={handleInputChange}
-                step="900"
+                onChange={(value) => setFormData((prev) => ({ ...prev, registrationCloseAt: value }))}
                 className={inputBase}
               />
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">

@@ -12,6 +12,7 @@ import {
   getPrivateCookingClassTotal,
   getStandardCompetitionTotal,
 } from '@/lib/competitionPricing';
+import { isQuarterHourTimeValue } from '@/lib/dateTime';
 
 const EVENT_TYPES = new Set(['COOKING_COMPETITION', 'PRIVATE_CLASS', 'BIRTHDAY_PARTY']);
 const EVENT_STATUSES = new Set([
@@ -25,7 +26,6 @@ const EVENT_STATUSES = new Set([
 ]);
 const PACKAGE_TYPES = new Set(['STANDARD', 'PREMIUM']);
 const PRIVATE_CLASS_TYPES = new Set(['cooking', 'arts-crafts']);
-const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
 async function requireAdmin() {
   const cookieStore = await cookies();
@@ -173,8 +173,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid event type' }, { status: 400 });
     }
 
-    if (!TIME_PATTERN.test(selectedTime)) {
-      return NextResponse.json({ error: 'Invalid time format' }, { status: 400 });
+    if (!isQuarterHourTimeValue(selectedTime)) {
+      return NextResponse.json({ error: 'Time minutes must be 00, 15, 30, or 45' }, { status: 400 });
     }
 
     const selectedDate = new Date(`${selectedDateRaw}T00:00:00`);

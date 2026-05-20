@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { addMinutes, findCalendarOccupancy } from '@/lib/calendar';
+import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
 import { createCalendarEvent, findCalendarEvents } from '@/lib/db/events';
 import { getUserById } from '@/lib/db/users';
 import { notifyPhotographerDashboardUsers } from '@/lib/photographerNotifications';
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const startDateTime = new Date(String(body.startDateTime || ''));
     const endDateTime = new Date(String(body.endDateTime || ''));
+    const isFullDay = Boolean(body.isFullDay);
     const type = parseCalendarType(body.type) || 'BLOCKED';
     if (type === 'CLASS') {
       return NextResponse.json(
@@ -149,6 +151,13 @@ export async function POST(request: NextRequest) {
       endDateTime <= startDateTime
     ) {
       return NextResponse.json({ error: 'Invalid start/end time' }, { status: 400 });
+    }
+
+    if (
+      !isQuarterHourDateTimeValue(startDateTime) ||
+      (!isFullDay && !isQuarterHourDateTimeValue(endDateTime))
+    ) {
+      return NextResponse.json({ error: 'Time minutes must be 00, 15, 30, or 45' }, { status: 400 });
     }
 
     if (visibleToTrainers && !visibleToAllTrainers && visibleTrainerIds.length === 0 && allowTrainerVisibility) {

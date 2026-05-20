@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { IoAdd, IoCubeOutline, IoFlashOutline, IoLayersOutline, IoWalletOutline } from 'react-icons/io5';
 import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
+import { roundDateToQuarterHour } from '@/lib/dateTime';
 import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
+import QuarterHourDateTimeInput from '@/components/admin/QuarterHourDateTimeInput';
 
 type InventoryItem = {
   id: string;
@@ -102,7 +104,7 @@ const emptyOverview: InventoryOverview = {
 };
 
 function defaultOccurredAtInput(): string {
-  const now = new Date();
+  const now = roundDateToQuarterHour();
   const pad = (value: number) => String(value).padStart(2, '0');
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
@@ -590,10 +592,9 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
             </label>
             <label className="text-sm md:col-span-2">
               <span className="mb-1 block text-zinc-700 dark:text-zinc-200">{t.occurredAt}</span>
-              <input
-                type="datetime-local"
+              <QuarterHourDateTimeInput
                 value={purchaseForm.occurredAt}
-                onChange={(event) => setPurchaseForm((prev) => ({ ...prev, occurredAt: event.target.value }))}
+                onChange={(value) => setPurchaseForm((prev) => ({ ...prev, occurredAt: value }))}
                 className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
               />
             </label>

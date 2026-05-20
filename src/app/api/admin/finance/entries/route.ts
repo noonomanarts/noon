@@ -8,6 +8,7 @@ import {
   listAdminFinanceReasons,
   type AdminFinanceEntryType,
 } from '@/lib/db/finance';
+import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
 import { requireAdminSession } from '../_auth';
 
 const allowedTypes = new Set<AdminFinanceEntryType | 'ALL'>(['ALL', 'INCOME', 'EXPENSE']);
@@ -116,6 +117,10 @@ export async function POST(request: NextRequest) {
       notes?: string | null;
       metadata?: Record<string, unknown>;
     };
+
+    if (!isQuarterHourDateTimeValue(body.occurredAt)) {
+      return NextResponse.json({ error: 'Finance date/time minutes must be 00, 15, 30, or 45' }, { status: 400 });
+    }
 
     const entry = await createAdminFinanceEntry({
       type: body.type as AdminFinanceEntryType,

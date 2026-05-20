@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { FiArrowRight, FiCalendar, FiClock, FiUsers } from "react-icons/fi";
+import { FiArrowRight, FiCalendar, FiClock } from "react-icons/fi";
 import { HiPaintBrush } from "react-icons/hi2";
 
 import { findManyClasses } from "@/lib/db/classes";
@@ -48,7 +48,6 @@ export default async function ArtsCraftsClassesPage({
     ...cls,
     startDateTime: cls.startDateTime ?? null,
     endDateTime: cls.endDateTime ?? null,
-    seatsAvailable: Math.max(0, (cls.seatsTotal ?? 0) - (cls.seatsBooked ?? 0)),
   }));
 
   const repeatSummaries = await getClassRepeatRequestSummaries(
@@ -62,7 +61,6 @@ export default async function ArtsCraftsClassesPage({
       ? "ورش إبداعية عملية لتجارب فنية ممتعة ومهارية."
       : "Hands-on creative workshops for expressive and skillful art experiences.",
     bookNow: isArabic ? "عرض التفاصيل والحجز" : "View Details & Book",
-    available: isArabic ? "متاح" : "available",
     noClasses: isArabic
       ? "لا توجد دروس فنون وحرف منشورة حالياً."
       : "No published arts & crafts classes right now.",
@@ -171,10 +169,6 @@ export default async function ArtsCraftsClassesPage({
                               {t.duration}: {formatDurationClock(cls.durationMinutes)}
                             </span>
                           ) : null}
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--muted)] px-2.5 py-1">
-                            <FiUsers className="size-3.5" />
-                            {cls.seatsAvailable} {t.available}
-                          </span>
                         </div>
 
                         {cls.startDateTime ? (
@@ -183,9 +177,6 @@ export default async function ArtsCraftsClassesPage({
                               <p className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[color:var(--text)] sm:gap-2 sm:text-xs">
                                 <FiCalendar className="size-3.5 text-[color:var(--primary)]" />
                                 {formatDate(cls.startDateTime)} · {formatTime(cls.startDateTime)}
-                              </p>
-                              <p className="text-[11px] text-[color:var(--text-muted)] sm:text-xs">
-                                {cls.seatsAvailable} {t.available}
                               </p>
                             </div>
                           </div>
@@ -256,10 +247,6 @@ export default async function ArtsCraftsClassesPage({
                               {t.duration}: {formatDurationClock(cls.durationMinutes)}
                             </span>
                           ) : null}
-                          <span className="inline-flex items-center gap-1 rounded-full bg-[color:var(--muted)] px-2.5 py-1">
-                            <FiUsers className="size-3.5" />
-                            {cls.seatsAvailable} {t.available}
-                          </span>
                         </div>
 
                         <RequestRepeatButton

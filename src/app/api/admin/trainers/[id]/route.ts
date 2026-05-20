@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { defaultClassFinanceAdminSettings, getAdminSettingsByKey, type ClassFinanceAdminSettings } from '@/lib/db/adminSettings';
 import { getUserById, updateUser } from '@/lib/db/users';
+import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
 import {
   getTrainerProfile,
   upsertTrainerProfile,
@@ -49,6 +50,14 @@ const sanitizeShareTiers = (value: unknown) => {
 
 const sanitizeManualUpcomingCourses = (value: unknown): TrainerManualUpcomingCoursePublic[] | undefined => {
   if (!Array.isArray(value)) return undefined;
+
+  const hasInvalidDateTime = value.some((item) => {
+    if (!item || typeof item !== 'object') return false;
+    const row = item as Record<string, unknown>;
+    const rawDate = typeof row.dateTime === 'string' ? row.dateTime.trim() : '';
+    return Boolean(rawDate) && !isQuarterHourDateTimeValue(rawDate);
+  });
+  if (hasInvalidDateTime) return undefined;
 
   return value
     .map((item, index) => {

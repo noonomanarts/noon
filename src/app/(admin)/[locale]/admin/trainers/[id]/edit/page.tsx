@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import MarkdownEditor from '@/components/admin/MarkdownEditor';
+import QuarterHourDateTimeInput from '@/components/admin/QuarterHourDateTimeInput';
 
 interface ManualUpcomingCourse {
   id: string;
@@ -983,10 +984,9 @@ export default function EditTrainerPage() {
                     </label>
                     <label className="text-sm">
                       <span className="text-zinc-700 dark:text-zinc-300">Date & Time</span>
-                      <input
-                        type="datetime-local"
+                      <QuarterHourDateTimeInput
                         value={course.dateTime}
-                        onChange={(e) => updateManualUpcomingCourse(course.id, 'dateTime', e.target.value)}
+                        onChange={(value) => updateManualUpcomingCourse(course.id, 'dateTime', value)}
                         className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                       />
                     </label>

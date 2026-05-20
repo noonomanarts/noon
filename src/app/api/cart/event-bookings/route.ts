@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { addEventBookingToCart, CART_COOKIE_NAME, parseCartCookie, serializeCartCookie } from '@/lib/cart';
+import { isQuarterHourTimeValue } from '@/lib/dateTime';
 
 const EVENT_TYPE_LABELS = {
   COOKING_COMPETITION: {
@@ -37,6 +38,10 @@ export async function POST(request: NextRequest) {
 
     if (!eventType || !(eventType in EVENT_TYPE_LABELS) || !selectedDate || !selectedTime || !payload) {
       return NextResponse.json({ error: 'Invalid event booking draft' }, { status: 400 });
+    }
+
+    if (!isQuarterHourTimeValue(selectedTime)) {
+      return NextResponse.json({ error: 'Time minutes must be 00, 15, 30, or 45' }, { status: 400 });
     }
 
     const cookieStore = await cookies();

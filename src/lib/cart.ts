@@ -1,3 +1,5 @@
+import { isQuarterHourTimeValue } from '@/lib/dateTime';
+
 export type ShopCartItem = {
   id: string;
   kind: 'SHOP_PRODUCT';
@@ -175,7 +177,7 @@ function normalizeEventItem(rawItem: Record<string, unknown>): EventCartItem | n
   const currency = typeof rawItem.currency === 'string' ? rawItem.currency.trim() : 'OMR';
   const payload = rawItem.payload && typeof rawItem.payload === 'object' ? rawItem.payload as Record<string, unknown> : null;
 
-  if (!eventType || !title || !titleAr || !selectedDate || !selectedTime || !payload) {
+  if (!eventType || !title || !titleAr || !selectedDate || !selectedTime || !isQuarterHourTimeValue(selectedTime) || !payload) {
     return null;
   }
 

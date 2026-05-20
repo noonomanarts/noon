@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GiChefToque } from "react-icons/gi";
-import { HiPaintBrush, HiClock, HiUsers, HiStar, HiSparkles, HiShieldCheck } from "react-icons/hi2";
+import { HiPaintBrush, HiClock, HiStar, HiSparkles, HiShieldCheck } from "react-icons/hi2";
 import { MdCalendarMonth, MdAccessTime, MdPerson } from "react-icons/md";
 
 import ClassHeaderSlideshow from "@/components/site/ClassHeaderSlideshow";
@@ -96,8 +96,6 @@ export default async function ClassDetailPage({
     artsCrafts: isArabic ? "فنون وحرف" : "Arts & Crafts",
     subCategory: isArabic ? "القسم" : "Section",
     duration: isArabic ? "المدة" : "Duration",
-    seatsAvailable: isArabic ? "مقاعد متاحة" : "seats available",
-    totalSeats: isArabic ? "إجمالي المقاعد" : "Total seats",
     averageRating: isArabic ? "متوسط التقييم" : "Average rating",
     noSchedule:
       isArabic ? "الموعد سيُعلن قريباً" : "Schedule coming soon",
@@ -247,13 +245,6 @@ export default async function ClassDetailPage({
                   </p>
                 </div>
                 <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3">
-                  <p className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--text-muted)]">
-                    <HiUsers className="h-4 w-4 text-[color:var(--primary)]" />
-                    {t.totalSeats}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{classData.seatsTotal}</p>
-                </div>
-                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3">
                   <p className="text-xs font-medium text-[color:var(--text-muted)]">{t.subCategory}</p>
                   <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{subCategory}</p>
                 </div>
@@ -375,10 +366,6 @@ export default async function ClassDetailPage({
                     <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
                       <MdAccessTime className="h-4 w-4" />
                       {formatTime(classData.startDateTime)}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-xs sm:text-sm">
-                      <MdPerson className="h-4 w-4" />
-                      {seatsAvailable} {t.seatsAvailable}
                     </span>
                   </div>
                   {registrationCloseAt && !registrationClosed ? (

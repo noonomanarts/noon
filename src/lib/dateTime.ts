@@ -86,3 +86,16 @@ export function isQuarterHourDateTimeValue(value: NoonDateInput | null | undefin
 
   return date.getUTCMinutes() % 15 === 0 && date.getUTCSeconds() === 0 && date.getUTCMilliseconds() === 0;
 }
+
+export function isQuarterHourTimeValue(value: string | null | undefined): boolean {
+  if (value == null || value === '') return true;
+  const match = value.trim().match(/^([01]\d|2[0-3]):(00|15|30|45)$/);
+  return Boolean(match);
+}
+
+export function roundDateToQuarterHour(value: Date = new Date()): Date {
+  const rounded = new Date(value);
+  const quarterMinutes = Math.round(rounded.getMinutes() / 15) * 15;
+  rounded.setMinutes(quarterMinutes, 0, 0);
+  return rounded;
+}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createInventoryPurchase, listRecentInventoryPurchases } from '@/lib/db/inventory';
+import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
 import { requireAdminSession } from '../_auth';
 
 function mapValidationStatus(error: unknown): number {
@@ -50,6 +51,10 @@ export async function POST(request: NextRequest) {
         notes?: string | null;
       }>;
     };
+
+    if (!isQuarterHourDateTimeValue(body.occurredAt)) {
+      return NextResponse.json({ error: 'Purchase date/time minutes must be 00, 15, 30, or 45' }, { status: 400 });
+    }
 
     const purchase = await createInventoryPurchase({
       supplierName: body.supplierName,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { QuarterHourTimeSelect } from '@/components/admin/QuarterHourDateTimeInput';
 
 type CalendarEvent = {
   id: string;
@@ -545,6 +546,7 @@ export default function AdminCalendarPage() {
           description: itemForm.description,
           startDateTime,
           endDateTime,
+          isFullDay: itemForm.isFullDay,
           blockReason: itemForm.blockReason,
           internalNotes: itemForm.internalNotes,
           visibleToTrainers: allowTrainerVisibility ? itemForm.visibleToTrainers : false,
@@ -1277,10 +1279,9 @@ export default function AdminCalendarPage() {
 
                       <label className="space-y-1.5 text-sm">
                         <span className="font-medium text-zinc-700 dark:text-zinc-200">Start time</span>
-                        <input
-                          type="time"
+                        <QuarterHourTimeSelect
                           value={itemForm.startTime}
-                          onChange={(event) => setItemForm((prev) => ({ ...prev, startTime: event.target.value }))}
+                          onChange={(value) => setItemForm((prev) => ({ ...prev, startTime: value }))}
                           disabled={itemForm.isFullDay}
                           className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                         />
@@ -1298,10 +1299,9 @@ export default function AdminCalendarPage() {
 
                       <label className="space-y-1.5 text-sm">
                         <span className="font-medium text-zinc-700 dark:text-zinc-200">End time</span>
-                        <input
-                          type="time"
+                        <QuarterHourTimeSelect
                           value={itemForm.endTime}
-                          onChange={(event) => setItemForm((prev) => ({ ...prev, endTime: event.target.value }))}
+                          onChange={(value) => setItemForm((prev) => ({ ...prev, endTime: value }))}
                           disabled={itemForm.isFullDay}
                           className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                         />

@@ -82,7 +82,7 @@ export async function getBookingCalendarSettings(): Promise<BookingCalendarSetti
   return {
     timezone: typeof saved?.timezone === 'string' && saved.timezone ? saved.timezone : defaultBookingCalendarSettings.timezone,
     eventWindowDays: Math.max(7, Math.min(120, parseInteger(saved?.eventWindowDays, defaultBookingCalendarSettings.eventWindowDays))),
-    slotIntervalMinutes: Math.max(30, Math.min(180, parseInteger(saved?.slotIntervalMinutes, defaultBookingCalendarSettings.slotIntervalMinutes))),
+    slotIntervalMinutes: Math.max(15, Math.min(180, parseInteger(saved?.slotIntervalMinutes, defaultBookingCalendarSettings.slotIntervalMinutes))),
     leadTimeHours: Math.max(0, Math.min(72, parseInteger(saved?.leadTimeHours, defaultBookingCalendarSettings.leadTimeHours))),
     startHour: Math.max(0, Math.min(22, parseInteger(saved?.startHour, defaultBookingCalendarSettings.startHour))),
     endHour: Math.max(1, Math.min(24, parseInteger(saved?.endHour, defaultBookingCalendarSettings.endHour))),

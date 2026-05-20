@@ -7,6 +7,7 @@ import {
   updatePromoCode,
   deletePromoCode,
 } from '@/lib/db/promoCodes';
+import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
 
 async function requireAdmin() {
   const cookieStore = await cookies();
@@ -56,6 +57,9 @@ export async function POST(request: NextRequest) {
   const minOrderAmount = Number(body.minOrderAmount) || 0;
   const startsAt = typeof body.startsAt === 'string' && body.startsAt ? body.startsAt : null;
   const expiresAt = typeof body.expiresAt === 'string' && body.expiresAt ? body.expiresAt : null;
+  if (!isQuarterHourDateTimeValue(startsAt) || !isQuarterHourDateTimeValue(expiresAt)) {
+    return NextResponse.json({ error: 'Date/time minutes must be 00, 15, 30, or 45' }, { status: 400 });
+  }
 
   try {
     const promo = await createPromoCode({
@@ -115,9 +119,15 @@ export async function PUT(request: NextRequest) {
   }
   if (body.startsAt !== undefined) {
     updates.startsAt = typeof body.startsAt === 'string' && body.startsAt ? body.startsAt : null;
+    if (!isQuarterHourDateTimeValue(updates.startsAt as string | null)) {
+      return NextResponse.json({ error: 'Start date/time minutes must be 00, 15, 30, or 45' }, { status: 400 });
+    }
   }
   if (body.expiresAt !== undefined) {
     updates.expiresAt = typeof body.expiresAt === 'string' && body.expiresAt ? body.expiresAt : null;
+    if (!isQuarterHourDateTimeValue(updates.expiresAt as string | null)) {
+      return NextResponse.json({ error: 'Expiry date/time minutes must be 00, 15, 30, or 45' }, { status: 400 });
+    }
   }
   if (typeof body.isActive === 'boolean') {
     updates.isActive = body.isActive;
