@@ -3,7 +3,7 @@
 import { useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { FiCalendar, FiCheckCircle, FiFileText, FiMessageSquare, FiStar, FiUsers } from 'react-icons/fi';
+import { FiCalendar, FiCheckCircle, FiFileText, FiMessageSquare, FiPlus, FiStar, FiTrash2, FiUpload, FiUsers } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 import type {
   TrainerDashboardData,
@@ -22,6 +22,7 @@ type SubmissionDraft = {
 };
 
 type SuggestionStatus = TrainerWorkshopSuggestionPublic['status'];
+type UploadTarget = 'recipe' | 'photos' | `ingredient-${number}`;
 
 interface TrainerDashboardPageClientProps {
   locale: Locale;
@@ -159,6 +160,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
   const [previousWorkshops] = useState(dashboard.previousWorkshops);
   const [suggestedWorkshops, setSuggestedWorkshops] = useState(dashboard.suggestedWorkshops);
   const [submittingClassId, setSubmittingClassId] = useState<string | null>(null);
+  const [uploadingSubmissionAsset, setUploadingSubmissionAsset] = useState<Record<string, UploadTarget | null>>({});
   const [savingSuggestion, setSavingSuggestion] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -295,6 +297,130 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
     }
 
     return payload.url;
+  };
+
+  const setSubmissionUploadTarget = (classId: string, target: UploadTarget | null) => {
+    setUploadingSubmissionAsset((prev) => ({ ...prev, [classId]: target }));
+  };
+
+  const getIngredientRows = (draft: SubmissionDraft): TrainerHighlightedIngredient[] => {
+    const rows = draft.ingredientsText
+      .split('\n')
+      .map((line) => {
+        const [name = '', source = '', photo = ''] = line.split('|').map((item) => item.trim());
+        return { name, source, photo };
+      })
+      .slice(0, 100);
+    return rows.length > 0 ? rows : [{ name: '', source: '', photo: '' }];
+  };
+
+  const updateIngredientRows = (classId: string, rows: TrainerHighlightedIngredient[]) => {
+    onDraftChange(classId, {
+      ingredientsText: ingredientsToText(rows.slice(0, 100)),
+    });
+  };
+
+  const updateIngredientRow = (
+    classId: string,
+    draft: SubmissionDraft,
+    index: number,
+    patch: Partial<TrainerHighlightedIngredient>
+  ) => {
+    const rows = getIngredientRows(draft);
+    rows[index] = { ...rows[index], ...patch };
+    updateIngredientRows(classId, rows);
+  };
+
+  const addIngredientRow = (classId: string, draft: SubmissionDraft) => {
+    updateIngredientRows(classId, [...getIngredientRows(draft), { name: '', source: '', photo: '' }]);
+  };
+
+  const removeIngredientRow = (classId: string, draft: SubmissionDraft, index: number) => {
+    const rows = getIngredientRows(draft).filter((_, currentIndex) => currentIndex !== index);
+    updateIngredientRows(classId, rows.length > 0 ? rows : [{ name: '', source: '', photo: '' }]);
+  };
+
+  const handleSubmissionRecipePdfUpload = async (classId: string, event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setSubmissionUploadTarget(classId, 'recipe');
+      setMessage(null);
+      const uploadedUrl = await uploadTrainerSuggestionAsset(file);
+      onDraftChange(classId, { recipePdf: uploadedUrl });
+      setMessage({
+        type: 'success',
+        text: isArabic ? 'تم رفع ملف الوصفة.' : 'Recipe PDF uploaded.',
+      });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to upload recipe PDF.',
+      });
+    } finally {
+      setSubmissionUploadTarget(classId, null);
+      event.target.value = '';
+    }
+  };
+
+  const handleSubmissionPhotoUpload = async (classId: string, draft: SubmissionDraft, event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) return;
+
+    try {
+      setSubmissionUploadTarget(classId, 'photos');
+      setMessage(null);
+      const uploadedUrls = await Promise.all(files.map((file) => uploadTrainerSuggestionAsset(file)));
+      const existingPhotos = draft.photosText
+        .split('\n')
+        .map((item) => item.trim())
+        .filter(Boolean);
+      onDraftChange(classId, {
+        photosText: [...existingPhotos, ...uploadedUrls].slice(0, 30).join('\n'),
+      });
+      setMessage({
+        type: 'success',
+        text: isArabic ? 'تم رفع صور الورشة.' : 'Workshop photos uploaded.',
+      });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to upload workshop photos.',
+      });
+    } finally {
+      setSubmissionUploadTarget(classId, null);
+      event.target.value = '';
+    }
+  };
+
+  const handleIngredientPhotoUpload = async (
+    classId: string,
+    draft: SubmissionDraft,
+    index: number,
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setSubmissionUploadTarget(classId, `ingredient-${index}`);
+      setMessage(null);
+      const uploadedUrl = await uploadTrainerSuggestionAsset(file);
+      updateIngredientRow(classId, draft, index, { photo: uploadedUrl });
+      setMessage({
+        type: 'success',
+        text: isArabic ? 'تم رفع صورة المكون.' : 'Ingredient photo uploaded.',
+      });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error instanceof Error ? error.message : 'Failed to upload ingredient photo.',
+      });
+    } finally {
+      setSubmissionUploadTarget(classId, null);
+      event.target.value = '';
+    }
   };
 
   const handleSuggestionPhotoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -603,6 +729,8 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
           <div className="space-y-4">
             {ongoingWorkshops.map((workshop) => {
               const draft = submissionDrafts[workshop.classId] || workshopToDraft(workshop);
+              const uploadTarget = uploadingSubmissionAsset[workshop.classId] ?? null;
+              const ingredientRows = getIngredientRows(draft);
               const isDraftReadyToSubmit = Boolean(
                 draft.recipePdf.trim()
                 && draft.groceryList.trim()
@@ -635,17 +763,32 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="text-sm sm:col-span-2">
-                      <span className="text-zinc-700 dark:text-zinc-300">
-                        {isArabic ? 'رابط ملف الوصفة' : 'Recipe PDF URL'}
-                      </span>
+                    <div className="text-sm sm:col-span-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-zinc-700 dark:text-zinc-300">
+                          {isArabic ? 'رابط ملف الوصفة' : 'Recipe PDF URL'}
+                        </span>
+                        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                          <FiUpload className="size-3.5" />
+                          {uploadTarget === 'recipe'
+                            ? (isArabic ? 'جارٍ الرفع...' : 'Uploading...')
+                            : (isArabic ? 'رفع PDF' : 'Upload PDF')}
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            className="hidden"
+                            disabled={uploadTarget !== null}
+                            onChange={(event) => void handleSubmissionRecipePdfUpload(workshop.classId, event)}
+                          />
+                        </label>
+                      </div>
                       <input
                         type="url"
                         value={draft.recipePdf}
                         onChange={(e) => onDraftChange(workshop.classId, { recipePdf: e.target.value })}
                         className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                       />
-                    </label>
+                    </div>
                     <label className="text-sm">
                       <span className="text-zinc-700 dark:text-zinc-300">
                         {isArabic ? 'قائمة المشتريات' : 'Grocery List'}
@@ -668,30 +811,100 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                         className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                       />
                     </label>
-                    <label className="text-sm">
-                      <span className="text-zinc-700 dark:text-zinc-300">
-                        {isArabic ? 'صور الورشة (رابط لكل سطر)' : 'Workshop Photos (one URL per line)'}
-                      </span>
+                    <div className="text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-zinc-700 dark:text-zinc-300">
+                          {isArabic ? 'صور الورشة (رابط لكل سطر)' : 'Workshop Photos (one URL per line)'}
+                        </span>
+                        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                          <FiUpload className="size-3.5" />
+                          {uploadTarget === 'photos'
+                            ? (isArabic ? 'جارٍ الرفع...' : 'Uploading...')
+                            : (isArabic ? 'رفع صور' : 'Upload Photos')}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            disabled={uploadTarget !== null}
+                            onChange={(event) => void handleSubmissionPhotoUpload(workshop.classId, draft, event)}
+                          />
+                        </label>
+                      </div>
                       <textarea
                         rows={4}
                         value={draft.photosText}
                         onChange={(e) => onDraftChange(workshop.classId, { photosText: e.target.value })}
                         className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
                       />
-                    </label>
-                    <label className="text-sm">
-                      <span className="text-zinc-700 dark:text-zinc-300">
-                        {isArabic
-                          ? 'المكونات المميزة (الاسم | المصدر | الصورة)'
-                          : 'Highlighted Ingredients (name | source | photo)'}
-                      </span>
-                      <textarea
-                        rows={4}
-                        value={draft.ingredientsText}
-                        onChange={(e) => onDraftChange(workshop.classId, { ingredientsText: e.target.value })}
-                        className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-                      />
-                    </label>
+                    </div>
+                    <div className="text-sm">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-zinc-700 dark:text-zinc-300">
+                          {isArabic ? 'المكونات المميزة' : 'Highlighted Ingredients'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => addIngredientRow(workshop.classId, draft)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                        >
+                          <FiPlus className="size-3.5" />
+                          {isArabic ? 'إضافة مكون' : 'Add Ingredient'}
+                        </button>
+                      </div>
+                      <div className="mt-1 space-y-2">
+                        {ingredientRows.map((ingredient, index) => (
+                          <div key={`ingredient-${workshop.classId}-${index}`} className="rounded-lg border border-zinc-200 p-2 dark:border-zinc-700">
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              <input
+                                type="text"
+                                value={ingredient.name}
+                                onChange={(event) => updateIngredientRow(workshop.classId, draft, index, { name: event.target.value })}
+                                placeholder={isArabic ? 'اسم المكون' : 'Ingredient name'}
+                                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                              />
+                              <input
+                                type="text"
+                                value={ingredient.source}
+                                onChange={(event) => updateIngredientRow(workshop.classId, draft, index, { source: event.target.value })}
+                                placeholder={isArabic ? 'المصدر' : 'Source'}
+                                className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                              />
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <input
+                                type="url"
+                                value={ingredient.photo}
+                                onChange={(event) => updateIngredientRow(workshop.classId, draft, index, { photo: event.target.value })}
+                                placeholder={isArabic ? 'رابط الصورة' : 'Photo URL'}
+                                className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
+                              />
+                              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700">
+                                <FiUpload className="size-3.5" />
+                                {uploadTarget === `ingredient-${index}`
+                                  ? (isArabic ? 'جارٍ الرفع...' : 'Uploading...')
+                                  : (isArabic ? 'رفع صورة' : 'Upload Photo')}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  disabled={uploadTarget !== null}
+                                  onChange={(event) => void handleIngredientPhotoUpload(workshop.classId, draft, index, event)}
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => removeIngredientRow(workshop.classId, draft, index)}
+                                className="inline-flex items-center rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                                aria-label={isArabic ? 'حذف المكون' : 'Remove ingredient'}
+                              >
+                                <FiTrash2 className="size-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="mt-4 flex justify-end">

@@ -596,10 +596,6 @@ body {
     box-shadow: none !important;
   }
 
-  .admin-panel :is([class*="bg-gradient-to-"]):not([class*="bg-clip-text"]):not([class*="text-transparent"]) {
-    background-image: none !important;
-  }
-
   .admin-panel .admin-content-shell > :is(div, section, form) {
     max-width: 100%;
   }

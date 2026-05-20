@@ -353,12 +353,20 @@ export default function AdminTrainersPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <Link
-                          href={`/${locale}/admin/trainers/${trainer.id}/edit`}
-                          className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                        >
-                          Edit Profile
-                        </Link>
+                        <div className="flex flex-col gap-1">
+                          <Link
+                            href={`/${locale}/admin/trainers/${trainer.id}/dashboard`}
+                            className="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                          >
+                            View Dashboard
+                          </Link>
+                          <Link
+                            href={`/${locale}/admin/trainers/${trainer.id}/edit`}
+                            className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                          >
+                            Edit Profile
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))
