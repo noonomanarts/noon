@@ -718,7 +718,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                 ) : null}
               </div>
               ) : null}
-              {!isRequestOnlyCart ? (
+              {!isRequestOnlyCart && hasEnoughBalance ? (
               <div className="flex items-center justify-between">
                 <span>{t.walletBalance}</span>
                 <span className="font-semibold">
@@ -761,22 +761,13 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
               </div>
             </div>
 
-            {!hasEnoughBalance ? (
-              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
-                <p>{t.insufficient}</p>
-                <Link href={`/${locale}/account/wallet`} className="mt-1 inline-flex font-semibold underline">
-                  {t.topupInAccount}
-                </Link>
-              </div>
-            ) : null}
-
             <button
               type="button"
               onClick={() => void submitCheckout()}
-              disabled={processing || requiredMissing || isLocationMissing || (!isRequestOnlyCart && !hasEnoughBalance)}
+              disabled={processing || requiredMissing || isLocationMissing}
               className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {processing ? t.processing : isRequestOnlyCart ? t.submitRequests : t.payWallet}
+              {processing ? t.processing : isRequestOnlyCart ? t.submitRequests : hasEnoughBalance ? t.payWallet : t.payNow}
             </button>
 
             {isRequestOnlyCart ? (
