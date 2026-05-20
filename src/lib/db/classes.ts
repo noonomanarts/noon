@@ -21,6 +21,7 @@ async function ensureClassMinimumAgeSchema(): Promise<void> {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS registration_close_at TIMESTAMP WITH TIME ZONE`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS audience_gender VARCHAR(20) NOT NULL DEFAULT 'MIXED'`);
     await query(`ALTER TABLE classes ALTER COLUMN audience_gender SET DEFAULT 'FEMALE_ONLY'`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS schedule_sessions JSONB NOT NULL DEFAULT '[]'::jsonb`);
   })();
 
   return classMinimumAgeSchemaReady;
@@ -123,6 +124,7 @@ export async function findManyClasses(options: {
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
     registrationCloseAt: row.registration_close_at || null,
+    scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
     seatsBooked: row.seats_booked ?? 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -248,6 +250,7 @@ export async function findManyClassesPaginated(options: {
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
     registrationCloseAt: row.registration_close_at || null,
+    scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
     seatsBooked: row.seats_booked ?? 0,
     closedAt: row.closed_at,
     closedByUserId: row.closed_by_user_id,
@@ -346,6 +349,7 @@ export async function findUniqueClass(
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
     registrationCloseAt: row.registration_close_at || null,
+    scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
     seatsBooked: row.seats_booked ?? 0,
   };
 
@@ -413,6 +417,7 @@ export async function createClass(data: {
   endDateTime?: Date | string | null;
   registrationCloseAt?: Date | string | null;
   audienceGender?: ClassAudienceGender;
+  scheduleSessions?: Array<{ startDateTime: string; endDateTime: string }>;
 }): Promise<Record<string, unknown>> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
@@ -430,9 +435,9 @@ export async function createClass(data: {
       final_recipe_title_ar, final_recipe_pdf_ar, final_recipe_brief_ar,
       final_recipe_visible_to_customers, final_recipe_published_at,
       trainer_share_percent, noon_share_percent, expense_share_percent,
-      start_date_time, end_date_time, registration_close_at,
+      start_date_time, end_date_time, registration_close_at, schedule_sessions,
       created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35::jsonb, $36, $37)
     RETURNING *`,
     [
       id,
@@ -469,6 +474,7 @@ export async function createClass(data: {
       data.startDateTime ? new Date(data.startDateTime as string) : null,
       data.endDateTime ? new Date(data.endDateTime as string) : null,
       data.registrationCloseAt ? new Date(data.registrationCloseAt as string) : null,
+      JSON.stringify(data.scheduleSessions ?? []),
       now,
       now,
     ]
@@ -517,6 +523,7 @@ export async function createClass(data: {
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
     registrationCloseAt: row.registration_close_at || null,
+    scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
     seatsBooked: row.seats_booked ?? 0,
   };
 }
@@ -565,6 +572,7 @@ export async function updateClass(
     registrationCloseAt: Date | string | null;
     audienceGender: ClassAudienceGender;
     seatsBooked: number;
+    scheduleSessions: Array<{ startDateTime: string; endDateTime: string }>;
   }>
 ): Promise<Record<string, unknown> | null> {
   await ensureClassFinanceSchema();
@@ -612,13 +620,15 @@ export async function updateClass(
     startDateTime: 'start_date_time',
     endDateTime: 'end_date_time',
     registrationCloseAt: 'registration_close_at',
+    scheduleSessions: 'schedule_sessions',
     seatsBooked: 'seats_booked',
   };
 
   for (const [key, dbField] of Object.entries(fieldMap)) {
     if ((data as Record<string, unknown>)[key] !== undefined) {
-      updates.push(`${dbField} = $${paramIndex++}`);
-      values.push((data as Record<string, unknown>)[key]);
+      updates.push(`${dbField} = $${paramIndex++}${key === 'scheduleSessions' ? '::jsonb' : ''}`);
+      const value = (data as Record<string, unknown>)[key];
+      values.push(key === 'scheduleSessions' ? JSON.stringify(value ?? []) : value);
     }
   }
 
@@ -672,6 +682,7 @@ export async function updateClass(
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
     registrationCloseAt: row.registration_close_at || null,
+    scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
     seatsBooked: row.seats_booked ?? 0,
   };
 }
@@ -722,6 +733,7 @@ export async function findClassBySlug(slug: string): Promise<{
   startDateTime: Date | null;
   endDateTime: Date | null;
   registrationCloseAt: Date | null;
+  scheduleSessions: Array<{ startDateTime: string; endDateTime: string }>;
 } | null> {
   await ensureClassMinimumAgeSchema();
   const result = await query(
@@ -756,6 +768,7 @@ export async function findClassBySlug(slug: string): Promise<{
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
     registrationCloseAt: row.registration_close_at || null,
+    scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
   };
 }
 

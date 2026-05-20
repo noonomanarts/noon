@@ -181,6 +181,7 @@ export default async function ClassDetailPage({
       minute: "2-digit",
       timeZone: DISPLAY_TIMEZONE,
     });
+  const scheduleSessions = Array.isArray(classData.scheduleSessions) ? classData.scheduleSessions : [];
 
   return (
     <div className="route-sharp relative overflow-x-clip pb-16">
@@ -368,6 +369,16 @@ export default async function ClassDetailPage({
                       {formatTime(classData.startDateTime)}
                     </span>
                   </div>
+                  {scheduleSessions.length > 0 ? (
+                    <div className="mt-4 space-y-2">
+                      {scheduleSessions.map((session, index) => (
+                        <div key={`${session.startDateTime}-${index}`} className="flex items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm">
+                          <span className="font-medium text-[color:var(--text)]">{formatDate(session.startDateTime)}</span>
+                          <span className="text-[color:var(--text-muted)]">{formatTime(session.startDateTime)} - {formatTime(session.endDateTime)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   {registrationCloseAt && !registrationClosed ? (
                     <div className="mt-3">
                       <RegistrationCountdown

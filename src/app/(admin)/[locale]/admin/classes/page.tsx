@@ -937,7 +937,7 @@ export default function AdminClassesPage() {
               </button>
               <button
                 onClick={confirmDelete}
-                className="flex-1 rounded-lg bg-gradient-to-r from-red-600 to-red-700 px-4 py-2.5 font-semibold text-white shadow-md transition-all hover:from-red-700 hover:to-red-800 hover:shadow-lg"
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2.5 font-semibold text-white hover:bg-red-700 transition-colors"
               >
                 Delete Class
               </button>

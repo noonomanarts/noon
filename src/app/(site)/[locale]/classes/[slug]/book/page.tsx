@@ -4,6 +4,7 @@ import { findClassBySlug } from '@/lib/db/classes';
 import { getCurrentUser } from '@/lib/session';
 import { isRegistrationClosed, resolveRegistrationCloseAt } from '@/lib/classRegistration';
 import ClassBookingClient from '@/components/site/ClassBookingClient';
+import { query } from '@/lib/db/pool';
 
 async function getCurrentTimestamp() {
   return Date.now();
@@ -90,6 +91,20 @@ export default async function ClassBookingPage({
     classData.startDateTime,
     classData.registrationCloseAt
   );
+  const summerCampHasPriorBooking = classData.subCategory === 'SUMMER_CAMP'
+    ? (await query(
+        `SELECT 1
+         FROM bookings b
+         INNER JOIN classes c ON c.id = b.class_id
+         WHERE b.user_id = $1
+           AND b.class_id <> $2
+           AND c.sub_category = 'SUMMER_CAMP'
+           AND b.payment_status = 'PAID'
+           AND b.status IN ('CONFIRMED', 'COMPLETED')
+         LIMIT 1`,
+        [user.id, classData.id]
+      )).rows.length > 0
+    : false;
 
   return (
     <div className="route-sharp">
@@ -108,6 +123,8 @@ export default async function ClassBookingPage({
           startDateTime: classData.startDateTime ? classData.startDateTime.toISOString() : null,
           endDateTime: classData.endDateTime ? classData.endDateTime.toISOString() : null,
           registrationCloseAt: registrationCloseAt ? registrationCloseAt.toISOString() : null,
+          scheduleSessions: classData.scheduleSessions ?? [],
+          summerCampHasPriorBooking,
           seatsTotal: classData.seatsTotal,
           seatsBooked: classData.seatsBooked ?? 0,
         }}

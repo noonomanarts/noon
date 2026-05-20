@@ -14,6 +14,7 @@ export type ClassSubCategory =
   | 'MAIN_DISHES'
   | 'DESSERTS_BAKING'
   | 'MOM_AND_KID'
+  | 'SUMMER_CAMP'
   | 'PAINTING'
   | 'POTTERY'
   | 'CRAFTS'
@@ -238,6 +239,7 @@ export interface ClassPublic {
   startDateTime: Date | null;
   endDateTime: Date | null;
   registrationCloseAt: Date | null;
+  scheduleSessions?: Array<{ startDateTime: string; endDateTime: string }>;
   durationMinutes: number;
   status: ClassStatus;
   metaTitle: string | null;

@@ -29,6 +29,7 @@ type ClassSubCategory =
   | 'MAIN_DISHES'
   | 'DESSERTS_BAKING'
   | 'MOM_AND_KID'
+  | 'SUMMER_CAMP'
   | 'PAINTING'
   | 'CRAFTS'
   | 'POTTERY';
@@ -62,6 +63,7 @@ interface FormData {
   startDateTime: string;
   endDateTime: string;
   registrationCloseAt: string;
+  scheduleSessionsText: string;
   status: ClassStatus;
   metaTitle: string;
   metaDescription: string;
@@ -123,6 +125,7 @@ export default function NewClassPage() {
     startDateTime: '',
     endDateTime: '',
     registrationCloseAt: '',
+    scheduleSessionsText: '',
     status: 'DRAFT',
     metaTitle: '',
     metaDescription: '',
@@ -227,6 +230,21 @@ export default function NewClassPage() {
     if (errors.durationMinutes) {
       setErrors((prev) => ({ ...prev, durationMinutes: '' }));
     }
+  };
+
+  const parseScheduleSessions = () => {
+    return formData.scheduleSessionsText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [startDateTime, endDateTime] = line.split(',').map((part) => part.trim());
+        return {
+          startDateTime: noonDateTimeLocalInputToIso(startDateTime),
+          endDateTime: noonDateTimeLocalInputToIso(endDateTime),
+        };
+      })
+      .filter((session) => session.startDateTime && session.endDateTime);
   };
 
   const handleMainImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -454,6 +472,7 @@ export default function NewClassPage() {
         startDateTime: noonDateTimeLocalInputToIso(formData.startDateTime),
         endDateTime: noonDateTimeLocalInputToIso(formData.endDateTime),
         registrationCloseAt: noonDateTimeLocalInputToIso(formData.registrationCloseAt),
+        scheduleSessions: parseScheduleSessions(),
         status: 'DRAFT',
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description || '',
@@ -550,6 +569,7 @@ export default function NewClassPage() {
         startDateTime: noonDateTimeLocalInputToIso(formData.startDateTime),
         endDateTime: noonDateTimeLocalInputToIso(formData.endDateTime),
         registrationCloseAt: noonDateTimeLocalInputToIso(formData.registrationCloseAt),
+        scheduleSessions: parseScheduleSessions(),
         status: formData.status,
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description,
@@ -828,6 +848,7 @@ export default function NewClassPage() {
                     <option value="MAIN_DISHES">{isRTL ? 'أطباق رئيسية' : 'Main Dishes'}</option>
                     <option value="DESSERTS_BAKING">{isRTL ? 'حلويات ومخبوزات' : 'Desserts & Baking'}</option>
                     <option value="MOM_AND_KID">{isRTL ? 'أم وطفل' : 'Mom & Kid'}</option>
+                    <option value="SUMMER_CAMP">{isRTL ? 'المخيم الصيفي' : 'Summer Camp'}</option>
                   </>
                 )}
                 {formData.category === 'ARTS_CRAFTS' && (
@@ -1042,6 +1063,27 @@ export default function NewClassPage() {
                   : 'Optional. If left empty, registration closes automatically 24 hours before the workshop starts.'}
               </p>
             </div>
+
+            {formData.subCategory === 'SUMMER_CAMP' ? (
+              <div className="md:col-span-3">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {isRTL ? 'جدول أيام المخيم' : 'Summer Camp Schedule'}
+                </label>
+                <textarea
+                  name="scheduleSessionsText"
+                  value={formData.scheduleSessionsText}
+                  onChange={handleInputChange}
+                  rows={4}
+                  placeholder="2026-06-14T10:30, 2026-06-14T12:30&#10;2026-06-15T10:30, 2026-06-15T12:30&#10;2026-06-16T10:30, 2026-06-16T12:30"
+                  className={textareaBase}
+                />
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {isRTL
+                    ? 'كل سطر: وقت البداية، وقت النهاية. مثال: 2026-06-14T10:30, 2026-06-14T12:30'
+                    : 'One session per line: start, end. Example: 2026-06-14T10:30, 2026-06-14T12:30'}
+                </p>
+              </div>
+            ) : null}
 
             {/* Duration */}
             <div className="md:col-span-3">
@@ -1381,7 +1423,7 @@ export default function NewClassPage() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
           >
             {saving ? (
               <>

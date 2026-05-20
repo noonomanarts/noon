@@ -12,7 +12,7 @@ import {
   type EventCartItem,
   type ShopCartItem,
 } from '@/lib/cart';
-import { validatePromoCode } from '@/lib/db/promoCodes';
+import { validatePromoCode, createPromoCode } from '@/lib/db/promoCodes';
 import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import { getWorkersWithOrdersPermission } from '@/lib/db/worker';
@@ -315,8 +315,35 @@ export async function POST(request: NextRequest) {
       }
 
       const discountedSubtotal = Number(Math.max(0, subtotal - discountAmount).toFixed(3));
+
+      // Summer Camp discount: 10% off when booking 2+ workshops or 2+ kids
+      const summerCampItems = classItems.filter(item => item.subCategory === 'SUMMER_CAMP');
+      let summerCampGetsDiscount = false;
+      let shouldGenerateSummerCampPromo = false;
+      if (summerCampItems.length > 0) {
+        const totalSummerCampKids = summerCampItems.reduce((sum, item) => sum + item.numberOfParticipants, 0);
+        const priorBookingResult = await client.query(
+          `SELECT 1
+           FROM bookings b
+           INNER JOIN classes c ON c.id = b.class_id
+           WHERE b.user_id = $1
+             AND NOT (b.class_id = ANY($2::uuid[]))
+             AND c.sub_category = 'SUMMER_CAMP'
+             AND b.payment_status = 'PAID'
+             AND b.status IN ('CONFIRMED', 'COMPLETED')
+           LIMIT 1`,
+          [authenticatedUser.id, summerCampItems.map(i => i.classId)]
+        );
+        const hasPriorBooking = priorBookingResult.rows.length > 0;
+        summerCampGetsDiscount = summerCampItems.length >= 2 || totalSummerCampKids >= 2 || hasPriorBooking;
+        shouldGenerateSummerCampPromo = !summerCampGetsDiscount && summerCampItems.length === 1 && totalSummerCampKids === 1;
+      }
+
       const classTotal = Number(
-        classItems.reduce((sum, item) => sum + Number((item.price * item.numberOfParticipants).toFixed(3)), 0).toFixed(3)
+        classItems.reduce((sum, item) => {
+          const raw = Number((item.price * item.numberOfParticipants).toFixed(3));
+          return sum + (item.subCategory === 'SUMMER_CAMP' && summerCampGetsDiscount ? Number((raw * 0.9).toFixed(3)) : raw);
+        }, 0).toFixed(3)
       );
       const payableTotal = Number((discountedSubtotal + shippingFee + classTotal).toFixed(3));
 
@@ -477,7 +504,12 @@ export async function POST(request: NextRequest) {
                 item.classId,
                 JSON.stringify([...item.participants, ...item.freePartners]),
                 item.numberOfParticipants,
-                Number((item.price * item.numberOfParticipants).toFixed(3)),
+                (() => {
+                  const raw = Number((item.price * item.numberOfParticipants).toFixed(3));
+                  return item.subCategory === 'SUMMER_CAMP' && summerCampGetsDiscount
+                    ? Number((raw * 0.9).toFixed(3))
+                    : raw;
+                })(),
                 item.currency,
                 item.specialRequests || null,
               ]
@@ -509,6 +541,27 @@ export async function POST(request: NextRequest) {
       }
 
       await client.query('COMMIT');
+
+      // Generate a future 10% promo code for single Summer Camp registration
+      let summerCampPromoCode: string | null = null;
+      if (shouldGenerateSummerCampPromo && createdClassBookings.length > 0) {
+        try {
+          const expires = new Date();
+          expires.setMonth(expires.getMonth() + 6);
+          const firstBookingNumber = createdClassBookings[0]?.bookingNumber ?? '';
+          const promoCodeStr = `SUMMER10-${authenticatedUser.id.slice(0, 6)}-${firstBookingNumber.slice(-6)}`.toUpperCase();
+          const created = await createPromoCode({
+            code: promoCodeStr,
+            discountType: 'PERCENTAGE',
+            discountValue: 10,
+            maxUses: 1,
+            expiresAt: expires.toISOString(),
+          });
+          summerCampPromoCode = created.code;
+        } catch {
+          // Non-blocking: promo code failure doesn't affect the completed booking
+        }
+      }
 
       const createdEventBookings: Array<{ id: string; bookingNumber: string }> = [];
       for (const item of eventItems) {
@@ -628,6 +681,7 @@ export async function POST(request: NextRequest) {
           currency,
           classBookingsCount: createdClassBookings.length,
           eventRequestsCount: createdEventBookings.length,
+          summerCampPromoCode,
         },
         wallet: {
           balance: Number((walletBalance - payableTotal).toFixed(3)),

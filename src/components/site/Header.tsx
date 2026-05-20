@@ -63,6 +63,7 @@ export default async function Header({ locale }: { locale: Locale }) {
     classes: locale === "ar" ? "ورش" : "Classes",
     cooking: locale === "ar" ? "ورش الطبخ" : "Cooking classes",
     arts: locale === "ar" ? "الفنون والأشغال" : "Arts & crafts classes",
+    summerCamp: locale === "ar" ? "المخيم الصيفي" : "Summer Camp",
     shop: locale === "ar" ? "المتجر" : "Shop",
     group: locale === "ar" ? "فعاليات" : "Events",
     competition: locale === "ar" ? "مسابقة الطبخ" : "Cooking competition",
@@ -104,6 +105,7 @@ export default async function Header({ locale }: { locale: Locale }) {
           >
             <NavLink href={`/${locale}/classes/cooking`} tone={navTone}>{t.cooking}</NavLink>
             <NavLink href={`/${locale}/classes/arts-crafts`} tone={navTone}>{t.arts}</NavLink>
+            <NavLink href={`/${locale}/classes/summer-camp`} tone={navTone}>{t.summerCamp}</NavLink>
           </Dropdown>
 
           <NavLink href={`/${locale}/shop`} variant="top" tone={navTone}>{t.shop}</NavLink>
@@ -179,6 +181,7 @@ export default async function Header({ locale }: { locale: Locale }) {
             >
               <NavLink href={`/${locale}/classes/cooking`} tone={navTone}>{t.cooking}</NavLink>
               <NavLink href={`/${locale}/classes/arts-crafts`} tone={navTone}>{t.arts}</NavLink>
+              <NavLink href={`/${locale}/classes/summer-camp`} tone={navTone}>{t.summerCamp}</NavLink>
               <NavLink href={`/${locale}/shop`} tone={navTone}>{t.shop}</NavLink>
               <NavLink href={`/${locale}/group-booking-events/cooking-competition`} tone={navTone}>
                 {t.competition}

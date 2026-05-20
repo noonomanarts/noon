@@ -29,6 +29,7 @@ type ClassSubCategory =
   | 'MAIN_DISHES'
   | 'DESSERTS_BAKING'
   | 'MOM_AND_KID'
+  | 'SUMMER_CAMP'
   | 'PAINTING'
   | 'CRAFTS'
   | 'POTTERY';
@@ -63,6 +64,7 @@ interface FormData {
   startDateTime: string;
   endDateTime: string;
   registrationCloseAt: string;
+  scheduleSessionsText: string;
   status: ClassStatus;
   metaTitle: string;
   metaDescription: string;
@@ -130,6 +132,7 @@ export default function EditClassPage() {
     startDateTime: '',
     endDateTime: '',
     registrationCloseAt: '',
+    scheduleSessionsText: '',
     status: 'DRAFT',
     metaTitle: '',
     metaDescription: '',
@@ -216,6 +219,16 @@ export default function EditClassPage() {
         startDateTime: formatNoonDateTimeLocalInput(data.startDateTime),
         endDateTime: formatNoonDateTimeLocalInput(data.endDateTime),
         registrationCloseAt: formatNoonDateTimeLocalInput(data.registrationCloseAt),
+        scheduleSessionsText: Array.isArray(data.scheduleSessions)
+          ? data.scheduleSessions
+              .map((session: { startDateTime?: string; endDateTime?: string }) => {
+                const start = formatNoonDateTimeLocalInput(session.startDateTime ?? null);
+                const end = formatNoonDateTimeLocalInput(session.endDateTime ?? null);
+                return start && end ? `${start}, ${end}` : '';
+              })
+              .filter(Boolean)
+              .join('\n')
+          : '',
         status: data.status || 'DRAFT',
         metaTitle: data.metaTitle || '',
         metaDescription: data.metaDescription || '',
@@ -306,6 +319,21 @@ export default function EditClassPage() {
     if (errors.durationMinutes) {
       setErrors((prev) => ({ ...prev, durationMinutes: '' }));
     }
+  };
+
+  const parseScheduleSessions = () => {
+    return formData.scheduleSessionsText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const [startDateTime, endDateTime] = line.split(',').map((part) => part.trim());
+        return {
+          startDateTime: noonDateTimeLocalInputToIso(startDateTime),
+          endDateTime: noonDateTimeLocalInputToIso(endDateTime),
+        };
+      })
+      .filter((session) => session.startDateTime && session.endDateTime);
   };
 
   const handleMainImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -540,6 +568,7 @@ export default function EditClassPage() {
         startDateTime: noonDateTimeLocalInputToIso(formData.startDateTime),
         endDateTime: noonDateTimeLocalInputToIso(formData.endDateTime),
         registrationCloseAt: noonDateTimeLocalInputToIso(formData.registrationCloseAt),
+        scheduleSessions: parseScheduleSessions(),
         status: 'DRAFT',
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description || '',
@@ -646,6 +675,7 @@ export default function EditClassPage() {
         startDateTime: noonDateTimeLocalInputToIso(formData.startDateTime),
         endDateTime: noonDateTimeLocalInputToIso(formData.endDateTime),
         registrationCloseAt: noonDateTimeLocalInputToIso(formData.registrationCloseAt),
+        scheduleSessions: parseScheduleSessions(),
         status: formData.status,
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description,
@@ -942,6 +972,7 @@ export default function EditClassPage() {
                     <option value="MAIN_DISHES">{isRTL ? 'أطباق رئيسية' : 'Main Dishes'}</option>
                     <option value="DESSERTS_BAKING">{isRTL ? 'حلويات ومخبوزات' : 'Desserts & Baking'}</option>
                     <option value="MOM_AND_KID">{isRTL ? 'أم وطفل' : 'Mom & Kid'}</option>
+                    <option value="SUMMER_CAMP">{isRTL ? 'المخيم الصيفي' : 'Summer Camp'}</option>
                   </>
                 )}
                 {formData.category === 'ARTS_CRAFTS' && (
@@ -1156,6 +1187,27 @@ export default function EditClassPage() {
                   : 'Optional. If left empty, registration closes automatically 24 hours before the workshop starts.'}
               </p>
             </div>
+
+            {formData.subCategory === 'SUMMER_CAMP' ? (
+              <div className="md:col-span-3">
+                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  {isRTL ? 'جدول أيام المخيم' : 'Summer Camp Schedule'}
+                </label>
+                <textarea
+                  name="scheduleSessionsText"
+                  value={formData.scheduleSessionsText}
+                  onChange={handleInputChange}
+                  rows={4}
+                  placeholder="2026-06-14T10:30, 2026-06-14T12:30&#10;2026-06-15T10:30, 2026-06-15T12:30&#10;2026-06-16T10:30, 2026-06-16T12:30"
+                  className={textareaBase}
+                />
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {isRTL
+                    ? 'كل سطر: وقت البداية، وقت النهاية. مثال: 2026-06-14T10:30, 2026-06-14T12:30'
+                    : 'One session per line: start, end. Example: 2026-06-14T10:30, 2026-06-14T12:30'}
+                </p>
+              </div>
+            ) : null}
 
             {/* Duration */}
             <div className="md:col-span-3">

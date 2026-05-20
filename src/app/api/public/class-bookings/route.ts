@@ -7,6 +7,7 @@ import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import { isRegistrationClosed } from '@/lib/classRegistration';
 import { prepareAmwalPayment } from '@/lib/amwal';
+import { createPromoCode } from '@/lib/db/promoCodes';
 import type { Gender } from '@/lib/db/types';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -124,6 +125,28 @@ function generateBookingNumber(): string {
   const d = String(now.getUTCDate()).padStart(2, '0');
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `CLS-${y}${m}${d}-${random}`;
+}
+
+function generateSummerCampPromoCode(userId: string, bookingNumber: string): string {
+  return `SUMMER10-${userId.slice(0, 6)}-${bookingNumber.slice(-6)}`.toUpperCase();
+}
+
+async function createSummerCampFuturePromo(userId: string, bookingNumber: string): Promise<string | null> {
+  try {
+    const expires = new Date();
+    expires.setMonth(expires.getMonth() + 6);
+    const promo = await createPromoCode({
+      code: generateSummerCampPromoCode(userId, bookingNumber),
+      discountType: 'PERCENTAGE',
+      discountValue: 10,
+      maxUses: 1,
+      expiresAt: expires.toISOString(),
+    });
+    return promo.code;
+  } catch (error) {
+    console.error('Failed to create summer camp promo code:', error);
+    return null;
+  }
 }
 
 async function insertBookingWithRetry(args: {
@@ -323,9 +346,28 @@ export async function POST(request: NextRequest) {
       throw new ApiError('Not enough seats available', 409);
     }
 
+    const isSummerCamp = String(classRow.sub_category || '') === 'SUMMER_CAMP';
+    const previousSummerCampResult = isSummerCamp
+      ? await client.query(
+          `SELECT 1
+           FROM bookings b
+           INNER JOIN classes c ON c.id = b.class_id
+           WHERE b.user_id = $1
+             AND b.class_id <> $2
+             AND c.sub_category = 'SUMMER_CAMP'
+             AND b.payment_status = 'PAID'
+             AND b.status IN ('CONFIRMED', 'COMPLETED')
+           LIMIT 1`,
+          [user.id, classId]
+        )
+      : { rows: [] };
+    const summerCampGetsDiscount = isSummerCamp && (numberOfParticipants >= 2 || previousSummerCampResult.rows.length > 0);
+    const summerCampCreatesFuturePromo = isSummerCamp && !summerCampGetsDiscount;
     const unitPrice = Number(classRow.price ?? 0);
     const bookingCurrency = (classRow.currency as string) || 'OMR';
-    const totalAmount = Number((unitPrice * numberOfParticipants).toFixed(3));
+    const subtotalAmount = Number((unitPrice * numberOfParticipants).toFixed(3));
+    const discountAmount = summerCampGetsDiscount ? Number((subtotalAmount * 0.1).toFixed(3)) : 0;
+    const totalAmount = Number(Math.max(0, subtotalAmount - discountAmount).toFixed(3));
 
     if (paymentMethod === 'ONLINE') {
       const booking = await insertBookingWithRetry({
@@ -449,6 +491,10 @@ export async function POST(request: NextRequest) {
 
     await client.query('COMMIT');
 
+    const promoCode = summerCampCreatesFuturePromo
+      ? await createSummerCampFuturePromo(user.id, String(booking.booking_number))
+      : null;
+
     // Award bonus points: 1 OMR = 1 point (fire-and-forget, non-blocking)
     void addBonusPoints(user.id, totalAmount).catch(() => { /* ignore points failure */ });
 
@@ -460,6 +506,7 @@ export async function POST(request: NextRequest) {
         currency: (wallet.currency as string) || 'OMR',
         balance: newBalance,
         classTitle: (classRow.title_ar as string | null) || (classRow.title as string),
+        promoCode,
       },
     }).catch((error) => {
       console.error('Failed to send class booking WhatsApp message:', error);
@@ -487,6 +534,7 @@ export async function POST(request: NextRequest) {
         currency: (booking.currency as string) || 'OMR',
         numberOfParticipants: Number(booking.number_of_participants ?? numberOfParticipants),
         classTitle: (classRow.title_ar as string | null) || (classRow.title as string),
+        promoCode: promoCode ?? null,
       },
       wallet: {
         balance: newBalance,

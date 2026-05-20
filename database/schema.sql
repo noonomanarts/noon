@@ -18,6 +18,7 @@ CREATE TYPE class_sub_category AS ENUM (
   'MAIN_DISHES',
   'DESSERTS_BAKING',
   'MOM_AND_KID',
+  'SUMMER_CAMP',
   'PAINTING',
   'POTTERY',
   'CRAFTS',

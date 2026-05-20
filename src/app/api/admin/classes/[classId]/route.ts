@@ -96,6 +96,22 @@ export async function PUT(request: NextRequest, props: Params) {
       );
     }
 
+    if (Array.isArray(updateData.scheduleSessions)) {
+      for (const session of updateData.scheduleSessions) {
+        if (
+          !session
+          || typeof session !== 'object'
+          || !isQuarterHourDateTimeValue((session as { startDateTime?: string }).startDateTime)
+          || !isQuarterHourDateTimeValue((session as { endDateTime?: string }).endDateTime)
+        ) {
+          return NextResponse.json(
+            { error: 'Summer camp schedule session minutes must be 00, 15, 30, or 45' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     const updatedClass = await updateClass(params.classId, updateData);
 
     if (!updatedClass) {

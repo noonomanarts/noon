@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
       startDateTime,
       endDateTime,
       registrationCloseAt,
+      scheduleSessions,
     } = body;
 
     const isDraft = status === 'DRAFT';
@@ -147,6 +148,7 @@ export async function POST(request: NextRequest) {
       'MAIN_DISHES',
       'DESSERTS_BAKING',
       'MOM_AND_KID',
+      'SUMMER_CAMP',
       'PAINTING',
       'POTTERY',
       'CRAFTS',
@@ -277,6 +279,7 @@ export async function POST(request: NextRequest) {
       startDateTime: startDateTime || null,
       endDateTime: endDateTime || null,
       registrationCloseAt: registrationCloseAt || null,
+      scheduleSessions: Array.isArray(scheduleSessions) ? scheduleSessions : [],
     });
 
     // Create calendar event if date/time is set

@@ -41,6 +41,7 @@ type BookingResult = {
     numberOfParticipants: number;
     classTitle: string;
     paymentStatus?: 'PENDING' | 'PAID' | 'FAILED';
+    promoCode?: string | null;
   };
   wallet?: {
     balance: number;
@@ -134,6 +135,8 @@ export default function ClassBookingClient({
     startDateTime: string | null;
     endDateTime: string | null;
     registrationCloseAt?: string | null;
+    scheduleSessions?: Array<{ startDateTime: string; endDateTime: string }>;
+    summerCampHasPriorBooking?: boolean;
     seatsTotal: number;
     seatsBooked: number;
   };
@@ -179,9 +182,12 @@ export default function ClassBookingClient({
   const maxOthersAllowed = Math.max(0, Math.min(10, seatsAvailable) - (selfIncluded ? 1 : 0));
   const otherOptionMax = Math.max(1, maxOthersAllowed);
   const totalAmount = Number((classData.price * paidParticipants).toFixed(3));
-  const walletBalance = wallet?.balance ?? 0;
-  const walletHasEnoughBalance = walletBalance >= totalAmount;
   const isMomKid = classData.subCategory === 'MOM_AND_KID';
+  const isSummerCamp = classData.subCategory === 'SUMMER_CAMP';
+  const summerCampDiscountAmount = isSummerCamp && (paidParticipants >= 2 || classData.summerCampHasPriorBooking) ? Number((totalAmount * 0.1).toFixed(3)) : 0;
+  const payableTotalAmount = Number(Math.max(0, totalAmount - summerCampDiscountAmount).toFixed(3));
+  const walletBalance = wallet?.balance ?? 0;
+  const walletHasEnoughBalance = walletBalance >= payableTotalAmount;
   const classDateLabel = classData.startDateTime
     ? new Date(classData.startDateTime).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
         weekday: 'short',
@@ -241,6 +247,11 @@ export default function ClassBookingClient({
     specialRequests: isArabic ? 'ملاحظات / طلبات خاصة' : 'Special Requests / Notes',
     agree: isArabic ? 'أوافق على الشروط والأحكام' : 'I agree to the terms and conditions',
     total: isArabic ? 'الإجمالي' : 'Total',
+    subtotal: isArabic ? 'الإجمالي قبل الخصم' : 'Subtotal',
+    summerCampDiscount: isArabic ? 'خصم المخيم الصيفي' : 'Summer Camp discount',
+    summerCampFuturePromo: isArabic
+      ? 'حجز طفل واحد يحصل على كود خصم 10% للاستخدام القادم بعد إتمام الدفع.'
+      : 'One-child bookings receive a 10% promo code for future use after payment.',
     cartHint: isArabic ? 'يمكنك الدفع الآن أو استخدام رصيد المحفظة إذا كان كافياً.' : 'Pay now, or use wallet credit when your balance is enough.',
     paymentMethod: isArabic ? 'طريقة الدفع' : 'Payment Method',
     payNow: isArabic ? 'الدفع الآن' : 'Pay now',
@@ -651,6 +662,11 @@ export default function ClassBookingClient({
           <p className="mt-1 text-sm text-emerald-800 dark:text-emerald-300">
             {t.total}: {formatAmountWithCurrency(result.booking.totalAmount, result.booking.currency)}
           </p>
+          {result.booking.promoCode ? (
+            <p className="mt-2 rounded-xl border border-emerald-300/60 bg-white/70 px-3 py-2 text-sm font-semibold text-emerald-900 dark:bg-emerald-950/20 dark:text-emerald-100">
+              {isArabic ? 'كود خصمك القادم' : 'Your future promo code'}: {result.booking.promoCode}
+            </p>
+          ) : null}
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href={`/${locale}/account/orders`}
@@ -1112,10 +1128,25 @@ export default function ClassBookingClient({
               <span className="font-semibold">{paidParticipants}</span>
             </div>
             <div className="border-t border-[color:var(--border)] pt-2 text-base font-semibold text-[color:var(--text)]">
-              <div className="flex items-center justify-between">
+              {summerCampDiscountAmount > 0 ? (
+                <>
+                  <div className="flex items-center justify-between text-sm font-medium">
+                    <span>{t.subtotal}</span>
+                    <span>{formatAmountWithCurrency(totalAmount, classData.currency)}</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                    <span>{t.summerCampDiscount}</span>
+                    <span>-{formatAmountWithCurrency(summerCampDiscountAmount, classData.currency)}</span>
+                  </div>
+                </>
+              ) : null}
+              <div className="mt-1 flex items-center justify-between">
                 <span>{t.total}</span>
-                <span>{formatAmountWithCurrency(totalAmount, classData.currency)}</span>
+                <span>{formatAmountWithCurrency(payableTotalAmount, classData.currency)}</span>
               </div>
+              {isSummerCamp && summerCampDiscountAmount === 0 ? (
+                <p className="mt-2 text-xs font-normal text-[color:var(--text-subtle)]">{t.summerCampFuturePromo}</p>
+              ) : null}
             </div>
           </div>
 

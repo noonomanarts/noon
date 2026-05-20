@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db/pool';
 import { addBonusPoints } from '@/lib/db/wallet';
+import { createPromoCode } from '@/lib/db/promoCodes';
 import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import {
@@ -9,6 +10,28 @@ import {
   parseAmwalTransactionPayload,
 } from '@/lib/amwal';
 import { isRegistrationClosed } from '@/lib/classRegistration';
+
+function generateSummerCampPromoCode(userId: string, bookingNumber: string): string {
+  return `SUMMER10-${userId.slice(0, 6)}-${bookingNumber.slice(-6)}`.toUpperCase();
+}
+
+async function createSummerCampFuturePromo(userId: string, bookingNumber: string): Promise<string | null> {
+  try {
+    const expires = new Date();
+    expires.setMonth(expires.getMonth() + 6);
+    const promo = await createPromoCode({
+      code: generateSummerCampPromoCode(userId, bookingNumber),
+      discountType: 'PERCENTAGE',
+      discountValue: 10,
+      maxUses: 1,
+      expiresAt: expires.toISOString(),
+    });
+    return promo.code;
+  } catch (error) {
+    console.error('Failed to create summer camp promo code:', error);
+    return null;
+  }
+}
 
 function getPayload(body: Record<string, unknown>): Record<string, unknown> {
   const nested = body.gatewayPayload;
@@ -56,7 +79,7 @@ export async function POST(request: NextRequest) {
     const bookingResult = await client.query(
       `SELECT b.id, b.booking_number, b.user_id, b.class_id, b.number_of_participants, b.total_amount,
               b.currency, b.status, b.payment_status, u.full_name, c.title, c.title_ar, c.start_date_time,
-              c.registration_close_at, c.status AS class_status, c.seats_total, c.seats_booked
+              c.registration_close_at, c.status AS class_status, c.seats_total, c.seats_booked, c.sub_category
        FROM bookings b
        INNER JOIN users u ON u.id = b.user_id
        INNER JOIN classes c ON c.id = b.class_id
@@ -73,6 +96,25 @@ export async function POST(request: NextRequest) {
 
     if ((booking.payment_status as string) === 'PAID') {
       await client.query('COMMIT');
+
+      let promoCode: string | null = null;
+      if (String(booking.sub_category || '') === 'SUMMER_CAMP' && Number(booking.number_of_participants ?? 0) < 2) {
+        const previousSummerCampResult = await pool.query(
+          `SELECT 1
+           FROM bookings b
+           INNER JOIN classes c ON c.id = b.class_id
+           WHERE b.user_id = $1
+             AND b.id <> $2
+             AND c.sub_category = 'SUMMER_CAMP'
+             AND b.payment_status = 'PAID'
+             AND b.status IN ('CONFIRMED', 'COMPLETED')
+           LIMIT 1`,
+          [booking.user_id, booking.id]
+        );
+        if (previousSummerCampResult.rows.length === 0) {
+          promoCode = await createSummerCampFuturePromo(String(booking.user_id), String(booking.booking_number));
+        }
+      }
       return NextResponse.json({
         success: true,
         paymentStatus: 'PAID',
@@ -84,6 +126,7 @@ export async function POST(request: NextRequest) {
           numberOfParticipants: Number(booking.number_of_participants ?? 0),
           classTitle: (booking.title_ar as string | null) || String(booking.title || ''),
           paymentMethod: 'ONLINE',
+          promoCode,
         },
       });
     }

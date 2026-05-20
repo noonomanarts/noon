@@ -86,6 +86,7 @@ function formatSubCategory(value: string, isArabic: boolean) {
     MAIN_DISHES: { en: 'Main Dishes', ar: 'الأطباق الرئيسية' },
     DESSERTS_BAKING: { en: 'Desserts & Baking', ar: 'الحلويات والمخبوزات' },
     MOM_AND_KID: { en: 'Mom & Kid', ar: 'الأم والطفل' },
+    SUMMER_CAMP: { en: 'Summer Camp', ar: 'المخيم الصيفي' },
     PAINTING: { en: 'Painting', ar: 'الرسم' },
     CRAFTS: { en: 'Crafts', ar: 'الأشغال اليدوية' },
     POTTERY: { en: 'Pottery', ar: 'الفخار' },
