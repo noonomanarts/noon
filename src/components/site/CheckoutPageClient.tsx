@@ -1,12 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { MuscatLocationPicker } from '@/components/site/MuscatLocationPicker';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
-import { buildAmwalErrorUiMessage, getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
 
 type ShopCartApiItem = {
   id: string;
@@ -85,17 +83,6 @@ type WalletPayload = {
   currency: string;
 };
 
-type WalletTopupCheckoutPayload = {
-  payment?: {
-    reference?: string;
-    returnUrl?: string;
-    checkout?: {
-      scriptUrl: string;
-      config: Record<string, unknown>;
-    };
-  };
-};
-
 type CheckoutResult = {
   success: boolean;
   summary: {
@@ -130,28 +117,12 @@ type PromoValidationPayload = {
 const SHIPPING_FEE = 2;
 const CHECKOUT_DRAFT_STORAGE_KEY = 'checkout_draft_v1';
 
-type CheckoutDraft = {
-  form: {
-    area: string;
-    streetAddress: string;
-    postalCode: string;
-    recipientFullName: string;
-    recipientPhone: string;
-    notes: string;
-  };
-  selectedLocation: DeliveryLocation | null;
-  promoCodeInput: string;
-  appliedPromo: PromoValidationPayload | null;
-};
-
 export default function CheckoutPageClient({ locale }: { locale: Locale }) {
-  const searchParams = useSearchParams();
   const isArabic = locale === 'ar';
   const [cart, setCart] = useState<CartPayload | null>(null);
   const [wallet, setWallet] = useState<WalletPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [topupLoading, setTopupLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -160,7 +131,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const [unauthorized, setUnauthorized] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState<CheckoutResult | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<DeliveryLocation | null>(null);
-  const [resumeAfterTopup, setResumeAfterTopup] = useState(false);
 
   const [form, setForm] = useState({
     area: '',
@@ -202,7 +172,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     submitRequests: isArabic ? 'إرسال الطلب' : 'Submit request',
     requestOnlyHint: isArabic ? 'لن يتم خصم أي مبلغ الآن.' : 'No payment will be charged now.',
     walletBalance: isArabic ? 'رصيد المحفظة' : 'Wallet Balance',
-    walletUsed: isArabic ? 'سيتم الخصم من المحفظة' : 'Will be paid from wallet',
     subtotal: isArabic ? 'الإجمالي الفرعي' : 'Subtotal',
     shipping: isArabic ? 'رسوم التوصيل' : 'Shipping Fee',
     discount: isArabic ? 'الخصم' : 'Discount',
@@ -213,29 +182,12 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     promoPlaceholder: isArabic ? 'مثال: NOON20' : 'Example: NOON20',
     total: isArabic ? 'الإجمالي' : 'Total',
     payWallet: isArabic ? 'الدفع من المحفظة' : 'Pay with Wallet',
-    payShortfall: isArabic ? 'ادفعي المتبقي' : 'Pay remaining',
+    payNow: isArabic ? 'الدفع الآن' : 'Pay now',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
     insufficient: isArabic
-      ? 'رصيد المحفظة غير كافٍ. ادفعي المتبقي فقط.'
-      : 'Wallet balance is not enough. Pay the remaining amount only.',
-    topupTitle: isArabic ? 'ادفعي المتبقي' : 'Pay Remaining',
-    topupHint: isArabic
-      ? 'سيتم استخدام رصيد المحفظة تلقائياً.'
-      : 'Your wallet balance will be used automatically.',
-    topupAmount: isArabic ? 'المبلغ المتبقي' : 'Remaining Amount',
-    topupRedirect: isArabic
-      ? 'لحظة، بنفتح لك نافذة الدفع.'
-      : 'One moment, opening the payment window.',
-    topupResume: isArabic
-      ? 'وصل المبلغ المتبقي، والحين بنكمل الطلب تلقائياً.'
-      : 'The remaining amount was received. Finishing your order now.',
-    shortfall: isArabic ? 'الباقي عليك' : 'Left to pay',
-    shortfallHelp: isArabic
-      ? 'هذا هو المبلغ المطلوب الآن.'
-      : 'This is the amount due now.',
-    paymentCtaHint: isArabic
-      ? 'سيتم فتح نافذة الدفع لهذا المبلغ.'
-      : 'A payment window will open for this amount.',
+      ? 'رصيد المحفظة غير كافٍ. يمكنك شحن المحفظة من صفحة الحساب فقط.'
+      : 'Wallet balance is not enough. You can top up your wallet from your account only.',
+    topupInAccount: isArabic ? 'شحن المحفظة من الحساب' : 'Top up in account',
     successTitle: isArabic ? 'تمت العملية بنجاح' : 'Checkout completed successfully',
     orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',
     classBookingsDone: isArabic ? 'حجوزات الدورات' : 'Class bookings',
@@ -253,17 +205,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   };
   const checkoutTextBoxClassName =
     'w-full rounded-xl border border-solid border-[#b5ada4] bg-[color:var(--muted)] px-3 py-2 text-[color:var(--text)] focus:border-[color:var(--primary)] focus:outline-2 focus:outline-[color:var(--focus)]';
-
-  const redirectWithTopupStatus = useCallback((status: 'paid' | 'failed' | 'cancelled' | 'pending', reference?: string, targetPath?: string) => {
-    if (typeof window === 'undefined') return;
-    const fallbackTarget = `/${locale}/checkout`;
-    const destination = new URL(targetPath && targetPath.startsWith('/') ? targetPath : fallbackTarget, window.location.origin);
-    destination.searchParams.set('topup', status);
-    if (reference) {
-      destination.searchParams.set('reference', reference);
-    }
-    window.location.href = `${destination.pathname}${destination.search}`;
-  }, [locale]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -323,47 +264,14 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const total = Number((Math.max(0, basePayableNow - discountAmount) + (hasShopItems ? SHIPPING_FEE : 0)).toFixed(3));
   const walletBalance = wallet?.balance ?? 0;
   const hasEnoughBalance = walletBalance >= total;
-  const shortfallAmount = Number(Math.max(0, total - walletBalance).toFixed(3));
-  const walletUsedAmount = Number(Math.min(walletBalance, total).toFixed(3));
   const hasItems = (cart?.items.length ?? 0) > 0;
   const requiresAuthenticatedCheckout = basePayableNow > 0;
   const isRequestOnlyCart = hasEventItems && basePayableNow <= 0;
   const isLocationMissing = hasShopItems && selectedLocation === null;
 
-  const persistCheckoutDraft = useCallback(() => {
-    if (typeof window === 'undefined') return;
-
-    const payload: CheckoutDraft = {
-      form,
-      selectedLocation,
-      promoCodeInput,
-      appliedPromo,
-    };
-
-    window.sessionStorage.setItem(`${CHECKOUT_DRAFT_STORAGE_KEY}:${locale}`, JSON.stringify(payload));
-  }, [appliedPromo, form, locale, promoCodeInput, selectedLocation]);
-
   const clearCheckoutDraft = useCallback(() => {
     if (typeof window === 'undefined') return;
     window.sessionStorage.removeItem(`${CHECKOUT_DRAFT_STORAGE_KEY}:${locale}`);
-  }, [locale]);
-
-  const restoreCheckoutDraft = useCallback(() => {
-    if (typeof window === 'undefined') return false;
-
-    const raw = window.sessionStorage.getItem(`${CHECKOUT_DRAFT_STORAGE_KEY}:${locale}`);
-    if (!raw) return false;
-
-    try {
-      const parsed = JSON.parse(raw) as CheckoutDraft;
-      setForm(parsed.form);
-      setSelectedLocation(parsed.selectedLocation ?? null);
-      setPromoCodeInput(parsed.promoCodeInput ?? '');
-      setAppliedPromo(parsed.appliedPromo ?? null);
-      return true;
-    } catch {
-      return false;
-    }
   }, [locale]);
 
   const requiredMissing = useMemo(() => {
@@ -376,50 +284,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
       )
     );
   }, [form, hasShopItems]);
-
-  useEffect(() => {
-    const topupStatus = searchParams.get('topup');
-    const restored = restoreCheckoutDraft();
-    if (!topupStatus) return;
-
-    if (topupStatus === 'paid') {
-      setMessage(restored ? t.topupResume : (isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.'));
-      setError(null);
-      if (restored) {
-        setResumeAfterTopup(true);
-      }
-      void loadData();
-      return;
-    }
-
-    if (topupStatus === 'failed') {
-      setError(buildAmwalErrorUiMessage({
-        locale,
-        context: 'checkout-topup',
-        reason: searchParams.get('reason'),
-      }));
-      setMessage(null);
-      return;
-    }
-
-    if (topupStatus === 'cancelled') {
-      setError(isArabic ? 'تم إلغاء عملية شحن المحفظة.' : 'Wallet top-up was cancelled.');
-      setMessage(null);
-      return;
-    }
-
-    if (topupStatus === 'pending') {
-      setMessage(
-        isArabic
-          ? 'استلمنا عملية الدفع، وجاري تحديث الرصيد.'
-          : 'We got your payment and are updating your balance now.'
-      );
-      setError(null);
-      if (restored) {
-        setResumeAfterTopup(true);
-      }
-    }
-  }, [isArabic, loadData, locale, restoreCheckoutDraft, searchParams, t.topupResume]);
 
   useEffect(() => {
     if (!cart || cart.items.length === 0) {
@@ -478,111 +342,9 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     setMessage(null);
   };
 
-  const handleTopup = async () => {
+  const submitCheckout = useCallback(async () => {
+    setError(null);
     setMessage(null);
-    setError(null);
-
-    if (requiredMissing) {
-      setError(t.shippingRequired);
-      return;
-    }
-
-    if (isLocationMissing) {
-      setError(t.locationRequired);
-      return;
-    }
-
-    const amount = shortfallAmount;
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setError(isArabic ? 'لا يوجد مبلغ متبقٍ للدفع.' : 'There is no remaining amount to charge.');
-      return;
-    }
-
-    setTopupLoading(true);
-    try {
-      persistCheckoutDraft();
-
-      const response = await fetch('/api/wallet/topup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount,
-          returnUrl: `/${locale}/checkout`,
-          metadata: {
-            source: 'checkout_sidebar',
-            locale,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const errPayload = await response.json().catch(() => ({}));
-        throw new Error(typeof errPayload?.error === 'string' ? errPayload.error : 'Failed to top up wallet');
-      }
-
-      const payload = (await response.json()) as WalletTopupCheckoutPayload;
-      const payment = payload?.payment;
-      const checkout = payment?.checkout;
-      const reference = typeof payment?.reference === 'string' ? payment.reference : undefined;
-      const targetReturnUrl = typeof payment?.returnUrl === 'string' ? payment.returnUrl : `/${locale}/checkout`;
-
-      if (!checkout || !reference) {
-        throw new Error(isArabic ? 'بيانات الدفع غير مكتملة.' : 'Payment details are incomplete.');
-      }
-
-      setMessage(t.topupRedirect);
-      await startAmwalCheckout({
-        checkout,
-        onComplete: async (gatewayPayload) => {
-          const callbackResponse = await fetch('/api/wallet/topup/callback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reference, gatewayPayload }),
-          });
-          const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as {
-            error?: string;
-            topupStatus?: string;
-          };
-
-          if (!callbackResponse.ok) {
-            throw new Error(callbackPayload.error || 'Failed to confirm payment');
-          }
-
-          const topupStatus = callbackPayload.topupStatus === 'PAID'
-            ? 'paid'
-            : callbackPayload.topupStatus === 'CANCELLED'
-              ? 'cancelled'
-              : callbackPayload.topupStatus === 'FAILED'
-                ? 'failed'
-                : 'pending';
-
-          redirectWithTopupStatus(topupStatus, reference, targetReturnUrl);
-        },
-        onCancel: () => {
-          redirectWithTopupStatus('cancelled', reference, targetReturnUrl);
-        },
-        onError: async (gatewayPayload) => {
-          await fetch('/api/wallet/topup/callback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reference, gatewayPayload: getAmwalCheckoutErrorPayload(gatewayPayload) }),
-          }).catch(() => undefined);
-
-          redirectWithTopupStatus('failed', reference, targetReturnUrl);
-        },
-      });
-    } catch (topupError) {
-      setError(topupError instanceof Error ? topupError.message : 'Failed to top up wallet');
-    } finally {
-      setTopupLoading(false);
-    }
-  };
-
-  const submitCheckout = useCallback(async (isResumeAttempt = false) => {
-    setError(null);
-    if (!isResumeAttempt) {
-      setMessage(null);
-    }
 
     if (!hasItems) {
       setError(isArabic ? 'السلة فارغة.' : 'Your cart is empty.');
@@ -638,9 +400,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
       window.dispatchEvent(new CustomEvent('cart:changed', { detail: { count: 0 } }));
     } catch (checkoutError) {
       setError(checkoutError instanceof Error ? checkoutError.message : 'Checkout failed');
-      if (isResumeAttempt) {
-        setResumeAfterTopup(true);
-      }
     } finally {
       setProcessing(false);
     }
@@ -655,34 +414,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     selectedLocation,
     t.locationRequired,
     t.shippingRequired,
-  ]);
-
-  useEffect(() => {
-    if (
-      !resumeAfterTopup ||
-      loading ||
-      processing ||
-      checkoutResult ||
-      !hasItems ||
-      !hasEnoughBalance ||
-      requiredMissing ||
-      isLocationMissing
-    ) {
-      return;
-    }
-
-    setResumeAfterTopup(false);
-    void submitCheckout(true);
-  }, [
-    checkoutResult,
-    hasEnoughBalance,
-    hasItems,
-    isLocationMissing,
-    loading,
-    processing,
-    requiredMissing,
-    resumeAfterTopup,
-    submitCheckout,
   ]);
 
   if (loading) {
@@ -995,25 +726,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                 </span>
               </div>
               ) : null}
-              {!isRequestOnlyCart && total > 0 ? (
-              <div className="flex items-center justify-between">
-                <span>{t.walletUsed}</span>
-                <span className="font-semibold text-emerald-700 dark:text-emerald-300">
-                  {formatAmountWithCurrency(walletUsedAmount, currency)}
-                </span>
-              </div>
-              ) : null}
-              {!isRequestOnlyCart && !hasEnoughBalance ? (
-                <div className="rounded-lg border border-amber-200/80 bg-amber-50/80 px-3 py-2 dark:border-amber-900/40 dark:bg-amber-900/10">
-                  <div className="flex items-center justify-between text-amber-800 dark:text-amber-200">
-                    <span className="font-medium">{t.shortfall}</span>
-                    <span className="font-semibold">{formatAmountWithCurrency(shortfallAmount, currency)}</span>
-                  </div>
-                  <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">
-                    {t.shortfallHelp}
-                  </p>
-                </div>
-              ) : null}
               <div className="flex items-center justify-between">
                 <span>{hasShopItems || hasClassItems ? t.payableNow : t.requestOnlyTotal}</span>
                 <span>{formatAmountWithCurrency(total, currency)}</span>
@@ -1050,7 +762,12 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             </div>
 
             {!hasEnoughBalance ? (
-              <p className="mt-3 text-xs text-rose-700 dark:text-rose-300">{t.insufficient}</p>
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
+                <p>{t.insufficient}</p>
+                <Link href={`/${locale}/account/wallet`} className="mt-1 inline-flex font-semibold underline">
+                  {t.topupInAccount}
+                </Link>
+              </div>
             ) : null}
 
             <button
@@ -1064,35 +781,6 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
 
             {isRequestOnlyCart ? (
               <p className="mt-3 text-xs text-[color:var(--text-subtle)]">{t.requestOnlyHint}</p>
-            ) : null}
-
-            {!isRequestOnlyCart && !hasEnoughBalance && total > 0 ? (
-              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-center dark:border-emerald-900/40 dark:bg-emerald-900/20">
-                <h3 className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">{t.topupTitle}</h3>
-                <p className="mt-1 text-xs text-emerald-800 dark:text-emerald-300">{t.topupHint}</p>
-                <div className="mt-3 grid gap-2 rounded-xl border border-emerald-300/60 bg-white/70 p-3 text-sm dark:bg-emerald-950/20">
-                  <div className="flex items-center justify-between text-emerald-900 dark:text-emerald-200">
-                    <span>{t.walletBalance}</span>
-                    <span className="font-semibold">{formatAmountWithCurrency(walletBalance, currency)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-emerald-900 dark:text-emerald-200">
-                    <span>{t.walletUsed}</span>
-                    <span className="font-semibold">{formatAmountWithCurrency(walletUsedAmount, currency)}</span>
-                  </div>
-                  <div className="flex items-center justify-between border-t border-emerald-300/60 pt-2 text-emerald-950 dark:text-emerald-100">
-                    <span className="font-medium">{t.topupAmount}</span>
-                    <span className="text-base font-bold">{formatAmountWithCurrency(shortfallAmount, currency)}</span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void handleTopup()}
-                  disabled={topupLoading || shortfallAmount <= 0 || requiredMissing || isLocationMissing}
-                  className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-emerald-400/60 px-4 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-500/10 disabled:opacity-60"
-                >
-                  {topupLoading ? t.processing : t.payShortfall}
-                </button>
-              </div>
             ) : null}
 
             <Link

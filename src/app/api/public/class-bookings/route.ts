@@ -31,7 +31,7 @@ type ParticipantPayload = {
 type BookingPaymentMethod = 'WALLET' | 'ONLINE';
 
 function parsePaymentMethod(value: unknown): BookingPaymentMethod {
-  return value === 'ONLINE' ? 'ONLINE' : 'WALLET';
+  return value === 'WALLET' ? 'WALLET' : 'ONLINE';
 }
 
 function parseGender(value: unknown): Gender | null {

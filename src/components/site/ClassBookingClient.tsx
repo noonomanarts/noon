@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import type { Gender } from '@/lib/db/types';
+import { getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
 
 const DISPLAY_TIMEZONE = 'Asia/Muscat';
 
@@ -20,6 +21,7 @@ type ParticipantWithPartner = Participant & {
 };
 
 type RegistrationType = 'self' | 'other' | 'both';
+type BookingPaymentMethod = 'ONLINE' | 'WALLET';
 type CurrentUserLite = {
   fullName: string;
   email: string;
@@ -40,10 +42,28 @@ type BookingResult = {
     classTitle: string;
     paymentStatus?: 'PENDING' | 'PAID' | 'FAILED';
   };
-  wallet: {
+  wallet?: {
     balance: number;
     available_balance: number;
     currency: string;
+  };
+};
+
+type WalletPayload = {
+  balance: number;
+  available_balance: number;
+  currency: string;
+};
+
+type BookingSubmitPayload = {
+  success?: boolean;
+  error?: string;
+  booking?: BookingResult['booking'];
+  wallet?: BookingResult['wallet'];
+  checkout?: {
+    scriptUrl: string;
+    config: Record<string, unknown>;
+    reference?: string;
   };
 };
 
@@ -131,6 +151,8 @@ export default function ClassBookingClient({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [result, setResult] = useState<BookingResult | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<BookingPaymentMethod>('ONLINE');
+  const [wallet, setWallet] = useState<WalletPayload | null>(null);
 
   const seatsAvailable = Math.max(0, classData.seatsTotal - classData.seatsBooked);
   const hasBookableSeats = seatsAvailable > 0;
@@ -157,6 +179,8 @@ export default function ClassBookingClient({
   const maxOthersAllowed = Math.max(0, Math.min(10, seatsAvailable) - (selfIncluded ? 1 : 0));
   const otherOptionMax = Math.max(1, maxOthersAllowed);
   const totalAmount = Number((classData.price * paidParticipants).toFixed(3));
+  const walletBalance = wallet?.balance ?? 0;
+  const walletHasEnoughBalance = walletBalance >= totalAmount;
   const isMomKid = classData.subCategory === 'MOM_AND_KID';
   const classDateLabel = classData.startDateTime
     ? new Date(classData.startDateTime).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
@@ -195,7 +219,7 @@ export default function ClassBookingClient({
     seats: isArabic ? 'عدد المقاعد' : 'Seats',
     attendeeOne: isArabic ? 'بياناتك' : 'Your seat',
     attendeeExtra: isArabic ? 'مشارك إضافي' : 'Additional attendee',
-    simpleHint: isArabic ? 'الدفع يتم لاحقاً داخل السلة.' : 'Payment happens later in cart.',
+    simpleHint: isArabic ? 'اختاري طريقة الدفع ثم أكدي الحجز.' : 'Choose a payment method, then confirm your booking.',
     bookingFor: isArabic ? 'نوع التسجيل' : 'Registration Type',
     audience: isArabic ? 'الفئة المناسبة' : 'Audience',
     audienceMixed: isArabic ? 'مشترك' : 'Mixed',
@@ -217,12 +241,20 @@ export default function ClassBookingClient({
     specialRequests: isArabic ? 'ملاحظات / طلبات خاصة' : 'Special Requests / Notes',
     agree: isArabic ? 'أوافق على الشروط والأحكام' : 'I agree to the terms and conditions',
     total: isArabic ? 'الإجمالي' : 'Total',
-    cartHint: isArabic ? 'سنحفظ هذا الحجز في السلة أولاً.' : 'This booking will be saved to your cart first.',
-    submit: isArabic ? 'أضف إلى السلة' : 'Add to cart',
+    cartHint: isArabic ? 'يمكنك الدفع الآن أو استخدام رصيد المحفظة إذا كان كافياً.' : 'Pay now, or use wallet credit when your balance is enough.',
+    paymentMethod: isArabic ? 'طريقة الدفع' : 'Payment Method',
+    payNow: isArabic ? 'الدفع الآن' : 'Pay now',
+    payNowHint: isArabic ? 'افتحي بوابة الدفع لإتمام الحجز.' : 'Open the payment gateway to complete this booking.',
+    walletCredit: isArabic ? 'استخدام رصيد المحفظة' : 'Use wallet credit',
+    walletCreditHint: isArabic ? 'متاح فقط عندما يغطي رصيد المحفظة كامل المبلغ.' : 'Available only when your wallet covers the full amount.',
+    walletBalance: isArabic ? 'رصيد المحفظة' : 'Wallet balance',
+    walletInsufficient: isArabic ? 'رصيد المحفظة غير كافٍ لهذا الحجز.' : 'Wallet balance is not enough for this booking.',
+    topupInAccount: isArabic ? 'شحن المحفظة من الحساب' : 'Top up in account',
+    submit: isArabic ? 'تأكيد الحجز' : 'Confirm booking',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
-    successTitle: isArabic ? 'تمت إضافة الحجز إلى السلة' : 'Booking added to cart',
+    successTitle: isArabic ? 'تم تأكيد الحجز' : 'Booking confirmed',
     bookingNumber: isArabic ? 'رقم الحجز' : 'Booking Number',
-    goOrders: isArabic ? 'عرض السلة' : 'View Cart',
+    goOrders: isArabic ? 'عرض حجوزاتي' : 'View My Bookings',
     goClass: isArabic ? 'العودة للدورة' : 'Back to Class',
     required: isArabic ? 'يرجى إكمال بيانات كل مشارك.' : 'Please complete each participant entry.',
     genderRequired: isArabic ? 'يرجى تحديد الجنس لكل مشارك.' : 'Please select a gender for each participant.',
@@ -251,6 +283,32 @@ export default function ClassBookingClient({
   useEffect(() => {
     setSelfParticipant(buildSelfParticipant(currentUser));
   }, [currentUser]);
+
+  useEffect(() => {
+    let active = true;
+
+    void fetch('/api/wallet/balance', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as WalletPayload;
+      })
+      .then((payload) => {
+        if (active && payload) {
+          setWallet(payload);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (paymentMethod === 'WALLET' && !walletHasEnoughBalance) {
+      setPaymentMethod('ONLINE');
+    }
+  }, [paymentMethod, walletHasEnoughBalance]);
 
   useEffect(() => {
     if (isMomKid) {
@@ -492,40 +550,86 @@ export default function ClassBookingClient({
 
     setProcessing(true);
     try {
-      const response = await fetch('/api/cart/class-bookings', {
+      if (paymentMethod === 'WALLET' && !walletHasEnoughBalance) {
+        setError(t.walletInsufficient);
+        return;
+      }
+
+      const response = await fetch('/api/public/class-bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           classId: classData.id,
+          locale,
+          paymentMethod,
           numberOfParticipants: paidParticipants,
           participants: payableParticipants,
           freePartners,
           specialRequests,
+          termsAccepted,
         }),
       });
 
-      const payload = (await response.json().catch(() => ({}))) as { success?: boolean; error?: string };
+      const payload = (await response.json().catch(() => ({}))) as BookingSubmitPayload;
       if (!response.ok || payload?.success !== true) {
         throw new Error(typeof payload?.error === 'string' ? payload.error : 'Booking failed.');
       }
 
+      if (payload.checkout && payload.booking) {
+        const reference = payload.checkout.reference || payload.booking.bookingNumber;
+        setMessage(isArabic ? 'جاري فتح نافذة الدفع...' : 'Opening payment window...');
+
+        await startAmwalCheckout({
+          checkout: payload.checkout,
+          onComplete: async (gatewayPayload) => {
+            const callbackResponse = await fetch('/api/public/class-bookings/payment/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reference, gatewayPayload }),
+            });
+            const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as BookingSubmitPayload & {
+              paymentStatus?: string;
+            };
+
+            if (!callbackResponse.ok || callbackPayload.paymentStatus !== 'PAID' || !callbackPayload.booking) {
+              throw new Error(callbackPayload.error || (isArabic ? 'فشل تأكيد الدفع.' : 'Failed to confirm payment.'));
+            }
+
+            setResult({
+              success: true,
+              booking: callbackPayload.booking,
+            });
+          },
+          onCancel: () => {
+            setError(isArabic ? 'تم إلغاء الدفع.' : 'Payment was cancelled.');
+          },
+          onError: async (gatewayPayload) => {
+            await fetch('/api/public/class-bookings/payment/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reference, gatewayPayload: getAmwalCheckoutErrorPayload(gatewayPayload) }),
+            }).catch(() => undefined);
+
+            setError(isArabic ? 'فشل الدفع. يرجى المحاولة مرة أخرى.' : 'Payment failed. Please try again.');
+          },
+        });
+
+        saveOtherParticipants();
+        return;
+      }
+
+      if (!payload.booking) {
+        throw new Error(isArabic ? 'بيانات الحجز غير مكتملة.' : 'Booking response is incomplete.');
+      }
+
       setResult({
         success: true,
-        booking: {
-          id: 'cart',
-          bookingNumber: '',
-          totalAmount,
-          currency: classData.currency,
-          numberOfParticipants: paidParticipants,
-          classTitle: isArabic && classData.titleAr ? classData.titleAr : classData.title,
-        },
-        wallet: {
-          balance: 0,
-          available_balance: 0,
-          currency: classData.currency,
-        },
+        booking: payload.booking,
+        wallet: payload.wallet,
       });
-      window.dispatchEvent(new CustomEvent('cart:changed'));
+      if (payload.wallet) {
+        setWallet(payload.wallet);
+      }
       saveOtherParticipants();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Booking failed.');
@@ -549,7 +653,7 @@ export default function ClassBookingClient({
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href={`/${locale}/cart`}
+              href={`/${locale}/account/orders`}
               className="inline-flex rounded-xl bg-[color:var(--primary)] px-4 py-2 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
             >
               {t.goOrders}
@@ -936,6 +1040,67 @@ export default function ClassBookingClient({
           <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
             <p className="text-sm text-[color:var(--text-muted)]">{t.cartHint}</p>
             <p className="mt-2 text-xs text-[color:var(--text-subtle)]">{t.simpleHint}</p>
+          </div>
+          <div className="mt-4 rounded-2xl border border-[color:var(--border)] p-4">
+            <p className="text-sm font-semibold text-[color:var(--text)]">{t.paymentMethod}</p>
+            <div className="mt-3 space-y-2">
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm transition ${
+                  paymentMethod === 'ONLINE'
+                    ? 'border-[color:var(--primary)] bg-[color:var(--primary)]/5'
+                    : 'border-[color:var(--border)]'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="bookingPaymentMethod"
+                  checked={paymentMethod === 'ONLINE'}
+                  onChange={() => setPaymentMethod('ONLINE')}
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block font-semibold text-[color:var(--text)]">{t.payNow}</span>
+                  <span className="mt-0.5 block text-xs text-[color:var(--text-muted)]">{t.payNowHint}</span>
+                </span>
+              </label>
+              <label
+                className={`flex items-start gap-3 rounded-xl border px-3 py-3 text-sm transition ${
+                  walletHasEnoughBalance
+                    ? 'cursor-pointer'
+                    : 'cursor-not-allowed opacity-65'
+                } ${
+                  paymentMethod === 'WALLET'
+                    ? 'border-[color:var(--primary)] bg-[color:var(--primary)]/5'
+                    : 'border-[color:var(--border)]'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="bookingPaymentMethod"
+                  checked={paymentMethod === 'WALLET'}
+                  onChange={() => {
+                    if (walletHasEnoughBalance) setPaymentMethod('WALLET');
+                  }}
+                  disabled={!walletHasEnoughBalance}
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block font-semibold text-[color:var(--text)]">{t.walletCredit}</span>
+                  <span className="mt-0.5 block text-xs text-[color:var(--text-muted)]">{t.walletCreditHint}</span>
+                  <span className="mt-1 block text-xs text-[color:var(--text)]">
+                    {t.walletBalance}: {formatAmountWithCurrency(walletBalance, wallet?.currency ?? classData.currency)}
+                  </span>
+                </span>
+              </label>
+            </div>
+            {!walletHasEnoughBalance ? (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
+                <p>{t.walletInsufficient}</p>
+                <Link href={`/${locale}/account/wallet`} className="mt-1 inline-flex font-semibold underline">
+                  {t.topupInAccount}
+                </Link>
+              </div>
+            ) : null}
           </div>
           <div className="mt-4 space-y-2 text-sm text-[color:var(--text)]">
             <div className="flex items-center justify-between">

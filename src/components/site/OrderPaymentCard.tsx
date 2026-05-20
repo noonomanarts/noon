@@ -1,12 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { formatNoonDateTime } from '@/lib/dateTime';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import { getPaymentMethodLabel } from '@/lib/paymentMethod';
-import { buildAmwalErrorUiMessage, getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
+import { getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
 
 type WalletPayload = {
   balance: number;
@@ -17,21 +18,16 @@ type WalletPayload = {
 type EventPaymentResult = {
   success: boolean;
   booking?: {
+    bookingNumber?: string;
     paymentStatus?: string;
     paymentMethod?: string | null;
     paidAt?: string | null;
   };
   wallet?: WalletPayload;
-};
-
-type WalletTopupCheckoutPayload = {
-  payment?: {
+  checkout?: {
+    scriptUrl: string;
+    config: Record<string, unknown>;
     reference?: string;
-    returnUrl?: string;
-    checkout?: {
-      scriptUrl: string;
-      config: Record<string, unknown>;
-    };
   };
   error?: string;
 };
@@ -93,29 +89,16 @@ export function OrderPaymentCard({
 }: OrderPaymentCardProps) {
   const isArabic = locale === 'ar';
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   const [wallet, setWallet] = useState<WalletPayload | null>(null);
   const [loadingWallet, setLoadingWallet] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [topupLoading, setTopupLoading] = useState(false);
-  const [topupAmount, setTopupAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState(paymentStatus ?? 'PENDING');
   const [currentPaymentMethod, setCurrentPaymentMethod] = useState<string | null>(paymentMethod);
   const [currentPaidAt, setCurrentPaidAt] = useState<string | Date | null | undefined>(paidAt);
-
-  const redirectWithTopupStatus = useCallback((status: 'paid' | 'failed' | 'cancelled' | 'pending', reference?: string, targetPath?: string) => {
-    if (typeof window === 'undefined') return;
-    const destination = new URL(targetPath && targetPath.startsWith('/') ? targetPath : pathname, window.location.origin);
-    destination.searchParams.set('topup', status);
-    if (reference) {
-      destination.searchParams.set('reference', reference);
-    }
-    window.location.href = `${destination.pathname}${destination.search}`;
-  }, [pathname]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'ONLINE' | 'WALLET'>('ONLINE');
 
   const normalizedTotalAmount = useMemo(() => {
     const parsed = typeof totalAmount === 'number' ? totalAmount : Number(totalAmount);
@@ -143,12 +126,15 @@ export function OrderPaymentCard({
     title: isArabic ? 'حالة الدفع' : 'Payment Status',
     total: isArabic ? 'الإجمالي المطلوب' : 'Amount Due',
     method: isArabic ? 'طريقة الدفع' : 'Payment Method',
+    paymentMethod: isArabic ? 'طريقة الدفع' : 'Payment Method',
     walletBalance: isArabic ? 'رصيد المحفظة' : 'Wallet Balance',
-    topupTitle: isArabic ? 'شحن المحفظة' : 'Add Wallet Credit',
-    topupHint: isArabic ? 'أضيفي رصيداً ثم أعيدي المحاولة.' : 'Add credit and try again.',
-    topupAmount: isArabic ? 'المبلغ' : 'Amount',
-    topupAction: isArabic ? 'شحن' : 'Add Credit',
-    payAction: isArabic ? 'الدفع من المحفظة' : 'Pay With Wallet',
+    topupHint: isArabic ? 'يمكنك شحن المحفظة من صفحة الحساب فقط.' : 'You can top up your wallet from your account only.',
+    topupAction: isArabic ? 'شحن المحفظة من الحساب' : 'Top up in account',
+    payAction: isArabic ? 'إتمام الدفع' : 'Complete Payment',
+    payNow: isArabic ? 'الدفع الآن' : 'Pay now',
+    payNowHint: isArabic ? 'الدفع الكامل عبر بوابة الدفع.' : 'Pay the full amount through the payment gateway.',
+    walletPay: isArabic ? 'استخدام رصيد المحفظة' : 'Use wallet credit',
+    walletPayHint: isArabic ? 'متاح فقط إذا كان الرصيد يغطي كامل المبلغ.' : 'Available only when the balance covers the full amount.',
     processing: isArabic ? 'جاري المعالجة...' : 'Processing...',
     insufficient: isArabic ? 'رصيد المحفظة غير كافٍ.' : 'Wallet balance is not enough.',
     paid: isArabic ? 'مدفوع' : 'Paid',
@@ -165,16 +151,10 @@ export function OrderPaymentCard({
       : 'Waiting for admin approval.',
     paidHint: isArabic ? 'تم استلام الدفعة بنجاح.' : 'This order has been paid successfully.',
     paidAt: isArabic ? 'تاريخ الدفع' : 'Paid At',
-    readyToPay: isArabic ? 'الحجز جاهز للدفع من المحفظة.' : 'This booking is ready for wallet payment.',
+    readyToPay: isArabic ? 'الحجز جاهز للدفع.' : 'This booking is ready for payment.',
     cancelled: isArabic ? 'تم إلغاء هذا الطلب.' : 'This order has been cancelled.',
     retry: isArabic ? 'أعيدي المحاولة بعد شحن الرصيد.' : 'Try again after adding credit.',
-    topupRedirect: isArabic
-      ? 'سيتم فتح نافذة الدفع الآن.'
-      : 'The payment window will open now.',
-    topupPaid: isArabic ? 'تم شحن المحفظة بنجاح.' : 'Wallet topped up successfully.',
-    topupFailed: isArabic ? 'فشلت عملية شحن المحفظة.' : 'Wallet top-up failed.',
-    topupCancelled: isArabic ? 'تم إلغاء شحن المحفظة.' : 'Wallet top-up was cancelled.',
-    paymentSuccess: isArabic ? 'تم الدفع من المحفظة بنجاح.' : 'Wallet payment completed successfully.',
+    paymentSuccess: isArabic ? 'تم الدفع بنجاح.' : 'Payment completed successfully.',
     walletMissing: isArabic ? 'المحفظة غير متاحة حالياً.' : 'Wallet is not available yet.',
   };
 
@@ -219,122 +199,10 @@ export function OrderPaymentCard({
   }, [canPayEventOrder, loadWallet]);
 
   useEffect(() => {
-    const topupStatus = searchParams.get('topup');
-    if (!topupStatus) return;
-
-    if (topupStatus === 'paid') {
-      setMessage(t.topupPaid);
-      setError(null);
-      if (canPayEventOrder) {
-        void loadWallet();
-      }
-    } else if (topupStatus === 'failed') {
-      setError(buildAmwalErrorUiMessage({
-        locale,
-        context: 'checkout-topup',
-        reason: searchParams.get('reason') || t.topupFailed,
-      }));
-      setMessage(null);
-    } else if (topupStatus === 'cancelled') {
-      setError(t.topupCancelled);
-      setMessage(null);
+    if (selectedPaymentMethod === 'WALLET' && !hasEnoughBalance) {
+      setSelectedPaymentMethod('ONLINE');
     }
-
-    const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.delete('topup');
-    const nextUrl = nextParams.toString() ? `${pathname}?${nextParams.toString()}` : pathname;
-    router.replace(nextUrl, { scroll: false });
-  }, [canPayEventOrder, loadWallet, locale, pathname, router, searchParams, t.topupCancelled, t.topupFailed, t.topupPaid]);
-
-  const handleTopup = async () => {
-    setError(null);
-    setMessage(null);
-
-    const amount = Number(topupAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      setError(isArabic ? 'مبلغ الشحن غير صحيح.' : 'Invalid top-up amount.');
-      return;
-    }
-
-    setTopupLoading(true);
-    try {
-      const response = await fetch('/api/wallet/topup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount,
-          gateway: 'SANDBOX_GATEWAY',
-          metadata: {
-            source: 'account_order_payment',
-            orderId,
-            orderType,
-            locale,
-          },
-        }),
-      });
-
-      const payload = (await response.json().catch(() => ({}))) as WalletTopupCheckoutPayload;
-      if (!response.ok) {
-        throw new Error(typeof payload?.error === 'string' ? payload.error : 'Failed to top up wallet');
-      }
-
-      const payment = payload?.payment;
-      const reference = typeof payment?.reference === 'string' ? payment.reference : undefined;
-      const checkout = payment?.checkout;
-      const targetReturnUrl = typeof payment?.returnUrl === 'string' ? payment.returnUrl : pathname;
-
-      if (!reference || !checkout) {
-        throw new Error(isArabic ? 'بيانات الدفع غير مكتملة.' : 'Payment details are incomplete.');
-      }
-
-      setTopupAmount('');
-      setMessage(t.topupRedirect);
-      await startAmwalCheckout({
-        checkout,
-        onComplete: async (gatewayPayload) => {
-          const callbackResponse = await fetch('/api/wallet/topup/callback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reference, gatewayPayload }),
-          });
-          const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as {
-            error?: string;
-            topupStatus?: string;
-          };
-
-          if (!callbackResponse.ok) {
-            throw new Error(callbackPayload.error || 'Failed to confirm payment');
-          }
-
-          const topupStatus = callbackPayload.topupStatus === 'PAID'
-            ? 'paid'
-            : callbackPayload.topupStatus === 'CANCELLED'
-              ? 'cancelled'
-              : callbackPayload.topupStatus === 'FAILED'
-                ? 'failed'
-                : 'pending';
-
-          redirectWithTopupStatus(topupStatus, reference, targetReturnUrl);
-        },
-        onCancel: () => {
-          redirectWithTopupStatus('cancelled', reference, targetReturnUrl);
-        },
-        onError: async (gatewayPayload) => {
-          await fetch('/api/wallet/topup/callback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reference, gatewayPayload: getAmwalCheckoutErrorPayload(gatewayPayload) }),
-          }).catch(() => undefined);
-
-          redirectWithTopupStatus('failed', reference, targetReturnUrl);
-        },
-      });
-    } catch (topupError) {
-      setError(topupError instanceof Error ? topupError.message : 'Failed to top up wallet');
-    } finally {
-      setTopupLoading(false);
-    }
-  };
+  }, [hasEnoughBalance, selectedPaymentMethod]);
 
   const handlePay = async () => {
     if (!canPayEventOrder) {
@@ -348,12 +216,61 @@ export function OrderPaymentCard({
     try {
       const response = await fetch(`/api/public/event-bookings/${orderId}/pay`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentMethod: selectedPaymentMethod,
+          locale,
+        }),
       });
 
-      const payload = (await response.json().catch(() => ({}))) as EventPaymentResult & { error?: string };
+      const payload = (await response.json().catch(() => ({}))) as EventPaymentResult;
 
       if (!response.ok) {
         throw new Error(typeof payload?.error === 'string' ? payload.error : 'Failed to process payment');
+      }
+
+      if (payload.checkout) {
+        const reference = payload.checkout.reference || payload.booking?.bookingNumber;
+        if (!reference) {
+          throw new Error(isArabic ? 'بيانات الدفع غير مكتملة.' : 'Payment details are incomplete.');
+        }
+
+        await startAmwalCheckout({
+          checkout: payload.checkout,
+          onComplete: async (gatewayPayload) => {
+            const callbackResponse = await fetch('/api/public/event-bookings/payment/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reference, gatewayPayload }),
+            });
+            const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as {
+              error?: string;
+              paymentStatus?: string;
+            };
+
+            if (!callbackResponse.ok || callbackPayload.paymentStatus !== 'PAID') {
+              throw new Error(callbackPayload.error || (isArabic ? 'فشل تأكيد الدفع.' : 'Failed to confirm payment.'));
+            }
+
+            setCurrentPaymentStatus('PAID');
+            setCurrentPaymentMethod('ONLINE');
+            setCurrentPaidAt(new Date().toISOString());
+            setMessage(t.paymentSuccess);
+            router.refresh();
+          },
+          onCancel: () => {
+            setError(isArabic ? 'تم إلغاء الدفع.' : 'Payment was cancelled.');
+          },
+          onError: async (gatewayPayload) => {
+            await fetch('/api/public/event-bookings/payment/callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reference, gatewayPayload: getAmwalCheckoutErrorPayload(gatewayPayload) }),
+            }).catch(() => undefined);
+            setError(isArabic ? 'فشل الدفع. يرجى المحاولة مرة أخرى.' : 'Payment failed. Please try again.');
+          },
+        });
+        return;
       }
 
       setCurrentPaymentStatus(payload.booking?.paymentStatus ?? 'PAID');
@@ -425,6 +342,55 @@ export function OrderPaymentCard({
 
       {canPayEventOrder ? (
         <div className="mt-4 space-y-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)]/50 p-4">
+          <div>
+            <p className="text-sm font-medium text-[color:var(--text)]">{t.paymentMethod}</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <label
+                className={`flex cursor-pointer items-start gap-3 rounded-2xl border bg-white px-4 py-3 text-sm transition ${
+                  selectedPaymentMethod === 'ONLINE'
+                    ? 'border-[color:var(--primary)]'
+                    : 'border-[color:var(--border)]'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={`eventPaymentMethod-${orderId}`}
+                  checked={selectedPaymentMethod === 'ONLINE'}
+                  onChange={() => setSelectedPaymentMethod('ONLINE')}
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block font-semibold text-[color:var(--text)]">{t.payNow}</span>
+                  <span className="mt-1 block text-xs text-[color:var(--text-muted)]">{t.payNowHint}</span>
+                </span>
+              </label>
+              <label
+                className={`flex items-start gap-3 rounded-2xl border bg-white px-4 py-3 text-sm transition ${
+                  hasEnoughBalance ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+                } ${
+                  selectedPaymentMethod === 'WALLET'
+                    ? 'border-[color:var(--primary)]'
+                    : 'border-[color:var(--border)]'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name={`eventPaymentMethod-${orderId}`}
+                  checked={selectedPaymentMethod === 'WALLET'}
+                  onChange={() => {
+                    if (hasEnoughBalance) setSelectedPaymentMethod('WALLET');
+                  }}
+                  disabled={!hasEnoughBalance}
+                  className="mt-1"
+                />
+                <span>
+                  <span className="block font-semibold text-[color:var(--text)]">{t.walletPay}</span>
+                  <span className="mt-1 block text-xs text-[color:var(--text-muted)]">{t.walletPayHint}</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-medium text-[color:var(--text)]">{t.walletBalance}</p>
@@ -435,7 +401,7 @@ export function OrderPaymentCard({
             <button
               type="button"
               onClick={handlePay}
-              disabled={processing || loadingWallet || !wallet || !hasEnoughBalance}
+              disabled={processing || loadingWallet || (selectedPaymentMethod === 'WALLET' && (!wallet || !hasEnoughBalance))}
               className="rounded-full bg-[color:var(--primary)] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {processing ? t.processing : t.payAction}
@@ -446,25 +412,12 @@ export function OrderPaymentCard({
             <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
               <p className="text-sm font-medium text-amber-900">{t.insufficient}</p>
               <p className="text-sm text-amber-800">{t.topupHint}</p>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <input
-                  type="number"
-                  min="1"
-                  step="0.001"
-                  value={topupAmount}
-                  onChange={(event) => setTopupAmount(event.target.value)}
-                  placeholder={t.topupAmount}
-                  className="w-full rounded-2xl border border-amber-200 bg-white px-4 py-2.5 text-sm text-[color:var(--text)] outline-none ring-0"
-                />
-                <button
-                  type="button"
-                  onClick={handleTopup}
-                  disabled={topupLoading}
-                  className="rounded-full border border-amber-300 px-5 py-2.5 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {topupLoading ? t.processing : t.topupAction}
-                </button>
-              </div>
+              <Link
+                href={`/${locale}/account/wallet`}
+                className="inline-flex rounded-full border border-amber-300 px-5 py-2.5 text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
+              >
+                {t.topupAction}
+              </Link>
             </div>
           ) : null}
         </div>

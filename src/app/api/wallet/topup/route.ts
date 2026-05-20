@@ -38,6 +38,14 @@ export async function POST(request: NextRequest) {
     const fallbackReturnUrl = `/${locale}/account/wallet`;
     const requestedReturnUrl = typeof body.returnUrl === 'string' ? body.returnUrl.trim() : '';
     const returnUrl = requestedReturnUrl.startsWith('/') ? requestedReturnUrl : fallbackReturnUrl;
+    const returnPath = returnUrl.split(/[?#]/, 1)[0];
+
+    if (returnPath !== fallbackReturnUrl) {
+      return NextResponse.json(
+        { error: 'Wallet top-up is only available from the account wallet page' },
+        { status: 403 }
+      );
+    }
 
     const payment = await createWalletTopupPayment({
       userId: user.id,

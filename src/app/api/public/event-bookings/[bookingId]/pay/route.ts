@@ -4,6 +4,7 @@ import { pool } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
 import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
+import { prepareAmwalPayment } from '@/lib/amwal';
 
 class ApiError extends Error {
   status: number;
@@ -37,6 +38,10 @@ export async function POST(request: NextRequest, props: Params) {
   const client = await pool.connect();
 
   try {
+    const body = (await request.json().catch(() => ({}))) as { paymentMethod?: unknown; locale?: unknown };
+    const paymentMethod = body.paymentMethod === 'WALLET' ? 'WALLET' : 'ONLINE';
+    const locale = typeof body.locale === 'string' ? body.locale : 'en';
+
     await client.query('BEGIN');
 
     const bookingResult = await client.query(
@@ -69,6 +74,54 @@ export async function POST(request: NextRequest, props: Params) {
 
     if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
       throw new ApiError('Final amount is not available for this booking yet', 409);
+    }
+
+    if (paymentMethod === 'ONLINE') {
+      const amwalPayment = prepareAmwalPayment({
+        amount: totalAmount,
+        currency,
+        reference: String(booking.booking_number),
+        locale,
+        purpose: 'EVENT_BOOKING',
+        contact: {
+          fullName: user.fullName || 'Noon Customer',
+          email: user.email || 'payments@noonomanarts.com',
+          phoneNumber: user.phoneNumber || '',
+        },
+        bookingNumber: String(booking.booking_number),
+      });
+
+      const updatedBookingResult = await client.query(
+        `UPDATE event_bookings
+         SET payment_method = 'ONLINE',
+             payment_status = 'PENDING',
+             updated_at = NOW()
+         WHERE id = $1
+         RETURNING id, booking_number, status, total_amount, currency, payment_status, payment_method, paid_at`,
+        [params.bookingId]
+      );
+
+      await client.query('COMMIT');
+
+      const updatedBooking = updatedBookingResult.rows[0];
+      return NextResponse.json({
+        success: true,
+        booking: {
+          id: updatedBooking.id,
+          bookingNumber: updatedBooking.booking_number,
+          status: updatedBooking.status,
+          totalAmount: Number(updatedBooking.total_amount ?? 0),
+          currency: String(updatedBooking.currency || currency),
+          paymentStatus: updatedBooking.payment_status,
+          paymentMethod: updatedBooking.payment_method,
+          paidAt: updatedBooking.paid_at,
+        },
+        checkout: {
+          scriptUrl: amwalPayment.scriptUrl,
+          config: amwalPayment.config,
+          reference: String(booking.booking_number),
+        },
+      });
     }
 
     let walletResult = await client.query(
