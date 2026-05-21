@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { 
   GiCookingPot, 
   GiPalette,
@@ -73,6 +73,7 @@ export default function AdminClassesPage() {
   const VIEWPORT_PADDING = 12;
   const params = useParams();
   const locale = params.locale as string;
+  const searchParams = useSearchParams();
   const { toast } = useAppFeedback();
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [filteredClasses, setFilteredClasses] = useState<ClassItem[]>([]);
@@ -86,6 +87,7 @@ export default function AdminClassesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [subCategoryFilter, setSubCategoryFilter] = useState(() => searchParams.get('subCategory') ?? 'ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [openActionsMenuId, setOpenActionsMenuId] = useState<string | null>(null);
@@ -149,11 +151,11 @@ export default function AdminClassesPage() {
   useEffect(() => {
     filterClasses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, categoryFilter, statusFilter, classes]);
+  }, [searchQuery, categoryFilter, statusFilter, subCategoryFilter, classes]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, categoryFilter, statusFilter]);
+  }, [searchQuery, categoryFilter, statusFilter, subCategoryFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -247,6 +249,11 @@ export default function AdminClassesPage() {
     // Status filter
     if (statusFilter !== 'ALL') {
       filtered = filtered.filter(c => c.status === statusFilter);
+    }
+
+    // Sub-category filter (e.g. SUMMER_CAMP from URL param)
+    if (subCategoryFilter !== 'ALL') {
+      filtered = filtered.filter(c => c.subCategory === subCategoryFilter);
     }
 
     setFilteredClasses(filtered);

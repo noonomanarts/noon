@@ -22,10 +22,16 @@ async function requireAdmin() {
   return user;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // GET: Get single class
 export async function GET(request: NextRequest, props: Params) {
   const params = await props.params;
   try {
+    if (!UUID_RE.test(params.classId)) {
+      return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+    }
+
     const admin = await requireAdmin();
     if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -66,6 +72,10 @@ export async function GET(request: NextRequest, props: Params) {
 export async function PUT(request: NextRequest, props: Params) {
   const params = await props.params;
   try {
+    if (!UUID_RE.test(params.classId)) {
+      return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+    }
+
     const admin = await requireAdmin();
     if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -146,6 +156,10 @@ export async function PUT(request: NextRequest, props: Params) {
 export async function DELETE(request: NextRequest, props: Params) {
   const params = await props.params;
   try {
+    if (!UUID_RE.test(params.classId)) {
+      return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+    }
+
     const admin = await requireAdmin();
     if (!admin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

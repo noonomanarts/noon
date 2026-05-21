@@ -10,13 +10,6 @@ type QuarterHourDateTimeInputProps = {
   required?: boolean;
 };
 
-type QuarterHourTimeSelectProps = {
-  value: string;
-  onChange: (value: string) => void;
-  className: string;
-  required?: boolean;
-  disabled?: boolean;
-};
 
 const QUARTER_HOUR_OPTIONS = Array.from({ length: 24 * 4 }, (_, index) => {
   const totalMinutes = index * 15;
@@ -87,29 +80,4 @@ export default function QuarterHourDateTimeInput({
   );
 }
 
-export function QuarterHourTimeSelect({
-  value,
-  onChange,
-  className,
-  required,
-  disabled,
-}: QuarterHourTimeSelectProps) {
-  const timeOptions = useMemo(() => QUARTER_HOUR_OPTIONS, []);
-
-  return (
-    <select
-      required={required}
-      disabled={disabled}
-      value={timeOptions.includes(value) ? value : ''}
-      onChange={(event) => onChange(event.target.value)}
-      className={className}
-    >
-      <option value="">Time</option>
-      {timeOptions.map((option) => (
-        <option key={option} value={option}>
-          {formatTimeLabel(option)}
-        </option>
-      ))}
-    </select>
-  );
-}
+export { default as QuarterHourTimeSelect } from './QuarterHourTimeSelect';

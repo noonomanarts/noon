@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { QuarterHourTimeSelect } from '@/components/admin/QuarterHourDateTimeInput';
+import QuarterHourTimeSelect from '@/components/admin/QuarterHourTimeSelect';
+import MarkdownEditor, { markdownToHtml } from '@/components/admin/MarkdownEditor';
 
 type CalendarEvent = {
   id: string;
@@ -975,7 +976,12 @@ export default function AdminCalendarPage() {
                         <span className="text-xs text-zinc-500 dark:text-zinc-400">{formatTimeRange(event.startDateTime, event.endDateTime)}</span>
                       </div>
                       <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{event.title}</p>
-                      {event.description ? <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{event.description}</p> : null}
+                      {event.description ? (
+                        <article
+                          className="mt-1 text-sm text-zinc-600 dark:text-zinc-300 [&_strong]:font-semibold [&_em]:italic [&_p]:leading-6 [&_ul]:list-disc [&_ul]:ps-5 [&_ol]:list-decimal [&_ol]:ps-5"
+                          dangerouslySetInnerHTML={{ __html: markdownToHtml(event.description) }}
+                        />
+                      ) : null}
                     </div>
                   ))
                 )}
@@ -1133,7 +1139,10 @@ export default function AdminCalendarPage() {
                           </div>
 
                           {event.description ? (
-                            <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">{event.description}</p>
+                            <article
+                              className="mt-3 text-sm text-zinc-600 dark:text-zinc-300 [&_strong]:font-semibold [&_em]:italic [&_p]:leading-6 [&_ul]:list-disc [&_ul]:ps-5 [&_ol]:list-decimal [&_ol]:ps-5"
+                              dangerouslySetInnerHTML={{ __html: markdownToHtml(event.description) }}
+                            />
                           ) : null}
 
                           {event.internalNotes ? (
@@ -1317,15 +1326,13 @@ export default function AdminCalendarPage() {
                       />
                     </label>
 
-                    <label className="space-y-1.5 text-sm">
-                      <span className="font-medium text-zinc-700 dark:text-zinc-200">Description (optional)</span>
-                      <textarea
-                        rows={3}
-                        value={itemForm.description}
-                        onChange={(event) => setItemForm((prev) => ({ ...prev, description: event.target.value }))}
-                        className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
-                      />
-                    </label>
+                    <MarkdownEditor
+                      label="Description (optional)"
+                      value={itemForm.description}
+                      onChange={(value) => setItemForm((prev) => ({ ...prev, description: value }))}
+                      rows={4}
+                      placeholder="Write a description... Markdown is supported."
+                    />
 
                     {itemForm.type === 'PRIVATE_SESSION' ? (
                       <label className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-200">

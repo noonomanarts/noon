@@ -18,7 +18,7 @@ const escapeHtml = (text: string): string =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
 
-const markdownToHtml = (source: string): string => {
+export const markdownToHtml = (source: string): string => {
   const escaped = escapeHtml(source);
   const lines = escaped.split('\n');
   const html: string[] = [];

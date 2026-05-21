@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { MdArrowBack, MdSave } from "react-icons/md";
-import { QuarterHourTimeSelect } from "@/components/admin/QuarterHourDateTimeInput";
+import QuarterHourTimeSelect from "@/components/admin/QuarterHourTimeSelect";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import {
   getBirthdayPartyTotal,
