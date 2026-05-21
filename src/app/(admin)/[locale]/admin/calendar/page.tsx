@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import QuarterHourTimeSelect from '@/components/admin/QuarterHourTimeSelect';
 import MarkdownEditor, { markdownToHtml } from '@/components/admin/MarkdownEditor';
 
@@ -1078,9 +1079,9 @@ export default function AdminCalendarPage() {
         ) : null}
       </div>
 
-      {isDayModalOpen ? (
+      {isDayModalOpen ? createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-zinc-950/55 p-0 backdrop-blur-sm md:items-center md:p-6"
+          className="fixed inset-0 z-[200] flex items-end justify-center bg-zinc-950/55 p-0 backdrop-blur-sm md:items-center md:p-6"
           onClick={() => setIsDayModalOpen(false)}
         >
           <div
@@ -1546,7 +1547,7 @@ export default function AdminCalendarPage() {
             </div>
           </div>
         </div>
-      ) : null}
+      , document.body) : null}
     </div>
   );
 }
