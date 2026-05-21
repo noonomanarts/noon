@@ -65,12 +65,6 @@ export type AdminSidebarMenuSection = {
   items: AdminSidebarMenuItem[];
 };
 
-function isActivePath(pathname: string, href: string) {
-  if (pathname === href) return true;
-  if (href.endsWith("/admin")) return false;
-  return pathname.startsWith(`${href}/`);
-}
-
 export default function AdminSidebarNav({
   menuItems,
   onNavigate,
@@ -83,21 +77,29 @@ export default function AdminSidebarNav({
   const pathname = usePathname();
   const isMobile = variant === "mobile";
 
+  // Find the single most-specific matching item so only one item is ever active
+  const allItems = menuItems.flatMap((s) => s.items);
+  const activeHref = allItems
+    .filter(
+      (item) =>
+        pathname === item.href ||
+        (!item.href.endsWith("/admin") && pathname.startsWith(`${item.href}/`))
+    )
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
+
   return (
     <div className={isMobile ? "space-y-5" : "space-y-4"}>
       {menuItems.map((section) => (
         <div key={section.section}>
           <h3
-            className={isMobile
-              ? "mb-1.5 px-2 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400"
-              : "mb-1.5 px-2 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400"}
+            className="mb-1.5 px-2 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400"
           >
             {section.section}
           </h3>
           <div className="space-y-1">
             {section.items.map((item) => {
               const IconComponent = iconMap[item.iconName];
-              const active = isActivePath(pathname, item.href);
+              const active = item.href === activeHref;
 
               return (
                 <Link
@@ -107,14 +109,14 @@ export default function AdminSidebarNav({
                   aria-current={active ? "page" : undefined}
                   className={active
                     ? isMobile
-                      ? "group flex items-center gap-3 rounded-lg bg-zinc-950 px-3 py-2.5 text-sm font-semibold text-white shadow-sm dark:bg-white dark:text-zinc-950"
-                      : "group flex items-center gap-3 rounded-lg bg-zinc-950 px-3 py-2.5 text-[13px] font-semibold text-white shadow-sm dark:bg-white dark:text-zinc-950"
+                      ? "group flex items-center gap-3 rounded-lg bg-[color:var(--noon-teal-soft)] px-3 py-2.5 text-sm font-semibold text-[color:var(--noon-teal-strong)] dark:bg-[color:var(--noon-teal)]/15 dark:text-[color:var(--noon-teal)]"
+                      : "group flex items-center gap-3 rounded-lg bg-[color:var(--noon-teal-soft)] px-3 py-2.5 text-[13px] font-semibold text-[color:var(--noon-teal-strong)] dark:bg-[color:var(--noon-teal)]/15 dark:text-[color:var(--noon-teal)]"
                     : isMobile
-                      ? "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-white"
-                      : "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-white"}
+                      ? "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                      : "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"}
                 >
                   <span className={active
-                    ? `flex size-8 items-center justify-center rounded-md bg-white/15 text-white dark:bg-zinc-950/10 dark:text-zinc-950`
+                    ? `flex size-8 items-center justify-center rounded-md bg-[color:var(--noon-teal)] text-white`
                     : isMobile
                       ? `flex size-8 items-center justify-center rounded-md bg-zinc-100 dark:bg-zinc-800 ${item.iconColor}`
                       : `flex size-8 items-center justify-center rounded-md bg-white ring-1 ring-zinc-200/80 dark:bg-zinc-950 dark:ring-zinc-800 ${item.iconColor}`}
@@ -123,7 +125,7 @@ export default function AdminSidebarNav({
                   </span>
                   <span className="flex-1 truncate whitespace-nowrap">{item.label}</span>
                   {typeof item.badgeCount === "number" && item.badgeCount > 0 ? (
-                    <span className={`size-2 rounded-full ${active ? "bg-white dark:bg-zinc-950" : "bg-[color:var(--noon-coral)]"}`} aria-label={`${item.badgeCount}`} />
+                    <span className={`size-2 rounded-full ${active ? "bg-[color:var(--noon-teal-strong)]" : "bg-[color:var(--noon-coral)]"}`} aria-label={`${item.badgeCount}`} />
                   ) : null}
                 </Link>
               );
