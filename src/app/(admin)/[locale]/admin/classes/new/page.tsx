@@ -22,6 +22,7 @@ import { composeDurationMinutes, splitDurationMinutes } from '@/lib/formatDurati
 import { defaultClassFinanceAdminSettings, type ClassFinanceAdminSettings } from '@/lib/adminSettings';
 import { isQuarterHourDateTimeValue, noonDateTimeLocalInputToIso } from '@/lib/dateTime';
 import QuarterHourDateTimeInput from '@/components/admin/QuarterHourDateTimeInput';
+import MarkdownEditor from '@/components/admin/MarkdownEditor';
 
 type ClassCategory = 'COOKING' | 'ARTS_CRAFTS';
 type ClassSubCategory =
@@ -666,7 +667,7 @@ export default function NewClassPage() {
         </button>
 
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-          {isRTL ? 'إضافة صف جديد' : 'Create New Class'}
+          {isRTL ? 'إضافة ورشة جديدة' : 'Create New Class'}
         </h1>
       </div>
 
@@ -735,51 +736,36 @@ export default function NewClassPage() {
 
             {/* English Description */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {isRTL ? 'الوصف (إنجليزي)' : 'Description (English)'}
-                <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="description"
+              <MarkdownEditor
+                label={isRTL ? 'الوصف (إنجليزي)' : 'Description (English)'}
                 value={formData.description}
-                onChange={handleInputChange}
-                rows={4}
+                onChange={(v) => {
+                  setFormData((prev) => ({ ...prev, description: v }));
+                  if (errors.description) setErrors((prev) => ({ ...prev, description: '' }));
+                }}
                 placeholder="Detailed description of the class..."
-                className={`${textareaBase} ${
-                  errors.description ? 'border-red-500 dark:border-red-400' : ''
-                }`}
+                rows={8}
+                required
+                error={errors.description}
+                dir="ltr"
               />
-              {errors.description && (
-                <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
-                  <IoAlertCircle />
-                  {errors.description}
-                </p>
-              )}
             </div>
 
             {/* Arabic Description */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {isRTL ? 'الوصف (عربي)' : 'Description (Arabic)'}
-                <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="descriptionAr"
+              <MarkdownEditor
+                label={isRTL ? 'الوصف (عربي)' : 'Description (Arabic)'}
                 value={formData.descriptionAr}
-                onChange={handleInputChange}
-                rows={4}
-                placeholder="وصف تفصيلي للصف..."
+                onChange={(v) => {
+                  setFormData((prev) => ({ ...prev, descriptionAr: v }));
+                  if (errors.descriptionAr) setErrors((prev) => ({ ...prev, descriptionAr: '' }));
+                }}
+                placeholder="وصف تفصيلي للورشة..."
+                rows={8}
+                required
+                error={errors.descriptionAr}
                 dir="rtl"
-                className={`${textareaBase} ${
-                  errors.descriptionAr ? 'border-red-500 dark:border-red-400' : ''
-                }`}
               />
-              {errors.descriptionAr && (
-                <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
-                  <IoAlertCircle />
-                  {errors.descriptionAr}
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -1381,16 +1367,13 @@ export default function NewClassPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {isRTL ? 'وصف الميتا' : 'Meta Description'}
-              </label>
-              <textarea
-                name="metaDescription"
+              <MarkdownEditor
+                label={isRTL ? 'وصف الميتا' : 'Meta Description'}
                 value={formData.metaDescription}
-                onChange={handleInputChange}
-                rows={3}
+                onChange={(v) => setFormData((prev) => ({ ...prev, metaDescription: v }))}
                 placeholder={isRTL ? 'يترك فارغاً لاستخدام الوصف' : 'Leave blank to use description'}
-                className={textareaBase}
+                rows={4}
+                dir="ltr"
               />
             </div>
           </div>
@@ -1438,7 +1421,7 @@ export default function NewClassPage() {
               </>
             ) : (
               <>
-                {isRTL ? 'إنشاء الصف' : 'Create Class'}
+                {isRTL ? 'إنشاء الورشة' : 'Create Class'}
               </>
             )}
           </button>

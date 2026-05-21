@@ -1,13 +1,26 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import {
+  FiCode,
+  FiEye,
+  FiHash,
+  FiLink,
+  FiList,
+  FiMinus,
+  FiEdit3,
+} from 'react-icons/fi';
 
 interface MarkdownEditorProps {
-  label: string;
+  label?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   rows?: number;
+  required?: boolean;
+  error?: string;
+  dir?: 'ltr' | 'rtl';
+  hint?: string;
 }
 
 const escapeHtml = (text: string): string =>
@@ -17,6 +30,19 @@ const escapeHtml = (text: string): string =>
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
+
+const parseInline = (line: string): string =>
+  line
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/_(.+?)_/g, '<em>$1</em>')
+    .replace(/~~(.+?)~~/g, '<del>$1</del>')
+    .replace(/`([^`]+)`/g, '<code class="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-xs dark:bg-zinc-800">$1</code>')
+    .replace(
+      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[color:var(--noon-teal)] underline underline-offset-2 hover:text-[color:var(--noon-teal-strong)]">$1</a>'
+    );
 
 export const markdownToHtml = (source: string): string => {
   const escaped = escapeHtml(source);
@@ -28,25 +54,8 @@ export const markdownToHtml = (source: string): string => {
   let inOl = false;
 
   const closeLists = () => {
-    if (inUl) {
-      html.push('</ul>');
-      inUl = false;
-    }
-    if (inOl) {
-      html.push('</ol>');
-      inOl = false;
-    }
-  };
-
-  const parseInline = (line: string): string => {
-    return line
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/__(.+?)__/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/_(.+?)_/g, '<em>$1</em>')
-      .replace(/~~(.+?)~~/g, '<del>$1</del>')
-      .replace(/`([^`]+)`/g, '<code class="rounded bg-zinc-100 px-1.5 py-0.5 text-xs dark:bg-zinc-800">$1</code>')
-      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline dark:text-blue-400">$1</a>');
+    if (inUl) { html.push('</ul>'); inUl = false; }
+    if (inOl) { html.push('</ol>'); inOl = false; }
   };
 
   for (const rawLine of lines) {
@@ -59,25 +68,13 @@ export const markdownToHtml = (source: string): string => {
         codeBuffer = [];
       } else {
         inCodeBlock = false;
-        html.push(
-          `<pre class="overflow-x-auto rounded-lg bg-zinc-950 p-4 text-sm text-zinc-100"><code>${codeBuffer.join('\n')}</code></pre>`
-        );
+        html.push(`<pre class="overflow-x-auto rounded-lg bg-zinc-950 p-4 text-sm text-zinc-100 my-3"><code>${codeBuffer.join('\n')}</code></pre>`);
         codeBuffer = [];
       }
       continue;
     }
-
-    if (inCodeBlock) {
-      codeBuffer.push(line);
-      continue;
-    }
-
-    if (/^\s*$/.test(line)) {
-      closeLists();
-      html.push('');
-      continue;
-    }
-
+    if (inCodeBlock) { codeBuffer.push(line); continue; }
+    if (/^\s*$/.test(line)) { closeLists(); html.push(''); continue; }
     if (/^---+$/.test(line) || /^\*\*\*+$/.test(line)) {
       closeLists();
       html.push('<hr class="my-4 border-zinc-200 dark:border-zinc-700" />');
@@ -88,52 +85,30 @@ export const markdownToHtml = (source: string): string => {
     if (hMatch) {
       closeLists();
       const level = hMatch[1].length;
-      const title = parseInline(hMatch[2]);
-      const classMap: Record<number, string> = {
-        1: 'text-2xl font-bold',
-        2: 'text-xl font-bold',
-        3: 'text-lg font-semibold',
-        4: 'text-base font-semibold',
-        5: 'text-sm font-semibold',
-        6: 'text-sm font-medium',
-      };
-      html.push(`<h${level} class="mt-5 mb-2 ${classMap[level]}">${title}</h${level}>`);
+      const sizeMap: Record<number, string> = { 1: 'text-2xl font-bold mt-5 mb-2', 2: 'text-xl font-bold mt-4 mb-2', 3: 'text-lg font-semibold mt-3 mb-1', 4: 'text-base font-semibold mt-2 mb-1', 5: 'text-sm font-semibold', 6: 'text-sm font-medium' };
+      html.push(`<h${level} class="${sizeMap[level]}">${parseInline(hMatch[2])}</h${level}>`);
       continue;
     }
 
     const quoteMatch = line.match(/^>\s?(.+)$/);
     if (quoteMatch) {
       closeLists();
-      html.push(
-        `<blockquote class="my-3 border-s-4 border-zinc-300 ps-3 italic text-zinc-700 dark:border-zinc-600 dark:text-zinc-300">${parseInline(quoteMatch[1])}</blockquote>`
-      );
+      html.push(`<blockquote class="my-2 border-s-4 border-zinc-300 ps-3 italic text-zinc-600 dark:border-zinc-600 dark:text-zinc-400">${parseInline(quoteMatch[1])}</blockquote>`);
       continue;
     }
 
     const ulMatch = line.match(/^[-*]\s+(.+)$/);
     if (ulMatch) {
-      if (inOl) {
-        html.push('</ol>');
-        inOl = false;
-      }
-      if (!inUl) {
-        html.push('<ul class="my-2 list-disc space-y-1 ps-6">');
-        inUl = true;
-      }
+      if (inOl) { html.push('</ol>'); inOl = false; }
+      if (!inUl) { html.push('<ul class="my-2 list-disc space-y-1 ps-5 text-zinc-700 dark:text-zinc-300">'); inUl = true; }
       html.push(`<li>${parseInline(ulMatch[1])}</li>`);
       continue;
     }
 
     const olMatch = line.match(/^\d+\.\s+(.+)$/);
     if (olMatch) {
-      if (inUl) {
-        html.push('</ul>');
-        inUl = false;
-      }
-      if (!inOl) {
-        html.push('<ol class="my-2 list-decimal space-y-1 ps-6">');
-        inOl = true;
-      }
+      if (inUl) { html.push('</ul>'); inUl = false; }
+      if (!inOl) { html.push('<ol class="my-2 list-decimal space-y-1 ps-5 text-zinc-700 dark:text-zinc-300">'); inOl = true; }
       html.push(`<li>${parseInline(olMatch[1])}</li>`);
       continue;
     }
@@ -143,139 +118,218 @@ export const markdownToHtml = (source: string): string => {
   }
 
   closeLists();
-
   if (inCodeBlock && codeBuffer.length > 0) {
-    html.push(
-      `<pre class="overflow-x-auto rounded-lg bg-zinc-950 p-4 text-sm text-zinc-100"><code>${codeBuffer.join('\n')}</code></pre>`
-    );
+    html.push(`<pre class="overflow-x-auto rounded-lg bg-zinc-950 p-4 text-sm text-zinc-100 my-3"><code>${codeBuffer.join('\n')}</code></pre>`);
   }
 
   return html.join('\n');
+};
+
+type ToolbarAction = {
+  label: string;
+  icon?: React.ReactNode;
+  text?: string;
+  title: string;
+  action: () => void;
 };
 
 export default function MarkdownEditor({
   label,
   value,
   onChange,
-  placeholder = 'Write using Markdown...',
+  placeholder = 'Write using Markdown…',
   rows = 10,
+  required,
+  error,
+  dir = 'ltr',
+  hint,
 }: MarkdownEditorProps) {
   const [tab, setTab] = useState<'write' | 'preview'>('write');
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previewHtml = useMemo(() => markdownToHtml(value), [value]);
+  const charCount = value.length;
 
-  const wrapSelection = (prefix: string, suffix = prefix) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selected = value.slice(start, end);
-    const nextValue = `${value.slice(0, start)}${prefix}${selected}${suffix}${value.slice(end)}`;
-
-    onChange(nextValue);
-
+  const wrapSelection = useCallback((prefix: string, suffix = prefix, defaultText = 'text') => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = value.slice(start, end) || defaultText;
+    const next = `${value.slice(0, start)}${prefix}${selected}${suffix}${value.slice(end)}`;
+    onChange(next);
     requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.selectionStart = start + prefix.length;
-      textarea.selectionEnd = end + prefix.length;
+      ta.focus();
+      ta.selectionStart = start + prefix.length;
+      ta.selectionEnd = start + prefix.length + selected.length;
     });
+  }, [value, onChange]);
+
+  const insertPrefixPerLine = useCallback((prefix: string) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = value.slice(start, end) || 'item';
+    const updated = selected.split('\n').map((l) => `${prefix}${l}`).join('\n');
+    const next = `${value.slice(0, start)}${updated}${value.slice(end)}`;
+    onChange(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.selectionStart = start;
+      ta.selectionEnd = start + updated.length;
+    });
+  }, [value, onChange]);
+
+  const insertAtLineStart = useCallback((prefix: string) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const pos = ta.selectionStart;
+    const lineStart = value.lastIndexOf('\n', pos - 1) + 1;
+    const next = `${value.slice(0, lineStart)}${prefix}${value.slice(lineStart)}`;
+    onChange(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.selectionStart = pos + prefix.length;
+      ta.selectionEnd = ta.selectionStart;
+    });
+  }, [value, onChange]);
+
+  const toolbarGroups: ToolbarAction[][] = [
+    [
+      { label: 'H', text: 'H', title: 'Heading', action: () => insertAtLineStart('## ') },
+      { label: 'Bold', icon: <span className="font-black text-[13px]">B</span>, title: 'Bold (Ctrl+B)', action: () => wrapSelection('**') },
+      { label: 'Italic', icon: <span className="italic text-[13px]">I</span>, title: 'Italic (Ctrl+I)', action: () => wrapSelection('*') },
+      { label: 'Strike', icon: <span className="line-through text-[13px]">S</span>, title: 'Strikethrough', action: () => wrapSelection('~~') },
+    ],
+    [
+      { label: 'Code', icon: <FiCode className="size-3.5" />, title: 'Inline code', action: () => wrapSelection('`') },
+      { label: 'Link', icon: <FiLink className="size-3.5" />, title: 'Link', action: () => wrapSelection('[', '](https://)') },
+    ],
+    [
+      { label: 'Bullet list', icon: <FiList className="size-3.5" />, title: 'Bullet list', action: () => insertPrefixPerLine('- ') },
+      { label: 'Numbered list', icon: <span className="text-[11px] font-semibold">1.</span>, title: 'Numbered list', action: () => insertPrefixPerLine('1. ') },
+      { label: 'Quote', icon: <FiHash className="size-3.5" />, title: 'Blockquote', action: () => insertPrefixPerLine('> ') },
+    ],
+    [
+      { label: 'Divider', icon: <FiMinus className="size-3.5" />, title: 'Horizontal rule', action: () => onChange(`${value}\n---\n`) },
+    ],
+  ];
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
+      if (e.key === 'b') { e.preventDefault(); wrapSelection('**'); }
+      if (e.key === 'i') { e.preventDefault(); wrapSelection('*'); }
+      if (e.key === 'k') { e.preventDefault(); wrapSelection('[', '](https://)'); }
+    }
   };
 
-  const insertPrefixPerLine = (prefix: string) => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const before = value.slice(0, start);
-    const selected = value.slice(start, end);
-    const after = value.slice(end);
-
-    const text = selected.length > 0 ? selected : 'text';
-    const updated = text
-      .split('\n')
-      .map((line) => `${prefix}${line}`)
-      .join('\n');
-
-    const nextValue = `${before}${updated}${after}`;
-    onChange(nextValue);
-
-    requestAnimationFrame(() => {
-      textarea.focus();
-      textarea.selectionStart = start;
-      textarea.selectionEnd = start + updated.length;
-    });
-  };
+  const borderCls = error
+    ? 'border-rose-400 dark:border-rose-500'
+    : 'border-zinc-200 dark:border-zinc-700 focus-within:border-[color:var(--noon-teal)] focus-within:ring-2 focus-within:ring-[color:var(--noon-teal)]/20';
 
   return (
-    <div>
-      {label.trim().length > 0 && (
-        <label className="mb-3 block text-sm font-medium text-zinc-700 dark:text-zinc-300">{label}</label>
+    <div className="w-full">
+      {label && (
+        <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          {label}
+          {required && <span className="ml-0.5 text-rose-500">*</span>}
+        </label>
       )}
-      <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
-        <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900/40">
-          <div className="inline-flex rounded-lg border border-zinc-200 bg-white p-0.5 dark:border-zinc-700 dark:bg-zinc-800">
+
+      <div className={`overflow-hidden rounded-xl border transition-all ${borderCls}`}>
+        {/* Tab bar + toolbar */}
+        <div className="flex flex-wrap items-center gap-1 border-b border-zinc-200 bg-zinc-50 px-2 py-1.5 dark:border-zinc-700 dark:bg-zinc-900/60">
+          {/* Write / Preview tabs */}
+          <div className="flex items-center rounded-lg border border-zinc-200 bg-white p-0.5 dark:border-zinc-700 dark:bg-zinc-800">
             <button
               type="button"
               onClick={() => setTab('write')}
-              className={`rounded-md px-3 py-1 text-xs font-medium ${
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                 tab === 'write'
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                  : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white'
+                  ? 'bg-[color:var(--noon-teal)] text-white shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
               }`}
             >
+              <FiEdit3 className="size-3" />
               Write
             </button>
             <button
               type="button"
               onClick={() => setTab('preview')}
-              className={`rounded-md px-3 py-1 text-xs font-medium ${
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
                 tab === 'preview'
-                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                  : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white'
+                  ? 'bg-[color:var(--noon-teal)] text-white shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
               }`}
             >
+              <FiEye className="size-3" />
               Preview
             </button>
           </div>
 
-          <div className="flex items-center gap-1">
-            <button type="button" onClick={() => wrapSelection('**')} className="rounded px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700">B</button>
-            <button type="button" onClick={() => wrapSelection('*')} className="rounded px-2 py-1 text-xs italic text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700">I</button>
-            <button type="button" onClick={() => wrapSelection('`')} className="rounded px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700">Code</button>
-            <button type="button" onClick={() => insertPrefixPerLine('- ')} className="rounded px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700">• List</button>
-            <button type="button" onClick={() => insertPrefixPerLine('> ')} className="rounded px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700">Quote</button>
-            <button type="button" onClick={() => wrapSelection('[', '](https://)')} className="rounded px-2 py-1 text-xs text-zinc-600 hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700">Link</button>
-          </div>
+          {/* Divider */}
+          <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
+
+          {/* Toolbar buttons */}
+          {tab === 'write' && toolbarGroups.map((group, gi) => (
+            <div key={gi} className="flex items-center gap-0.5">
+              {group.map((action) => (
+                <button
+                  key={action.label}
+                  type="button"
+                  title={action.title}
+                  onClick={action.action}
+                  className="flex size-7 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+                >
+                  {action.icon ?? <span className="text-[12px] font-semibold">{action.text}</span>}
+                </button>
+              ))}
+              {gi < toolbarGroups.length - 1 && (
+                <div className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
+              )}
+            </div>
+          ))}
         </div>
 
+        {/* Editor area */}
         {tab === 'write' ? (
           <textarea
             ref={textareaRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
             rows={rows}
             placeholder={placeholder}
-            className="w-full resize-y border-0 bg-white px-4 py-3 text-sm focus:outline-none focus:ring-0 dark:bg-zinc-900 dark:text-white"
+            dir={dir}
+            className="block w-full resize-y border-0 bg-white px-4 py-3 font-mono text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder-zinc-600"
           />
         ) : (
-          <div className="min-h-[240px] bg-white px-4 py-3 text-sm dark:bg-zinc-900">
-            {value.trim().length === 0 ? (
-              <p className="text-zinc-500 dark:text-zinc-400">Nothing to preview.</p>
-            ) : (
+          <div className="min-h-[160px] bg-white px-4 py-3 dark:bg-zinc-900" dir={dir}>
+            {value.trim() ? (
               <article
-                className="break-words text-zinc-900 dark:text-zinc-100"
+                className="prose prose-sm max-w-none dark:prose-invert"
                 dangerouslySetInnerHTML={{ __html: previewHtml }}
               />
+            ) : (
+              <p className="text-sm italic text-zinc-400 dark:text-zinc-500">Nothing to preview.</p>
             )}
           </div>
         )}
+
+        {/* Status bar */}
+        <div className="flex items-center justify-between border-t border-zinc-100 bg-zinc-50 px-3 py-1.5 dark:border-zinc-800 dark:bg-zinc-900/40">
+          <p className="text-[10px] text-zinc-400 dark:text-zinc-500">
+            Markdown · <span className="font-medium">**bold**</span> · <span className="italic">*italic*</span> · <span className="font-mono">`code`</span> · <span>- list</span> · <span>## heading</span>
+          </p>
+          <span className="text-[10px] text-zinc-400 dark:text-zinc-500">{charCount.toLocaleString()} chars</span>
+        </div>
       </div>
-      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-        Supports GitHub-style Markdown: headings, lists, code, links, quotes, bold, italic, and strike.
-      </p>
+
+      {(error || hint) && (
+        <p className={`mt-1.5 text-xs ${error ? 'text-rose-600 dark:text-rose-400' : 'text-zinc-500 dark:text-zinc-400'}`}>
+          {error ?? hint}
+        </p>
+      )}
     </div>
   );
 }

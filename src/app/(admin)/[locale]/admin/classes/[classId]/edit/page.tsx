@@ -22,6 +22,7 @@ import { composeDurationMinutes, splitDurationMinutes } from '@/lib/formatDurati
 import { defaultClassFinanceAdminSettings, type ClassFinanceAdminSettings } from '@/lib/adminSettings';
 import { formatNoonDateTimeLocalInput, isQuarterHourDateTimeValue, noonDateTimeLocalInputToIso } from '@/lib/dateTime';
 import QuarterHourDateTimeInput from '@/components/admin/QuarterHourDateTimeInput';
+import MarkdownEditor from '@/components/admin/MarkdownEditor';
 
 type ClassCategory = 'COOKING' | 'ARTS_CRAFTS';
 type ClassSubCategory =
@@ -598,7 +599,7 @@ export default function EditClassPage() {
         'success',
         isRenewMode
           ? isRTL
-            ? 'تم حفظ صف التجديد كمسودة بنجاح!'
+            ? 'تم حفظ ورشة التجديد كمسودة بنجاح!'
             : 'Renewal class draft saved successfully!'
           : isRTL
           ? 'تم حفظ المسودة بنجاح!'
@@ -707,7 +708,7 @@ export default function EditClassPage() {
         'success',
         isRenewMode
           ? isRTL
-            ? 'تم حفظ صف التجديد بنجاح!'
+            ? 'تم حفظ ورشة التجديد بنجاح!'
             : 'Renewal class saved successfully!'
           : 'Class updated successfully!'
       );
@@ -783,12 +784,12 @@ export default function EditClassPage() {
         </button>
 
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-          {isRenewMode ? (isRTL ? 'تجديد الصف' : 'Renew Class') : isRTL ? 'تعديل الصف' : 'Edit Class'}
+          {isRenewMode ? (isRTL ? 'تجديد الورشة' : 'Renew Class') : isRTL ? 'تعديل الورشة' : 'Edit Class'}
         </h1>
         {isRenewMode ? (
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             {isRTL
-              ? 'يتم إنشاء صف جديد اعتمادا على بيانات الصف السابق. حدّد الموعد الجديد ثم احفظ الصف دون تعديل السجل السابق.'
+              ? 'يتم إنشاء ورشة جديدة اعتمادا على بيانات الورشة السابقة. حدّد الموعد الجديد ثم احفظ الورشة دون تعديل السجل السابق.'
               : 'You are creating a new class from the previous one. Set the new schedule and save this renewal without editing the original class.'}
           </p>
         ) : null}
@@ -859,51 +860,36 @@ export default function EditClassPage() {
 
             {/* English Description */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {isRTL ? 'الوصف (إنجليزي)' : 'Description (English)'}
-                <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="description"
+              <MarkdownEditor
+                label={isRTL ? 'الوصف (إنجليزي)' : 'Description (English)'}
                 value={formData.description}
-                onChange={handleInputChange}
-                rows={4}
+                onChange={(v) => {
+                  setFormData((prev) => ({ ...prev, description: v }));
+                  if (errors.description) setErrors((prev) => ({ ...prev, description: '' }));
+                }}
                 placeholder="Detailed description of the class..."
-                className={`${textareaBase} ${
-                  errors.description ? 'border-red-500 dark:border-red-400' : ''
-                }`}
+                rows={8}
+                required
+                error={errors.description}
+                dir="ltr"
               />
-              {errors.description && (
-                <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
-                  <IoAlertCircle />
-                  {errors.description}
-                </p>
-              )}
             </div>
 
             {/* Arabic Description */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {isRTL ? 'الوصف (عربي)' : 'Description (Arabic)'}
-                <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="descriptionAr"
+              <MarkdownEditor
+                label={isRTL ? 'الوصف (عربي)' : 'Description (Arabic)'}
                 value={formData.descriptionAr}
-                onChange={handleInputChange}
-                rows={4}
-                placeholder="وصف تفصيلي للصف..."
+                onChange={(v) => {
+                  setFormData((prev) => ({ ...prev, descriptionAr: v }));
+                  if (errors.descriptionAr) setErrors((prev) => ({ ...prev, descriptionAr: '' }));
+                }}
+                placeholder="وصف تفصيلي للورشة..."
+                rows={8}
+                required
+                error={errors.descriptionAr}
                 dir="rtl"
-                className={`${textareaBase} ${
-                  errors.descriptionAr ? 'border-red-500 dark:border-red-400' : ''
-                }`}
               />
-              {errors.descriptionAr && (
-                <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
-                  <IoAlertCircle />
-                  {errors.descriptionAr}
-                </p>
-              )}
             </div>
           </div>
         </div>
@@ -1589,16 +1575,13 @@ export default function EditClassPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {isRTL ? 'وصف الميتا' : 'Meta Description'}
-              </label>
-              <textarea
-                name="metaDescription"
+              <MarkdownEditor
+                label={isRTL ? 'وصف الميتا' : 'Meta Description'}
                 value={formData.metaDescription}
-                onChange={handleInputChange}
-                rows={3}
+                onChange={(v) => setFormData((prev) => ({ ...prev, metaDescription: v }))}
                 placeholder={isRTL ? 'يترك فارغاً لاستخدام الوصف' : 'Leave blank to use description'}
-                className={textareaBase}
+                rows={4}
+                dir="ltr"
               />
             </div>
           </div>
@@ -1645,7 +1628,7 @@ export default function EditClassPage() {
                   : 'Saving...'}
               </span>
             ) : (
-              isRenewMode ? (isRTL ? 'حفظ صف التجديد' : 'Save Renewal Class') : isRTL ? 'حفظ التغييرات' : 'Save Changes'
+              isRenewMode ? (isRTL ? 'حفظ ورشة التجديد' : 'Save Renewal Class') : isRTL ? 'حفظ التغييرات' : 'Save Changes'
             )}
           </button>
         </div>

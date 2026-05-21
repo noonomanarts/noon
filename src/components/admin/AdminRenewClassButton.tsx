@@ -26,8 +26,8 @@ export default function AdminRenewClassButton({
   const { toast } = useAppFeedback();
   const [loading, setLoading] = useState(false);
 
-  const buttonLabel = label || (locale === 'ar' ? 'رينيـو الصف' : 'Renew Class');
-  const buttonLoadingLabel = loadingLabel || (locale === 'ar' ? 'جاري إنشاء صف جديد...' : 'Creating new class...');
+  const buttonLabel = label || (locale === 'ar' ? 'رينيو الورشة' : 'Renew Class');
+  const buttonLoadingLabel = loadingLabel || (locale === 'ar' ? 'جاري إنشاء ورشة جديدة...' : 'Creating new class...');
 
   async function renewClass() {
     if (loading) return;
@@ -51,7 +51,7 @@ export default function AdminRenewClassButton({
       router.refresh();
     } catch (error) {
       toast({
-        title: locale === 'ar' ? 'تعذر تجديد الصف' : 'Renew class failed',
+        title: locale === 'ar' ? 'تعذر تجديد الورشة' : 'Renew class failed',
         message: error instanceof Error ? error.message : 'Failed to renew class.',
         tone: 'error',
       });

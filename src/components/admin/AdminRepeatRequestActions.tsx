@@ -40,7 +40,7 @@ export default function AdminRepeatRequestActions({
 
   const t = {
     messageRequesters: isArabic ? 'إرسال رسالة للمهتمين' : 'Message Requesters',
-    renewClass: isArabic ? 'رينيـو الصف' : 'Renew Class',
+    renewClass: isArabic ? 'رينيو الورشة' : 'Renew Class',
     modalTitle: isArabic ? 'إرسال تحديث لطلبة إعادة الورشة' : 'Send Repeat Request Update',
     pendingCount: isArabic ? 'الطلبات المعلقة' : 'Pending Requests',
     requesters: isArabic ? 'عدد المستلمين' : 'Recipients',

@@ -63,7 +63,7 @@ export default async function AdminLayout({
     financeReports: locale === "ar" ? "المالية" : "Finance",
     inventory: locale === "ar" ? "المخزون" : "Inventory",
     classesEvents: locale === "ar" ? "البرامج" : "Programs",
-    classes: locale === "ar" ? "الدورات" : "Classes",
+    classes: locale === "ar" ? "الورشات" : "Classes",
     repeatRequests: locale === "ar" ? "الإعادات" : "Repeats",
     timetable: locale === "ar" ? "التقويم" : "Calendar",
     events: locale === "ar" ? "الفعاليات" : "Events",
@@ -197,14 +197,14 @@ export default async function AdminLayout({
   return (
     <div className="admin-panel flex min-h-dvh overflow-hidden bg-zinc-100 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100" lang={locale} dir={dir}>
       {/* Sidebar */}
-      <div className="hidden w-64 shrink-0 lg:block xl:w-72" aria-hidden="true" />
+      <div className="hidden w-56 shrink-0 lg:block xl:w-60" aria-hidden="true" />
       <aside
-        className={`fixed inset-y-0 z-20 hidden w-64 overflow-hidden border-zinc-200/80 bg-[linear-gradient(180deg,rgba(255,248,242,0.98),rgba(255,255,255,0.94))] shadow-[0_0_0_1px_rgba(228,228,231,0.7),0_24px_60px_-36px_rgba(24,24,27,0.45)] backdrop-blur dark:border-zinc-800/80 dark:bg-[linear-gradient(180deg,rgba(23,23,34,0.98),rgba(10,10,15,0.96))] dark:shadow-[0_0_0_1px_rgba(39,39,42,0.85),0_24px_60px_-36px_rgba(0,0,0,0.7)] lg:block xl:w-72 ${locale === "ar" ? "right-0 border-l" : "left-0 border-r"}`}
+        className={`fixed inset-y-0 z-20 hidden w-56 overflow-hidden border-zinc-200/80 bg-[linear-gradient(180deg,rgba(255,248,242,0.98),rgba(255,255,255,0.94))] shadow-[0_0_0_1px_rgba(228,228,231,0.7),0_24px_60px_-36px_rgba(24,24,27,0.45)] backdrop-blur dark:border-zinc-800/80 dark:bg-[linear-gradient(180deg,rgba(23,23,34,0.98),rgba(10,10,15,0.96))] dark:shadow-[0_0_0_1px_rgba(39,39,42,0.85),0_24px_60px_-36px_rgba(0,0,0,0.7)] lg:block xl:w-60 ${locale === "ar" ? "right-0 border-l" : "left-0 border-r"}`}
       >
             <div className="flex h-full min-h-0 flex-col">
               {/* Logo */}
               <div className="border-b border-zinc-200/80 bg-white px-5 py-4 dark:border-zinc-800 dark:bg-zinc-950" dir={dir}>
-                <div className={`flex items-center gap-3 ${locale === "ar" ? "flex-row-reverse text-right" : "text-left"}`}>
+                <div className="flex items-center gap-3">
                   <Link href={`/${locale}`} className="shrink-0" aria-label="Noon">
                     <Image
                       src={headerLogoUrl}

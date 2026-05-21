@@ -3,26 +3,29 @@
 import Link from 'next/link';
 import { use, useEffect, useMemo, useState } from 'react';
 import {
-  IoArrowBack,
-  IoCalendarOutline,
-  IoCheckmarkCircle,
-  IoCreateOutline,
-  IoEyeOutline,
-  IoGlobeOutline,
-  IoImageOutline,
-  IoPeopleOutline,
-  IoPricetagOutline,
-  IoRefresh,
-  IoSparklesOutline,
-  IoStar,
-  IoTimeOutline,
-  IoWalletOutline,
-  IoWarningOutline,
-} from 'react-icons/io5';
+  FiArrowLeft,
+  FiCalendar,
+  FiCheckCircle,
+  FiClock,
+  FiEdit2,
+  FiExternalLink,
+  FiCreditCard,
+  FiEye,
+  FiFileText,
+  FiImage,
+  FiRefreshCw,
+  FiStar,
+  FiTag,
+  FiUser,
+  FiUsers,
+  FiXCircle,
+  FiZap,
+} from 'react-icons/fi';
 import AdminRenewClassButton from '@/components/admin/AdminRenewClassButton';
 import ClassSettlementPanel from '@/components/admin/ClassSettlementPanel';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import { formatDurationClock } from '@/lib/formatDuration';
+import { markdownToSafeHtml } from '@/lib/markdown';
 
 type ClassStatus = 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED';
 
@@ -80,99 +83,96 @@ type ClassDetails = {
   };
 };
 
-function formatSubCategory(value: string, isArabic: boolean) {
-  const labels: Record<string, { en: string; ar: string }> = {
-    APPETIZERS_SNACKS: { en: 'Appetizers & Snacks', ar: 'المقبلات والوجبات الخفيفة' },
-    MAIN_DISHES: { en: 'Main Dishes', ar: 'الأطباق الرئيسية' },
-    DESSERTS_BAKING: { en: 'Desserts & Baking', ar: 'الحلويات والمخبوزات' },
-    MOM_AND_KID: { en: 'Mom & Kid', ar: 'الأم والطفل' },
-    SUMMER_CAMP: { en: 'Summer Camp', ar: 'المخيم الصيفي' },
-    PAINTING: { en: 'Painting', ar: 'الرسم' },
-    CRAFTS: { en: 'Crafts', ar: 'الأشغال اليدوية' },
-    POTTERY: { en: 'Pottery', ar: 'الفخار' },
-    MIXED: { en: 'Mixed', ar: 'متنوع' },
-  };
+const STATUS_CONFIG: Record<ClassStatus, { labelEn: string; labelAr: string; cls: string; dot: string }> = {
+  DRAFT:     { labelEn: 'Draft',     labelAr: 'مسودة',  cls: 'bg-amber-50   text-amber-700  border-amber-200  dark:bg-amber-900/20  dark:text-amber-300  dark:border-amber-800/50',  dot: 'bg-amber-400'  },
+  PUBLISHED: { labelEn: 'Published', labelAr: 'منشور',  cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800/50', dot: 'bg-emerald-500' },
+  CANCELLED: { labelEn: 'Cancelled', labelAr: 'ملغي',   cls: 'bg-rose-50    text-rose-700    border-rose-200    dark:bg-rose-900/20    dark:text-rose-300    dark:border-rose-800/50',    dot: 'bg-rose-500'   },
+  COMPLETED: { labelEn: 'Completed', labelAr: 'مكتمل', cls: 'bg-zinc-100   text-zinc-600   border-zinc-200   dark:bg-zinc-800      dark:text-zinc-400   dark:border-zinc-700',         dot: 'bg-zinc-400'   },
+};
 
-  const label = labels[value];
+const SUB_CATEGORY_LABELS: Record<string, { en: string; ar: string }> = {
+  APPETIZERS_SNACKS: { en: 'Appetizers & Snacks', ar: 'المقبلات والوجبات الخفيفة' },
+  MAIN_DISHES:       { en: 'Main Dishes',          ar: 'الأطباق الرئيسية'          },
+  DESSERTS_BAKING:   { en: 'Desserts & Baking',    ar: 'الحلويات والمخبوزات'       },
+  MOM_AND_KID:       { en: 'Mom & Kid',             ar: 'الأم والطفل'               },
+  SUMMER_CAMP:       { en: 'Summer Camp',           ar: 'المخيم الصيفي'            },
+  PAINTING:          { en: 'Painting',              ar: 'الرسم'                     },
+  CRAFTS:            { en: 'Crafts',                ar: 'الأشغال اليدوية'           },
+  POTTERY:           { en: 'Pottery',               ar: 'الفخار'                    },
+  MIXED:             { en: 'Mixed',                 ar: 'متنوع'                     },
+};
+
+function formatSubCategory(value: string, isArabic: boolean) {
+  const label = SUB_CATEGORY_LABELS[value];
   return label ? (isArabic ? label.ar : label.en) : value.replaceAll('_', ' ');
 }
 
 function formatCategory(value: string, isArabic: boolean) {
-  if (value === 'COOKING') return isArabic ? 'الطبخ' : 'Cooking';
+  if (value === 'COOKING')    return isArabic ? 'الطبخ' : 'Cooking';
   if (value === 'ARTS_CRAFTS') return isArabic ? 'الفنون والأشغال' : 'Arts & Crafts';
   return value;
 }
 
-function formatStatus(value: ClassStatus, isArabic: boolean) {
-  const labels: Record<ClassStatus, { en: string; ar: string }> = {
-    DRAFT: { en: 'Draft', ar: 'مسودة' },
-    PUBLISHED: { en: 'Published', ar: 'منشور' },
-    CANCELLED: { en: 'Cancelled', ar: 'ملغي' },
-    COMPLETED: { en: 'Completed', ar: 'مكتمل' },
-  };
-  return isArabic ? labels[value].ar : labels[value].en;
-}
-
 function formatDateTime(value: string | null | undefined, localeCode: string) {
   if (!value) return '—';
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-
   return new Intl.DateTimeFormat(localeCode, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Muscat',
+    dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Muscat',
   }).format(date);
 }
 
 function formatDate(value: string | null | undefined, localeCode: string) {
   if (!value) return '—';
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-
   return new Intl.DateTimeFormat(localeCode, {
-    dateStyle: 'medium',
-    timeZone: 'Asia/Muscat',
+    dateStyle: 'medium', timeZone: 'Asia/Muscat',
   }).format(date);
 }
 
-function SectionCard({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
+function StarRow({ rating }: { rating: number }) {
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
-      <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <h2 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100 sm:text-lg">{title}</h2>
-        </div>
-      </div>
-      <div className="mt-4">{children}</div>
-    </section>
+    <span className="inline-flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <FiStar
+          key={star}
+          className={`size-3 ${star <= Math.round(rating) ? 'fill-amber-400 text-amber-400' : 'text-zinc-300 dark:text-zinc-600'}`}
+        />
+      ))}
+    </span>
   );
 }
 
-function DetailTile({
-  label,
-  value,
-}: {
-  label: string;
-  value: React.ReactNode;
-}) {
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50">
-      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
-      <div className="mt-1.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{value}</div>
+    <div className="flex items-start justify-between gap-3 py-2.5 text-sm">
+      <span className="shrink-0 font-medium text-zinc-500 dark:text-zinc-400">{label}</span>
+      <span className="text-right font-semibold text-zinc-900 dark:text-zinc-100">{value}</span>
+    </div>
+  );
+}
+
+function SectionHeader({ icon, title, count }: { icon: React.ReactNode; title: string; count?: number }) {
+  return (
+    <div className="flex items-center gap-2.5 border-b border-zinc-100 pb-3 dark:border-zinc-800">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-[color:var(--noon-teal-soft)] text-[color:var(--noon-teal)]">
+        {icon}
+      </span>
+      <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{title}</h2>
+      {typeof count === 'number' && (
+        <span className="ml-auto rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+          {count}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 ${className}`}>
+      {children}
     </div>
   );
 }
@@ -189,112 +189,101 @@ export default function AdminClassDetailsPage({
   const [classData, setClassData] = useState<ClassDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [secondaryError, setSecondaryError] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   const t = {
-    back: isArabic ? 'الرجوع للصفوف' : 'Back to classes',
-    title: isArabic ? 'تفاصيل الصف' : 'Class Details',
-    edit: isArabic ? 'تعديل' : 'Edit',
-    calendar: isArabic ? 'التقويم' : 'Calendar',
-    publicPage: isArabic ? 'الصفحة' : 'Public',
-    enrollmentWallet: isArabic ? 'التسجيل+المحفظة' : 'Enroll+Wallet',
-    publish: isArabic ? 'نشر' : 'Publish',
-    moveToDraft: isArabic ? 'مسودة' : 'Draft',
-    renewClass: isArabic ? 'رينيـو الصف' : 'Renew Class',
-    loading: isArabic ? 'جاري تحميل تفاصيل الصف...' : 'Loading class details...',
-    notFound: isArabic ? 'تعذر العثور على هذا الصف.' : 'This class could not be found.',
-    overview: isArabic ? 'نظرة عامة' : 'Overview',
-    media: isArabic ? 'الصور' : 'Media',
-    trainer: isArabic ? 'المدرب' : 'Trainer',
-    schedule: isArabic ? 'الجدول والجلسات' : 'Schedule & Sessions',
-    reviews: isArabic ? 'التقييمات' : 'Reviews',
-    meta: isArabic ? 'بيانات النشر' : 'Publishing Data',
-    noImage: isArabic ? 'لا توجد صورة رئيسية' : 'No main image uploaded',
-    noGallery: isArabic ? 'لا توجد صور إضافية' : 'No gallery images yet',
-    noReviews: isArabic ? 'لا توجد تقييمات مرئية لهذا الصف بعد.' : 'No visible reviews for this class yet.',
-    noTrainer: isArabic ? 'لم يتم ربط مدرب بعد.' : 'No trainer assigned yet.',
-    retry: isArabic ? 'إعادة التحميل' : 'Reload',
-    sessionsLoadError: isArabic ? 'تعذر تحميل تفاصيل الجلسات، لكن بيانات الصف متاحة.' : 'Session details could not be loaded, but the class data is available.',
-    bookings: isArabic ? 'الحجوزات' : 'Bookings',
-    averageRating: isArabic ? 'متوسط التقييم' : 'Average rating',
-    category: isArabic ? 'التصنيف' : 'Category',
-    subCategory: isArabic ? 'التصنيف الفرعي' : 'Sub-category',
-    duration: isArabic ? 'المدة' : 'Duration',
-    seats: isArabic ? 'المقاعد' : 'Seats',
-    availability: isArabic ? 'المتاح' : 'Available',
-    price: isArabic ? 'السعر' : 'Price',
-    status: isArabic ? 'الحالة' : 'Status',
-    createdAt: isArabic ? 'تاريخ الإنشاء' : 'Created',
-    updatedAt: isArabic ? 'آخر تحديث' : 'Last updated',
-    publishedAt: isArabic ? 'تاريخ النشر' : 'Published',
-    slug: isArabic ? 'الرابط المختصر' : 'Slug',
-    metaTitle: isArabic ? 'عنوان SEO' : 'Meta title',
-    metaDescription: isArabic ? 'وصف SEO' : 'Meta description',
-    englishContent: isArabic ? 'المحتوى الإنجليزي' : 'English content',
-    arabicContent: isArabic ? 'المحتوى العربي' : 'Arabic content',
-    occupancy: isArabic ? 'الإشغال' : 'Occupancy',
-    verified: isArabic ? 'موثق' : 'Verified',
-    anonymousCustomer: isArabic ? 'عميل' : 'Customer',
-    publishingHint: isArabic
-      ? 'إذا كان الصف منشوراً بدون جلسات، فلن يظهر أي موعد قابل للحجز في الواجهة العامة.'
-      : 'If a class is published without sessions, no bookable slot will appear on the public site.',
+    back:            isArabic ? 'الرجوع للورشات'     : 'Back to classes',
+    edit:            isArabic ? 'تعديل الورشة'        : 'Edit class',
+    calendar:        isArabic ? 'التقويم'             : 'Calendar',
+    publicPage:      isArabic ? 'الصفحة العامة'      : 'Public page',
+    enrollWallet:    isArabic ? 'تسجيل + محفظة'      : 'Enroll + Wallet',
+    publish:         isArabic ? 'نشر الورشة'           : 'Publish class',
+    moveToDraft:     isArabic ? 'نقل لمسودة'          : 'Move to draft',
+    renewClass:      isArabic ? 'رينيو الورشة'         : 'Renew class',
+    loading:         isArabic ? 'جاري تحميل البيانات…' : 'Loading class details…',
+    notFound:        isArabic ? 'تعذر العثور على هذه الورشة.' : 'This class could not be found.',
+    overview:        isArabic ? 'نظرة عامة'           : 'Overview',
+    media:           isArabic ? 'الصور'               : 'Media',
+    trainer:         isArabic ? 'المدرب'              : 'Trainer',
+    schedule:        isArabic ? 'الموعد'              : 'Schedule',
+    reviews:         isArabic ? 'التقييمات'           : 'Reviews',
+    meta:            isArabic ? 'بيانات النشر'         : 'Publishing',
+    noImage:         isArabic ? 'لا توجد صورة رئيسية' : 'No main image',
+    noGallery:       isArabic ? 'لا توجد صور إضافية'  : 'No gallery images',
+    noReviews:       isArabic ? 'لا توجد تقييمات بعد' : 'No reviews yet',
+    noTrainer:       isArabic ? 'لم يُعيَّن مدرب بعد' : 'No trainer assigned',
+    retry:           isArabic ? 'إعادة التحميل'       : 'Retry',
+    bookings:        isArabic ? 'الحجوزات'            : 'Bookings',
+    avgRating:       isArabic ? 'متوسط التقييم'       : 'Avg rating',
+    category:        isArabic ? 'التصنيف'             : 'Category',
+    subCategory:     isArabic ? 'التصنيف الفرعي'      : 'Sub-category',
+    duration:        isArabic ? 'المدة'               : 'Duration',
+    seats:           isArabic ? 'المقاعد'             : 'Total seats',
+    seatsBooked:     isArabic ? 'محجوز'               : 'Booked',
+    seatsAvail:      isArabic ? 'متاح'                : 'Available',
+    price:           isArabic ? 'السعر'               : 'Price',
+    status:          isArabic ? 'الحالة'              : 'Status',
+    createdAt:       isArabic ? 'تاريخ الإنشاء'       : 'Created',
+    updatedAt:       isArabic ? 'آخر تحديث'           : 'Updated',
+    publishedAt:     isArabic ? 'تاريخ النشر'         : 'Published at',
+    slug:            isArabic ? 'الرابط المختصر'       : 'Slug',
+    metaTitle:       isArabic ? 'عنوان SEO'           : 'Meta title',
+    metaDesc:        isArabic ? 'وصف SEO'             : 'Meta description',
+    enContent:       isArabic ? 'المحتوى الإنجليزي'   : 'English',
+    arContent:       isArabic ? 'المحتوى العربي'       : 'Arabic',
+    occupancy:       isArabic ? 'الإشغال'             : 'Occupancy',
+    verified:        isArabic ? 'موثق'                : 'Verified',
+    customer:        isArabic ? 'عميل'                : 'Customer',
+    showAll:         isArabic ? 'عرض الكل'            : 'Show all',
+    noDate:          isArabic ? 'لم يُحدد موعد بعد'   : 'No date set yet',
+    endsAt:          isArabic ? 'ينتهي:'              : 'Ends:',
+    publishingHint:  isArabic
+      ? 'الورشة منشورة بدون جلسات — لن تظهر أي مواعيد قابلة للحجز في الواجهة العامة.'
+      : 'Class is published without a session — no bookable slots will appear on the public site.',
   };
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
-    setSecondaryError(null);
-
     try {
-      const classResponse = await fetch(`/api/admin/classes/${classId}`, { cache: 'no-store' });
-
-      const classPayload = (await classResponse.json().catch(() => ({}))) as ClassDetails & { error?: string };
-      if (!classResponse.ok) {
-        throw new Error(classPayload.error || t.notFound);
-      }
-
-      setClassData(classPayload);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : t.notFound);
+      const res = await fetch(`/api/admin/classes/${classId}`, { cache: 'no-store' });
+      const payload = (await res.json().catch(() => ({}))) as ClassDetails & { error?: string };
+      if (!res.ok) throw new Error(payload.error || t.notFound);
+      setClassData(payload);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t.notFound);
       setClassData(null);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    void loadData();
-  }, [classId]);
+  useEffect(() => { void loadData(); }, [classId]);
 
   const reviewAverage = useMemo(() => {
     if (!classData?.reviews?.length) return null;
-    const ratings = classData.reviews.map((review) => review.rating).filter((rating): rating is number => typeof rating === 'number');
-    if (ratings.length === 0) return null;
-    return ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+    const ratings = classData.reviews
+      .map((r) => r.rating)
+      .filter((r): r is number => typeof r === 'number');
+    if (!ratings.length) return null;
+    return ratings.reduce((s, r) => s + r, 0) / ratings.length;
   }, [classData?.reviews]);
-
-  const formatMoney = (amount: number, currency: string) => formatAmountWithCurrency(amount, currency);
 
   const handleStatusChange = async (nextStatus: 'PUBLISHED' | 'DRAFT') => {
     setStatusLoading(true);
     setError(null);
-
     try {
-      const response = await fetch(`/api/admin/classes/${classId}/status`, {
+      const res = await fetch(`/api/admin/classes/${classId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: nextStatus }),
       });
-
-      const payload = (await response.json().catch(() => ({}))) as ClassDetails & { error?: string };
-      if (!response.ok) {
-        throw new Error(payload.error || 'Failed to update status');
-      }
-
-      setClassData((current) => (current ? { ...current, status: payload.status, publishedAt: payload.publishedAt } : current));
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Failed to update status');
+      const payload = (await res.json().catch(() => ({}))) as ClassDetails & { error?: string };
+      if (!res.ok) throw new Error(payload.error || 'Failed to update status');
+      setClassData((prev) => prev ? { ...prev, status: payload.status, publishedAt: payload.publishedAt } : prev);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update status');
     } finally {
       setStatusLoading(false);
     }
@@ -302,374 +291,472 @@ export default function AdminClassDetailsPage({
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center py-16 text-zinc-600 dark:text-zinc-400">
-        {t.loading}
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-zinc-400">
+        <FiRefreshCw className="size-6 animate-spin text-[color:var(--noon-teal)]" />
+        <p className="text-sm">{t.loading}</p>
       </div>
     );
   }
 
   if (!classData) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-12">
-        <div className="rounded-3xl border border-rose-200 bg-rose-50 p-6 dark:border-rose-900/40 dark:bg-rose-900/20">
-          <p className="text-sm text-rose-700 dark:text-rose-300">{error || t.notFound}</p>
+      <div className="mx-auto max-w-lg px-4 py-16">
+        <Card className="p-6 text-center">
+          <FiXCircle className="mx-auto mb-3 size-10 text-rose-400" />
+          <p className="text-sm font-medium text-rose-700 dark:text-rose-300">{error || t.notFound}</p>
           <button
             type="button"
             onClick={() => void loadData()}
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900"
           >
-            <IoRefresh className="h-4 w-4" />
+            <FiRefreshCw className="size-4" />
             {t.retry}
           </button>
-        </div>
+        </Card>
       </div>
     );
   }
 
-  const displayTitle = isArabic && classData.titleAr ? classData.titleAr : classData.title;
-  const reviewCount = classData.reviews?.length ?? 0;
+  const displayTitle  = isArabic && classData.titleAr ? classData.titleAr : classData.title;
+  const reviewCount   = classData.reviews?.length ?? 0;
   const bookingsCount = classData._count?.bookings ?? 0;
-  const isUpcoming = classData.startDateTime ? new Date(classData.startDateTime).getTime() >= Date.now() : false;
-  const availability = classData.seatsTotal - (classData.seatsBooked ?? 0);
-  const occupancyPercent = classData.seatsTotal > 0
-    ? Math.min(100, Math.max(0, ((classData.seatsBooked ?? 0) / classData.seatsTotal) * 100))
+  const seatsBooked   = classData.seatsBooked ?? 0;
+  const occupancyPct  = classData.seatsTotal > 0
+    ? Math.min(100, Math.round((seatsBooked / classData.seatsTotal) * 100))
     : 0;
+  const isUpcoming    = classData.startDateTime
+    ? new Date(classData.startDateTime).getTime() >= Date.now()
+    : false;
+  const statusCfg     = STATUS_CONFIG[classData.status];
+  const visibleReviews = showAllReviews
+    ? (classData.reviews ?? [])
+    : (classData.reviews ?? []).slice(0, 4);
 
   return (
-    <div className="space-y-6 pb-8">
-      <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="p-4 sm:p-5 lg:p-6">
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
-            <div className="max-w-4xl">
-              <Link
-                href={`/${locale}/admin/classes`}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-600 transition hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
-              >
-                <IoArrowBack className="h-4 w-4" />
-                {t.back}
-              </Link>
+    <div className="space-y-5 pb-10">
 
-              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-zinc-600 dark:text-zinc-300">
-                <span><span className="font-medium text-zinc-900 dark:text-zinc-100">{t.status}:</span> {formatStatus(classData.status, isArabic)}</span>
-                <span><span className="font-medium text-zinc-900 dark:text-zinc-100">{t.category}:</span> {formatCategory(classData.category, isArabic)}</span>
-                <span><span className="font-medium text-zinc-900 dark:text-zinc-100">{t.subCategory}:</span> {formatSubCategory(classData.subCategory, isArabic)}</span>
+      {/* ── Top header bar ── */}
+      <div className="flex items-center gap-3">
+        <Link
+          href={`/${locale}/admin/classes`}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        >
+          <FiArrowLeft className="size-3.5" />
+          {t.back}
+        </Link>
+      </div>
+
+      {/* ── Error toast ── */}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
+          {error}
+        </div>
+      )}
+
+      {/* ── Hero card ── */}
+      <Card>
+        <div className="p-4 sm:p-5">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:gap-8">
+
+            {/* Left: title + stats */}
+            <div className="min-w-0 flex-1">
+              {/* Status + categories */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusCfg.cls}`}>
+                  <span className={`size-1.5 rounded-full ${statusCfg.dot}`} />
+                  {isArabic ? statusCfg.labelAr : statusCfg.labelEn}
+                </span>
+                <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                  {formatCategory(classData.category, isArabic)}
+                </span>
+                <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                  {formatSubCategory(classData.subCategory, isArabic)}
+                </span>
               </div>
 
-              <h1 className="mt-3 text-2xl font-bold text-zinc-900 dark:text-zinc-100 sm:text-3xl">
+              <h1 className="mt-3 text-xl font-bold text-zinc-900 dark:text-zinc-100 sm:text-2xl">
                 {displayTitle}
               </h1>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t.bookings}</span>
-                    <IoPeopleOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
+              {/* 4 stat cards */}
+              <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                {/* Bookings */}
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-400">{t.bookings}</span>
+                    <FiUsers className="size-3.5 text-[color:var(--noon-teal)]" />
                   </div>
-                  <p className="mt-3 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{bookingsCount}</p>
+                  <p className="mt-2 text-2xl font-black text-zinc-900 dark:text-zinc-100">{bookingsCount}</p>
                 </div>
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{isArabic ? 'التاريخ' : 'Date'}</span>
-                    <IoCalendarOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
+
+                {/* Occupancy */}
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-400">{t.occupancy}</span>
+                    <FiUsers className="size-3.5 text-[color:var(--noon-teal)]" />
                   </div>
-                  <p className="mt-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100 sm:text-base">
-                    {classData.startDateTime ? formatDateTime(classData.startDateTime, localeCode) : '—'}
+                  <p className="mt-2 text-xl font-black text-zinc-900 dark:text-zinc-100">
+                    {seatsBooked}<span className="text-sm font-semibold text-zinc-400">/{classData.seatsTotal}</span>
+                  </p>
+                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                    <div
+                      className="h-full rounded-full bg-[color:var(--noon-teal)] transition-all"
+                      style={{ width: `${occupancyPct}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-[10px] text-zinc-400">{occupancyPct}%</p>
+                </div>
+
+                {/* Price */}
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-400">{t.price}</span>
+                    <FiTag className="size-3.5 text-[color:var(--noon-teal)]" />
+                  </div>
+                  <p className="mt-2 text-lg font-black text-zinc-900 dark:text-zinc-100">
+                    {formatAmountWithCurrency(classData.price, classData.currency)}
                   </p>
                 </div>
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t.occupancy}</span>
-                    <IoTimeOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
+
+                {/* Rating */}
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-400">{t.avgRating}</span>
+                    <FiStar className="size-3.5 text-amber-400" />
                   </div>
-                  <p className="mt-3 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{classData.seatsBooked ?? 0} / {classData.seatsTotal}</p>
-                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-                    <div className="h-full rounded-full bg-[color:var(--noon-teal)]" style={{ width: `${occupancyPercent}%` }} />
-                  </div>
-                </div>
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t.averageRating}</span>
-                    <IoStar className="h-4 w-4 text-amber-500" />
-                  </div>
-                  <p className="mt-3 text-2xl font-bold text-zinc-900 dark:text-zinc-100">{reviewAverage ? reviewAverage.toFixed(1) : '—'}</p>
+                  <p className="mt-2 text-2xl font-black text-zinc-900 dark:text-zinc-100">
+                    {reviewAverage ? reviewAverage.toFixed(1) : '—'}
+                  </p>
+                  {reviewAverage && <StarRow rating={reviewAverage} />}
                 </div>
               </div>
             </div>
 
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/50 sm:p-4">
-              <div className="grid gap-2">
-                <Link
-                  href={`/${locale}/admin/classes/${classId}/edit`}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
-                >
-                  <IoCreateOutline className="h-4 w-4" />
-                  {t.edit}
-                </Link>
-
-                <div className="grid grid-cols-2 gap-2">
+            {/* Right: action buttons */}
+            <div className="w-full xl:w-64 xl:shrink-0">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/60">
+                <div className="space-y-2">
+                  {/* Primary: Edit */}
                   <Link
-                    href={`/${locale}/admin/calendar`}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    href={`/${locale}/admin/classes/${classId}/edit`}
+                    className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)]"
                   >
-                    <IoGlobeOutline className="h-4 w-4" />
-                    {t.calendar}
+                    <FiEdit2 className="size-4" />
+                    {t.edit}
                   </Link>
-                  <Link
-                    href={`/${locale}/classes/${classData.slug}`}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                    target="_blank"
-                  >
-                    <IoEyeOutline className="h-4 w-4" />
-                    {t.publicPage}
-                  </Link>
-                </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                  {/* Publish / Draft toggle */}
                   <button
                     type="button"
                     onClick={() => void handleStatusChange(classData.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED')}
                     disabled={statusLoading}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-3 text-xs font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                    className={`flex h-10 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                      classData.status === 'PUBLISHED'
+                        ? 'border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    }`}
                   >
-                    <IoCheckmarkCircle className="h-4 w-4" />
+                    <FiCheckCircle className="size-4" />
                     {classData.status === 'PUBLISHED' ? t.moveToDraft : t.publish}
                   </button>
-                  <Link
-                    href={`/${locale}/admin/classes/${classId}/enrollment-wallet`}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                  >
-                    <IoWalletOutline className="h-4 w-4" />
-                    {t.enrollmentWallet}
-                  </Link>
-                </div>
 
-                {(classData.status === 'COMPLETED' || classData.status === 'CANCELLED' || !isUpcoming) ? (
-                  <AdminRenewClassButton
-                    classId={classId}
-                    locale={locale as 'en' | 'ar'}
-                    label={t.renewClass}
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30"
-                  />
-                ) : null}
+                  <div className="pt-1">
+                    <p className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-400">
+                      {isArabic ? 'روابط سريعة' : 'Quick links'}
+                    </p>
+                    <div className="space-y-1.5">
+                      <Link
+                        href={`/${locale}/admin/calendar`}
+                        className="flex h-9 w-full items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      >
+                        <FiCalendar className="size-4 shrink-0 text-zinc-400" />
+                        {t.calendar}
+                      </Link>
+                      <Link
+                        href={`/${locale}/classes/${classData.slug}`}
+                        target="_blank"
+                        className="flex h-9 w-full items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      >
+                        <FiExternalLink className="size-4 shrink-0 text-zinc-400" />
+                        {t.publicPage}
+                      </Link>
+                      <Link
+                        href={`/${locale}/admin/classes/${classId}/enrollment-wallet`}
+                        className="flex h-9 w-full items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      >
+                        <FiCreditCard className="size-4 shrink-0 text-zinc-400" />
+                        {t.enrollWallet}
+                      </Link>
+
+                      {(classData.status === 'COMPLETED' || classData.status === 'CANCELLED' || !isUpcoming) && (
+                        <AdminRenewClassButton
+                          classId={classId}
+                          locale={locale as 'en' | 'ar'}
+                          label={t.renewClass}
+                          className="flex h-9 w-full items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-3 text-sm font-medium text-amber-800 transition hover:bg-amber-100 dark:border-amber-800/60 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/30"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
-          {error}
-        </div>
-      ) : null}
+      {/* ── Main content grid ── */}
+      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.3fr)_minmax(280px,0.7fr)]">
 
-      {secondaryError ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
-          {secondaryError}
-        </div>
-      ) : null}
+        {/* ════ Left column ════ */}
+        <div className="space-y-5">
 
-      <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
-        <div className="space-y-6">
-          <SectionCard
-            icon={<IoSparklesOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />}
-            title={t.overview}
-          >
-            <div className="grid gap-4 xl:grid-cols-2">
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
-                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t.englishContent}</p>
-                <h3 className="mt-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{classData.title}</h3>
-                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-300">{classData.description}</p>
+          {/* Overview */}
+          <Card className="p-4 sm:p-5">
+            <SectionHeader icon={<FiZap className="size-3.5" />} title={t.overview} />
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl bg-zinc-50 p-4 dark:bg-zinc-950/50">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-400">{t.enContent}</p>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{classData.title}</h3>
+                <div
+                  className="prose prose-sm mt-2 max-w-none dark:prose-invert"
+                  dangerouslySetInnerHTML={{ __html: markdownToSafeHtml(classData.description || '') }}
+                />
               </div>
-              <div dir="rtl" className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-right dark:border-zinc-800 dark:bg-zinc-950/50">
-                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t.arabicContent}</p>
-                <h3 className="mt-3 text-lg font-semibold text-zinc-900 dark:text-zinc-100">{classData.titleAr || '—'}</h3>
-                <p className="mt-3 whitespace-pre-line text-sm leading-8 text-zinc-600 dark:text-zinc-300">{classData.descriptionAr || '—'}</p>
+              <div dir="rtl" className="rounded-xl bg-zinc-50 p-4 text-right dark:bg-zinc-950/50">
+                <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-400">{t.arContent}</p>
+                <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">{classData.titleAr || '—'}</h3>
+                <div
+                  className="prose prose-sm mt-2 max-w-none dark:prose-invert"
+                  dangerouslySetInnerHTML={{ __html: markdownToSafeHtml(classData.descriptionAr || '') }}
+                />
               </div>
             </div>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <DetailTile label={t.category} value={formatCategory(classData.category, isArabic)} />
-              <DetailTile label={t.subCategory} value={formatSubCategory(classData.subCategory, isArabic)} />
-              <DetailTile label={t.duration} value={formatDurationClock(classData.durationMinutes)} />
-              <DetailTile label={t.price} value={formatMoney(classData.price, classData.currency)} />
-              <DetailTile label={t.seats} value={classData.seatsTotal} />
-              <DetailTile label={t.availability} value={classData.seatsAvailable} />
-              <DetailTile label={t.createdAt} value={formatDate(classData.createdAt, localeCode)} />
-              <DetailTile label={t.updatedAt} value={formatDate(classData.updatedAt, localeCode)} />
+            <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">
+              <InfoRow label={t.category}    value={formatCategory(classData.category, isArabic)} />
+              <InfoRow label={t.subCategory} value={formatSubCategory(classData.subCategory, isArabic)} />
+              <InfoRow label={t.duration}    value={formatDurationClock(classData.durationMinutes)} />
+              <InfoRow label={t.seats}       value={classData.seatsTotal} />
+              <InfoRow label={t.seatsBooked} value={seatsBooked} />
+              <InfoRow label={t.seatsAvail}  value={classData.seatsAvailable} />
+              <InfoRow label={t.createdAt}   value={formatDate(classData.createdAt, localeCode)} />
+              <InfoRow label={t.updatedAt}   value={formatDate(classData.updatedAt, localeCode)} />
             </div>
-          </SectionCard>
+          </Card>
 
-          <SectionCard
-            icon={<IoCalendarOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />}
-            title={t.schedule}
-          >
+          {/* Schedule */}
+          <Card className="p-4 sm:p-5">
+            <SectionHeader icon={<FiCalendar className="size-3.5" />} title={t.schedule} />
 
-            {classData.startDateTime ? (
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
-                <p className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-                  {formatDateTime(classData.startDateTime, localeCode)}
-                </p>
-                {classData.endDateTime ? (
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                    {isArabic ? 'ينتهي: ' : 'Ends: '}{formatDateTime(classData.endDateTime, localeCode)}
-                  </p>
-                ) : null}
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <DetailTile label={t.seats} value={classData.seatsTotal} />
-                  <DetailTile label={isArabic ? 'محجوز' : 'Booked'} value={classData.seatsBooked ?? 0} />
-                  <DetailTile label={t.availability} value={availability} />
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                {isArabic ? 'لم يتم تحديد تاريخ ووقت بعد.' : 'No date and time set yet.'}
-              </div>
-            )}
-          </SectionCard>
-
-          <SectionCard
-            icon={<IoStar className="h-5 w-5 text-amber-500" />}
-            title={t.reviews}
-          >
-
-            {reviewCount === 0 ? (
-              <div className="rounded-lg border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                {t.noReviews}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {classData.reviews?.slice(0, 5).map((review) => (
-                  <div key={review.id} className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-semibold text-zinc-900 dark:text-zinc-100">{t.anonymousCustomer}</p>
-                          {review.isVerified ? (
-                            <span className="text-xs text-emerald-700 dark:text-emerald-300">
-                              {t.verified}
-                            </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{formatDate(review.createdAt, localeCode)}</p>
-                      </div>
-                      <div className="inline-flex items-center gap-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
-                        <IoStar className="h-4 w-4" />
-                        {review.rating ?? '—'}
+            <div className="mt-4">
+              {classData.startDateTime ? (
+                <div className="rounded-xl border border-[color:var(--noon-teal)]/20 bg-[color:var(--noon-teal-soft)] p-4">
+                  <div className="flex items-start gap-3">
+                    <FiCalendar className="mt-0.5 size-4 shrink-0 text-[color:var(--noon-teal)]" />
+                    <div>
+                      <p className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                        {formatDateTime(classData.startDateTime, localeCode)}
+                      </p>
+                      {classData.endDateTime && (
+                        <p className="mt-0.5 text-sm text-zinc-500">
+                          {t.endsAt} {formatDateTime(classData.endDateTime, localeCode)}
+                        </p>
+                      )}
+                      <div className="mt-1 flex items-center gap-1.5 text-sm text-zinc-500">
+                        <FiClock className="size-3.5" />
+                        {formatDurationClock(classData.durationMinutes)}
                       </div>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-zinc-700 dark:text-zinc-300">{review.comment || '—'}</p>
                   </div>
-                ))}
-              </div>
-            )}
-          </SectionCard>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-zinc-300 py-8 text-center text-sm text-zinc-400 dark:border-zinc-700">
+                  {t.noDate}
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Reviews */}
+          <Card className="p-4 sm:p-5">
+            <SectionHeader icon={<FiStar className="size-3.5" />} title={t.reviews} count={reviewCount} />
+
+            <div className="mt-4">
+              {reviewCount === 0 ? (
+                <div className="rounded-xl border border-dashed border-zinc-300 py-8 text-center text-sm text-zinc-400 dark:border-zinc-700">
+                  {t.noReviews}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {visibleReviews.map((review) => (
+                    <div key={review.id} className="rounded-xl border border-zinc-100 p-4 dark:border-zinc-800">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <div className="flex size-7 items-center justify-center rounded-full bg-zinc-100 text-xs font-bold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+                              {t.customer.slice(0, 1)}
+                            </div>
+                            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.customer}</span>
+                            {review.isVerified && (
+                              <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
+                                {t.verified}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-0.5 text-xs text-zinc-400">{formatDate(review.createdAt, localeCode)}</p>
+                        </div>
+                        {review.rating != null && (
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            <span className="text-sm font-bold text-amber-600">{review.rating.toFixed(1)}</span>
+                            <StarRow rating={review.rating} />
+                          </div>
+                        )}
+                      </div>
+                      {review.comment && (
+                        <div
+                          className="prose prose-sm mt-3 max-w-none dark:prose-invert"
+                          dangerouslySetInnerHTML={{ __html: markdownToSafeHtml(review.comment) }}
+                        />
+                      )}
+                    </div>
+                  ))}
+
+                  {!showAllReviews && reviewCount > 4 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllReviews(true)}
+                      className="w-full rounded-xl border border-zinc-200 py-2.5 text-sm font-semibold text-zinc-500 transition hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800"
+                    >
+                      {t.showAll} ({reviewCount - 4} {isArabic ? 'أخرى' : 'more'})
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </Card>
         </div>
 
-        <div className="space-y-6">
-          <SectionCard
-            icon={<IoImageOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />}
-            title={t.media}
-          >
+        {/* ════ Right column ════ */}
+        <div className="space-y-5">
 
-            {classData.image ? (
-              <div className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
-                <img src={classData.image} alt={classData.title} className="aspect-[3/4] w-full object-cover" />
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                {t.noImage}
-              </div>
-            )}
+          {/* Media */}
+          <Card className="p-4 sm:p-5">
+            <SectionHeader icon={<FiImage className="size-3.5" />} title={t.media} />
 
-            {classData.images?.length ? (
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                {classData.images.slice(0, 4).map((image, index) => (
-                  <div key={`${image}-${index}`} className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
-                    <img src={image} alt={`${classData.title} ${index + 1}`} className="aspect-[3/4] w-full object-cover" />
+            <div className="mt-4">
+              {classData.image ? (
+                <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+                  <img
+                    src={classData.image}
+                    alt={classData.title}
+                    className="aspect-video w-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700">
+                  <div className="text-center">
+                    <FiImage className="mx-auto mb-2 size-8 text-zinc-300 dark:text-zinc-600" />
+                    <p className="text-xs text-zinc-400">{t.noImage}</p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">{t.noGallery}</p>
-            )}
-          </SectionCard>
+                </div>
+              )}
 
-          <SectionCard
-            icon={<IoPeopleOutline className="h-5 w-5 text-[color:var(--noon-teal)]" />}
-            title={t.trainer}
-          >
+              {classData.images?.length ? (
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {classData.images.slice(0, 6).map((img, i) => (
+                    <div key={`${img}-${i}`} className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
+                      <img src={img} alt={`${classData.title} ${i + 1}`} className="aspect-square w-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-center text-xs text-zinc-400">{t.noGallery}</p>
+              )}
+            </div>
+          </Card>
 
-            {classData.trainer ? (
-              <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-                <div className="flex items-center gap-4">
+          {/* Trainer */}
+          <Card className="p-4 sm:p-5">
+            <SectionHeader icon={<FiUser className="size-3.5" />} title={t.trainer} />
+
+            <div className="mt-4">
+              {classData.trainer ? (
+                <div className="flex items-center gap-3 rounded-xl border border-zinc-100 p-3 dark:border-zinc-800">
                   {classData.trainer.profileImage ? (
                     <img
                       src={classData.trainer.profileImage}
                       alt={classData.trainer.fullName}
-                      className="h-14 w-14 rounded-lg object-cover"
+                      className="size-12 rounded-xl object-cover"
                     />
                   ) : (
-                    <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-zinc-100 text-lg font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color:var(--noon-teal-soft)] text-base font-bold text-[color:var(--noon-teal)]">
                       {classData.trainer.fullName.slice(0, 1).toUpperCase()}
                     </div>
                   )}
                   <div className="min-w-0">
-                    <p className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">{classData.trainer.fullName}</p>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{classData.trainer.email || '—'}</p>
+                    <p className="truncate text-sm font-bold text-zinc-900 dark:text-zinc-100">{classData.trainer.fullName}</p>
+                    <p className="truncate text-xs text-zinc-500">{classData.trainer.email || '—'}</p>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-zinc-300 px-4 py-8 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                {t.noTrainer}
-              </div>
-            )}
-          </SectionCard>
+              ) : (
+                <div className="rounded-xl border border-dashed border-zinc-300 py-8 text-center text-sm text-zinc-400 dark:border-zinc-700">
+                  {t.noTrainer}
+                </div>
+              )}
+            </div>
+          </Card>
 
-          <SectionCard
-            icon={<IoPricetagOutline className="h-5 w-5" />}
-            title={t.meta}
-          >
+          {/* Publishing data */}
+          <Card className="p-4 sm:p-5">
+            <SectionHeader icon={<FiFileText className="size-3.5" />} title={t.meta} />
 
-            <div className="space-y-4">
-              <div className="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950/50">
-                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t.slug}</p>
-                <p className="mt-2 break-all font-semibold text-zinc-900 dark:text-zinc-100">{classData.slug}</p>
-              </div>
-              <div className="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950/50">
-                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t.metaTitle}</p>
-                <p className="mt-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">{classData.metaTitle || '—'}</p>
-              </div>
-              <div className="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950/50">
-                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t.metaDescription}</p>
-                <p className="mt-2 text-sm leading-6 text-zinc-700 dark:text-zinc-300">{classData.metaDescription || '—'}</p>
-              </div>
-              <div className="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-950/50">
-                <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{t.publishedAt}</p>
-                <p className="mt-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">{formatDateTime(classData.publishedAt, localeCode)}</p>
-              </div>
+            <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">
+              <InfoRow label={t.status}      value={
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusCfg.cls}`}>
+                  <span className={`size-1.5 rounded-full ${statusCfg.dot}`} />
+                  {isArabic ? statusCfg.labelAr : statusCfg.labelEn}
+                </span>
+              } />
+              <InfoRow label={t.publishedAt} value={formatDateTime(classData.publishedAt, localeCode)} />
+              <InfoRow label={t.slug}        value={
+                <span className="max-w-[140px] truncate font-mono text-xs">{classData.slug}</span>
+              } />
             </div>
 
-            {classData.status === 'PUBLISHED' && !classData.startDateTime ? (
-              <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
-                <div className="flex items-start gap-2">
-                  <IoWarningOutline className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{t.publishingHint}</span>
-                </div>
+            {classData.metaTitle && (
+              <div className="mt-3 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-950/50">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-400">{t.metaTitle}</p>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300">{classData.metaTitle}</p>
               </div>
-            ) : null}
-          </SectionCard>
+            )}
+            {classData.metaDescription && (
+              <div className="mt-2 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-950/50">
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-400">{t.metaDesc}</p>
+                <div
+                  className="prose prose-sm max-w-none dark:prose-invert"
+                  dangerouslySetInnerHTML={{ __html: markdownToSafeHtml(classData.metaDescription) }}
+                />
+              </div>
+            )}
+
+            {classData.status === 'PUBLISHED' && !classData.startDateTime && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300">
+                <FiEye className="mt-0.5 size-3.5 shrink-0" />
+                {t.publishingHint}
+              </div>
+            )}
+          </Card>
         </div>
       </div>
 
+      {/* ── Settlement panel ── */}
       <ClassSettlementPanel
         classId={classId}
         locale={locale}
         classStatus={classData.status}
-        onClosed={async () => {
-          await loadData();
-        }}
+        onClosed={async () => { await loadData(); }}
       />
     </div>
   );
