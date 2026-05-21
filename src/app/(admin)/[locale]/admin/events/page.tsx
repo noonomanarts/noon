@@ -176,28 +176,29 @@ export default function AdminEventsPage() {
             {t.title}
           </h1>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
             onClick={() => fetchEvents()}
             disabled={isLoading}
-            className="flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2 font-medium text-zinc-700 transition-all hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            className="flex items-center gap-1.5 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-all hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
           >
-            <MdRefresh className={`h-5 w-5 ${isLoading ? "animate-spin" : ""}`} />
-            {t.refresh}
+            <MdRefresh className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">{t.refresh}</span>
           </button>
           <button
             onClick={() => router.push(`/${locale}/admin/events/gift-addons`)}
-            className="flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-4 py-2 font-medium text-zinc-700 transition-all hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            className="flex items-center gap-1.5 rounded-xl border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-all hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
           >
-            <MdAdd className="h-5 w-5" />
-            {t.giftAddons}
+            <MdAdd className="h-4 w-4" />
+            <span className="hidden sm:inline">{t.giftAddons}</span>
           </button>
           <button
             onClick={() => router.push(`/${locale}/admin/events/new`)}
-            className="flex items-center gap-2 rounded-xl bg-coral px-4 py-2 font-medium text-white transition-all hover:bg-coral-dark"
+            className="flex items-center gap-1.5 rounded-xl bg-coral px-3 py-2 text-sm font-medium text-white transition-all hover:bg-coral-dark"
           >
-            <MdAdd className="h-5 w-5" />
-            {t.newEvent}
+            <MdAdd className="h-4 w-4" />
+            <span className="hidden sm:inline">{t.newEvent}</span>
+            <span className="sm:hidden">New</span>
           </button>
         </div>
       </div>
@@ -264,30 +265,14 @@ export default function AdminEventsPage() {
             <table className="w-full">
               <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">
-                    {t.contact}
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">
-                    Type
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">
-                    {t.date}
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">
-                    {t.time}
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">
-                    {t.participants}
-                  </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-zinc-900 dark:text-white">
-                    {t.amount}
-                  </th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-zinc-900 dark:text-white">
-                    {t.actions}
-                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">{t.contact}</th>
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300 sm:table-cell">Type</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">Status</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">{t.date}</th>
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300 md:table-cell">{t.time}</th>
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300 lg:table-cell">{t.participants}</th>
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300 sm:table-cell">{t.amount}</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">{t.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -300,62 +285,35 @@ export default function AdminEventsPage() {
                       key={event.id}
                       className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                     >
-                      <td className="px-4 py-4">
+                      <td className="px-3 py-3">
                         <div>
-                          <p className="font-medium text-zinc-900 dark:text-white">
-                            {event.fullName}
-                          </p>
-                          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                            {event.email}
-                          </p>
-                          {event.companyOrGroupName && (
-                            <p className="text-xs text-zinc-500">
-                              {event.companyOrGroupName}
-                            </p>
-                          )}
+                          <p className="text-sm font-medium text-zinc-900 dark:text-white">{event.fullName}</p>
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">{event.email}</p>
                         </div>
                       </td>
-                      <td className="px-4 py-4">
-                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                          {isAr ? typeLabel.ar : typeLabel.en}
-                        </span>
+                      <td className="hidden px-3 py-3 sm:table-cell">
+                        <span className="text-xs text-zinc-700 dark:text-zinc-300">{isAr ? typeLabel.ar : typeLabel.en}</span>
                       </td>
-                      <td className="px-4 py-4">
-                        <span
-                          className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusLabel.color}`}
-                        >
+                      <td className="px-3 py-3">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusLabel.color}`}>
                           {isAr ? statusLabel.ar : statusLabel.en}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
-                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                          {formatDate(event.selectedDate)}
+                      <td className="px-3 py-3">
+                        <span className="text-xs text-zinc-700 dark:text-zinc-300">{formatDate(event.selectedDate)}</span>
+                      </td>
+                      <td className="hidden px-3 py-3 md:table-cell">
+                        <span className="text-xs text-zinc-700 dark:text-zinc-300">{event.selectedTime || '—'}</span>
+                      </td>
+                      <td className="hidden px-3 py-3 lg:table-cell">
+                        <span className="text-xs text-zinc-700 dark:text-zinc-300">{event.numberOfParticipants || '—'}</span>
+                      </td>
+                      <td className="hidden px-3 py-3 sm:table-cell">
+                        <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                          {event.totalAmount ? `${event.totalAmount} ${event.currency}` : '—'}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
-                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                          {event.selectedTime || t.notSet}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <HiOutlineUsers className="h-4 w-4 text-zinc-400" />
-                          <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                            {event.numberOfParticipants || "-"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <HiOutlineCurrencyDollar className="h-4 w-4 text-zinc-400" />
-                          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                            {event.totalAmount
-                              ? `${event.totalAmount} ${event.currency}`
-                              : "-"}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
+                      <td className="px-3 py-3">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() =>

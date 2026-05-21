@@ -214,22 +214,22 @@ export default async function AdminTrainerDashboardPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">{isArabic ? 'لوحة أداء المدرب' : 'Trainer Performance Dashboard'}</p>
-          <h1 className="text-3xl font-black text-zinc-900 dark:text-zinc-100">{trainerName}</h1>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{trainer.email}</p>
+          <p className="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:block">{isArabic ? 'لوحة أداء المدرب' : 'Trainer Dashboard'}</p>
+          <h1 className="text-xl font-black text-zinc-900 dark:text-zinc-100 sm:text-2xl">{trainerName}</h1>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400">{trainer.email}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
             href={`/${locale}/admin/trainers`}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
-            {isArabic ? 'العودة للمدربين' : 'Back to Trainers'}
+            {isArabic ? 'رجوع' : 'Back'}
           </Link>
           <Link
             href={`/${locale}/admin/trainers/${id}/edit`}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
           >
-            {isArabic ? 'تعديل الملف' : 'Edit Profile'}
+            {isArabic ? 'تعديل' : 'Edit'}
           </Link>
         </div>
       </div>

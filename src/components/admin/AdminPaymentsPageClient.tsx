@@ -291,7 +291,7 @@ export default function AdminPaymentsPageClient({ locale }: AdminPaymentsPageCli
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
                 {payments.map((payment) => (
                   <tr key={payment.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3">
                       <div className="flex items-center gap-3">
                         <div className="relative h-9 w-9 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
                           {payment.user_profile_image ? (
@@ -308,16 +308,16 @@ export default function AdminPaymentsPageClient({ locale }: AdminPaymentsPageCli
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300">{payment.reference}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-zinc-900 dark:text-white">{formatAmountWithCurrency(payment.amount, payment.currency)}</td>
-                    <td className="px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300">{payment.gateway}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3 text-sm text-zinc-700 dark:text-zinc-300">{payment.reference}</td>
+                    <td className="px-3 py-3 text-sm font-semibold text-zinc-900 dark:text-white">{formatAmountWithCurrency(payment.amount, payment.currency)}</td>
+                    <td className="px-3 py-3 text-sm text-zinc-700 dark:text-zinc-300">{payment.gateway}</td>
+                    <td className="px-3 py-3">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadge(payment.status)}`}>
                         {payment.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-zinc-700 dark:text-zinc-300">{new Date(payment.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-US', { timeZone: 'Asia/Muscat' })}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3 text-sm text-zinc-700 dark:text-zinc-300">{new Date(payment.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-US', { timeZone: 'Asia/Muscat' })}</td>
+                    <td className="px-3 py-3">
                       {payment.status === 'PENDING' ? (
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
@@ -384,7 +384,7 @@ export default function AdminPaymentsPageClient({ locale }: AdminPaymentsPageCli
           </div>
         )}
 
-        <div className="flex items-center justify-between border-t border-zinc-200 px-6 py-4 dark:border-zinc-700">
+        <div className="flex items-center justify-between border-t border-zinc-200 px-3 py-3 dark:border-zinc-700">
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             {locale === 'ar' ? `صفحة ${pagination.page} من ${pagination.totalPages}` : `Page ${pagination.page} of ${pagination.totalPages}`}
           </p>

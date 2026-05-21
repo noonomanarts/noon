@@ -365,18 +365,15 @@ export default function AdminClassesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
-            Classes Management
-          </h1>
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-white">Classes</h1>
         <Link
           href={`/${locale}/admin/classes/new`}
-          className="inline-flex items-center gap-2 rounded-lg border border-teal-900 bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-teal-900/20 transition-all hover:bg-teal-800 hover:shadow-lg hover:shadow-teal-900/30 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-teal-900 bg-teal-700 px-3 py-2 text-sm font-semibold text-white shadow-md shadow-teal-900/20 transition-all hover:bg-teal-800"
         >
-          <IoAdd className="h-5 w-5" />
-          Add New Class
+          <IoAdd className="h-4 w-4" />
+          <span className="hidden sm:inline">Add Class</span>
+          <span className="sm:hidden">Add</span>
         </Link>
       </div>
 

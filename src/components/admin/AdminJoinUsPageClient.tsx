@@ -153,8 +153,8 @@ export default function AdminJoinUsPageClient({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
-        <span className="text-sm text-zinc-500 dark:text-zinc-400">{t.total}: {total}</span>
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">{t.total}: {total}</span>
       </div>
 
       {/* Filters */}

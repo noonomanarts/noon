@@ -93,20 +93,17 @@ export default async function AdminUsersPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            {t.title}
-          </h1>
-        </div>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
         <Link
           href={`/${locale}/admin/users/new`}
-          className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
         >
           <svg className="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          {t.addUser}
+          <span className="hidden sm:inline">{t.addUser}</span>
+          <span className="sm:hidden">Add</span>
         </Link>
       </div>
 
@@ -152,21 +149,11 @@ export default async function AdminUsersPage({
           <table className="w-full">
             <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                  {t.name}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                  {t.email}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                  {t.role}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                  {t.status}
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                  {t.actions}
-                </th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.name}</th>
+                <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 sm:table-cell">{t.email}</th>
+                <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.role}</th>
+                <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 sm:table-cell">{t.status}</th>
+                <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -175,32 +162,25 @@ export default async function AdminUsersPage({
                   key={user.id}
                   className="transition hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                 >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="relative size-10 overflow-hidden rounded-full bg-zinc-900 text-sm font-semibold text-white dark:bg-white dark:text-zinc-900">
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="relative size-8 shrink-0 overflow-hidden rounded-full bg-zinc-900 text-xs font-semibold text-white dark:bg-white dark:text-zinc-900">
                         {user.profileImage ? (
-                          <div className="size-full relative">
-                            <span className="absolute inset-0" style={{ backgroundImage: `url(${user.profileImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                          </div>
+                          <span className="absolute inset-0" style={{ backgroundImage: `url(${user.profileImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
                         ) : (
-                          <div className="flex size-full items-center justify-center">
-                            {user.fullName?.charAt(0) || "U"}
-                          </div>
+                          <div className="flex size-full items-center justify-center">{user.fullName?.charAt(0) || "U"}</div>
                         )}
                       </div>
-                      <div>
-                        <div className="font-medium text-zinc-900 dark:text-zinc-100">
-                          {user.fullName}
-                        </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{user.fullName}</div>
+                        <div className="truncate text-xs text-zinc-500 dark:text-zinc-400 sm:hidden">{user.email}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                    {user.email}
-                  </td>
-                  <td className="px-4 py-3">
+                  <td className="hidden px-3 py-3 text-xs text-zinc-600 dark:text-zinc-400 sm:table-cell">{user.email}</td>
+                  <td className="px-3 py-3">
                     <span
-                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
                         user.role === "ADMIN"
                           ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
                           : user.role === "TRAINER"
@@ -219,16 +199,16 @@ export default async function AdminUsersPage({
                       {roleLabels[mapRoleToDisplay(user.role)]}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  <td className="hidden px-3 py-3 sm:table-cell">
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                       <span className="size-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
                       {t.active}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-3 py-3 text-right">
                     <Link
                       href={`/${locale}/admin/users/${user.id}`}
-                      className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                      className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
                     >
                       {t.edit}
                     </Link>

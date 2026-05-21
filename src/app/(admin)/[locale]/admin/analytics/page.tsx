@@ -154,8 +154,8 @@ export default async function AdminAnalyticsPage({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-white sm:text-2xl">{t.title}</h1>
       </div>
 
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-3 xl:grid-cols-6">

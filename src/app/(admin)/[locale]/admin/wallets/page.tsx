@@ -48,19 +48,19 @@ export default async function WalletsPage({
   ];
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {locale === "ar" ? "محافظ المستخدمين" : "User Wallets"}
+    <div className="space-y-4 p-4 sm:p-6">
+      <div>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+          {locale === "ar" ? "المحافظ" : "Wallets"}
         </h1>
-        <p className="mt-2 max-w-3xl text-sm text-gray-600 dark:text-zinc-400">
+        <p className="mt-1 hidden text-sm text-gray-600 dark:text-zinc-400 sm:block">
           {locale === "ar"
-            ? "رصيد المحفظة هو الرصيد الذي يمكن للمستخدم إنفاقه داخل الموقع. أما المقدار القابل للسحب فهو جزء منفصل مخصص للسحب النقدي فقط ولا يؤثر على قدرة المستخدم على الشراء داخل الموقع."
-            : "Wallet balance is the amount a user can spend inside the website. Withdrawable amount is a separate cash-out value only and does not control whether the user can pay for orders on the website."}
+            ? "رصيد المحفظة للإنفاق داخل الموقع. المقدار القابل للسحب للسحب النقدي فقط."
+            : "Wallet balance for spending on the site. Withdrawable amount is for cash-out only."}
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
         <aside className="rounded-xl border border-gray-200/70 bg-white p-3 shadow-sm dark:border-zinc-700/70 dark:bg-zinc-900">
           <nav className="space-y-1" aria-label={locale === "ar" ? "قائمة إدارة المحافظ" : "Wallet admin menu"}>
             {navItems.map((item) => {

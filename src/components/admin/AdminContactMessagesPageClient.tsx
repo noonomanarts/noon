@@ -74,7 +74,7 @@ export default function AdminContactMessagesPageClient({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
       </div>
 
       {messages.length === 0 ? (

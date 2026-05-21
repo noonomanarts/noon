@@ -440,26 +440,26 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
 
   return (
     <section className="space-y-6">
-      <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => void loadData()}
+              className="inline-flex items-center rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              {t.refresh}
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleClearStock()}
+              disabled={clearingStock}
+              className="inline-flex items-center rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/40"
+            >
+              {clearingStock ? '...' : t.clearStock}
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => void loadData()}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-zinc-300 px-4 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            {t.refresh}
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleClearStock()}
-            disabled={clearingStock}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-rose-300 px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/40"
-          >
-            {clearingStock ? '...' : t.clearStock}
-          </button>
         </div>
 
         {error ? (
@@ -474,47 +474,35 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
         ) : null}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-            <IoWalletOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
-            <span className="text-xs uppercase tracking-[0.2em]">{t.stockValue}</span>
-          </div>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">{formatMoney(overview.summary.totalStockValue)}</p>
+      <div className="grid grid-cols-3 gap-2 xl:grid-cols-6">
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">{t.stockValue}</p>
+          <p className="mt-1 text-xl font-black text-zinc-900 dark:text-zinc-100">{formatMoney(overview.summary.totalStockValue)}</p>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-            <IoLayersOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
-            <span className="text-xs uppercase tracking-[0.2em]">{t.stockQty}</span>
-          </div>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">{formatPlainNumber(overview.summary.totalStockQuantity)}</p>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">{t.stockQty}</p>
+          <p className="mt-1 text-xl font-black text-zinc-900 dark:text-zinc-100">{formatPlainNumber(overview.summary.totalStockQuantity)}</p>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-            <IoFlashOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
-            <span className="text-xs uppercase tracking-[0.2em]">{t.purchased}</span>
-          </div>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">{formatMoney(overview.summary.totalPurchasedCost)}</p>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">{t.purchased}</p>
+          <p className="mt-1 text-xl font-black text-zinc-900 dark:text-zinc-100">{formatMoney(overview.summary.totalPurchasedCost)}</p>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400">
-            <IoCubeOutline className="h-4 w-4 text-[color:var(--noon-teal)]" />
-            <span className="text-xs uppercase tracking-[0.2em]">{t.consumed}</span>
-          </div>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">{formatMoney(overview.summary.totalConsumedCost)}</p>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">{t.consumed}</p>
+          <p className="mt-1 text-xl font-black text-zinc-900 dark:text-zinc-100">{formatMoney(overview.summary.totalConsumedCost)}</p>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.itemsCount}</p>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">{overview.summary.itemsCount}</p>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">{t.itemsCount}</p>
+          <p className="mt-1 text-xl font-black text-zinc-900 dark:text-zinc-100">{overview.summary.itemsCount}</p>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.lowStock}</p>
-          <p className="mt-2 text-xl font-semibold text-zinc-900 dark:text-zinc-100">{overview.summary.lowStockCount}</p>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">{t.lowStock}</p>
+          <p className="mt-1 text-xl font-black text-zinc-900 dark:text-zinc-100">{overview.summary.lowStockCount}</p>
         </div>
       </div>
 

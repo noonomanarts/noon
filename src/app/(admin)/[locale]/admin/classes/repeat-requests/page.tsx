@@ -162,12 +162,11 @@ export default async function AdminClassRepeatRequestsPage({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t.overview}</p>
-            <h1 className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500 dark:text-zinc-400">{t.workflowHint}</p>
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
+            <p className="mt-1 hidden max-w-2xl text-sm leading-6 text-zinc-500 dark:text-zinc-400 sm:block">{t.workflowHint}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

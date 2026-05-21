@@ -159,12 +159,8 @@ export default function AdminTrainersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
-            Trainers Management
-          </h1>
-        </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-white">Trainers</h1>
       </div>
 
       {feedback && (
@@ -241,131 +237,75 @@ export default function AdminTrainersPage() {
             <table className="w-full">
               <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    Trainer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    Public Names
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    Order
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    Experience
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    Share Tiers
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    Actions
-                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">Trainer</th>
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300 md:table-cell">Names</th>
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300 lg:table-cell">#</th>
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300 sm:table-cell">Contact</th>
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300 lg:table-cell">Exp.</th>
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300 xl:table-cell">Tiers</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">Status</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {filteredTrainers.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                      No trainers found
-                    </td>
+                    <td colSpan={8} className="px-4 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">No trainers found</td>
                   </tr>
                 ) : (
                   filteredTrainers.map((trainer) => (
                     <tr key={trainer.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                             {trainer.profileImage ? (
-                              <Image
-                                src={trainer.profileImage}
-                                alt={trainer.fullName}
-                                width={40}
-                                height={40}
-                                className="h-full w-full object-cover"
-                              />
+                              <Image src={trainer.profileImage} alt={trainer.fullName} width={32} height={32} className="h-full w-full object-cover" />
                             ) : (
-                              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500 to-cyan-500 text-sm font-semibold text-white">
+                              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500 to-cyan-500 text-xs font-semibold text-white">
                                 {trainer.fullName.charAt(0).toUpperCase()}
                               </div>
                             )}
                           </div>
-                          <div>
-                            <div className="font-medium text-zinc-900 dark:text-white">
-                              {trainer.fullName}
-                            </div>
-                            <div className="text-xs text-zinc-500 dark:text-zinc-400">
-                              {trainer.profile?.expertise.slice(0, 2).join(', ') || 'No expertise set'}
-                            </div>
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium text-zinc-900 dark:text-white">{trainer.fullName}</div>
+                            <div className="truncate text-xs text-zinc-500 dark:text-zinc-400">{trainer.profile?.expertise.slice(0, 1).join(', ') || '—'}</div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-1 text-sm">
-                          <div className="text-zinc-900 dark:text-white">EN: {trainer.profile?.displayNameEn || '—'}</div>
-                          <div className="text-zinc-500 dark:text-zinc-400">AR: {trainer.profile?.displayNameAr || '—'}</div>
+                      <td className="hidden px-3 py-3 md:table-cell">
+                        <div className="space-y-0.5 text-xs">
+                          <div className="text-zinc-900 dark:text-white">{trainer.profile?.displayNameEn || '—'}</div>
+                          <div className="text-zinc-500 dark:text-zinc-400">{trainer.profile?.displayNameAr || '—'}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-zinc-900 dark:text-white">
-                          {trainer.profile?.displayOrder ?? '—'}
+                      <td className="hidden px-3 py-3 text-xs text-zinc-900 dark:text-white lg:table-cell">{trainer.profile?.displayOrder ?? '—'}</td>
+                      <td className="hidden px-3 py-3 sm:table-cell">
+                        <div className="text-xs">
+                          <div className="truncate text-zinc-900 dark:text-white">{trainer.email}</div>
+                          <div className="text-zinc-500 dark:text-zinc-400">{trainer.phoneNumber || '—'}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm">
-                          <div className="text-zinc-900 dark:text-white">{trainer.email}</div>
-                          <div className="text-zinc-500 dark:text-zinc-400">{trainer.phoneNumber || 'No phone'}</div>
-                        </div>
+                      <td className="hidden px-3 py-3 text-xs text-zinc-900 dark:text-white lg:table-cell">
+                        {trainer.profile?.experience ? `${trainer.profile.experience}y` : '—'}
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-zinc-900 dark:text-white">
-                          {trainer.profile?.experience ? `${trainer.profile.experience} years` : 'Not set'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
+                      <td className="hidden px-3 py-3 xl:table-cell">
+                        <div className="space-y-0.5 text-xs text-zinc-600 dark:text-zinc-300">
                           {trainer.profile?.shareTiers?.length ? (
                             trainer.profile.shareTiers.map((tier, index) => (
-                              <div key={`${trainer.id}-tier-${index}`}>
-                                {tier.minParticipants}
-                                {' - '}
-                                {tier.maxParticipants ?? '+'}: {tier.percent.toFixed(2)}%
-                              </div>
+                              <div key={`${trainer.id}-tier-${index}`}>{tier.minParticipants}-{tier.maxParticipants ?? '+'}:{tier.percent.toFixed(0)}%</div>
                             ))
-                          ) : (
-                            <div>Default</div>
-                          )}
+                          ) : <div>Default</div>}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                            trainer.status === 'ACTIVE'
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                          }`}
-                        >
-                          {trainer.status}
+                      <td className="px-3 py-3">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${trainer.status === 'ACTIVE' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                          {trainer.status === 'ACTIVE' ? 'Active' : 'Inactive'}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3">
                         <div className="flex flex-col gap-1">
-                          <Link
-                            href={`/${locale}/admin/trainers/${trainer.id}/dashboard`}
-                            className="text-sm font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
-                          >
-                            View Dashboard
-                          </Link>
-                          <Link
-                            href={`/${locale}/admin/trainers/${trainer.id}/edit`}
-                            className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                          >
-                            Edit Profile
-                          </Link>
+                          <Link href={`/${locale}/admin/trainers/${trainer.id}/dashboard`} className="text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300">Dashboard</Link>
+                          <Link href={`/${locale}/admin/trainers/${trainer.id}/edit`} className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">Edit</Link>
                         </div>
                       </td>
                     </tr>
@@ -381,55 +321,39 @@ export default function AdminTrainersPage() {
             <table className="w-full">
               <thead className="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">
-                    Actions
-                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">User</th>
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300 sm:table-cell">Contact</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">Role</th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-700 dark:text-zinc-300">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-sm text-zinc-500 dark:text-zinc-400">
-                      No users found
-                    </td>
+                    <td colSpan={4} className="px-4 py-10 text-center text-sm text-zinc-500 dark:text-zinc-400">No users found</td>
                   </tr>
                 ) : (
                   filteredUsers.map((user) => (
                     <tr key={user.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-zinc-900 dark:text-white">
-                          {user.fullName}
-                        </div>
+                      <td className="px-3 py-3">
+                        <div className="text-sm font-medium text-zinc-900 dark:text-white">{user.fullName}</div>
+                        <div className="text-xs text-zinc-500 dark:text-zinc-400 sm:hidden">{user.email}</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm">
+                      <td className="hidden px-3 py-3 sm:table-cell">
+                        <div className="text-xs">
                           <div className="text-zinc-900 dark:text-white">{user.email}</div>
-                          <div className="text-zinc-500 dark:text-zinc-400">{user.phoneNumber || 'No phone'}</div>
+                          <div className="text-zinc-500 dark:text-zinc-400">{user.phoneNumber || '—'}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">
-                          {user.role}
-                        </span>
+                      <td className="px-3 py-3">
+                        <span className="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 dark:bg-zinc-800 dark:text-zinc-300">{user.role}</span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3">
                         <button
-                          onClick={() => {
-                            setSelectedUser(user.id);
-                            setShowPromoteModal(true);
-                          }}
-                          className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                          onClick={() => { setSelectedUser(user.id); setShowPromoteModal(true); }}
+                          className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                         >
-                          Promote to Trainer
+                          Promote
                         </button>
                       </td>
                     </tr>

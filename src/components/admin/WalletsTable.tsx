@@ -538,81 +538,46 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
         </div>
       )}
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
-        <div className="bg-gradient-to-r from-coral to-coral-light rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/85 text-sm font-medium">
-                {locale === "ar" ? "إجمالي المحافظ" : "Total Wallets"}
-              </p>
-              <p className="text-2xl font-bold">{stats.totalWallets}</p>
-            </div>
-            <div className="text-white/80">
-              <FiUsers className="w-8 h-8" />
-            </div>
-          </div>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-4">
+        <div className="bg-gradient-to-r from-coral to-coral-light rounded-xl p-3 text-white">
+          <p className="text-white/85 text-[10px] font-bold uppercase tracking-[0.08em]">
+            {locale === "ar" ? "المحافظ" : "Wallets"}
+          </p>
+          <p className="mt-1 text-xl font-black">{stats.totalWallets}</p>
         </div>
 
-        <div className="bg-gradient-to-r from-teal to-teal-light rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/85 text-sm font-medium">
-                {locale === "ar" ? "إجمالي رصيد الدفع داخل الموقع" : "Total Website Payment Balance"}
-              </p>
-              <p className="text-2xl font-bold">{formatAmountWithCurrency(stats.totalBalance, 'OMR')}</p>
-            </div>
-            <div className="text-white/80">
-              <FiDollarSign className="w-8 h-8" />
-            </div>
-          </div>
+        <div className="bg-gradient-to-r from-teal to-teal-light rounded-xl p-3 text-white">
+          <p className="text-white/85 text-[10px] font-bold uppercase tracking-[0.08em]">
+            {locale === "ar" ? "رصيد الدفع" : "Pay Balance"}
+          </p>
+          <p className="mt-1 text-xl font-black">{formatAmountWithCurrency(stats.totalBalance, 'OMR')}</p>
         </div>
 
-        <div className="bg-gradient-to-r from-purple to-purple-dark rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/85 text-sm font-medium">
-                {locale === "ar" ? "إجمالي الرصيد القابل للسحب نقدًا" : "Total Cash-Withdrawable Amount"}
-              </p>
-              <p className="text-2xl font-bold">{formatAmountWithCurrency(stats.totalAvailable, 'OMR')}</p>
-            </div>
-            <div className="text-white/80">
-              <FiTrendingDown className="w-8 h-8" />
-            </div>
-          </div>
+        <div className="bg-gradient-to-r from-purple to-purple-dark rounded-xl p-3 text-white">
+          <p className="text-white/85 text-[10px] font-bold uppercase tracking-[0.08em]">
+            {locale === "ar" ? "قابل للسحب" : "Withdrawable"}
+          </p>
+          <p className="mt-1 text-xl font-black">{formatAmountWithCurrency(stats.totalAvailable, 'OMR')}</p>
         </div>
 
-        <div className="bg-gradient-to-r from-yellow to-yellow-light rounded-lg p-6 text-zinc-900">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-zinc-800/80 text-sm font-medium">
-                {locale === "ar" ? "المبلغ المحجوز" : "Blocked Amount"}
-              </p>
-              <p className="text-2xl font-bold">{formatAmountWithCurrency(stats.totalBlocked, 'OMR')}</p>
-            </div>
-            <div className="text-zinc-800/70">
-              <FiTrendingDown className="w-8 h-8" />
-            </div>
-          </div>
+        <div className="bg-gradient-to-r from-yellow to-yellow-light rounded-xl p-3 text-zinc-900">
+          <p className="text-zinc-800/80 text-[10px] font-bold uppercase tracking-[0.08em]">
+            {locale === "ar" ? "محجوز" : "Blocked"}
+          </p>
+          <p className="mt-1 text-xl font-black">{formatAmountWithCurrency(stats.totalBlocked, 'OMR')}</p>
         </div>
 
-        <div className="bg-gradient-to-r from-teal to-purple rounded-lg p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/85 text-sm font-medium">
-                {locale === "ar" ? "محافظ لديها رصيد قابل للسحب" : "Wallets With Cash-Out Balance"}
-              </p>
-              <p className="text-2xl font-bold">{stats.walletsWithAvailable} / {stats.walletsWithBalance}</p>
-            </div>
-            <div className="text-white/80">
-              <FiArrowRight className="w-8 h-8" />
-            </div>
-          </div>
+        <div className="bg-gradient-to-r from-teal to-purple rounded-xl p-3 text-white">
+          <p className="text-white/85 text-[10px] font-bold uppercase tracking-[0.08em]">
+            {locale === "ar" ? "مع رصيد سحب" : "Cash-Out"}
+          </p>
+          <p className="mt-1 text-xl font-black">{stats.walletsWithAvailable} / {stats.walletsWithBalance}</p>
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6 mb-6">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-4 mb-4">
+        <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
           <div className="flex-1 max-w-md">
             <input
               type="text"
@@ -640,8 +605,8 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
       {/* Wallets Table */}
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-zinc-700">
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-zinc-700">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
             {locale === "ar" ? "إدارة المحافظ" : "Wallet Management"}
           </h2>
         </div>
@@ -650,7 +615,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
           <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
             <thead className="bg-gray-50 dark:bg-zinc-800">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                   <div className="flex items-center">
                     <input
                       type="checkbox"
@@ -660,25 +625,25 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                     />
                   </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-zinc-300 uppercase tracking-wide">
                   {locale === "ar" ? "المستخدم" : "User"}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
-                  {locale === "ar" ? "رقم الهاتف" : "Phone Number"}
+                <th className="hidden sm:table-cell px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-zinc-300 uppercase tracking-wide">
+                  {locale === "ar" ? "الهاتف" : "Phone"}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
-                  {locale === "ar" ? "رصيد الدفع داخل الموقع" : "Website Payment Balance"}
+                <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-zinc-300 uppercase tracking-wide">
+                  {locale === "ar" ? "رصيد الدفع" : "Pay Bal."}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
-                  {locale === "ar" ? "الرصيد القابل للسحب نقدًا" : "Cash-Withdrawable Amount"}
+                <th className="hidden md:table-cell px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-zinc-300 uppercase tracking-wide">
+                  {locale === "ar" ? "قابل للسحب" : "Withdrawable"}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
-                  {locale === "ar" ? "المبلغ المحجوز" : "Blocked Amount"}
+                <th className="hidden lg:table-cell px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-zinc-300 uppercase tracking-wide">
+                  {locale === "ar" ? "محجوز" : "Blocked"}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
-                  {locale === "ar" ? "العملة" : "Currency"}
+                <th className="hidden xl:table-cell px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-zinc-300 uppercase tracking-wide">
+                  {locale === "ar" ? "العملة" : "Curr."}
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
+                <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 dark:text-zinc-300 uppercase tracking-wide">
                   {locale === "ar" ? "الإجراءات" : "Actions"}
                 </th>
               </tr>
@@ -691,7 +656,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                     openDropdown === wallet.user_id ? 'z-[80]' : 'z-0'
                   }`}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 py-3 whitespace-nowrap">
                     <input
                       type="checkbox"
                       checked={selectedWallets.has(wallet.user_id)}
@@ -699,15 +664,15 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                       className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-zinc-900 focus:ring-2 dark:bg-zinc-800 dark:border-zinc-600"
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-9 w-9 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
                         {wallet.user_profile_image ? (
                           <Image
                             src={wallet.user_profile_image}
                             alt={wallet.user_full_name}
                             fill
-                            sizes="36px"
+                            sizes="32px"
                             className="object-cover"
                           />
                         ) : (
@@ -717,31 +682,31 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                         )}
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        <div className="text-xs font-medium text-gray-900 dark:text-white">
                           {wallet.user_full_name}
                         </div>
-                        <div className="text-sm text-gray-500 dark:text-zinc-400">
-                          {wallet.user_email}
+                        <div className="text-xs text-gray-500 dark:text-zinc-400 sm:hidden">
+                          {wallet.user_phone_number}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <td className="hidden sm:table-cell px-3 py-3 whitespace-nowrap text-xs text-gray-900 dark:text-white">
                     {wallet.user_phone_number}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <td className="px-3 py-3 whitespace-nowrap text-xs font-semibold text-gray-900 dark:text-white">
                     {formatPlainNumber(wallet.balance)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 dark:text-blue-400">
+                  <td className="hidden md:table-cell px-3 py-3 whitespace-nowrap text-xs text-blue-600 dark:text-blue-400">
                     {formatPlainNumber(wallet.available_balance ?? 0)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-rose-600 dark:text-rose-400">
+                  <td className="hidden lg:table-cell px-3 py-3 whitespace-nowrap text-xs text-rose-600 dark:text-rose-400">
                     {formatPlainNumber(wallet.blocked_balance || 0)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  <td className="hidden xl:table-cell px-3 py-3 whitespace-nowrap text-xs text-gray-900 dark:text-white">
                     {wallet.currency}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium relative">
+                  <td className="px-3 py-3 whitespace-nowrap text-xs font-medium relative">
                     <div className="relative dropdown-container">
                       <button
                         onClick={(event) => toggleDropdown(wallet.user_id, event.currentTarget)}

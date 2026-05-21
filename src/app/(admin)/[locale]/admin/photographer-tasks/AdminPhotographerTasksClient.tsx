@@ -269,17 +269,18 @@ export default function AdminPhotographerTasksClient({
   return (
     <div className="space-y-6" dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
-          <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">{t.subtitle}</p>
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
+          <p className="mt-0.5 hidden text-xs text-zinc-500 dark:text-zinc-400 sm:block">{t.subtitle}</p>
         </div>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
-          className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-violet-700 transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-2 text-sm font-medium text-white hover:bg-violet-700 transition-colors"
         >
           <FiPlus className="size-4" />
-          {t.addTask}
+          <span className="hidden sm:inline">{t.addTask}</span>
+          <span className="sm:hidden">Add</span>
         </button>
       </div>
 

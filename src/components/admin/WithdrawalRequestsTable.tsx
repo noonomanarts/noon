@@ -308,66 +308,59 @@ export function WithdrawalRequestsTable({ locale }: WithdrawalRequestsTableProps
             <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
               <thead className="bg-gray-50 dark:bg-zinc-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-300">
                     {locale === 'ar' ? 'المستخدم' : 'User'}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-300">
                     {locale === 'ar' ? 'المبلغ' : 'Amount'}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-300">
                     {locale === 'ar' ? 'الحالة' : 'Status'}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-300 md:table-cell">
                     {locale === 'ar' ? 'السبب' : 'Reason'}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
+                  <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-300 sm:table-cell">
                     {locale === 'ar' ? 'التاريخ' : 'Date'}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
+                  <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-zinc-300">
                     {locale === 'ar' ? 'الإجراءات' : 'Actions'}
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-zinc-900 divide-y divide-gray-200 dark:divide-zinc-700">
+              <tbody className="divide-y divide-gray-200 bg-white dark:divide-zinc-700 dark:bg-zinc-900">
                 {requests.map((request) => (
                   <tr key={request.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800/60">
-                    <td className="px-6 py-4">
-                      <div className="flex items-start gap-3">
-                        <div className="relative h-9 w-9 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                    <td className="px-3 py-3">
+                      <div className="flex items-start gap-2.5">
+                        <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
                           {request.user_profile_image ? (
-                            <Image
-                              src={request.user_profile_image}
-                              alt={request.user_full_name}
-                              fill
-                              sizes="36px"
-                              className="object-cover"
-                            />
+                            <Image src={request.user_profile_image} alt={request.user_full_name} fill sizes="32px" className="object-cover" />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-zinc-700 dark:text-zinc-200">
                               {(request.user_full_name?.charAt(0) || 'U').toUpperCase()}
                             </div>
                           )}
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">{request.user_full_name}</div>
-                          <div className="text-xs text-gray-500 dark:text-zinc-400">{request.user_email}</div>
-                          <div className="text-xs text-gray-500 dark:text-zinc-400">{request.user_phone_number}</div>
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium text-gray-900 dark:text-white">{request.user_full_name}</div>
+                          <div className="truncate text-xs text-gray-500 dark:text-zinc-400">{request.user_email}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <td className="px-3 py-3 text-sm font-medium text-gray-900 dark:text-white">
                       {formatAmountWithCurrency(Math.abs(request.amount), 'OMR')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${getStatusColor(request.status)}`}>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${getStatusColor(request.status)}`}>
                         {getStatusText(request.status)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs text-gray-600 dark:text-zinc-300 max-w-[280px]">
-                      {request.reason?.trim() || '—'}
+                    <td className="hidden px-3 py-3 text-xs text-gray-600 dark:text-zinc-300 md:table-cell">
+                      <span className="line-clamp-2 max-w-[200px]">{request.reason?.trim() || '—'}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-zinc-200">
-                      {new Date(request.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-US', { timeZone: 'Asia/Muscat' })}
+                    <td className="hidden px-3 py-3 text-xs text-gray-700 dark:text-zinc-200 sm:table-cell">
+                      {new Date(request.created_at).toLocaleDateString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-US', { timeZone: 'Asia/Muscat', dateStyle: 'short' })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       {request.status === 'PENDING' ? (

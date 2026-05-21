@@ -207,12 +207,13 @@ export default function ShopOrdersPageClient({ locale }: { locale: Locale }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
         <Link
           href={`/${locale}/admin/shop/orders/new`}
-          className="rounded-xl bg-[color:var(--noon-teal)] px-4 py-2 text-sm font-semibold text-white shadow hover:opacity-90"
+          className="rounded-lg bg-[color:var(--noon-teal)] px-3 py-1.5 text-xs font-semibold text-white shadow hover:opacity-90"
         >
-          + {t.newOrder}
+          <span className="hidden sm:inline">+ {t.newOrder}</span>
+          <span className="sm:hidden">+ {isArabic ? 'طلب' : 'New'}</span>
         </Link>
       </div>
 

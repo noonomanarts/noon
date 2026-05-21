@@ -858,10 +858,10 @@ export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
+      <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
+        <h1 className="text-xl font-bold text-zinc-900 dark:text-white sm:text-2xl">{t.title}</h1>
 
-        <div className="mt-4 inline-flex rounded-xl border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-700 dark:bg-zinc-800/60">
+        <div className="mt-3 inline-flex rounded-xl border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-700 dark:bg-zinc-800/60">
           <button
             type="button"
             onClick={() => setActiveTab('ledger')}

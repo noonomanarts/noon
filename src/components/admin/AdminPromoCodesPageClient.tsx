@@ -188,17 +188,18 @@ export default function AdminPromoCodesPageClient({ locale }: { locale: Locale }
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t.subtitle}</p>
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
+          <p className="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:block">{t.subtitle}</p>
         </div>
         <button
           onClick={startNew}
-          className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
+          className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-teal-700"
         >
-          <FiPlus className="size-4" />
-          {t.addNew}
+          <FiPlus className="size-3.5" />
+          <span className="hidden sm:inline">{t.addNew}</span>
+          <span className="sm:hidden">{isAr ? 'إضافة' : 'Add'}</span>
         </button>
       </div>
 
@@ -337,14 +338,14 @@ export default function AdminPromoCodesPageClient({ locale }: { locale: Locale }
         <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
-                <th className="px-4 py-3 text-start font-medium">{t.code}</th>
-                <th className="px-4 py-3 text-start font-medium">{t.type}</th>
-                <th className="px-4 py-3 text-start font-medium">{t.value}</th>
-                <th className="px-4 py-3 text-center font-medium">{t.used}</th>
-                <th className="px-4 py-3 text-center font-medium">{t.maxUses}</th>
-                <th className="px-4 py-3 text-center font-medium">{t.status}</th>
-                <th className="px-4 py-3 text-center font-medium">{t.actions}</th>
+              <tr className="border-b border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                <th className="px-3 py-3 text-start text-xs font-semibold uppercase tracking-wide">{t.code}</th>
+                <th className="hidden px-3 py-3 text-start text-xs font-semibold uppercase tracking-wide sm:table-cell">{t.type}</th>
+                <th className="px-3 py-3 text-start text-xs font-semibold uppercase tracking-wide">{t.value}</th>
+                <th className="hidden px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide md:table-cell">{t.used}</th>
+                <th className="hidden px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide md:table-cell">{t.maxUses}</th>
+                <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide">{t.status}</th>
+                <th className="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -352,18 +353,18 @@ export default function AdminPromoCodesPageClient({ locale }: { locale: Locale }
                 const st = getStatus(c);
                 return (
                   <tr key={c.id} className="transition hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                    <td className="px-4 py-3 font-mono font-semibold text-zinc-900 dark:text-white">{c.code}</td>
-                    <td className="px-4 py-3 text-zinc-600 dark:text-zinc-400">
+                    <td className="px-3 py-3 text-xs font-mono font-semibold text-zinc-900 dark:text-white">{c.code}</td>
+                    <td className="hidden px-3 py-3 text-xs text-zinc-600 dark:text-zinc-400 sm:table-cell">
                       {c.discountType === 'PERCENTAGE' ? t.percentage : t.fixed}
                     </td>
-                    <td className="px-4 py-3 font-semibold text-zinc-900 dark:text-white">
+                    <td className="px-3 py-3 text-xs font-semibold text-zinc-900 dark:text-white">
                       {c.discountType === 'PERCENTAGE' ? `${c.discountValue}%` : `${c.discountValue} OMR`}
                     </td>
-                    <td className="px-4 py-3 text-center text-zinc-600 dark:text-zinc-400">{c.timesUsed}</td>
-                    <td className="px-4 py-3 text-center text-zinc-600 dark:text-zinc-400">
+                    <td className="hidden px-3 py-3 text-center text-xs text-zinc-600 dark:text-zinc-400 md:table-cell">{c.timesUsed}</td>
+                    <td className="hidden px-3 py-3 text-center text-xs text-zinc-600 dark:text-zinc-400 md:table-cell">
                       {c.maxUses ?? t.unlimited}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 py-3 text-center">
                       <button
                         onClick={() => void handleToggleActive(c)}
                         className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${st.color}`}
@@ -372,7 +373,7 @@ export default function AdminPromoCodesPageClient({ locale }: { locale: Locale }
                         {st.label}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 py-3 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => startEdit(c)}
