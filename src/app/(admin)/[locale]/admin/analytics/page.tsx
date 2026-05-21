@@ -158,16 +158,17 @@ export default async function AdminAnalyticsPage({
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-3 xl:grid-cols-6">
         {kpiCards.map((card) => (
-          <article key={card.label} className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{card.label}</p>
-                <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{card.value}</p>
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{card.helper}</p>
+          <article key={card.label} className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex items-start justify-between gap-1.5">
+              <div className="min-w-0">
+                <p className="truncate text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{card.label}</p>
+                <p className="mt-1 text-lg font-bold text-zinc-900 dark:text-white">{card.value}</p>
               </div>
-              <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${card.iconClass}`}>{card.icon}</span>
+              <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${card.iconClass}`}>
+                <span className="[&>svg]:size-3.5">{card.icon}</span>
+              </span>
             </div>
           </article>
         ))}
@@ -298,18 +299,18 @@ export default async function AdminAnalyticsPage({
         )}
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.productsRevenue}</p>
-          <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{formatMoney(shopSummary.productsRevenue)}</p>
+      <section className="grid grid-cols-3 gap-2">
+        <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.productsRevenue}</p>
+          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-white">{formatMoney(shopSummary.productsRevenue)}</p>
         </article>
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.shippingRevenue}</p>
-          <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{formatMoney(shopSummary.shippingRevenue)}</p>
+        <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.shippingRevenue}</p>
+          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-white">{formatMoney(shopSummary.shippingRevenue)}</p>
         </article>
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.monthRevenue}</p>
-          <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{formatMoney(shopSummary.monthRevenue)}</p>
+        <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.monthRevenue}</p>
+          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-white">{formatMoney(shopSummary.monthRevenue)}</p>
         </article>
       </section>
     </div>

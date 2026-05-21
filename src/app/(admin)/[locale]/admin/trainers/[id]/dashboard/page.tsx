@@ -42,9 +42,9 @@ function StatCard({
   }[tone];
 
   return (
-    <div className={`rounded-xl border p-5 ${styles}`}>
-      <p className="text-xs font-bold uppercase tracking-[0.12em]">{label}</p>
-      <p className="mt-3 text-2xl font-black">{value}</p>
+    <div className={`rounded-xl border p-3 ${styles}`}>
+      <p className="text-[10px] font-bold uppercase tracking-[0.08em]">{label}</p>
+      <p className="mt-1 text-xl font-black">{value}</p>
     </div>
   );
 }
@@ -234,7 +234,7 @@ export default async function AdminTrainerDashboardPage({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
         <StatCard
           label={isArabic ? 'ورش قادمة' : 'Upcoming Workshops'}
           value={formatNumber(dashboard.summary.totalUpcomingWorkshops)}
@@ -257,7 +257,7 @@ export default async function AdminTrainerDashboardPage({
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2">
         <StatCard
           label={isArabic ? 'إجمالي المشاركين' : 'Total Participants'}
           value={formatNumber(dashboard.summary.totalParticipants)}

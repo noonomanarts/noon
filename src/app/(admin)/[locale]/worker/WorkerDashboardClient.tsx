@@ -107,31 +107,31 @@ export default function WorkerDashboardClient({ locale, stats, permissions, user
         <>
           {/* Today's Stats */}
           <div>
-            <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">{t.todayStats}</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-white">{t.todayStats}</h2>
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
               {permissions?.can_restock && (
-                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-                      <FiPackage className="h-6 w-6" />
+                <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+                      <FiPackage className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.restocksToday}</p>
-                      <p className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.restocks_today}</p>
+                      <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.restocksToday}</p>
+                      <p className="text-xl font-bold text-zinc-900 dark:text-white">{stats.restocks_today}</p>
                     </div>
                   </div>
                 </div>
               )}
 
               {permissions?.can_record_sales && (
-                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-                      <FiShoppingCart className="h-6 w-6" />
+                <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                      <FiShoppingCart className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.salesToday}</p>
-                      <p className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.sales_today}</p>
+                      <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.salesToday}</p>
+                      <p className="text-xl font-bold text-zinc-900 dark:text-white">{stats.sales_today}</p>
                     </div>
                   </div>
                 </div>
@@ -141,17 +141,17 @@ export default function WorkerDashboardClient({ locale, stats, permissions, user
 
           {/* All-Time Stats */}
           <div>
-            <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-white">{t.allTimeStats}</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-white">{t.allTimeStats}</h2>
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
               {permissions?.can_restock && (
-                <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
-                      <FiPackage className="h-6 w-6" />
+                <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">
+                      <FiPackage className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.totalRestocks}</p>
-                      <p className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.total_restocks}</p>
+                      <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.totalRestocks}</p>
+                      <p className="text-xl font-bold text-zinc-900 dark:text-white">{stats.total_restocks}</p>
                     </div>
                   </div>
                 </div>
@@ -159,26 +159,26 @@ export default function WorkerDashboardClient({ locale, stats, permissions, user
 
               {permissions?.can_record_sales && (
                 <>
-                  <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
-                        <FiShoppingCart className="h-6 w-6" />
+                  <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                        <FiShoppingCart className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.totalSales}</p>
-                        <p className="text-2xl font-bold text-zinc-900 dark:text-white">{stats.total_sales}</p>
+                        <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.totalSales}</p>
+                        <p className="text-xl font-bold text-zinc-900 dark:text-white">{stats.total_sales}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
-                        <FiTrendingUp className="h-6 w-6" />
+                  <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400">
+                        <FiTrendingUp className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.totalRevenue}</p>
-                        <p className="text-2xl font-bold text-zinc-900 dark:text-white">
+                        <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.totalRevenue}</p>
+                        <p className="text-xl font-bold text-zinc-900 dark:text-white">
                           {stats.total_sales_amount.toFixed(3)} OMR
                         </p>
                       </div>

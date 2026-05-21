@@ -170,16 +170,17 @@ export default async function AdminClassRepeatRequestsPage({
             <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500 dark:text-zinc-400">{t.workflowHint}</p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {summaryCards.map((card) => (
-              <article key={card.label} className="min-w-0 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/40 xl:min-w-[11rem]">
-                <div className="flex items-start justify-between gap-3">
+              <article key={card.label} className="min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950/40">
+                <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{card.label}</p>
-                    <p className="mt-1 truncate text-lg font-bold text-zinc-900 dark:text-white">{card.value}</p>
-                    <p className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400">{card.helper}</p>
+                    <p className="truncate text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{card.label}</p>
+                    <p className="mt-1 truncate text-xl font-bold text-zinc-900 dark:text-white">{card.value}</p>
                   </div>
-                  <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${card.iconClass}`}>{card.icon}</span>
+                  <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${card.iconClass}`}>
+                    <span className="[&>svg]:size-3.5">{card.icon}</span>
+                  </span>
                 </div>
               </article>
             ))}

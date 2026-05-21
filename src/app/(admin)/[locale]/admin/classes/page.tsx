@@ -381,60 +381,30 @@ export default function AdminClassesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {/* Total Classes */}
-        <div className="group relative overflow-hidden rounded-xl border border-teal-100 bg-gradient-to-br from-teal-50 to-cyan-50 p-5 shadow-sm transition-all hover:shadow-md dark:border-teal-900/30 dark:from-teal-950/30 dark:to-cyan-950/30">
-          <div className="absolute -right-4 -top-4 opacity-10">
-            <BiSolidBookAlt className="h-24 w-24 text-teal" />
-          </div>
-          <div className="relative">
-            <div className="text-3xl font-bold text-teal dark:text-teal-light">{stats.total}</div>
-            <div className="mt-1 text-xs font-medium uppercase tracking-wide text-teal-700 dark:text-teal-400">Total Classes</div>
-          </div>
+      <div className="grid grid-cols-5 gap-2">
+        <div className="overflow-hidden rounded-xl border border-teal-100 bg-gradient-to-br from-teal-50 to-cyan-50 p-3 shadow-sm dark:border-teal-900/30 dark:from-teal-950/30 dark:to-cyan-950/30">
+          <div className="text-xl font-bold text-teal dark:text-teal-light">{stats.total}</div>
+          <div className="mt-0.5 text-[10px] font-medium text-teal-700 dark:text-teal-400">Total</div>
         </div>
 
-        {/* Published */}
-        <div className="group relative overflow-hidden rounded-xl border border-green-100 bg-gradient-to-br from-green-50 to-emerald-50 p-5 shadow-sm transition-all hover:shadow-md dark:border-green-900/30 dark:from-green-950/30 dark:to-emerald-950/30">
-          <div className="absolute -right-4 -top-4 opacity-10">
-            <IoCheckmarkCircle className="h-24 w-24 text-green-600" />
-          </div>
-          <div className="relative">
-            <div className="text-3xl font-bold text-green-700 dark:text-green-400">{stats.published}</div>
-            <div className="mt-1 text-xs font-medium uppercase tracking-wide text-green-600 dark:text-green-500">Published</div>
-          </div>
+        <div className="overflow-hidden rounded-xl border border-green-100 bg-gradient-to-br from-green-50 to-emerald-50 p-3 shadow-sm dark:border-green-900/30 dark:from-green-950/30 dark:to-emerald-950/30">
+          <div className="text-xl font-bold text-green-700 dark:text-green-400">{stats.published}</div>
+          <div className="mt-0.5 text-[10px] font-medium text-green-600 dark:text-green-500">Published</div>
         </div>
 
-        {/* Draft */}
-        <div className="group relative overflow-hidden rounded-xl border border-yellow-100 bg-gradient-to-br from-yellow-50 to-amber-50 p-5 shadow-sm transition-all hover:shadow-md dark:border-yellow-900/30 dark:from-yellow-950/30 dark:to-amber-950/30">
-          <div className="absolute -right-4 -top-4 opacity-10">
-            <IoPencil className="h-24 w-24 text-yellow" />
-          </div>
-          <div className="relative">
-            <div className="text-3xl font-bold text-yellow-700 dark:text-yellow-400">{stats.draft}</div>
-            <div className="mt-1 text-xs font-medium uppercase tracking-wide text-yellow-600 dark:text-yellow-500">Draft</div>
-          </div>
+        <div className="overflow-hidden rounded-xl border border-yellow-100 bg-gradient-to-br from-yellow-50 to-amber-50 p-3 shadow-sm dark:border-yellow-900/30 dark:from-yellow-950/30 dark:to-amber-950/30">
+          <div className="text-xl font-bold text-yellow-700 dark:text-yellow-400">{stats.draft}</div>
+          <div className="mt-0.5 text-[10px] font-medium text-yellow-600 dark:text-yellow-500">Draft</div>
         </div>
 
-        {/* Cooking Classes */}
-        <div className="group relative overflow-hidden rounded-xl border border-coral/20 bg-gradient-to-br from-coral/5 to-orange-50 p-5 shadow-sm transition-all hover:shadow-md dark:border-coral-900/30 dark:from-coral-950/30 dark:to-orange-950/30">
-          <div className="absolute -right-4 -top-4 opacity-10">
-            <GiCookingPot className="h-24 w-24 text-coral" />
-          </div>
-          <div className="relative">
-            <div className="text-3xl font-bold text-coral dark:text-coral-light">{stats.cooking}</div>
-            <div className="mt-1 text-xs font-medium uppercase tracking-wide text-coral-700 dark:text-coral-400">Cooking</div>
-          </div>
+        <div className="overflow-hidden rounded-xl border border-coral/20 bg-gradient-to-br from-coral/5 to-orange-50 p-3 shadow-sm dark:border-coral-900/30 dark:from-coral-950/30 dark:to-orange-950/30">
+          <div className="text-xl font-bold text-coral dark:text-coral-light">{stats.cooking}</div>
+          <div className="mt-0.5 text-[10px] font-medium text-coral-700 dark:text-coral-400">Cooking</div>
         </div>
 
-        {/* Arts & Crafts */}
-        <div className="group relative overflow-hidden rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50 to-pink-50 p-5 shadow-sm transition-all hover:shadow-md dark:border-purple-900/30 dark:from-purple-950/30 dark:to-pink-950/30">
-          <div className="absolute -right-4 -top-4 opacity-10">
-            <GiPalette className="h-24 w-24 text-purple" />
-          </div>
-          <div className="relative">
-            <div className="text-3xl font-bold text-purple dark:text-purple-light">{stats.artsCrafts}</div>
-            <div className="mt-1 text-xs font-medium uppercase tracking-wide text-purple-600 dark:text-purple-500">Arts & Crafts</div>
-          </div>
+        <div className="overflow-hidden rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50 to-pink-50 p-3 shadow-sm dark:border-purple-900/30 dark:from-purple-950/30 dark:to-pink-950/30">
+          <div className="text-xl font-bold text-purple dark:text-purple-light">{stats.artsCrafts}</div>
+          <div className="mt-0.5 text-[10px] font-medium text-purple-600 dark:text-purple-500">Arts</div>
         </div>
       </div>
 

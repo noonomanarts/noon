@@ -912,28 +912,24 @@ export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
 
       {activeTab === 'ledger' && (
         <>
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.income}</p>
-              <p className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatMoney(summary.totalIncome)}</p>
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{summary.incomeCount} {t.entries}</p>
+          <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.income}</p>
+              <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatMoney(summary.totalIncome)}</p>
             </article>
-            <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.expense}</p>
-              <p className="mt-2 text-2xl font-bold text-rose-600 dark:text-rose-400">{formatMoney(summary.totalExpense)}</p>
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{summary.expenseCount} {t.entries}</p>
+            <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.expense}</p>
+              <p className="mt-1 text-xl font-bold text-rose-600 dark:text-rose-400">{formatMoney(summary.totalExpense)}</p>
             </article>
-            <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.net}</p>
-              <p className={`mt-2 text-2xl font-bold ${summary.netAmount >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'}`}>
+            <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.net}</p>
+              <p className={`mt-1 text-xl font-bold ${summary.netAmount >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'}`}>
                 {formatMoney(summary.netAmount)}
               </p>
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.income} - {t.expense}</p>
             </article>
-            <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.totalRecords}</p>
-              <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{pagination.total}</p>
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.page} {pagination.page} {t.of} {pagination.totalPages}</p>
+            <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.totalRecords}</p>
+              <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-white">{pagination.total}</p>
             </article>
           </section>
 
@@ -1310,27 +1306,24 @@ export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
             </div>
           </section>
 
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.income}</p>
-              <p className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatMoney(reportSummary.totalIncome)}</p>
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{reportSummary.incomeCount} {t.entries}</p>
+          <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.income}</p>
+              <p className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatMoney(reportSummary.totalIncome)}</p>
             </article>
-            <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.expense}</p>
-              <p className="mt-2 text-2xl font-bold text-rose-600 dark:text-rose-400">{formatMoney(reportSummary.totalExpense)}</p>
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{reportSummary.expenseCount} {t.entries}</p>
+            <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.expense}</p>
+              <p className="mt-1 text-xl font-bold text-rose-600 dark:text-rose-400">{formatMoney(reportSummary.totalExpense)}</p>
             </article>
-            <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.net}</p>
-              <p className={`mt-2 text-2xl font-bold ${reportSummary.netAmount >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'}`}>
+            <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.net}</p>
+              <p className={`mt-1 text-xl font-bold ${reportSummary.netAmount >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'}`}>
                 {formatMoney(reportSummary.netAmount)}
               </p>
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.income} - {t.expense}</p>
             </article>
-            <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.totalRecords}</p>
-              <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{reportSummary.entriesCount}</p>
+            <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.totalRecords}</p>
+              <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-white">{reportSummary.entriesCount}</p>
             </article>
           </section>
 

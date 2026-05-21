@@ -240,22 +240,14 @@ export default function AdminTrainerSuggestionsPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-[color:var(--noon-yellow)]/40 bg-[color:var(--noon-yellow-soft)]/70 p-4 dark:border-[color:var(--noon-yellow)]/45 dark:bg-[color:var(--noon-yellow)]/15">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--noon-yellow-strong)] dark:text-[color:var(--noon-yellow)]">
-            {t.pendingReview}
-          </p>
-          <p className="mt-2 text-3xl font-black text-[color:var(--noon-yellow-strong)] dark:text-[color:var(--noon-yellow)]">
-            {pendingReviewCount}
-          </p>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-xl border border-[color:var(--noon-yellow)]/40 bg-[color:var(--noon-yellow-soft)]/70 p-3 dark:border-[color:var(--noon-yellow)]/45 dark:bg-[color:var(--noon-yellow)]/15">
+          <p className="text-[10px] font-medium text-[color:var(--noon-yellow-strong)] dark:text-[color:var(--noon-yellow)]">{t.pendingReview}</p>
+          <p className="mt-1 text-xl font-black text-[color:var(--noon-yellow-strong)] dark:text-[color:var(--noon-yellow)]">{pendingReviewCount}</p>
         </div>
-        <div className="rounded-xl border border-[color:var(--noon-teal)]/35 bg-[color:var(--noon-teal-soft)]/60 p-4 dark:border-[color:var(--noon-teal)]/45 dark:bg-[color:var(--noon-teal)]/15">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[color:var(--noon-teal-strong)] dark:text-[color:var(--noon-teal)]">
-            {t.total}
-          </p>
-          <p className="mt-2 text-3xl font-black text-[color:var(--noon-teal-strong)] dark:text-[color:var(--noon-teal)]">
-            {suggestions.length}
-          </p>
+        <div className="rounded-xl border border-[color:var(--noon-teal)]/35 bg-[color:var(--noon-teal-soft)]/60 p-3 dark:border-[color:var(--noon-teal)]/45 dark:bg-[color:var(--noon-teal)]/15">
+          <p className="text-[10px] font-medium text-[color:var(--noon-teal-strong)] dark:text-[color:var(--noon-teal)]">{t.total}</p>
+          <p className="mt-1 text-xl font-black text-[color:var(--noon-teal-strong)] dark:text-[color:var(--noon-teal)]">{suggestions.length}</p>
         </div>
       </div>
 

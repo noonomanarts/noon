@@ -111,70 +111,38 @@ export default async function AdminUsersPage({
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-8">
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {t.totalUsers}
-          </div>
-          <div className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-100">
-            {stats.total}
-          </div>
+      <div className="grid grid-cols-4 gap-2 lg:grid-cols-8">
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.totalUsers}</div>
+          <div className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100">{stats.total}</div>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {t.admins}
-          </div>
-          <div className="mt-2 text-3xl font-bold text-indigo-600 dark:text-indigo-400">
-            {stats.admins}
-          </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.admins}</div>
+          <div className="mt-1 text-xl font-bold text-indigo-600 dark:text-indigo-400">{stats.admins}</div>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {t.trainers}
-          </div>
-          <div className="mt-2 text-3xl font-bold text-teal-600 dark:text-teal-400">
-            {stats.trainers}
-          </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.trainers}</div>
+          <div className="mt-1 text-xl font-bold text-teal-600 dark:text-teal-400">{stats.trainers}</div>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {t.customers}
-          </div>
-          <div className="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-            {stats.users}
-          </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.customers}</div>
+          <div className="mt-1 text-xl font-bold text-emerald-600 dark:text-emerald-400">{stats.users}</div>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {t.employees}
-          </div>
-          <div className="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-400">
-            {stats.employees}
-          </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.employees}</div>
+          <div className="mt-1 text-xl font-bold text-amber-600 dark:text-amber-400">{stats.employees}</div>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {t.socialMediaAdmins}
-          </div>
-          <div className="mt-2 text-3xl font-bold text-sky-600 dark:text-sky-400">
-            {stats.socialMediaAdmins}
-          </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.socialMediaAdmins}</div>
+          <div className="mt-1 text-xl font-bold text-sky-600 dark:text-sky-400">{stats.socialMediaAdmins}</div>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {t.workers}
-          </div>
-          <div className="mt-2 text-3xl font-bold text-rose-600 dark:text-rose-400">
-            {stats.workers}
-          </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.workers}</div>
+          <div className="mt-1 text-xl font-bold text-rose-600 dark:text-rose-400">{stats.workers}</div>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {t.photographers}
-          </div>
-          <div className="mt-2 text-3xl font-bold text-violet-600 dark:text-violet-400">
-            {stats.photographers}
-          </div>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.photographers}</div>
+          <div className="mt-1 text-xl font-bold text-violet-600 dark:text-violet-400">{stats.photographers}</div>
         </div>
       </div>
 

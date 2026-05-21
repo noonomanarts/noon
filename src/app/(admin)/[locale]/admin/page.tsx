@@ -127,29 +127,25 @@ export default async function AdminDashboard({
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.totalOrders}</p>
-          <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{shopSummary.totalOrders}</p>
-          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.monthOrders}: {shopSummary.monthOrders}</p>
+      <section className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.totalOrders}</p>
+          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-white">{shopSummary.totalOrders}</p>
         </article>
 
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.grossRevenue}</p>
-          <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{formatMoney(shopSummary.grossRevenue)}</p>
-          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.monthRevenue}: {formatMoney(shopSummary.monthRevenue)}</p>
+        <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.grossRevenue}</p>
+          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-white">{formatMoney(shopSummary.grossRevenue)}</p>
         </article>
 
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.paidAmount}</p>
-          <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{formatMoney(topupSummary.paidAmount)}</p>
-          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.paidThisMonth}: {formatMoney(topupSummary.monthPaidAmount)}</p>
+        <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.paidAmount}</p>
+          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-white">{formatMoney(topupSummary.paidAmount)}</p>
         </article>
 
-        <article className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.operations}</p>
-          <p className="mt-2 text-2xl font-bold text-zinc-900 dark:text-white">{fulfillmentRate.toFixed(1)}%</p>
-          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{t.cancellationRate}: {cancellationRate.toFixed(1)}% • {t.eventBookings}: {eventBookingsCount}</p>
+        <article className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{t.operations}</p>
+          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-white">{fulfillmentRate.toFixed(1)}%</p>
         </article>
       </section>
 

@@ -653,18 +653,18 @@ export default function AdminCalendarPage() {
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Classes on calendar</p>
-          <p className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-100">{totalClasses}</p>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">Classes</p>
+          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100">{totalClasses}</p>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Events on calendar</p>
-          <p className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-100">{totalEvents}</p>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">Events</p>
+          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100">{totalEvents}</p>
         </div>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:col-span-2 xl:col-span-1">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Blocks and cleaning windows</p>
-          <p className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-100">{totalBlocks}</p>
+        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">Blocks</p>
+          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100">{totalBlocks}</p>
         </div>
       </div>
 

@@ -688,16 +688,16 @@ export default function ClassSettlementPanel({
         </div>
       ) : null}
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
         {summaryCards.map((card) => (
-          <div key={card.title} className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 p-4 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{card.title}</p>
-                <p className={`mt-3 whitespace-nowrap text-xl font-semibold ${card.valueClassName}`}>{card.value}</p>
+          <div key={card.title} className="rounded-xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-50 p-3 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">{card.title}</p>
+                <p className={`mt-1 truncate text-lg font-semibold ${card.valueClassName}`}>{card.value}</p>
               </div>
-              <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${card.iconWrapClassName}`}>
-                {card.icon}
+              <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${card.iconWrapClassName}`}>
+                <span className="[&>svg]:size-3.5">{card.icon}</span>
               </span>
             </div>
           </div>
