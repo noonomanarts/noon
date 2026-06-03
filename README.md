@@ -1,4 +1,4 @@
-# Noon
+# Noon Oman Arts
 
 Production web platform for Noon Oman Arts, built with `Next.js`, `React`, `TypeScript`, and `PostgreSQL`.
 
