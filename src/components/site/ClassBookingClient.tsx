@@ -145,7 +145,6 @@ export default function ClassBookingClient({
   const isArabic = locale === 'ar';
   const [selfParticipant, setSelfParticipant] = useState<ParticipantWithPartner>(() => buildSelfParticipant(currentUser));
   const [bookingFor, setBookingFor] = useState<RegistrationType>('self');
-  const [nonMomKidSeatCount, setNonMomKidSeatCount] = useState(1);
   const [otherCount, setOtherCount] = useState(1);
   const [otherParticipants, setOtherParticipants] = useState<ParticipantWithPartner[]>([emptyParticipant()]);
   const [specialRequests, setSpecialRequests] = useState('');
@@ -207,13 +206,14 @@ export default function ClassBookingClient({
 
   const needsFreePartner = useCallback(
     (dateOfBirth: string) => {
+      if (isSummerCamp) return false;
       if (!dateOfBirth) return false;
       const dob = new Date(`${dateOfBirth}T00:00:00`);
       if (Number.isNaN(dob.getTime())) return false;
       const age = calculateAge(dateOfBirth);
       return age >= 5 && age <= 9;
     },
-    [calculateAge]
+    [calculateAge, isSummerCamp]
   );
 
   const t = {
@@ -322,25 +322,16 @@ export default function ClassBookingClient({
   }, [paymentMethod, walletHasEnoughBalance]);
 
   useEffect(() => {
-    if (isMomKid) {
-      return;
+    if (!isMomKid && !isSummerCamp && bookingFor === 'both' && seatsAvailable < 2) {
+      setBookingFor(seatsAvailable === 0 ? 'self' : 'self');
     }
-
-    if (nonMomKidSeatCount <= 1) {
-      setBookingFor('self');
-      setOtherCount(1);
-      return;
-    }
-
-    setBookingFor('both');
-    setOtherCount(nonMomKidSeatCount - 1);
-  }, [isMomKid, nonMomKidSeatCount]);
+  }, [isMomKid, isSummerCamp, bookingFor, seatsAvailable]);
 
   useEffect(() => {
-    if (isMomKid && bookingFor === 'both') {
+    if ((isMomKid || isSummerCamp) && bookingFor !== 'other') {
       setBookingFor('other');
     }
-  }, [bookingFor, isMomKid]);
+  }, [bookingFor, isMomKid, isSummerCamp]);
 
   useEffect(() => {
     if (!selfIncluded || !isMomKid || !needsFreePartner(selfParticipant.dateOfBirth)) {
@@ -530,6 +521,16 @@ export default function ClassBookingClient({
     return true;
   };
 
+  const saveSelfGender = useCallback(() => {
+    if (selfIncluded && selfParticipant.gender && !currentUser.gender) {
+      void fetch('/api/account/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gender: selfParticipant.gender }),
+      }).catch(() => {});
+    }
+  }, [selfIncluded, selfParticipant.gender, currentUser.gender]);
+
   const saveOtherParticipants = useCallback(() => {
     if (!othersIncluded) {
       return;
@@ -625,6 +626,7 @@ export default function ClassBookingClient({
           },
         });
 
+        saveSelfGender();
         saveOtherParticipants();
         return;
       }
@@ -641,6 +643,7 @@ export default function ClassBookingClient({
       if (payload.wallet) {
         setWallet(payload.wallet);
       }
+      saveSelfGender();
       saveOtherParticipants();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Booking failed.');
@@ -719,26 +722,27 @@ export default function ClassBookingClient({
                   {t.audience}: <span className="text-[color:var(--text)]">{audienceLabel}</span>
                 </p>
               </div>
-              {!isMomKid ? (
-                <label className="min-w-[120px] text-left text-sm">
-                  <span className="mb-1 block text-[color:var(--text)]">{t.seats}</span>
+              {null}
+            </div>
+
+            {isSummerCamp ? (
+              <div className="mt-4">
+                <p className="mb-3 text-sm text-[color:var(--text-muted)]">{t.momKidOther}</p>
+                <label className="block text-sm">
+                  <span className="mb-1 block text-[color:var(--text)]">{t.participantsCountMomKid}</span>
                   <select
-                    value={nonMomKidSeatCount}
-                    onChange={(event) => setNonMomKidSeatCount(Number(event.target.value))}
+                    value={otherCount}
+                    onChange={(event) => setOtherCount(Number(event.target.value))}
                     disabled={!hasBookableSeats}
                     className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
                   >
                     {Array.from({ length: Math.max(1, Math.min(10, seatsAvailable || 1)) }, (_, index) => index + 1).map((count) => (
-                      <option key={count} value={count}>
-                        {count}
-                      </option>
+                      <option key={count} value={count}>{count}</option>
                     ))}
                   </select>
                 </label>
-              ) : null}
-            </div>
-
-            {isMomKid ? (
+              </div>
+            ) : isMomKid ? (
               <div className="mt-4 grid gap-2">
                 {([
                   { value: 'self' as RegistrationType, label: t.self },
@@ -777,6 +781,47 @@ export default function ClassBookingClient({
                   </label>
                 ) : null}
               </div>
+            ) : !isSummerCamp ? (
+              /* Regular classes: 3 explicit options */
+              <div className="mt-4 grid gap-2">
+                {([
+                  { value: 'self' as RegistrationType, label: t.self, disabled: !hasBookableSeats },
+                  { value: 'other' as RegistrationType, label: t.other, disabled: !hasBookableSeats },
+                  { value: 'both' as RegistrationType, label: t.both, disabled: seatsAvailable < 2 },
+                ]).map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm transition ${opt.disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'} ${
+                      bookingFor === opt.value
+                        ? 'border-[color:var(--primary)] bg-[color:var(--primary)]/5 text-[color:var(--text)]'
+                        : 'border-[color:var(--border)] text-[color:var(--text)]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="registrationType"
+                      checked={bookingFor === opt.value}
+                      disabled={opt.disabled}
+                      onChange={() => !opt.disabled && setBookingFor(opt.value)}
+                    />
+                    <span>{opt.label}</span>
+                  </label>
+                ))}
+                {othersIncluded ? (
+                  <label className="mt-1 block text-sm">
+                    <span className="mb-1 block text-[color:var(--text)]">{t.participantsCount}</span>
+                    <select
+                      value={otherCount}
+                      onChange={(event) => setOtherCount(Number(event.target.value))}
+                      className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-[color:var(--text)]"
+                    >
+                      {Array.from({ length: Math.max(1, otherOptionMax) }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </div>
             ) : null}
 
             {!hasBookableSeats ? (
@@ -789,7 +834,7 @@ export default function ClassBookingClient({
           {/* ── Participant Details ── */}
           <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 shadow-sm">
             <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.participants}</h2>
-            {isMomKid ? (
+            {isMomKid && !isSummerCamp ? (
               <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-300">
                 {t.momKidPolicy}
               </p>
