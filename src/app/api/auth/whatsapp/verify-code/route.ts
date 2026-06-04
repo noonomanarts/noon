@@ -15,6 +15,7 @@ import { getSessionCookieOptions, SESSION_COOKIE_NAME } from '@/lib/sessionCooki
 import { sendUserWhatsAppTemplate } from '@/lib/whatsapp/transactionNotifications';
 
 type RegisterData = {
+  fullName?: string;
   firstName?: string;
   middleName?: string;
   lastName?: string;
@@ -125,16 +126,16 @@ export async function POST(request: Request) {
 
     if (purpose === 'REGISTER') {
       const registerData = body.registerData ?? {};
-      const firstName = typeof registerData.firstName === 'string' ? registerData.firstName.trim() : '';
-      const middleName = typeof registerData.middleName === 'string' ? registerData.middleName.trim() : '';
-      const lastName = typeof registerData.lastName === 'string' ? registerData.lastName.trim() : '';
+      const resolvedFullName = typeof registerData.fullName === 'string' && registerData.fullName.trim()
+        ? registerData.fullName.trim()
+        : [registerData.firstName, registerData.middleName, registerData.lastName].filter(Boolean).map(s => String(s).trim()).join(' ');
       const email = typeof registerData.email === 'string' ? registerData.email.trim().toLowerCase() : '';
       const password = typeof registerData.password === 'string' ? registerData.password : '';
       const dateOfBirth = typeof registerData.dateOfBirth === 'string' ? registerData.dateOfBirth : '';
       const gender = parseGender(registerData.gender);
       const acceptedTerms = registerData.acceptedTerms === true;
 
-      if (!firstName || !lastName || !email || !password || !dateOfBirth || !gender) {
+      if (!resolvedFullName || !email || !password || !dateOfBirth || !gender) {
         return NextResponse.json(
           {
             error: isArabic ? 'بيانات التسجيل غير مكتملة.' : 'Registration data is incomplete.',
@@ -204,13 +205,12 @@ export async function POST(request: Request) {
         );
       }
 
-      const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ').trim();
       const normalizedPhone = `+${normalizePhoneDigits(phoneNumber)}`;
 
       const newUser = await createUser({
         email,
         password,
-        fullName,
+        fullName: resolvedFullName,
         phoneNumber: normalizedPhone,
         dateOfBirth,
         gender,

@@ -103,117 +103,104 @@ export default async function LoginPage({
     ? `/${locale}/login?method=whatsapp&next=${encodeURIComponent(nextPath)}`
     : `/${locale}/login?method=whatsapp`;
 
+  const isAr = locale === "ar";
+  const fieldCls = "w-full border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-[color:var(--text)] placeholder-zinc-400 transition focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800/60 dark:placeholder-zinc-500 dark:focus:border-zinc-500 dark:focus:bg-zinc-800";
+  const labelCls = "block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1";
+
   return (
-    <div className="home-sharp bg-[color:var(--muted)] px-4 py-12 dark:bg-zinc-950">
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="mx-auto w-full max-w-xl">
-          <div className="rounded-3xl border border-[color:var(--border)]/70 bg-[color:var(--surface)] p-8 shadow-lg dark:border-zinc-800/60 dark:bg-zinc-950">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)] dark:text-zinc-100">
-              {t.title}
-            </h1>
-            <p className="mt-2 text-sm text-[color:var(--text-subtle)] dark:text-zinc-400">
-              {t.subtitle}
-            </p>
-          </div>
+    <div className="home-sharp min-h-dvh bg-zinc-50 px-4 py-10 dark:bg-zinc-950" dir={isAr ? "rtl" : "ltr"}>
+      <div className="mx-auto w-full max-w-sm">
 
-          {/* Error Message */}
-          {error ? (
-            <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
-              {t.errorMessage}
-            </div>
-          ) : null}
-
-          {logoutSuccess ? (
-            <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200">
-              {t.logoutSuccess}
-            </div>
-          ) : null}
-
-          <div className="mb-6 grid grid-cols-2 border border-zinc-300 dark:border-zinc-700">
-            <Link
-              href={passwordTabHref}
-              className={`px-3 py-2 text-center text-sm font-semibold transition ${
-                authMethod === "password"
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              }`}
-            >
-              {t.tabPassword}
-            </Link>
-            <Link
-              href={whatsappTabHref}
-              className={`border-s border-zinc-300 px-3 py-2 text-center text-sm font-semibold transition dark:border-zinc-700 ${
-                authMethod === "whatsapp"
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              }`}
-            >
-              {t.tabWhatsApp}
-            </Link>
-          </div>
-
-          {authMethod === "password" ? (
-            <form action={handleLogin} className="grid gap-6">
-              <input type="hidden" name="locale" value={locale} />
-              <input type="hidden" name="nextPath" value={nextPath} />
-
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                <span className="flex items-center gap-1">
-                  {t.identifier}
-                  <span className="text-red-500">*</span>
-                </span>
-                <input
-                  type="text"
-                  name="identifier"
-                  required
-                  autoComplete="username"
-                  lang="en"
-                  dir="ltr"
-                  placeholder="name@example.com"
-                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-                />
-              </label>
-
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                <span className="flex items-center gap-1">
-                  {t.password}
-                  <span className="text-red-500">*</span>
-                </span>
-                <PasswordInput
-                  locale={locale}
-                  name="password"
-                  required
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  inputClassName="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-                />
-              </label>
-
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-800 hover:shadow-xl hover:shadow-zinc-900/30 active:scale-[0.98] dark:bg-[color:var(--surface)] dark:text-[color:var(--text)] dark:shadow-white/20 dark:hover:bg-[color:var(--muted)] dark:hover:shadow-white/30"
-              >
-                {t.signIn}
-              </button>
-            </form>
-          ) : (
-            <WhatsAppAuthCard locale={locale} purpose="login" />
-          )}
-
-          {/* Register Link */}
-          <div className="mt-8 border-t border-[color:var(--border)] pt-6 text-center text-sm text-[color:var(--text-subtle)] dark:border-zinc-800 dark:text-zinc-400">
-            {t.noAccount}{" "}
-            <Link
-              href={`/${locale}/register`}
-              className="font-semibold text-[color:var(--text)] transition hover:text-zinc-700 dark:text-white dark:hover:text-zinc-300"
-            >
-              {t.createAccount}
-            </Link>
-          </div>
-          </div>
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-bold tracking-tight text-[color:var(--text)]">{t.title}</h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t.subtitle}</p>
         </div>
+
+        {/* Tab switcher */}
+        <div className="mb-5 flex border border-zinc-200 dark:border-zinc-700">
+          <Link
+            href={passwordTabHref}
+            className={`flex-1 py-2.5 text-center text-sm font-semibold transition ${
+              authMethod === "password"
+                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                : "bg-white text-zinc-500 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+            }`}
+          >
+            {t.tabPassword}
+          </Link>
+          <Link
+            href={whatsappTabHref}
+            className={`flex-1 border-s border-zinc-200 py-2.5 text-center text-sm font-semibold transition dark:border-zinc-700 ${
+              authMethod === "whatsapp"
+                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                : "bg-white text-zinc-500 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+            }`}
+          >
+            {t.tabWhatsApp}
+          </Link>
+        </div>
+
+        {error && (
+          <div className="mb-4 border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-950/30 dark:text-red-300">
+            {t.errorMessage}
+          </div>
+        )}
+        {logoutSuccess && (
+          <div className="mb-4 border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-950/30 dark:text-emerald-300">
+            {t.logoutSuccess}
+          </div>
+        )}
+
+        {authMethod === "password" ? (
+          <form action={handleLogin} className="space-y-4 bg-white p-6 shadow-sm dark:bg-zinc-900">
+            <input type="hidden" name="locale" value={locale} />
+            <input type="hidden" name="nextPath" value={nextPath} />
+
+            <div>
+              <label className={labelCls}>{t.identifier}</label>
+              <input
+                type="text"
+                name="identifier"
+                required
+                autoComplete="username"
+                lang="en"
+                dir="ltr"
+                placeholder="name@example.com"
+                className={fieldCls}
+              />
+            </div>
+
+            <div>
+              <label className={labelCls}>{t.password}</label>
+              <PasswordInput
+                locale={locale}
+                name="password"
+                required
+                placeholder="••••••••"
+                autoComplete="current-password"
+                inputClassName={fieldCls}
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-zinc-900 py-3 text-sm font-bold text-white transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+            >
+              {t.signIn}
+            </button>
+          </form>
+        ) : (
+          <div className="bg-white shadow-sm dark:bg-zinc-900">
+            <WhatsAppAuthCard locale={locale} purpose="login" />
+          </div>
+        )}
+
+        <p className="mt-5 text-center text-sm text-zinc-500 dark:text-zinc-400">
+          {t.noAccount}{" "}
+          <Link href={`/${locale}/register`} className="font-semibold text-[color:var(--text)] hover:underline">
+            {t.createAccount}
+          </Link>
+        </p>
       </div>
     </div>
   );

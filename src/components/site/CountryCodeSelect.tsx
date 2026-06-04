@@ -195,7 +195,7 @@ export default function CountryCodeSelect({
 
   const baseInput =
     inputClassName ||
-    "w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10";
+    "w-full rounded-none border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10";
 
   return (
     <div ref={containerRef} className="relative" dir="ltr">
@@ -210,7 +210,7 @@ export default function CountryCodeSelect({
           onKeyDown={handleKeyDown}
           aria-haspopup="listbox"
           aria-expanded={open}
-          className="flex items-center gap-1.5 rounded-s-xl border border-e-0 border-zinc-300 bg-zinc-50 px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 dark:focus:ring-white/10"
+          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none border border-e-0 border-zinc-300 bg-zinc-50 px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700 dark:focus:ring-white/10"
         >
           <span className="text-lg leading-none">{selected.flag}</span>
           <span className="font-mono text-sm">{selected.dial}</span>
@@ -238,7 +238,7 @@ export default function CountryCodeSelect({
             setPhoneNumber(val);
           }}
           placeholder={isAr ? "رقم الهاتف" : "Phone number"}
-          className={`${baseInput} rounded-s-none border-s-0 !rounded-e-xl`}
+          className={`${baseInput.replace(/rounded-\S+/g, '')} rounded-none border-s-0`}
         />
       </div>
 

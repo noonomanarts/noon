@@ -18,9 +18,8 @@ import {
   type SitePageSettings,
 } from "@/lib/admin/sitePages";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
-import { FiArrowRight, FiBookOpen, FiCalendar, FiPenTool, FiScissors, FiUser } from "react-icons/fi";
+import { FiArrowRight, FiCalendar, FiPenTool, FiScissors, FiUser } from "react-icons/fi";
 import { GiChefToque, GiCookingPot, GiKnifeFork, GiPalette } from "react-icons/gi";
-import { HiOutlineBanknotes } from "react-icons/hi2";
 
 type UpcomingCard = {
   id: string;
@@ -244,12 +243,12 @@ function Section({
   sectionClassName?: string;
 }) {
   return (
-    <section className={`py-12 sm:py-16 ${sectionClassName ?? ""}`}>
-      <div className="mx-auto w-full max-w-6xl px-4">
-        <div className="mb-8 flex justify-center">
+    <section className={`py-7 sm:py-12 ${sectionClassName ?? ""}`}>
+      <div className="mx-auto w-full max-w-6xl px-3 sm:px-4">
+        <div className="mb-4 sm:mb-7 flex justify-center">
           <div className="w-full max-w-3xl text-center">
             <h2
-              className="text-2xl font-semibold leading-tight text-[color:var(--text)] sm:text-3xl"
+              className="text-lg font-bold leading-tight text-[color:var(--text)] sm:text-2xl"
               style={{
                 fontFamily: isArabic
                   ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
@@ -426,7 +425,6 @@ export default async function HomePage({
   const upcomingBookNowLabel =
     (isArabic ? homeUpcoming?.bookNowLabelAr : homeUpcoming?.bookNowLabelEn)?.trim() ||
     content.upcoming.bookNowLabel;
-  const upcomingTrainerLabel = isArabic ? "المدرب" : "Trainer";
   const upcomingItems = await resolveUpcomingItems(locale, []);
 
   return (
@@ -466,10 +464,10 @@ export default async function HomePage({
               >
                 {heroHeadline}
               </h1>
-              <div className="mt-8 grid gap-3 sm:mx-auto sm:mt-10 sm:max-w-4xl sm:grid-cols-2 sm:gap-4">
+              <div className="mt-6 grid grid-cols-2 gap-2.5 sm:mx-auto sm:mt-10 sm:max-w-4xl sm:gap-4">
                 <Link
                   href={heroUi.cookingHref}
-                  className="inline-flex min-h-12 w-full items-center justify-center px-5 py-3.5 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:px-6 sm:py-4 sm:text-lg"
+                  className="inline-flex min-h-14 w-full items-center justify-center px-4 py-4 text-sm font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition active:scale-95 hover:brightness-95 sm:px-6 sm:text-base"
                   style={{
                     backgroundColor: heroUi.cookingColor,
                     color: "#ffffff",
@@ -479,7 +477,7 @@ export default async function HomePage({
                 </Link>
                 <Link
                   href={heroUi.artsHref}
-                  className="inline-flex min-h-12 w-full items-center justify-center px-5 py-3.5 text-base font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition hover:brightness-95 sm:px-6 sm:py-4 sm:text-lg"
+                  className="inline-flex min-h-14 w-full items-center justify-center px-4 py-4 text-sm font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition active:scale-95 hover:brightness-95 sm:px-6 sm:text-base"
                   style={{
                     backgroundColor: heroUi.artsColor,
                     color: "#ffffff",
@@ -500,41 +498,38 @@ export default async function HomePage({
           sectionClassName="bg-gradient-to-l from-zinc-100 via-zinc-200/55 to-zinc-100 dark:from-zinc-800/70 dark:via-zinc-700/45 dark:to-zinc-800/70"
         >
         {upcomingItems.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 min-[520px]:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-3">
             {upcomingItems.map((c) => (
               <article
                 key={c.id}
-                className="group flex h-full flex-col overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                className="group flex h-full flex-col overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition active:scale-[0.98] hover:shadow-md"
               >
-                <Link href={c.href} aria-label={c.title} className="relative block aspect-[4/5] overflow-hidden sm:aspect-[3/4]">
-                  <Image src={c.imageSrc} alt={c.title} fill className="object-cover transition duration-500 group-hover:scale-[1.03]" />
+                <Link href={c.href} aria-label={c.title} className="relative block aspect-[4/3] overflow-hidden">
+                  <Image src={c.imageSrc} alt={c.title} fill sizes="(max-width:640px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-[1.03]" />
                 </Link>
-                <div className="flex flex-1 flex-col space-y-2 p-3 sm:space-y-3 sm:p-5">
-                  <h3 className="line-clamp-2 inline-flex items-start gap-1.5 text-base font-semibold leading-snug text-[color:var(--text)] sm:gap-2 sm:text-lg">
-                    <FiBookOpen className="mt-0.5 size-3.5 shrink-0 text-purple-500 sm:size-4" />
-                    <span>{c.title}</span>
+                <div className="flex flex-1 flex-col gap-1 p-2 sm:gap-2 sm:p-3.5">
+                  <h3 className="line-clamp-2 text-[11px] font-bold leading-snug text-[color:var(--text)] sm:text-sm">
+                    {c.title}
                   </h3>
-                  <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[color:var(--text)] sm:gap-2 sm:text-base">
-                    <FiCalendar className="size-4 shrink-0 text-teal-500 sm:size-5" />
+                  <p className="flex items-center gap-1 text-[10px] font-semibold text-[color:var(--text)] sm:text-xs">
+                    <FiCalendar className="size-2.5 shrink-0 text-teal-500 sm:size-3.5" />
                     {c.datetimeText}
                   </p>
-                  <p className="inline-flex items-center gap-1.5 text-[11px] text-[color:var(--text-muted)] sm:gap-2 sm:text-sm">
-                    <FiUser className="size-3.5 shrink-0 text-indigo-500 sm:size-4" />
-                    <span className="font-semibold text-[color:var(--text)]">{upcomingTrainerLabel}:</span>
-                    <span>{c.trainerName}</span>
+                  <p className="flex items-center gap-1 truncate text-[9px] text-[color:var(--text-muted)] sm:text-[11px]">
+                    <FiUser className="size-2.5 shrink-0 text-indigo-400 sm:size-3" />
+                    <span className="truncate">{c.trainerName}</span>
                   </p>
-                  <div className="mt-auto pt-2">
-                    <p className="mb-2 inline-flex items-center gap-1.5 text-lg font-black leading-none text-[color:var(--text)] sm:mb-3 sm:gap-2 sm:text-3xl">
-                      <HiOutlineBanknotes className="size-5 shrink-0 text-emerald-600 sm:size-6" />
+                  <div className="mt-auto pt-1.5">
+                    <p className="mb-1.5 text-xs font-black leading-none text-[color:var(--text)] sm:text-base">
                       {c.priceText}
                     </p>
                     <Link
                       href={`/${locale}/classes/${c.slug}/book`}
-                      className="inline-flex w-full items-center justify-center gap-1 px-4 py-3 text-sm font-extrabold uppercase transition hover:brightness-95"
+                      className="flex w-full items-center justify-center gap-0.5 py-2 text-[10px] font-extrabold uppercase tracking-wide transition active:scale-95 hover:brightness-95 sm:py-2.5 sm:text-xs"
                       style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
                     >
                       {upcomingBookNowLabel}
-                      <FiArrowRight className="size-3.5" />
+                      <FiArrowRight className="size-2.5 sm:size-3" />
                     </Link>
                   </div>
                 </div>
@@ -548,20 +543,17 @@ export default async function HomePage({
         )}
 
         {showNumbers && (
-          <div className="mt-12 border-t border-[color:var(--border)] pt-10">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-4 sm:gap-x-8 sm:gap-y-12">
+          <div className="mt-6 border-t border-[color:var(--border)] pt-6 sm:mt-10 sm:pt-8">
+            <div className="grid grid-cols-4 gap-2 sm:gap-6">
               {numbersItems.map((item, index) => {
                 const match = String(item.value).match(/(\d+)/);
                 const numericValue = match ? Number(match[1]) : 0;
                 const suffix = match ? String(item.value).replace(match[1], "") : "";
 
                 return (
-                  <div
-                    key={`home-number-${index}`}
-                    className="text-center"
-                  >
+                  <div key={`home-number-${index}`} className="text-center">
                     <div
-                      className="text-5xl font-light leading-none text-[color:var(--text)] sm:text-6xl"
+                      className="text-2xl font-bold leading-none text-[color:var(--text)] sm:text-4xl"
                       style={{
                         fontFamily: isArabic
                           ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
@@ -570,7 +562,7 @@ export default async function HomePage({
                     >
                       <AnimatedCounter value={numericValue} suffix={suffix} />
                     </div>
-                    <div className="mt-3 text-sm font-medium text-[color:var(--text-muted)] sm:text-base">
+                    <div className="mt-1.5 text-[10px] font-medium leading-tight text-[color:var(--text-muted)] sm:mt-2 sm:text-sm">
                       {item.label}
                     </div>
                   </div>
@@ -583,7 +575,7 @@ export default async function HomePage({
       )}
 
       {showWhyNoon && (
-        <section className="relative overflow-hidden py-20 sm:py-24">
+        <section className="relative overflow-hidden py-8 sm:py-16">
           {whyNoonBackgroundImage ? (
             <div
               className="pointer-events-none absolute inset-0 -z-10 bg-cover bg-center bg-no-repeat bg-fixed"
@@ -593,11 +585,11 @@ export default async function HomePage({
           {whyNoonBackgroundImage ? (
             <div className="pointer-events-none absolute inset-0 -z-10 bg-black/40" />
           ) : null}
-          <div className="mx-auto w-full max-w-6xl px-4">
-            <div className="mb-8 flex justify-center">
+          <div className="mx-auto w-full max-w-6xl px-3 sm:px-4">
+            <div className="mb-4 sm:mb-7 flex justify-center">
               <div className="w-full max-w-3xl text-center">
                 <h2
-                  className="text-2xl font-semibold tracking-tight sm:text-3xl"
+                  className="text-lg font-bold tracking-tight sm:text-2xl"
                   style={{
                     color: whyNoonSectionTitleColor,
                     fontFamily: isArabic
@@ -609,16 +601,16 @@ export default async function HomePage({
                 </h2>
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2.5 sm:gap-4 lg:grid-cols-3">
               {whyNoonItems.map((item, index) => (
                 <div
                   key={`why-noon-${index}`}
-                  className="rounded-none border border-zinc-200 bg-white p-6 shadow-sm"
+                  className="border border-zinc-200 bg-white p-4 shadow-sm sm:p-5"
                 >
-                  <h3 className="text-base font-semibold" style={{ color: whyNoonCardTitleColor }}>
+                  <h3 className="text-sm font-bold sm:text-base" style={{ color: whyNoonCardTitleColor }}>
                     {item.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-zinc-600">{item.description}</p>
+                  <p className="mt-1.5 text-xs leading-5 text-zinc-600 sm:mt-2 sm:text-sm sm:leading-6">{item.description}</p>
                 </div>
               ))}
             </div>

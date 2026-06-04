@@ -26,11 +26,9 @@ export default async function RegisterPage({
 
   async function handleRegister(formData: FormData) {
     "use server";
-    
+
     const localeValue = formData.get("locale") as string;
-    const firstName = formData.get("firstName") as string;
-    const middleName = formData.get("middleName") as string;
-    const lastName = formData.get("lastName") as string;
+    const fullName = (formData.get("fullName") as string)?.trim();
     const email = formData.get("email") as string;
     const phone = formData.get("phone") as string;
     const dateOfBirth = formData.get("dateOfBirth") as string;
@@ -39,45 +37,31 @@ export default async function RegisterPage({
     const confirmPassword = formData.get("confirmPassword") as string;
     const acceptedTerms = formData.get("acceptedTerms") === "on";
 
-    // Validation
-    if (!firstName || !lastName || !email || !phone || !dateOfBirth || !password) {
+    if (!fullName || !email || !phone || !dateOfBirth || !password) {
       redirect(`/${localeValue ?? "en"}/register?error=missing_fields`);
     }
-
     if (password !== confirmPassword) {
       redirect(`/${localeValue ?? "en"}/register?error=password_mismatch`);
     }
-
     if (password.length < 8) {
       redirect(`/${localeValue ?? "en"}/register?error=password_weak`);
     }
-
     if (!isEnglishPassword(password)) {
       redirect(`/${localeValue ?? "en"}/register?error=password_english_only`);
     }
-
     if (!acceptedTerms) {
       redirect(`/${localeValue ?? "en"}/register?error=terms_required`);
     }
-
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       redirect(`/${localeValue ?? "en"}/register?error=invalid_email`);
     }
-
-    // Phone validation (basic)
     const phoneRegex = /^[\d\s+()-]+$/;
     if (!phoneRegex.test(phone)) {
       redirect(`/${localeValue ?? "en"}/register?error=invalid_phone`);
     }
 
     try {
-      const fullName = [firstName, middleName, lastName]
-        .filter(Boolean)
-        .map((part) => part.trim())
-        .join(" ");
-      
       const user = await registerUser({
         email: email.trim(),
         password,
@@ -91,290 +75,226 @@ export default async function RegisterPage({
         redirect(`/${localeValue ?? "en"}/register?error=email_exists`);
       }
 
-      // Auto-login after successful registration
       const cookieStore = await cookies();
       cookieStore.set(SESSION_COOKIE_NAME, user.id, getSessionCookieOptions());
-
       redirect(`/${localeValue ?? "en"}/account`);
     } catch {
       redirect(`/${localeValue ?? "en"}/register?error=server_error`);
     }
   }
 
+  const isAr = locale === "ar";
+
   const t = {
-    title: locale === "ar" ? "إنشاء حساب جديد" : "Create New Account",
-    subtitle: locale === "ar" 
-      ? "انضم إلى عائلة نون واستمتع بتجربة فريدة في الطهي والفنون"
-      : "Join the Noon family and enjoy unique cooking and arts experiences",
-    firstName: locale === "ar" ? "الاسم الأول" : "First Name",
-    middleName: locale === "ar" ? "الاسم الأوسط (اختياري)" : "Middle Name (optional)",
-    lastName: locale === "ar" ? "الاسم الأخير" : "Last Name",
-    email: locale === "ar" ? "البريد الإلكتروني" : "Email Address",
-    phone: locale === "ar" ? "رقم الهاتف" : "Phone Number",
-    dateOfBirth: locale === "ar" ? "تاريخ الميلاد" : "Date of Birth",
-    preferredLanguage: locale === "ar" ? "اللغة المفضلة" : "Preferred Language",
-    english: locale === "ar" ? "الإنجليزية" : "English",
-    arabic: locale === "ar" ? "العربية" : "Arabic",
-    password: locale === "ar" ? "كلمة المرور" : "Password",
-    confirmPassword: locale === "ar" ? "تأكيد كلمة المرور" : "Confirm Password",
-    passwordHint:
-      locale === "ar"
-        ? "8 أحرف على الأقل. كلمة المرور يجب أن تكون بالإنجليزية فقط (A-Z, a-z, 0-9 والرموز الإنجليزية). عند تفعيل لوحة مفاتيح عربية لن يتم إدخال أحرف عربية."
-        : "Minimum 8 characters. Password must use English characters only (A-Z, a-z, 0-9, and English symbols). If Arabic keyboard is active, Arabic characters will not be entered.",
-    acceptTermsPrefix: locale === "ar" ? "لقد قرأت" : "I have read and accept the",
-    acceptTermsLink: locale === "ar" ? "الشروط والأحكام" : "Terms & Conditions",
-    acceptTermsSuffix: locale === "ar" ? "وأوافق عليها" : "",
-    register: locale === "ar" ? "إنشاء حساب" : "Create Account",
-    tabPassword: locale === "ar" ? "العضوية بكلمة المرور" : "Password Signup",
-    tabWhatsApp: locale === "ar" ? "العضوية عبر واتساب" : "WhatsApp Signup",
-    haveAccount: locale === "ar" ? "لديك حساب بالفعل؟" : "Already have an account?",
-    login: locale === "ar" ? "تسجيل الدخول" : "Sign in",
+    title:       isAr ? "إنشاء حساب" : "Create account",
+    subtitle:    isAr ? "انضم إلى عائلة نون" : "Join the Noon family",
+    fullName:    isAr ? "الاسم الكامل" : "Full name",
+    email:       isAr ? "البريد الإلكتروني" : "Email address",
+    phone:       isAr ? "رقم الهاتف" : "Phone number",
+    dob:         isAr ? "تاريخ الميلاد" : "Date of birth",
+    lang:        isAr ? "اللغة المفضلة" : "Preferred language",
+    english:     isAr ? "الإنجليزية" : "English",
+    arabic:      isAr ? "العربية" : "Arabic",
+    password:    isAr ? "كلمة المرور" : "Password",
+    confirm:     isAr ? "تأكيد كلمة المرور" : "Confirm password",
+    passHint:    isAr ? "8 أحرف على الأقل بالإنجليزية فقط." : "At least 8 English characters.",
+    terms:       isAr ? "أوافق على" : "I agree to the",
+    termsLink:   isAr ? "الشروط والأحكام" : "Terms & Conditions",
+    register:    isAr ? "إنشاء الحساب" : "Create account",
+    tabPassword: isAr ? "بكلمة المرور" : "Password",
+    tabWhatsApp: isAr ? "عبر واتساب" : "WhatsApp",
+    haveAccount: isAr ? "لديك حساب؟" : "Already have an account?",
+    login:       isAr ? "تسجيل الدخول" : "Sign in",
   };
 
-  const errors = {
-    missing_fields: locale === "ar" ? "يرجى ملء جميع الحقول المطلوبة" : "Please fill in all required fields",
-    password_mismatch: locale === "ar" ? "كلمات المرور غير متطابقة" : "Passwords do not match",
-    password_weak: locale === "ar" ? "كلمة المرور يجب أن تكون 8 أحرف على الأقل" : "Password must be at least 8 characters",
-    password_english_only:
-      locale === "ar"
-        ? "كلمة المرور يجب أن تحتوي على أحرف إنجليزية فقط (A-Z, a-z, 0-9 والرموز الإنجليزية)."
-        : "Password must contain English characters only (A-Z, a-z, 0-9, and English symbols).",
-    invalid_email: locale === "ar" ? "البريد الإلكتروني غير صحيح" : "Invalid email address",
-    invalid_phone: locale === "ar" ? "رقم الهاتف غير صحيح" : "Invalid phone number",
-    email_exists: locale === "ar" ? "البريد الإلكتروني مسجل بالفعل" : "Email already registered",
-    terms_required: locale === "ar" ? "يجب الموافقة على الشروط والأحكام لإكمال التسجيل" : "You must accept the Terms & Conditions to register",
-    server_error: locale === "ar" ? "حدث خطأ، يرجى المحاولة مرة أخرى" : "An error occurred, please try again",
+  const errors: Record<string, string> = {
+    missing_fields:       isAr ? "يرجى ملء جميع الحقول المطلوبة" : "Please fill in all required fields",
+    password_mismatch:    isAr ? "كلمات المرور غير متطابقة" : "Passwords do not match",
+    password_weak:        isAr ? "كلمة المرور يجب أن تكون 8 أحرف على الأقل" : "Password must be at least 8 characters",
+    password_english_only: isAr ? "كلمة المرور يجب أن تكون بالإنجليزية فقط" : "Password must use English characters only",
+    invalid_email:        isAr ? "البريد الإلكتروني غير صحيح" : "Invalid email address",
+    invalid_phone:        isAr ? "رقم الهاتف غير صحيح" : "Invalid phone number",
+    email_exists:         isAr ? "البريد الإلكتروني مسجل مسبقاً" : "Email already registered",
+    terms_required:       isAr ? "يجب الموافقة على الشروط والأحكام" : "You must accept the Terms & Conditions",
+    server_error:         isAr ? "حدث خطأ، يرجى المحاولة مرة أخرى" : "An error occurred, please try again",
   };
+
+  const dir = isAr ? "rtl" : "ltr";
+  const fieldCls = "w-full border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-[color:var(--text)] placeholder-zinc-400 transition focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800/60 dark:placeholder-zinc-500 dark:focus:border-zinc-500 dark:focus:bg-zinc-800";
+  const labelCls = "block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1";
 
   const passwordTabHref = `/${locale}/register?method=password`;
   const whatsappTabHref = `/${locale}/register?method=whatsapp`;
 
   return (
-    <div className="home-sharp mx-auto w-full max-w-6xl px-4 py-12">
-      <div className="mx-auto w-full max-w-2xl">
-        <div className="rounded-3xl border border-[color:var(--border)]/70 bg-[color:var(--surface)] p-8 shadow-lg dark:border-zinc-800/60 dark:bg-zinc-950">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)] dark:text-zinc-100">
-              {t.title}
-            </h1>
-            <p className="mt-2 text-sm text-[color:var(--text-subtle)] dark:text-zinc-400">
-              {t.subtitle}
-            </p>
+    <div className="home-sharp min-h-dvh bg-zinc-50 px-4 py-10 dark:bg-zinc-950" dir={dir}>
+      <div className="mx-auto w-full max-w-md">
+
+        {/* Logo/brand area */}
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-bold tracking-tight text-[color:var(--text)]">{t.title}</h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t.subtitle}</p>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="mb-5 flex border border-zinc-200 dark:border-zinc-700">
+          <Link
+            href={passwordTabHref}
+            className={`flex-1 py-2.5 text-center text-sm font-semibold transition ${
+              authMethod === "password"
+                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                : "bg-white text-zinc-500 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+            }`}
+          >
+            {t.tabPassword}
+          </Link>
+          <Link
+            href={whatsappTabHref}
+            className={`flex-1 border-s border-zinc-200 py-2.5 text-center text-sm font-semibold transition dark:border-zinc-700 ${
+              authMethod === "whatsapp"
+                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
+                : "bg-white text-zinc-500 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+            }`}
+          >
+            {t.tabWhatsApp}
+          </Link>
+        </div>
+
+        {/* Error */}
+        {authMethod === "password" && error && error in errors && (
+          <div className="mb-4 border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800/40 dark:bg-red-950/30 dark:text-red-300">
+            {errors[error]}
           </div>
+        )}
 
-          <div className="mb-6 grid grid-cols-2 border border-zinc-300 dark:border-zinc-700">
-            <Link
-              href={passwordTabHref}
-              className={`px-3 py-2 text-center text-sm font-semibold transition ${
-                authMethod === "password"
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              }`}
-            >
-              {t.tabPassword}
-            </Link>
-            <Link
-              href={whatsappTabHref}
-              className={`border-s border-zinc-300 px-3 py-2 text-center text-sm font-semibold transition dark:border-zinc-700 ${
-                authMethod === "whatsapp"
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "bg-white text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              }`}
-            >
-              {t.tabWhatsApp}
-            </Link>
-          </div>
-
-          {/* Error Message */}
-          {authMethod === "password" && error && error in errors ? (
-            <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-200">
-              {errors[error as keyof typeof errors]}
-            </div>
-          ) : null}
-
-          {authMethod === "password" ? (
-            <form action={handleRegister} className="grid gap-6">
+        {authMethod === "password" ? (
+          <form action={handleRegister} className="space-y-4 bg-white p-6 shadow-sm dark:bg-zinc-900">
             <input type="hidden" name="locale" value={locale} />
 
-            {/* Name Fields */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                <span className="flex items-center gap-1">
-                  {t.firstName}
-                  <span className="text-red-500">*</span>
-                </span>
-                <input
-                  type="text"
-                  name="firstName"
-                  required
-                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-                />
-              </label>
-
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                <span>{t.middleName}</span>
-                <input
-                  type="text"
-                  name="middleName"
-                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-                />
-              </label>
-
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                <span className="flex items-center gap-1">
-                  {t.lastName}
-                  <span className="text-red-500">*</span>
-                </span>
-                <input
-                  type="text"
-                  name="lastName"
-                  required
-                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-                />
-              </label>
+            {/* Full Name */}
+            <div>
+              <label className={labelCls}>{t.fullName} <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                name="fullName"
+                required
+                autoComplete="name"
+                placeholder={isAr ? "الاسم الكامل" : "Your full name"}
+                className={fieldCls}
+              />
             </div>
 
-            {/* Contact Fields */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                <span className="flex items-center gap-1">
-                  {t.email}
-                  <span className="text-red-500">*</span>
-                </span>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  lang="en"
-                  dir="ltr"
-                  placeholder="name@example.com"
-                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-                />
-              </label>
-
-              <div className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                <span className="flex items-center gap-1">
-                  {t.phone}
-                  <span className="text-red-500">*</span>
-                </span>
-                <CountryCodeSelect
-                  locale={locale}
-                  name="phone"
-                  required
-                  inputClassName="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-                />
-              </div>
+            {/* Email */}
+            <div>
+              <label className={labelCls}>{t.email} <span className="text-red-500">*</span></label>
+              <input
+                type="email"
+                name="email"
+                required
+                lang="en"
+                dir="ltr"
+                autoComplete="email"
+                placeholder="name@example.com"
+                className={fieldCls}
+              />
             </div>
 
-            {/* Date of Birth & Language */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                <span className="flex items-center gap-1">
-                  {t.dateOfBirth}
-                  <span className="text-red-500">*</span>
-                </span>
-                <input
-                  type="date"
-                  name="dateOfBirth"
-                  required
-                  max={new Date().toISOString().split("T")[0]}
-                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-                />
-              </label>
-
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                <span className="flex items-center gap-1">
-                  {t.preferredLanguage}
-                  <span className="text-red-500">*</span>
-                </span>
-                <select
-                  name="preferredLanguage"
-                  required
-                  defaultValue={locale}
-                  className="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-                >
-                  <option value="en">{t.english}</option>
-                  <option value="ar">{t.arabic}</option>
-                </select>
-              </label>
+            {/* Phone */}
+            <div>
+              <label className={labelCls}>{t.phone} <span className="text-red-500">*</span></label>
+              <CountryCodeSelect
+                locale={locale}
+                name="phone"
+                required
+                inputClassName={fieldCls}
+              />
             </div>
 
-            {/* Password Fields */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                <span className="flex items-center gap-1">
-                  {t.password}
-                  <span className="text-red-500">*</span>
-                </span>
-                <PasswordInput
-                  locale={locale}
-                  name="password"
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                  restrictEnglish
-                  inputClassName="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-                />
-                <span className="text-xs text-[color:var(--text-subtle)] dark:text-zinc-400">{t.passwordHint}</span>
-              </label>
-
-              <label className="flex flex-col gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                <span className="flex items-center gap-1">
-                  {t.confirmPassword}
-                  <span className="text-red-500">*</span>
-                </span>
-                <PasswordInput
-                  locale={locale}
-                  name="confirmPassword"
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                  restrictEnglish
-                  inputClassName="w-full rounded-xl border border-zinc-300 bg-[color:var(--surface)] px-4 py-2.5 text-sm text-[color:var(--text)] shadow-sm transition-all placeholder:text-zinc-400 hover:border-zinc-400 focus:border-zinc-900 focus:outline-none focus:ring-4 focus:ring-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-[color:var(--text-subtle)] dark:hover:border-zinc-600 dark:focus:border-white dark:focus:ring-white/10"
-                />
-              </label>
+            {/* DOB */}
+            <div>
+              <label className={labelCls}>{t.dob} <span className="text-red-500">*</span></label>
+              <input
+                type="date"
+                name="dateOfBirth"
+                required
+                max={new Date().toISOString().split("T")[0]}
+                className={fieldCls}
+              />
             </div>
 
-            <label className="flex items-start gap-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)]/35 px-4 py-3 text-sm text-[color:var(--text)] dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-200">
+            {/* Language */}
+            <div>
+              <label className={labelCls}>{t.lang}</label>
+              <select name="preferredLanguage" defaultValue={locale} className={fieldCls}>
+                <option value="en">{t.english}</option>
+                <option value="ar">{t.arabic}</option>
+              </select>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className={labelCls}>{t.password} <span className="text-red-500">*</span></label>
+              <PasswordInput
+                locale={locale}
+                name="password"
+                required
+                minLength={8}
+                autoComplete="new-password"
+                restrictEnglish
+                inputClassName={fieldCls}
+              />
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className={labelCls}>{t.confirm} <span className="text-red-500">*</span></label>
+              <PasswordInput
+                locale={locale}
+                name="confirmPassword"
+                required
+                minLength={8}
+                autoComplete="new-password"
+                restrictEnglish
+                inputClassName={fieldCls}
+              />
+            </div>
+            <p className="text-[11px] text-zinc-400 dark:text-zinc-500">{t.passHint}</p>
+
+            {/* Terms */}
+            <label className="flex items-start gap-2.5 text-sm text-zinc-600 dark:text-zinc-300">
               <input
                 type="checkbox"
                 name="acceptedTerms"
                 required
-                className="mt-1 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-white dark:focus:ring-white"
+                className="mt-0.5 h-4 w-4 flex-shrink-0 border-zinc-300 dark:border-zinc-600"
               />
-              <span className="leading-6">
-                {t.acceptTermsPrefix}{" "}
-                <Link href={`/${locale}/terms`} className="font-semibold underline underline-offset-4">
-                  {t.acceptTermsLink}
+              <span>
+                {t.terms}{" "}
+                <Link href={`/${locale}/terms`} className="font-semibold text-[color:var(--text)] underline underline-offset-2">
+                  {t.termsLink}
                 </Link>
-                {t.acceptTermsSuffix ? ` ${t.acceptTermsSuffix}` : ""}
               </span>
             </label>
 
-            {/* Submit Button */}
             <button
               type="submit"
-              className="inline-flex items-center justify-center rounded-xl bg-zinc-900 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-zinc-900/20 transition-all hover:bg-zinc-800 hover:shadow-xl hover:shadow-zinc-900/30 active:scale-[0.98] dark:bg-[color:var(--surface)] dark:text-[color:var(--text)] dark:shadow-white/20 dark:hover:bg-[color:var(--muted)] dark:hover:shadow-white/30"
+              className="mt-1 w-full bg-zinc-900 py-3 text-sm font-bold text-white transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
             >
               {t.register}
             </button>
-            </form>
-          ) : (
+          </form>
+        ) : (
+          <div className="bg-white shadow-sm dark:bg-zinc-900">
             <WhatsAppAuthCard locale={locale} purpose="register" />
-          )}
-
-          {/* Login Link */}
-          <div className="mt-8 border-t border-[color:var(--border)] pt-6 text-center text-sm text-[color:var(--text-subtle)] dark:border-zinc-800 dark:text-zinc-400">
-            {t.haveAccount}{" "}
-            <Link
-              href={`/${locale}/login`}
-              className="font-semibold text-[color:var(--text)] transition hover:text-zinc-700 dark:text-white dark:hover:text-zinc-300"
-            >
-              {t.login}
-            </Link>
           </div>
-        </div>
+        )}
+
+        <p className="mt-5 text-center text-sm text-zinc-500 dark:text-zinc-400">
+          {t.haveAccount}{" "}
+          <Link href={`/${locale}/login`} className="font-semibold text-[color:var(--text)] hover:underline">
+            {t.login}
+          </Link>
+        </p>
       </div>
     </div>
   );
