@@ -236,6 +236,9 @@ export interface ClassPublic {
   seatsTotal: number;
   seatsAvailable: number;
   seatsBooked: number;
+  minimumAge?: number | null;
+  maximumAge?: number | null;
+  showMinimumAge?: boolean;
   startDateTime: Date | null;
   endDateTime: Date | null;
   registrationCloseAt: Date | null;

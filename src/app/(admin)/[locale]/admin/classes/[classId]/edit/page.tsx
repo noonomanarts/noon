@@ -70,6 +70,7 @@ interface FormData {
   metaTitle: string;
   metaDescription: string;
   minimumAge: string;
+  maximumAge: string;
   showMinimumAge: boolean;
   finalRecipeTitle: string;
   finalRecipeTitleAr: string;
@@ -138,6 +139,7 @@ export default function EditClassPage() {
     metaTitle: '',
     metaDescription: '',
     minimumAge: '',
+    maximumAge: '',
     showMinimumAge: false,
     finalRecipeTitle: '',
     finalRecipeTitleAr: '',
@@ -234,6 +236,7 @@ export default function EditClassPage() {
         metaTitle: data.metaTitle || '',
         metaDescription: data.metaDescription || '',
         minimumAge: data.minimumAge != null ? data.minimumAge.toString() : '',
+        maximumAge: data.maximumAge != null ? data.maximumAge.toString() : '',
         showMinimumAge: data.showMinimumAge || false,
         finalRecipeTitle: data.finalRecipeTitle || '',
         finalRecipeTitleAr: data.finalRecipeTitleAr || '',
@@ -475,6 +478,18 @@ export default function EditClassPage() {
     if (formData.endDateTime && !isQuarterHourDateTimeValue(formData.endDateTime)) newErrors.endDateTime = 'Minutes must be 00, 15, 30, or 45';
     if (formData.registrationCloseAt && !isQuarterHourDateTimeValue(formData.registrationCloseAt)) newErrors.registrationCloseAt = 'Minutes must be 00, 15, 30, or 45';
 
+    const minimumAge = formData.minimumAge ? parseInt(formData.minimumAge, 10) : null;
+    const maximumAge = formData.maximumAge ? parseInt(formData.maximumAge, 10) : null;
+    if (minimumAge != null && (Number.isNaN(minimumAge) || minimumAge < 1 || minimumAge > 99)) {
+      newErrors.minimumAge = 'Minimum age must be between 1 and 99';
+    }
+    if (maximumAge != null && (Number.isNaN(maximumAge) || maximumAge < 1 || maximumAge > 99)) {
+      newErrors.maximumAge = 'Maximum age must be between 1 and 99';
+    }
+    if (minimumAge != null && maximumAge != null && maximumAge < minimumAge) {
+      newErrors.maximumAge = 'Maximum age cannot be lower than minimum age';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -574,6 +589,7 @@ export default function EditClassPage() {
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description || '',
         minimumAge: formData.minimumAge ? parseInt(formData.minimumAge) : null,
+        maximumAge: formData.maximumAge ? parseInt(formData.maximumAge) : null,
         showMinimumAge: formData.showMinimumAge,
         finalRecipeTitle: formData.finalRecipeTitle || null,
         finalRecipeTitleAr: formData.finalRecipeTitleAr || null,
@@ -681,6 +697,7 @@ export default function EditClassPage() {
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description,
         minimumAge: formData.minimumAge ? parseInt(formData.minimumAge) : null,
+        maximumAge: formData.maximumAge ? parseInt(formData.maximumAge) : null,
         showMinimumAge: formData.showMinimumAge,
         finalRecipeTitle: formData.finalRecipeTitle || null,
         finalRecipeTitleAr: formData.finalRecipeTitleAr || null,
@@ -1271,16 +1288,45 @@ export default function EditClassPage() {
                 min="1"
                 max="99"
                 placeholder={isRTL ? 'مثال: 10' : 'e.g. 10'}
-                className={inputBase}
+                className={`${inputBase} ${errors.minimumAge ? 'border-red-500 dark:border-red-400' : ''}`}
               />
-              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                {isRTL
-                  ? 'اتركه فارغاً إذا لم يكن هناك شرط عمر. لن يتمكن أحد من التسجيل إذا كان عمره أقل من هذا.'
-                  : 'Leave empty for no age restriction. Participants below this age will not be able to register.'}
-              </p>
+              {errors.minimumAge ? (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.minimumAge}</p>
+              ) : (
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {isRTL
+                    ? 'اتركه فارغاً إذا لم يكن هناك شرط عمر. لن يتمكن أحد من التسجيل إذا كان عمره أقل من هذا.'
+                    : 'Leave empty for no age restriction. Participants below this age will not be able to register.'}
+                </p>
+              )}
             </div>
 
-            <div className="flex items-center gap-3 self-start mt-6">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                {isRTL ? 'الحد الأقصى للعمر' : 'Maximum Age'}
+              </label>
+              <input
+                type="number"
+                name="maximumAge"
+                value={formData.maximumAge}
+                onChange={handleInputChange}
+                min="1"
+                max="99"
+                placeholder={isRTL ? 'مثال: 16' : 'e.g. 16'}
+                className={`${inputBase} ${errors.maximumAge ? 'border-red-500 dark:border-red-400' : ''}`}
+              />
+              {errors.maximumAge ? (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.maximumAge}</p>
+              ) : (
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {isRTL
+                    ? 'اتركه فارغاً إذا لم يكن هناك حد أقصى للعمر. لن يتمكن أحد من التسجيل إذا كان عمره أكبر من هذا.'
+                    : 'Leave empty for no maximum age restriction. Participants above this age will not be able to register.'}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 self-start md:col-span-2 mt-0 md:mt-0">
               <button
                 type="button"
                 onClick={() =>

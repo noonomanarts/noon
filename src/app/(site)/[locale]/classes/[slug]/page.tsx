@@ -127,6 +127,8 @@ export default async function ClassDetailPage({
     noActiveSchedule:
       isArabic ? "لا يوجد موعد نشط لهذه الورشة حالياً، ويمكنك طلب إعادتها من القسم الجانبي." : "There is no active schedule for this workshop right now. You can request a repeat from the side panel.",
     minimumAge: isArabic ? "الحد الأدنى للعمر" : "Minimum Age",
+    maximumAge: isArabic ? "الحد الأقصى للعمر" : "Maximum Age",
+    ageRange: isArabic ? "الفئة العمرية" : "Age Range",
     audience: isArabic ? "الفئة المناسبة" : "Audience",
     audienceMixed: isArabic ? "مشترك" : "Mixed",
     audienceWomen: isArabic ? "للنساء فقط" : "Women only",
@@ -271,14 +273,18 @@ export default async function ClassDetailPage({
                     {averageRating > 0 ? `${averageRating.toFixed(1)} (${reviews.length})` : t.noReviews}
                   </p>
                 </div>
-                {classData.showMinimumAge && classData.minimumAge != null && (
+                {classData.showMinimumAge && (classData.minimumAge != null || classData.maximumAge != null) && (
                   <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20 sm:col-span-2">
                     <p className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                       <HiShieldCheck className="h-4 w-4" />
-                      {t.minimumAge}
+                      {classData.minimumAge != null && classData.maximumAge != null ? t.ageRange : classData.minimumAge != null ? t.minimumAge : t.maximumAge}
                     </p>
                     <p className="mt-1 text-sm font-semibold text-amber-900 dark:text-amber-100">
-                      {classData.minimumAge}+ {t.yearsOld}
+                      {classData.minimumAge != null && classData.maximumAge != null
+                        ? `${classData.minimumAge} - ${classData.maximumAge} ${isArabic ? 'سنة' : 'years'}`
+                        : classData.minimumAge != null
+                          ? `${classData.minimumAge}+ ${t.yearsOld}`
+                          : `${isArabic ? 'حتى' : 'Up to'} ${classData.maximumAge} ${isArabic ? 'سنة' : 'years'}`}
                     </p>
                   </div>
                 )}

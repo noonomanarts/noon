@@ -132,6 +132,7 @@ export default function ClassBookingClient({
     subCategory: string | null;
     audienceGender?: 'MALE_ONLY' | 'FEMALE_ONLY' | 'MIXED' | null;
     minimumAge?: number | null;
+    maximumAge?: number | null;
     startDateTime: string | null;
     endDateTime: string | null;
     registrationCloseAt?: string | null;
@@ -280,6 +281,9 @@ export default function ClassBookingClient({
     ageTooYoung: isArabic
       ? `عمر أحد المشاركين أقل من الحد الأدنى المطلوب (${classData.minimumAge ?? 0} سنة).`
       : `A participant is below the minimum age requirement (${classData.minimumAge ?? 0} years).`,
+    ageTooOld: isArabic
+      ? `عمر أحد المشاركين أكبر من الحد الأقصى المسموح (${classData.maximumAge ?? 0} سنة).`
+      : `A participant is above the maximum age limit (${classData.maximumAge ?? 0} years).`,
     momKidPolicy: isArabic
       ? 'من عمر 10 سنوات فأكثر يمكنه العمل بمفرده. الأطفال من 5 إلى 9 سنوات يحتاجون شريكاً مجانياً، ويجب تسجيل الاسمين. الأطفال أقل من 5 سنوات غير مقبولين.'
       : 'Anyone aged 10+ can work alone. Children aged 5-9 need one free partner, and both names must be registered. Children under 5 are not accepted.',
@@ -469,6 +473,16 @@ export default function ClassBookingClient({
         const age = calculateAgeFromDateString(participant.dateOfBirth, today);
         if (age < classData.minimumAge) {
           setError(t.ageTooYoung);
+          return false;
+        }
+        if (classData.maximumAge != null && classData.maximumAge > 0 && age > classData.maximumAge) {
+          setError(t.ageTooOld);
+          return false;
+        }
+      } else if (classData.maximumAge != null && classData.maximumAge > 0) {
+        const age = calculateAgeFromDateString(participant.dateOfBirth, today);
+        if (age > classData.maximumAge) {
+          setError(t.ageTooOld);
           return false;
         }
       }

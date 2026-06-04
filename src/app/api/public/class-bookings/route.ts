@@ -261,7 +261,7 @@ export async function POST(request: NextRequest) {
 
     const classResult = await client.query(
             `SELECT c.id, c.title, c.title_ar, c.price, c.currency, c.seats_total, c.seats_booked,
-              c.status, c.sub_category, c.minimum_age, c.start_date_time, c.registration_close_at, c.audience_gender
+              c.status, c.sub_category, c.minimum_age, c.maximum_age, c.start_date_time, c.registration_close_at, c.audience_gender
        FROM classes c
        WHERE c.id = $1
        FOR UPDATE`,
@@ -290,14 +290,21 @@ export async function POST(request: NextRequest) {
 
     // Enforce minimum age restriction
     const minimumAge = classRow.minimum_age != null ? Number(classRow.minimum_age) : null;
-    if (minimumAge != null && minimumAge > 0) {
+    const maximumAge = classRow.maximum_age != null ? Number(classRow.maximum_age) : null;
+    if ((minimumAge != null && minimumAge > 0) || (maximumAge != null && maximumAge > 0)) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       for (const p of participants) {
         const age = calculateAgeFromDateString(p.dateOfBirth, today);
-        if (age < minimumAge) {
+        if (minimumAge != null && minimumAge > 0 && age < minimumAge) {
           throw new ApiError(
             `A participant is below the minimum age requirement (${minimumAge} years).`,
+            400
+          );
+        }
+        if (maximumAge != null && maximumAge > 0 && age > maximumAge) {
+          throw new ApiError(
+            `A participant is above the maximum age limit (${maximumAge} years).`,
             400
           );
         }

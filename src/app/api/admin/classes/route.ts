@@ -95,6 +95,9 @@ export async function POST(request: NextRequest) {
       finalRecipeBriefAr,
       finalRecipeVisibleToCustomers,
       currency,
+      minimumAge,
+      maximumAge,
+      showMinimumAge,
       startDateTime,
       endDateTime,
       registrationCloseAt,
@@ -213,6 +216,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (minimumAge != null && (!Number.isInteger(minimumAge) || minimumAge < 1 || minimumAge > 99)) {
+      return NextResponse.json(
+        { error: 'Minimum age must be an integer between 1 and 99' },
+        { status: 400 }
+      );
+    }
+
+    if (maximumAge != null && (!Number.isInteger(maximumAge) || maximumAge < 1 || maximumAge > 99)) {
+      return NextResponse.json(
+        { error: 'Maximum age must be an integer between 1 and 99' },
+        { status: 400 }
+      );
+    }
+
+    if (minimumAge != null && maximumAge != null && maximumAge < minimumAge) {
+      return NextResponse.json(
+        { error: 'Maximum age cannot be lower than minimum age' },
+        { status: 400 }
+      );
+    }
+
     // For drafts, use defaults for required DB fields when not provided
     const resolvedCategory = category || 'COOKING';
     const resolvedSubCategory = subCategory || 'MIXED';
@@ -266,6 +290,9 @@ export async function POST(request: NextRequest) {
       currency: currency || 'OMR',
       metaTitle,
       metaDescription,
+      minimumAge: minimumAge ?? null,
+      maximumAge: maximumAge ?? null,
+      showMinimumAge: Boolean(showMinimumAge),
       finalRecipeTitle,
       finalRecipePdf,
       finalRecipeBrief,

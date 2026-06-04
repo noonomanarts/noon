@@ -88,6 +88,9 @@ export async function POST(_request: NextRequest, props: Params) {
       trainerSharePercent: Number(source.trainerSharePercent || 0),
       noonSharePercent: Number(source.noonSharePercent || 0),
       expenseSharePercent: Number(source.expenseSharePercent || 0),
+      minimumAge: typeof source.minimumAge === 'number' ? source.minimumAge : null,
+      maximumAge: typeof source.maximumAge === 'number' ? source.maximumAge : null,
+      showMinimumAge: Boolean(source.showMinimumAge),
     });
 
     return NextResponse.json({ success: true, class: duplicated }, { status: 201 });

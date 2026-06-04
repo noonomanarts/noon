@@ -73,6 +73,7 @@ export default function AdminClassMemberWalletPanel({
   classSubCategory,
   audienceGender,
   minimumAge,
+  maximumAge,
   locale,
   onChangedAction,
 }: {
@@ -84,6 +85,7 @@ export default function AdminClassMemberWalletPanel({
   classSubCategory?: string | null;
   audienceGender?: 'MALE_ONLY' | 'FEMALE_ONLY' | 'MIXED' | null;
   minimumAge?: number | null;
+  maximumAge?: number | null;
   locale: string;
   onChangedAction?: () => Promise<void> | void;
 }) {
@@ -263,6 +265,9 @@ export default function AdminClassMemberWalletPanel({
     ageTooYoung: isArabic
       ? `عمر أحد المشاركين أقل من الحد الأدنى المطلوب (${minimumAge ?? 0} سنة).`
       : `A participant is below the minimum age requirement (${minimumAge ?? 0} years).`,
+    ageTooOld: isArabic
+      ? `عمر أحد المشاركين أكبر من الحد الأقصى المسموح (${maximumAge ?? 0} سنة).`
+      : `A participant is above the maximum age limit (${maximumAge ?? 0} years).`,
     momKidUnderFive: isArabic
       ? 'لا نقبل الأطفال أقل من 5 سنوات في هذه الورشة.'
       : 'Children under 5 are not accepted in this workshop.',
@@ -330,16 +335,18 @@ export default function AdminClassMemberWalletPanel({
         return false;
       }
 
-      if (minimumAge != null && minimumAge > 0) {
-        const age = calculateAge(participant.dateOfBirth);
-        if (age < minimumAge) {
-          setError(t.ageTooYoung);
-          return false;
-        }
+      const age = calculateAge(participant.dateOfBirth);
+      if (minimumAge != null && minimumAge > 0 && age < minimumAge) {
+        setError(t.ageTooYoung);
+        return false;
+      }
+
+      if (maximumAge != null && maximumAge > 0 && age > maximumAge) {
+        setError(t.ageTooOld);
+        return false;
       }
 
       if (isMomKid) {
-        const age = calculateAge(participant.dateOfBirth);
         if (age < 5) {
           setError(t.momKidUnderFive);
           return false;

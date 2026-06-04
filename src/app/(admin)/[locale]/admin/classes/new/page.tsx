@@ -68,6 +68,9 @@ interface FormData {
   status: ClassStatus;
   metaTitle: string;
   metaDescription: string;
+  minimumAge: string;
+  maximumAge: string;
+  showMinimumAge: boolean;
   finalRecipeTitle: string;
   finalRecipeTitleAr: string;
   finalRecipeBrief: string;
@@ -130,6 +133,9 @@ export default function NewClassPage() {
     status: 'DRAFT',
     metaTitle: '',
     metaDescription: '',
+    minimumAge: '',
+    maximumAge: '',
+    showMinimumAge: false,
     finalRecipeTitle: '',
     finalRecipeTitleAr: '',
     finalRecipeBrief: '',
@@ -378,6 +384,18 @@ export default function NewClassPage() {
     if (formData.endDateTime && !isQuarterHourDateTimeValue(formData.endDateTime)) newErrors.endDateTime = 'Minutes must be 00, 15, 30, or 45';
     if (formData.registrationCloseAt && !isQuarterHourDateTimeValue(formData.registrationCloseAt)) newErrors.registrationCloseAt = 'Minutes must be 00, 15, 30, or 45';
 
+    const minimumAge = formData.minimumAge ? parseInt(formData.minimumAge, 10) : null;
+    const maximumAge = formData.maximumAge ? parseInt(formData.maximumAge, 10) : null;
+    if (minimumAge != null && (Number.isNaN(minimumAge) || minimumAge < 1 || minimumAge > 99)) {
+      newErrors.minimumAge = 'Minimum age must be between 1 and 99';
+    }
+    if (maximumAge != null && (Number.isNaN(maximumAge) || maximumAge < 1 || maximumAge > 99)) {
+      newErrors.maximumAge = 'Maximum age must be between 1 and 99';
+    }
+    if (minimumAge != null && maximumAge != null && maximumAge < minimumAge) {
+      newErrors.maximumAge = 'Maximum age cannot be lower than minimum age';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -477,6 +495,9 @@ export default function NewClassPage() {
         status: 'DRAFT',
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description || '',
+        minimumAge: formData.minimumAge ? parseInt(formData.minimumAge) : null,
+        maximumAge: formData.maximumAge ? parseInt(formData.maximumAge) : null,
+        showMinimumAge: formData.showMinimumAge,
         finalRecipeTitle: formData.finalRecipeTitle || null,
         finalRecipeTitleAr: formData.finalRecipeTitleAr || null,
         finalRecipeBrief: formData.finalRecipeBrief || null,
@@ -574,6 +595,9 @@ export default function NewClassPage() {
         status: formData.status,
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description,
+        minimumAge: formData.minimumAge ? parseInt(formData.minimumAge) : null,
+        maximumAge: formData.maximumAge ? parseInt(formData.maximumAge) : null,
+        showMinimumAge: formData.showMinimumAge,
         finalRecipeTitle: formData.finalRecipeTitle || null,
         finalRecipeTitleAr: formData.finalRecipeTitleAr || null,
         finalRecipeBrief: formData.finalRecipeBrief || null,
@@ -1119,6 +1143,98 @@ export default function NewClassPage() {
                     : `Settlement now uses formula-based finance: fixed costs are calculated automatically as kitchen usage = ${formatRate(selectedCategoryFinance.kitchenUsageRatePerHour)} x workshop duration in hours and workshop content = ${formatRate(selectedCategoryFinance.workshopContentRatePerParticipant)} x participant count. Material costs are added manually, trainer fee is calculated from the remaining revenue, and Noon fee is whatever remains after that.`}
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Age Restriction */}
+        <div className={sectionCard}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-amber-500/10 dark:bg-amber-500/20 rounded-lg">
+              <IoAlertCircle className="text-2xl text-amber-600 dark:text-amber-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              {isRTL ? 'شرط العمر' : 'Age Restriction'}
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                {isRTL ? 'الحد الأدنى للعمر' : 'Minimum Age'}
+              </label>
+              <input
+                type="number"
+                name="minimumAge"
+                value={formData.minimumAge}
+                onChange={handleInputChange}
+                min="1"
+                max="99"
+                placeholder={isRTL ? 'مثال: 10' : 'e.g. 10'}
+                className={`${inputBase} ${errors.minimumAge ? 'border-red-500 dark:border-red-400' : ''}`}
+              />
+              {errors.minimumAge ? (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.minimumAge}</p>
+              ) : (
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {isRTL
+                    ? 'اتركه فارغاً إذا لم يكن هناك حد أدنى للعمر.'
+                    : 'Leave empty if there is no minimum age restriction.'}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                {isRTL ? 'الحد الأقصى للعمر' : 'Maximum Age'}
+              </label>
+              <input
+                type="number"
+                name="maximumAge"
+                value={formData.maximumAge}
+                onChange={handleInputChange}
+                min="1"
+                max="99"
+                placeholder={isRTL ? 'مثال: 16' : 'e.g. 16'}
+                className={`${inputBase} ${errors.maximumAge ? 'border-red-500 dark:border-red-400' : ''}`}
+              />
+              {errors.maximumAge ? (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.maximumAge}</p>
+              ) : (
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {isRTL
+                    ? 'اتركه فارغاً إذا لم يكن هناك حد أقصى للعمر.'
+                    : 'Leave empty if there is no maximum age restriction.'}
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3 self-start md:mt-6">
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    showMinimumAge: !prev.showMinimumAge,
+                  }))
+                }
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  formData.showMinimumAge
+                    ? 'bg-teal-600'
+                    : 'bg-zinc-300 dark:bg-zinc-600'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    formData.showMinimumAge
+                      ? isRTL ? '-translate-x-6' : 'translate-x-6'
+                      : isRTL ? '-translate-x-1' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                {isRTL ? 'عرض شرط العمر في صفحة الورشة' : 'Show age restriction on workshop page'}
+              </span>
             </div>
           </div>
         </div>

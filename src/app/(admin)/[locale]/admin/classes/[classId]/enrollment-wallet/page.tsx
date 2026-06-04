@@ -14,6 +14,7 @@ type ClassDetails = {
   subCategory?: string | null;
   audienceGender?: 'MALE_ONLY' | 'FEMALE_ONLY' | 'MIXED' | null;
   minimumAge?: number | null;
+  maximumAge?: number | null;
   seatsTotal: number;
   seatsBooked: number;
   status: 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED';
@@ -133,6 +134,7 @@ export default function AdminClassEnrollmentWalletPage({
         classSubCategory={classData.subCategory}
         audienceGender={classData.audienceGender}
         minimumAge={classData.minimumAge}
+        maximumAge={classData.maximumAge}
         locale={locale}
         onChangedAction={async () => {
           await loadData();

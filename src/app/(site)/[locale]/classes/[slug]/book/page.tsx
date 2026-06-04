@@ -120,6 +120,7 @@ export default async function ClassBookingPage({
           subCategory: classData.subCategory,
           audienceGender: classData.audienceGender,
           minimumAge: classData.minimumAge,
+          maximumAge: classData.maximumAge,
           startDateTime: classData.startDateTime ? classData.startDateTime.toISOString() : null,
           endDateTime: classData.endDateTime ? classData.endDateTime.toISOString() : null,
           registrationCloseAt: registrationCloseAt ? registrationCloseAt.toISOString() : null,

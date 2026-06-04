@@ -17,6 +17,7 @@ async function ensureClassMinimumAgeSchema(): Promise<void> {
 
   classMinimumAgeSchemaReady = (async () => {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS minimum_age INTEGER DEFAULT NULL`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS maximum_age INTEGER DEFAULT NULL`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS show_minimum_age BOOLEAN NOT NULL DEFAULT FALSE`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS registration_close_at TIMESTAMP WITH TIME ZONE`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS audience_gender VARCHAR(20) NOT NULL DEFAULT 'MIXED'`);
@@ -121,6 +122,9 @@ export async function findManyClasses(options: {
     trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
     noonSharePercent: parseFloat(row.noon_share_percent || 0),
     expenseSharePercent: parseFloat(row.expense_share_percent || 0),
+    minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
+    maximumAge: row.maximum_age != null ? Number(row.maximum_age) : null,
+    showMinimumAge: Boolean(row.show_minimum_age),
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
     registrationCloseAt: row.registration_close_at || null,
@@ -244,6 +248,9 @@ export async function findManyClassesPaginated(options: {
     trainerSharePercent: parseFloat(row.trainer_share_percent || 0),
     noonSharePercent: parseFloat(row.noon_share_percent || 0),
     expenseSharePercent: parseFloat(row.expense_share_percent || 0),
+    minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
+    maximumAge: row.maximum_age != null ? Number(row.maximum_age) : null,
+    showMinimumAge: Boolean(row.show_minimum_age),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
@@ -345,6 +352,7 @@ export async function findUniqueClass(
     closedAt: row.closed_at,
     closedByUserId: row.closed_by_user_id,
     minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
+    maximumAge: row.maximum_age != null ? Number(row.maximum_age) : null,
     showMinimumAge: Boolean(row.show_minimum_age),
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
@@ -413,6 +421,9 @@ export async function createClass(data: {
   trainerSharePercent?: number;
   noonSharePercent?: number;
   expenseSharePercent?: number;
+  minimumAge?: number | null;
+  maximumAge?: number | null;
+  showMinimumAge?: boolean;
   startDateTime?: Date | string | null;
   endDateTime?: Date | string | null;
   registrationCloseAt?: Date | string | null;
@@ -435,9 +446,10 @@ export async function createClass(data: {
       final_recipe_title_ar, final_recipe_pdf_ar, final_recipe_brief_ar,
       final_recipe_visible_to_customers, final_recipe_published_at,
       trainer_share_percent, noon_share_percent, expense_share_percent,
+      minimum_age, maximum_age, show_minimum_age,
       start_date_time, end_date_time, registration_close_at, schedule_sessions,
       created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35::jsonb, $36, $37)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38::jsonb, $39, $40)
     RETURNING *`,
     [
       id,
@@ -471,6 +483,9 @@ export async function createClass(data: {
       data.trainerSharePercent ?? 0,
       data.noonSharePercent ?? 0,
       data.expenseSharePercent ?? 0,
+      data.minimumAge ?? null,
+      data.maximumAge ?? null,
+      data.showMinimumAge ?? false,
       data.startDateTime ? new Date(data.startDateTime as string) : null,
       data.endDateTime ? new Date(data.endDateTime as string) : null,
       data.registrationCloseAt ? new Date(data.registrationCloseAt as string) : null,
@@ -519,6 +534,7 @@ export async function createClass(data: {
     closedAt: row.closed_at,
     closedByUserId: row.closed_by_user_id,
     minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
+    maximumAge: row.maximum_age != null ? Number(row.maximum_age) : null,
     showMinimumAge: Boolean(row.show_minimum_age),
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
@@ -566,6 +582,7 @@ export async function updateClass(
     closedAt: Date | null;
     closedByUserId: string | null;
     minimumAge: number | null;
+    maximumAge: number | null;
     showMinimumAge: boolean;
     startDateTime: Date | string | null;
     endDateTime: Date | string | null;
@@ -616,6 +633,7 @@ export async function updateClass(
     closedAt: 'closed_at',
     closedByUserId: 'closed_by_user_id',
     minimumAge: 'minimum_age',
+    maximumAge: 'maximum_age',
     showMinimumAge: 'show_minimum_age',
     startDateTime: 'start_date_time',
     endDateTime: 'end_date_time',
@@ -678,6 +696,7 @@ export async function updateClass(
     closedAt: row.closed_at,
     closedByUserId: row.closed_by_user_id,
     minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
+    maximumAge: row.maximum_age != null ? Number(row.maximum_age) : null,
     showMinimumAge: Boolean(row.show_minimum_age),
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,
@@ -729,6 +748,7 @@ export async function findClassBySlug(slug: string): Promise<{
   durationMinutes: number;
   status: string;
   minimumAge: number | null;
+  maximumAge: number | null;
   showMinimumAge: boolean;
   startDateTime: Date | null;
   endDateTime: Date | null;
@@ -764,6 +784,7 @@ export async function findClassBySlug(slug: string): Promise<{
     durationMinutes: row.duration_minutes,
     status: row.status,
     minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,
+    maximumAge: row.maximum_age != null ? Number(row.maximum_age) : null,
     showMinimumAge: Boolean(row.show_minimum_age),
     startDateTime: row.start_date_time || null,
     endDateTime: row.end_date_time || null,

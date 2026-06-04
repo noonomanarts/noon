@@ -106,6 +106,31 @@ export async function PUT(request: NextRequest, props: Params) {
       );
     }
 
+    if (updateData.minimumAge != null && (!Number.isInteger(updateData.minimumAge) || updateData.minimumAge < 1 || updateData.minimumAge > 99)) {
+      return NextResponse.json(
+        { error: 'Minimum age must be an integer between 1 and 99' },
+        { status: 400 }
+      );
+    }
+
+    if (updateData.maximumAge != null && (!Number.isInteger(updateData.maximumAge) || updateData.maximumAge < 1 || updateData.maximumAge > 99)) {
+      return NextResponse.json(
+        { error: 'Maximum age must be an integer between 1 and 99' },
+        { status: 400 }
+      );
+    }
+
+    if (
+      updateData.minimumAge != null
+      && updateData.maximumAge != null
+      && updateData.maximumAge < updateData.minimumAge
+    ) {
+      return NextResponse.json(
+        { error: 'Maximum age cannot be lower than minimum age' },
+        { status: 400 }
+      );
+    }
+
     if (Array.isArray(updateData.scheduleSessions)) {
       for (const session of updateData.scheduleSessions) {
         if (
