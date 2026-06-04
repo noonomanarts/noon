@@ -143,8 +143,9 @@ export default function ClassBookingClient({
   currentUser: CurrentUserLite;
 }) {
   const isArabic = locale === 'ar';
+  const isSummerCamp = classData.subCategory === 'SUMMER_CAMP';
   const [selfParticipant, setSelfParticipant] = useState<ParticipantWithPartner>(() => buildSelfParticipant(currentUser));
-  const [bookingFor, setBookingFor] = useState<RegistrationType>('self');
+  const [bookingFor, setBookingFor] = useState<RegistrationType>(isSummerCamp ? 'other' : 'self');
   const [otherCount, setOtherCount] = useState(1);
   const [otherParticipants, setOtherParticipants] = useState<ParticipantWithPartner[]>([emptyParticipant()]);
   const [specialRequests, setSpecialRequests] = useState('');
@@ -182,7 +183,6 @@ export default function ClassBookingClient({
   const otherOptionMax = Math.max(1, maxOthersAllowed);
   const totalAmount = Number((classData.price * paidParticipants).toFixed(3));
   const isMomKid = classData.subCategory === 'MOM_AND_KID';
-  const isSummerCamp = classData.subCategory === 'SUMMER_CAMP';
   const summerCampDiscountAmount = isSummerCamp && (paidParticipants >= 2 || classData.summerCampHasPriorBooking) ? Number((totalAmount * 0.1).toFixed(3)) : 0;
   const payableTotalAmount = Number(Math.max(0, totalAmount - summerCampDiscountAmount).toFixed(3));
   const walletBalance = wallet?.balance ?? 0;
@@ -731,9 +731,17 @@ export default function ClassBookingClient({
 
             {isSummerCamp ? (
               <div className="mt-4">
-                <p className="mb-3 text-sm text-[color:var(--text-muted)]">{t.momKidOther}</p>
+                <label className="flex items-center gap-2 rounded-xl border border-[color:var(--primary)] bg-[color:var(--primary)]/5 px-3 py-2.5 text-sm text-[color:var(--text)]">
+                  <input
+                    type="radio"
+                    name="registrationType"
+                    checked
+                    readOnly
+                  />
+                  <span>{t.momKidOther}</span>
+                </label>
                 <label className="block text-sm">
-                  <span className="mb-1 block text-[color:var(--text)]">{t.participantsCountMomKid}</span>
+                  <span className="mb-1 mt-3 block text-[color:var(--text)]">{t.participantsCountMomKid}</span>
                   <select
                     value={otherCount}
                     onChange={(event) => setOtherCount(Number(event.target.value))}
