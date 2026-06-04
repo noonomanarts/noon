@@ -323,12 +323,17 @@ export default function ClassBookingClient({
 
   useEffect(() => {
     if (!isMomKid && !isSummerCamp && bookingFor === 'both' && seatsAvailable < 2) {
-      setBookingFor(seatsAvailable === 0 ? 'self' : 'self');
+      setBookingFor('self');
     }
   }, [isMomKid, isSummerCamp, bookingFor, seatsAvailable]);
 
   useEffect(() => {
-    if ((isMomKid || isSummerCamp) && bookingFor !== 'other') {
+    // Summer camp: only 'other' is valid
+    if (isSummerCamp && bookingFor !== 'other') {
+      setBookingFor('other');
+    }
+    // MomKid: 'both' is not a valid option, fall back to 'other'
+    if (isMomKid && bookingFor === 'both') {
       setBookingFor('other');
     }
   }, [bookingFor, isMomKid, isSummerCamp]);
@@ -722,7 +727,6 @@ export default function ClassBookingClient({
                   {t.audience}: <span className="text-[color:var(--text)]">{audienceLabel}</span>
                 </p>
               </div>
-              {null}
             </div>
 
             {isSummerCamp ? (
@@ -781,8 +785,8 @@ export default function ClassBookingClient({
                   </label>
                 ) : null}
               </div>
-            ) : !isSummerCamp ? (
-              /* Regular classes: 3 explicit options */
+            ) : (
+              /* Regular classes (cooking, arts & crafts, etc.): 3 explicit options */
               <div className="mt-4 grid gap-2">
                 {([
                   { value: 'self' as RegistrationType, label: t.self, disabled: !hasBookableSeats },
@@ -822,7 +826,7 @@ export default function ClassBookingClient({
                   </label>
                 ) : null}
               </div>
-            ) : null}
+            )}
 
             {!hasBookableSeats ? (
               <p className="mt-3 text-xs text-rose-600 dark:text-rose-400">{t.noSeats}</p>

@@ -121,6 +121,7 @@ export default async function ClassDetailPage({
     byVerifiedAttendees: isArabic ? "تقييمات من الحضور" : "Feedback from attendees",
     bookNow: isArabic ? "احجز الآن" : "Book Now",
     schedule: isArabic ? "الموعد" : "Schedule",
+    day: isArabic ? "اليوم" : "Day",
     workshopStatus: isArabic ? "حالة الورشة" : "Workshop Status",
     workshopEnded: isArabic ? "انتهت هذه الورشة" : "This workshop has ended",
     noActiveSchedule:
@@ -182,6 +183,11 @@ export default async function ClassDetailPage({
       timeZone: DISPLAY_TIMEZONE,
     });
   const scheduleSessions = Array.isArray(classData.scheduleSessions) ? classData.scheduleSessions : [];
+  const topCardSessions = scheduleSessions.length > 0
+    ? scheduleSessions
+    : classData.startDateTime
+      ? [{ startDateTime: classData.startDateTime, endDateTime: classData.endDateTime ?? classData.startDateTime }]
+      : [];
 
   return (
     <div className="route-sharp relative overflow-x-clip pb-16">
@@ -276,18 +282,32 @@ export default async function ClassDetailPage({
                     </p>
                   </div>
                 )}
-                {!isEnded && classData.startDateTime ? (
+                {!isEnded && topCardSessions.length > 0 ? (
                   <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3 sm:col-span-2">
                     <p className="text-xs font-medium uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
                       {t.dateAndTime}
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-[color:var(--text)] sm:text-base">
-                      {formatDate(classData.startDateTime)}
-                    </p>
-                    <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
-                      <MdAccessTime className="h-4 w-4" />
-                      {formatTime(classData.startDateTime)}
-                    </p>
+                    <div className="mt-2 space-y-2">
+                      {topCardSessions.map((session, index) => (
+                        <div
+                          key={`${session.startDateTime}-${index}`}
+                          className="rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2"
+                        >
+                          {topCardSessions.length > 1 ? (
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
+                              {t.day} {index + 1}
+                            </p>
+                          ) : null}
+                          <p className="mt-1 text-sm font-semibold text-[color:var(--text)] sm:text-base">
+                            {formatDate(session.startDateTime)}
+                          </p>
+                          <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
+                            <MdAccessTime className="h-4 w-4" />
+                            {formatTime(session.startDateTime)} - {formatTime(session.endDateTime)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : null}
                 {isEnded ? (
