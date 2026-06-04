@@ -25,9 +25,11 @@ type Purpose = 'login' | 'register';
 export default function WhatsAppAuthCard({
   locale,
   purpose,
+  nextPath = '',
 }: {
   locale: Locale;
   purpose: Purpose;
+  nextPath?: string;
 }) {
   const isArabic = locale === 'ar';
   const phoneRef = useRef('');
@@ -252,7 +254,12 @@ export default function WhatsAppAuthCard({
         throw new Error(payload.error || 'Verification failed.');
       }
 
-      window.location.href = `/${locale}${payload.redirectTo}`;
+      const destination =
+        nextPath && payload.redirectTo === '/account'
+          ? nextPath
+          : `/${locale}${payload.redirectTo}`;
+
+      window.location.href = destination;
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Verification failed.');
     } finally {

@@ -23,6 +23,12 @@ export default async function RegisterPage({
   const error = typeof queryParams.error === "string" ? queryParams.error : "";
   const methodRaw = typeof queryParams.method === "string" ? queryParams.method : "";
   const authMethod = methodRaw === "whatsapp" ? "whatsapp" : "password";
+  const nextPathRaw = typeof queryParams.next === "string" ? queryParams.next : "";
+  const isValidNextPath =
+    nextPathRaw.startsWith(`/${locale}/`) &&
+    !nextPathRaw.startsWith("//") &&
+    !nextPathRaw.includes("://");
+  const nextPath = isValidNextPath ? nextPathRaw : "";
 
   async function handleRegister(formData: FormData) {
     "use server";
@@ -36,33 +42,43 @@ export default async function RegisterPage({
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
     const acceptedTerms = formData.get("acceptedTerms") === "on";
+    const nextValue = formData.get("nextPath");
+    const safeLocale = typeof localeValue === "string" ? localeValue : "en";
+    const nextTarget =
+      typeof nextValue === "string" &&
+      nextValue.startsWith(`/${safeLocale}/`) &&
+      !nextValue.startsWith("//") &&
+      !nextValue.includes("://")
+        ? nextValue
+        : "";
 
     if (!fullName || !email || !phone || !dateOfBirth || !password) {
-      redirect(`/${localeValue ?? "en"}/register?error=missing_fields`);
+      redirect(`/${safeLocale}/register?error=missing_fields`);
     }
     if (password !== confirmPassword) {
-      redirect(`/${localeValue ?? "en"}/register?error=password_mismatch`);
+      redirect(`/${safeLocale}/register?error=password_mismatch`);
     }
     if (password.length < 8) {
-      redirect(`/${localeValue ?? "en"}/register?error=password_weak`);
+      redirect(`/${safeLocale}/register?error=password_weak`);
     }
     if (!isEnglishPassword(password)) {
-      redirect(`/${localeValue ?? "en"}/register?error=password_english_only`);
+      redirect(`/${safeLocale}/register?error=password_english_only`);
     }
     if (!acceptedTerms) {
-      redirect(`/${localeValue ?? "en"}/register?error=terms_required`);
+      redirect(`/${safeLocale}/register?error=terms_required`);
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      redirect(`/${localeValue ?? "en"}/register?error=invalid_email`);
+      redirect(`/${safeLocale}/register?error=invalid_email`);
     }
     const phoneRegex = /^[\d\s+()-]+$/;
     if (!phoneRegex.test(phone)) {
-      redirect(`/${localeValue ?? "en"}/register?error=invalid_phone`);
+      redirect(`/${safeLocale}/register?error=invalid_phone`);
     }
 
+    let user;
     try {
-      const user = await registerUser({
+      user = await registerUser({
         email: email.trim(),
         password,
         fullName,
@@ -70,17 +86,22 @@ export default async function RegisterPage({
         dateOfBirth,
         preferredLanguage: preferredLanguage === "ar" ? "ARABIC" : "ENGLISH",
       });
-
-      if (!user) {
-        redirect(`/${localeValue ?? "en"}/register?error=email_exists`);
-      }
-
-      const cookieStore = await cookies();
-      cookieStore.set(SESSION_COOKIE_NAME, user.id, getSessionCookieOptions());
-      redirect(`/${localeValue ?? "en"}/account`);
     } catch {
-      redirect(`/${localeValue ?? "en"}/register?error=server_error`);
+      redirect(`/${safeLocale}/register?error=server_error`);
     }
+
+    if (!user) {
+      redirect(`/${safeLocale}/register?error=email_exists`);
+    }
+
+    const cookieStore = await cookies();
+    cookieStore.set(SESSION_COOKIE_NAME, user.id, getSessionCookieOptions());
+
+    if (nextTarget) {
+      redirect(nextTarget);
+    }
+
+    redirect(`/${safeLocale}/account`);
   }
 
   const isAr = locale === "ar";
@@ -123,8 +144,12 @@ export default async function RegisterPage({
   const fieldCls = "w-full border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-[color:var(--text)] placeholder-zinc-400 transition focus:border-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-700 dark:bg-zinc-800/60 dark:placeholder-zinc-500 dark:focus:border-zinc-500 dark:focus:bg-zinc-800";
   const labelCls = "block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1";
 
-  const passwordTabHref = `/${locale}/register?method=password`;
-  const whatsappTabHref = `/${locale}/register?method=whatsapp`;
+  const passwordTabHref = nextPath
+    ? `/${locale}/register?method=password&next=${encodeURIComponent(nextPath)}`
+    : `/${locale}/register?method=password`;
+  const whatsappTabHref = nextPath
+    ? `/${locale}/register?method=whatsapp&next=${encodeURIComponent(nextPath)}`
+    : `/${locale}/register?method=whatsapp`;
 
   return (
     <div className="home-sharp min-h-dvh bg-zinc-50 px-4 py-10 dark:bg-zinc-950" dir={dir}>
@@ -170,6 +195,7 @@ export default async function RegisterPage({
         {authMethod === "password" ? (
           <form action={handleRegister} className="space-y-4 bg-white p-6 shadow-sm dark:bg-zinc-900">
             <input type="hidden" name="locale" value={locale} />
+            <input type="hidden" name="nextPath" value={nextPath} />
 
             {/* Full Name */}
             <div>
@@ -285,7 +311,7 @@ export default async function RegisterPage({
           </form>
         ) : (
           <div className="bg-white shadow-sm dark:bg-zinc-900">
-            <WhatsAppAuthCard locale={locale} purpose="register" />
+            <WhatsAppAuthCard locale={locale} purpose="register" nextPath={nextPath} />
           </div>
         )}
 

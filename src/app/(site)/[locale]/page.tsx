@@ -504,7 +504,12 @@ export default async function HomePage({
                 key={c.id}
                 className="group flex h-full flex-col overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition active:scale-[0.98] hover:shadow-md"
               >
-                <Link href={c.href} aria-label={c.title} className="relative block aspect-[4/3] overflow-hidden">
+                <Link
+                  href={c.href}
+                  aria-label={c.title}
+                  className="relative block w-full overflow-hidden"
+                  style={{ aspectRatio: "4 / 3" }}
+                >
                   <Image src={c.imageSrc} alt={c.title} fill sizes="(max-width:640px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-[1.03]" />
                 </Link>
                 <div className="flex flex-1 flex-col gap-1 p-2 sm:gap-2 sm:p-3.5">

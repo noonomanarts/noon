@@ -191,13 +191,16 @@ export default async function LoginPage({
           </form>
         ) : (
           <div className="bg-white shadow-sm dark:bg-zinc-900">
-            <WhatsAppAuthCard locale={locale} purpose="login" />
+            <WhatsAppAuthCard locale={locale} purpose="login" nextPath={nextPath} />
           </div>
         )}
 
         <p className="mt-5 text-center text-sm text-zinc-500 dark:text-zinc-400">
           {t.noAccount}{" "}
-          <Link href={`/${locale}/register`} className="font-semibold text-[color:var(--text)] hover:underline">
+          <Link
+            href={nextPath ? `/${locale}/register?next=${encodeURIComponent(nextPath)}` : `/${locale}/register`}
+            className="font-semibold text-[color:var(--text)] hover:underline"
+          >
             {t.createAccount}
           </Link>
         </p>
