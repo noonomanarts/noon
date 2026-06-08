@@ -79,10 +79,6 @@ export async function POST(request: Request) {
       maxAttempts: 5,
     });
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[TEMP-DEBUG issued] purpose=', purpose, 'phoneNumber=', phoneNumber, 'devCode=', issued.code, 'verificationId=', issued.verificationId);
-    }
-
     const codeMessage =
       isArabic
         ? `رمز التحقق الخاص بك في Noon هو: ${issued.code}\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أي شخص.`
@@ -94,16 +90,6 @@ export async function POST(request: Request) {
     });
 
     if (!sendResult.ok) {
-      if (process.env.NODE_ENV !== 'production') {
-        // TEMP DEBUG: allow completing the flow locally without WhatsApp gateway.
-        console.log('[TEMP-DEBUG request-code] purpose=', purpose, 'phoneNumber=', phoneNumber, 'devCode=', issued.code, 'verificationId=', issued.verificationId);
-        return NextResponse.json({
-          success: true,
-          verificationId: issued.verificationId,
-          expiresAt: issued.expiresAt.toISOString(),
-          devCode: issued.code,
-        });
-      }
       const sessionStatus = sendResult.diagnostics?.status;
       const sessionId = sendResult.diagnostics?.sessionId;
       const details = [
