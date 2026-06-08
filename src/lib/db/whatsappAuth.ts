@@ -195,6 +195,9 @@ export async function validateWhatsAppVerificationCode(input: {
   }
 
   if (row.phone_digits !== phoneDigits) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[TEMP-DEBUG validate] stored.phone_digits=', row.phone_digits, 'computed=', phoneDigits, 'stored.purpose=', row.purpose, 'input.purpose=', input.purpose);
+    }
     return { ok: false, reason: 'MISMATCH' };
   }
 

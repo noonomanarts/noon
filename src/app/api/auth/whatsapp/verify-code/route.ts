@@ -98,6 +98,9 @@ export async function POST(request: Request) {
     });
 
     if (!verified.ok) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[TEMP-DEBUG verify-code] purpose=', purpose, 'phoneNumber=', phoneNumber, 'verificationId=', verificationId, 'reason=', verified.reason);
+      }
       return NextResponse.json({ error: getVerifyErrorMessage(verified.reason, locale) }, { status: 400 });
     }
 

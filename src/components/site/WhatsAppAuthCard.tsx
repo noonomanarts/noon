@@ -22,6 +22,18 @@ type RegisterForm = {
 
 type Purpose = 'login' | 'register';
 
+const fld = "w-full border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-[color:var(--text)] placeholder-zinc-400 transition focus:border-zinc-400 focus:bg-white focus:outline-none dark:border-zinc-700 dark:bg-zinc-800/60 dark:placeholder-zinc-500 dark:focus:border-zinc-500 dark:focus:bg-zinc-800";
+const lbl = "block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1";
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className={lbl}>{label}</p>
+      {children}
+    </div>
+  );
+}
+
 export default function WhatsAppAuthCard({
   locale,
   purpose,
@@ -266,18 +278,6 @@ export default function WhatsAppAuthCard({
       setVerifying(false);
     }
   };
-
-  const fld = "w-full border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm text-[color:var(--text)] placeholder-zinc-400 transition focus:border-zinc-400 focus:bg-white focus:outline-none dark:border-zinc-700 dark:bg-zinc-800/60 dark:placeholder-zinc-500 dark:focus:border-zinc-500 dark:focus:bg-zinc-800";
-  const lbl = "block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1";
-
-  function Field({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-      <div>
-        <p className={lbl}>{label}</p>
-        {children}
-      </div>
-    );
-  }
 
   return (
     <section className="p-5 dark:bg-zinc-900/40">
