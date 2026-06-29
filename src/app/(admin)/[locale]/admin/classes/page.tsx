@@ -9,7 +9,6 @@ import {
   FiCopy, FiTrash2, FiChevronLeft, FiChevronRight, FiAlertTriangle,
   FiBookOpen, FiX,
 } from 'react-icons/fi';
-import { HiSparkles } from 'react-icons/hi';
 import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 interface Trainer {
@@ -31,6 +30,7 @@ interface ClassItem {
   endDateTime?: string | null;
   trainer: Trainer | null;
   sessions?: Array<{ startDateTime?: string | null; endDateTime?: string | null }>;
+  seatsTotal?: number;
   _count: { bookings: number };
 }
 
@@ -94,7 +94,7 @@ export default function AdminClassesPage() {
     trainerCol: isRTL ? 'المدرب' : 'Trainer',
     dateCol: isRTL ? 'التاريخ' : 'Date',
     priceCol: isRTL ? 'السعر' : 'Price',
-    bookingsCol: isRTL ? 'الحجوزات' : 'Bookings',
+    occupancyCol: isRTL ? 'الإشغال' : 'Occupancy',
     statusCol: isRTL ? 'الحالة' : 'Status',
     actionsCol: isRTL ? 'إجراءات' : 'Actions',
     statusPublished: isRTL ? 'منشور' : 'Published',
@@ -461,10 +461,9 @@ export default function AdminClassesPage() {
                         <div className="mt-1 whitespace-nowrap text-xs font-semibold text-zinc-900 dark:text-white">{item.price} {item.currency}</div>
                       </div>
                       <div className="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60">
-                        <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t.bookingsCol}</div>
+                        <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t.occupancyCol}</div>
                         <div className="mt-1 flex items-center gap-1">
-                          <HiSparkles className="size-3 text-purple-500" />
-                          <span className="text-xs font-semibold text-zinc-900 dark:text-white">{item._count.bookings}</span>
+                          <span className="text-xs font-semibold text-zinc-900 dark:text-white">{item._count.bookings}/{item.seatsTotal ?? '—'}</span>
                         </div>
                       </div>
                     </div>
@@ -485,7 +484,7 @@ export default function AdminClassesPage() {
               <table className="w-full min-w-[900px]" dir={dir}>
                 <thead>
                   <tr className="border-b border-zinc-200 bg-zinc-50/80 dark:border-zinc-800 dark:bg-zinc-900/60">
-                    {[t.workshopCol, t.categoryCol, t.trainerCol, t.dateCol, t.priceCol, t.bookingsCol, t.statusCol, t.actionsCol].map((h, i) => (
+                    {[t.workshopCol, t.categoryCol, t.trainerCol, t.dateCol, t.priceCol, t.occupancyCol, t.statusCol, t.actionsCol].map((h, i) => (
                       <th
                         key={h}
                         className={`whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ${i === 7 ? 'text-end' : 'text-start'}`}
@@ -539,12 +538,23 @@ export default function AdminClassesPage() {
                           {item.price} {item.currency}
                         </td>
 
-                        {/* Bookings */}
+                        {/* Occupancy */}
                         <td className="px-4 py-3.5">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
-                            <HiSparkles className="size-3" />
-                            {item._count.bookings}
-                          </span>
+                          {(() => {
+                            const seats = item.seatsTotal ?? 0;
+                            const booked = item._count.bookings;
+                            const pct = seats > 0 ? Math.round((booked / seats) * 100) : 0;
+                            const tone = pct >= 100
+                              ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                              : pct >= 70
+                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+                            return (
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${tone}`}>
+                                {booked}/{seats || '—'} ({pct}%)
+                              </span>
+                            );
+                          })()}
                         </td>
 
                         {/* Status */}
