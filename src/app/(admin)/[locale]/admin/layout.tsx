@@ -68,6 +68,7 @@ export default async function AdminLayout({
     classes: locale === "ar" ? "الورشات" : "Classes",
     repeatRequests: locale === "ar" ? "الإعادات" : "Repeats",
     workshopSuggestions: locale === "ar" ? "الاقتراحات" : "Suggestions",
+    workshopDemand: locale === "ar" ? "إقبال الورش" : "Workshop Demand",
     timetable: locale === "ar" ? "التقويم" : "Calendar",
     events: locale === "ar" ? "الفعاليات" : "Events",
     users: locale === "ar" ? "الفريق" : "Team",
@@ -110,6 +111,7 @@ export default async function AdminLayout({
           section: t.classesEvents,
           items: [
             { iconName: "FiCalendar" as const, iconColor: "text-sky-600 dark:text-sky-400", label: t.timetable, href: `/${locale}/admin/calendar` },
+            { iconName: "FiUsers" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.workshopDemand, href: `/${locale}/admin/marketing-classes` },
           ],
         },
       ]

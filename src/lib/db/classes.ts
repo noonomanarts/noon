@@ -146,6 +146,53 @@ export async function findManyClasses(options: {
   }));
 }
 
+export type MarketingClassOverviewItem = {
+  id: string;
+  slug: string;
+  title: string;
+  titleAr: string | null;
+  category: string;
+  status: string;
+  image: string | null;
+  seatsTotal: number;
+  participants: number;
+  startDateTime: Date | null;
+};
+
+/**
+ * Lightweight workshop list for the social media / marketing team:
+ * each workshop with its registered participant count and total seats.
+ * Ordered by lowest occupancy first so under-filled workshops surface on top.
+ */
+export async function getMarketingClassesOverview(): Promise<MarketingClassOverviewItem[]> {
+  const result = await query(
+    `SELECT c.id, c.slug, c.title, c.title_ar, c.category, c.status, c.image,
+            c.seats_total,
+            c.start_date_time,
+            (SELECT COUNT(*)::int FROM bookings b WHERE b.class_id = c.id) AS participants
+     FROM classes c
+     WHERE c.status IN ('PUBLISHED', 'DRAFT')
+     ORDER BY
+       CASE WHEN c.seats_total > 0 THEN
+         (SELECT COUNT(*)::int FROM bookings b WHERE b.class_id = c.id)::float / c.seats_total
+       ELSE 1 END ASC,
+       c.start_date_time ASC NULLS LAST`
+  );
+
+  return result.rows.map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    titleAr: row.title_ar,
+    category: row.category,
+    status: row.status,
+    image: row.image,
+    seatsTotal: row.seats_total ?? 0,
+    participants: Number(row.participants ?? 0),
+    startDateTime: row.start_date_time || null,
+  }));
+}
+
 /**
  * Find many classes with pagination (for admin)
  */
