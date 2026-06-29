@@ -3,6 +3,7 @@ import { GiCookingPot } from "react-icons/gi";
 import { GiPalette } from "react-icons/gi";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getReadableTextColor, resolveHeaderColor } from "@/lib/headerBranding";
+import WorkshopSuggestionsSection from "@/components/site/WorkshopSuggestionsSection";
 
 export default async function ClassesPage({
   params,
@@ -102,6 +103,8 @@ export default async function ClassesPage({
             </div>
           </Link>
         </div>
+
+        <WorkshopSuggestionsSection locale={locale} />
       </div>
     </div>
   );

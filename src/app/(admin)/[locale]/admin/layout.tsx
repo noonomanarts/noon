@@ -16,6 +16,7 @@ import OverlayScrollArea from "@/components/site/OverlayScrollArea";
 import { resolveHeaderBranding } from "@/lib/headerBranding";
 import { countTrainerWorkshopSuggestionsPendingReview } from "@/lib/db/trainers";
 import { countPendingClassRepeatRequestGroups } from '@/lib/db/classRepeatRequests';
+import { countPendingWorkshopSuggestions } from '@/lib/db/workshopSuggestions';
 
 export default async function AdminLayout({
   children,
@@ -43,6 +44,7 @@ export default async function AdminLayout({
   const isSocialMediaAdmin = user.role === "SOCIAL_MEDIA_ADMIN";
   const pendingSuggestedWorkshops = isSocialMediaAdmin ? 0 : await countTrainerWorkshopSuggestionsPendingReview();
   const pendingRepeatRequestGroups = isSocialMediaAdmin ? 0 : await countPendingClassRepeatRequestGroups();
+  const pendingWorkshopSuggestions = isSocialMediaAdmin ? 0 : await countPendingWorkshopSuggestions();
   const { headerLogoUrl } = await resolveHeaderBranding();
 
   async function handleLogout() {
@@ -65,6 +67,7 @@ export default async function AdminLayout({
     classesEvents: locale === "ar" ? "البرامج" : "Programs",
     classes: locale === "ar" ? "الورشات" : "Classes",
     repeatRequests: locale === "ar" ? "الإعادات" : "Repeats",
+    workshopSuggestions: locale === "ar" ? "الاقتراحات" : "Suggestions",
     timetable: locale === "ar" ? "التقويم" : "Calendar",
     events: locale === "ar" ? "الفعاليات" : "Events",
     users: locale === "ar" ? "الفريق" : "Team",
@@ -135,6 +138,13 @@ export default async function AdminLayout({
               label: t.repeatRequests,
               href: `/${locale}/admin/classes/repeat-requests`,
               badgeCount: pendingRepeatRequestGroups,
+            },
+            {
+              iconName: "FiMessageSquare" as const,
+              iconColor: "text-indigo-600 dark:text-indigo-400",
+              label: t.workshopSuggestions,
+              href: `/${locale}/admin/classes/suggestions`,
+              badgeCount: pendingWorkshopSuggestions,
             },
             { iconName: "FiCalendar" as const, iconColor: "text-sky-600 dark:text-sky-400", label: t.timetable, href: `/${locale}/admin/calendar` },
             { iconName: "FiAward" as const, iconColor: "text-rose-600 dark:text-rose-400", label: t.events, href: `/${locale}/admin/events` },

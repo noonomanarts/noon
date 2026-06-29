@@ -162,6 +162,14 @@ export default async function AdminClassRepeatRequestsPage({
 
   return (
     <div className="space-y-6">
+      <nav className="flex gap-2">
+        <span className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:bg-white dark:text-zinc-900">
+          <FiRefreshCw className="size-4" />{locale === 'ar' ? 'طلبات الإعادة' : 'Repeat Requests'}
+        </span>
+        <Link href={`/${locale}/admin/classes/suggestions`} className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+          {locale === 'ar' ? 'اقتراحات الورش' : 'Workshop Suggestions'}
+        </Link>
+      </nav>
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>

@@ -257,16 +257,11 @@ export default async function AdminTrainerDashboardPage({
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <StatCard
           label={isArabic ? 'إجمالي المشاركين' : 'Total Participants'}
           value={formatNumber(dashboard.summary.totalParticipants)}
           tone="teal"
-        />
-        <StatCard
-          label={isArabic ? 'إجمالي الإيراد' : 'Total Revenue'}
-          value={formatMoney(dashboard.summary.totalRevenue, dashboard.summary.currency)}
-          tone="amber"
         />
         <StatCard
           label={isArabic ? 'مقترحات المدرب' : 'Trainer Suggestions'}
