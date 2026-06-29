@@ -12,7 +12,9 @@ import { formatAmountWithCurrency } from "@/lib/formatNumber";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
 import ClassListingHeader from "@/components/site/ClassListingHeader";
+import RegistrationCountdown from "@/components/site/RegistrationCountdown";
 import RequestRepeatButton from "@/components/site/RequestRepeatButton";
+import { resolveRegistrationCloseAt } from "@/lib/classRegistration";
 import { getUserById } from "@/lib/db/users";
 
 const DISPLAY_TIMEZONE = "Asia/Muscat";
@@ -44,6 +46,7 @@ type ClassWithSessions = {
   status: string;
   seatsTotal: number;
   seatsBooked: number;
+  registrationCloseAt: Date | null;
 };
 
 function ClassCard({
@@ -74,6 +77,7 @@ function ClassCard({
     : t.noUpcomingSessions;
   const priceText = formatAmountWithCurrency(cls.price, cls.currency);
   const isFullyBooked = !isEnded && Math.max(0, cls.seatsTotal - cls.seatsBooked) <= 0;
+  const registrationCloseAt = resolveRegistrationCloseAt(cls.startDateTime, cls.registrationCloseAt);
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
@@ -118,6 +122,9 @@ function ClassCard({
             <FiCalendar className="size-3.5 shrink-0 text-teal-500 sm:size-5" />
             {datetimeText}
           </p>
+        ) : null}
+        {!isEnded && !isFullyBooked && registrationCloseAt ? (
+          <RegistrationCountdown locale={locale} closesAt={registrationCloseAt.toISOString()} visibleWithinMs={Number.MAX_SAFE_INTEGER} />
         ) : null}
         {trainerName ? (
           <p className="inline-flex items-center gap-1 text-[9px] leading-4 text-[color:var(--text-muted)] sm:gap-2 sm:text-sm">
@@ -197,6 +204,7 @@ export default async function CookingClassesPage({
     status: cls.status,
     seatsTotal: (cls.seatsTotal as number) ?? 0,
     seatsBooked: (cls.seatsBooked as number) ?? 0,
+    registrationCloseAt: cls.registrationCloseAt ?? null,
   }));
 
   const repeatSummaries = await getClassRepeatRequestSummaries(

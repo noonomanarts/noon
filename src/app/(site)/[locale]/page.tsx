@@ -18,6 +18,8 @@ import {
   type SitePageSettings,
 } from "@/lib/admin/sitePages";
 import { formatAmountWithCurrency } from "@/lib/formatNumber";
+import RegistrationCountdown from "@/components/site/RegistrationCountdown";
+import { resolveRegistrationCloseAt } from "@/lib/classRegistration";
 import { FiArrowRight, FiCalendar, FiPenTool, FiScissors, FiUser } from "react-icons/fi";
 import { GiChefToque, GiCookingPot, GiKnifeFork, GiPalette } from "react-icons/gi";
 
@@ -31,6 +33,7 @@ type UpcomingCard = {
   imageSrc: string;
   href: string;
   isFullyBooked: boolean;
+  registrationClosesAt: string | null;
 };
 
 type DynamicHomeStats = {
@@ -160,6 +163,7 @@ async function resolveUpcomingItems(
         slug: String(classItem.slug),
         href: `/${locale}/classes/${classItem.slug}`,
         isFullyBooked: Math.max(0, (classItem.seatsTotal ?? 0) - (classItem.seatsBooked ?? 0)) <= 0,
+        registrationClosesAt: resolveRegistrationCloseAt(classItem.startDateTime, classItem.registrationCloseAt)?.toISOString() ?? null,
         classStart: dt,
       });
     }
@@ -531,6 +535,9 @@ export default async function HomePage({
                     <FiUser className="size-2.5 shrink-0 text-indigo-400 sm:size-3" />
                     <span className="truncate">{c.trainerName}</span>
                   </p>
+                  {!c.isFullyBooked && c.registrationClosesAt ? (
+                    <RegistrationCountdown locale={locale} closesAt={c.registrationClosesAt} visibleWithinMs={Number.MAX_SAFE_INTEGER} />
+                  ) : null}
                   <div className="mt-auto pt-1.5">
                     <p className="mb-1.5 text-xs font-black leading-none text-[color:var(--text)] sm:text-base">
                       {c.priceText}

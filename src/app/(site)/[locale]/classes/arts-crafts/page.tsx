@@ -12,7 +12,9 @@ import { formatDurationClock } from "@/lib/formatDuration";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
 import ClassListingHeader from "@/components/site/ClassListingHeader";
+import RegistrationCountdown from "@/components/site/RegistrationCountdown";
 import RequestRepeatButton from "@/components/site/RequestRepeatButton";
+import { resolveRegistrationCloseAt } from "@/lib/classRegistration";
 import { getUserById } from "@/lib/db/users";
 
 const DISPLAY_TIMEZONE = "Asia/Muscat";
@@ -185,6 +187,9 @@ export default async function ArtsCraftsClassesPage({
                                 {formatDate(cls.startDateTime)} · {formatTime(cls.startDateTime)}
                               </p>
                             </div>
+                            {Math.max(0, (cls.seatsTotal ?? 0) - (cls.seatsBooked ?? 0)) > 0 && resolveRegistrationCloseAt(cls.startDateTime, cls.registrationCloseAt) ? (
+                              <RegistrationCountdown locale={locale} closesAt={resolveRegistrationCloseAt(cls.startDateTime, cls.registrationCloseAt)!.toISOString()} visibleWithinMs={Number.MAX_SAFE_INTEGER} />
+                            ) : null}
                           </div>
                         ) : (
                           <p className="text-xs text-[color:var(--text-subtle)]">{t.noSchedule}</p>
