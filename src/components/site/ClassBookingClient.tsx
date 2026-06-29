@@ -897,24 +897,21 @@ export default function ClassBookingClient({
                         }`}
                       />
                     </label>
-                    <label className="text-sm">
-                      <span className="mb-1.5 block text-[color:var(--text)]">{t.gender}</span>
-                      <select
-                        value={selfParticipant.gender}
-                        onChange={(event) => updateSelfParticipant('gender', event.target.value)}
-                        disabled={Boolean(currentUser.gender)}
-                        className={`w-full rounded-xl border border-[color:var(--border)] px-3 py-2 text-sm text-[color:var(--text)] ${
-                          currentUser.gender
-                            ? 'bg-[color:var(--muted)] opacity-70 cursor-not-allowed'
-                            : 'bg-[color:var(--surface)]'
-                        }`}
-                      >
-                        <option value="">{isArabic ? 'غير محدد' : 'Not set'}</option>
-                        <option value="MALE">{isArabic ? 'ذكر' : 'Male'}</option>
-                        <option value="FEMALE">{isArabic ? 'أنثى' : 'Female'}</option>
-                        <option value="OTHER">{isArabic ? 'أخرى' : 'Other'}</option>
-                      </select>
-                    </label>
+                    {!currentUser.gender && (
+                      <label className="text-sm">
+                        <span className="mb-1.5 block text-[color:var(--text)]">{t.gender}</span>
+                        <select
+                          value={selfParticipant.gender}
+                          onChange={(event) => updateSelfParticipant('gender', event.target.value)}
+                          className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm text-[color:var(--text)]"
+                        >
+                          <option value="">{isArabic ? 'اختر الجنس' : 'Select gender'}</option>
+                          <option value="MALE">{isArabic ? 'ذكر' : 'Male'}</option>
+                          <option value="FEMALE">{isArabic ? 'أنثى' : 'Female'}</option>
+                          <option value="OTHER">{isArabic ? 'أخرى' : 'Other'}</option>
+                        </select>
+                      </label>
+                    )}
                     <label className="text-sm">
                       <span className="mb-1.5 block text-[color:var(--text)]">{t.preferredLanguage}</span>
                       <select
