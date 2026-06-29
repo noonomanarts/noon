@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { findUniqueClass, updateClass, deleteClass, countClassBookings } from '@/lib/db/classes';
 import { cleanupClosedClassSettlement } from '@/lib/db/classFinance';
+import { notifyRepeatRequestersForPublishedClass } from '@/lib/db/classRepeatRequests';
 import { query } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
 import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
@@ -147,10 +148,20 @@ export async function PUT(request: NextRequest, props: Params) {
       }
     }
 
+    const existingClass = await findUniqueClass({ id: params.classId });
+    const previousStatus = existingClass?.status ?? null;
+
     const updatedClass = await updateClass(params.classId, updateData);
 
     if (!updatedClass) {
       return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+    }
+
+    // Notify repeat requesters when this class becomes published
+    if (previousStatus !== 'PUBLISHED' && updatedClass.status === 'PUBLISHED') {
+      void notifyRepeatRequestersForPublishedClass({ classId: params.classId }).catch((error) => {
+        console.error('[classes/update] notifyRepeatRequestersForPublishedClass failed:', error);
+      });
     }
 
     // Get trainer info

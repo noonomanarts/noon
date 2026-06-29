@@ -6,6 +6,7 @@ import { sendEmail } from '@/lib/email/emailClient';
 import { buildPublicSiteUrl } from '@/lib/publicSiteUrl';
 import { sendUserWhatsAppTemplate } from '@/lib/whatsapp/transactionNotifications';
 import { sendWhatsAppText } from '@/lib/whatsappClient';
+import { formatNoonDateTime } from '@/lib/dateTime';
 
 let classRepeatRequestsReady: Promise<void> | null = null;
 
@@ -641,6 +642,12 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
   if (result.rows.length === 0) return 0;
 
   const slug = typeof classItem.slug === 'string' ? classItem.slug : '';
+  const startValue =
+    classItem.startDateTime instanceof Date
+      ? classItem.startDateTime.toISOString()
+      : typeof classItem.startDateTime === 'string'
+        ? classItem.startDateTime
+        : null;
 
   await Promise.all(
     result.rows.map(async (row) => {
@@ -653,6 +660,13 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
             ? classItem.title
             : 'Workshop';
       const classUrl = buildRepeatClassUrl({ slug, isArabic });
+      const locale = isArabic ? 'ar-OM-u-nu-latn' : 'en-OM';
+      const classDate = startValue
+        ? formatNoonDateTime(startValue, locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+        : '';
+      const classTime = startValue
+        ? formatNoonDateTime(startValue, locale, { hour: 'numeric', minute: '2-digit' })
+        : '';
 
       await notifyUser(row.user_id, {
         type: 'class_repeat_available',
@@ -671,6 +685,8 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
         vars: {
           classTitle,
           classUrl,
+          classDate,
+          classTime,
         },
       }).catch(() => {});
 

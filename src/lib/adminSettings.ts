@@ -451,8 +451,8 @@ export const defaultWhatsAppTransactionTemplatesSettings: WhatsAppTransactionTem
     },
     class_repeat_available: {
       enabled: true,
-      en: 'Hi {{name}}, the workshop you asked us to repeat is now available again: {{classTitle}}. Book here: {{classUrl}}',
-      ar: 'مرحباً {{name}}، الورشة التي طلبت إعادتها أصبحت متاحة مرة أخرى: {{classTitle}}. احجز من هنا: {{classUrl}}',
+      en: 'Hi {{name}}, according to your request, we are happy to let you know that {{classTitle}} has been scheduled again. Date: {{classDate}}. Time: {{classTime}}. Book your place here: {{classUrl}}',
+      ar: 'مرحباً {{name}}، بناءً على طلبك، يسعدنا إخبارك بأنه تمت إعادة جدولة ورشة {{classTitle}}. التاريخ: {{classDate}}. الوقت: {{classTime}}. احجز مكانك من هنا: {{classUrl}}',
     },
     event_booking_paid: {
       enabled: true,
