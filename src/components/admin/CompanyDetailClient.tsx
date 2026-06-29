@@ -14,6 +14,7 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
   const [order, setOrder] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmClose, setConfirmClose] = useState(false);
   const closed = order.status === 'CLOSED';
 
   const [costTitle, setCostTitle] = useState('');
@@ -75,7 +76,7 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
       <div className="mt-4 flex flex-wrap gap-2">
         <a href={`/api/admin/companies/${order.id}/invoice`} target="_blank" rel="noreferrer" className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white">{t.viewInvoice}</a>
         <button disabled={busy || !order.phone} onClick={() => api(`/api/admin/companies/${order.id}/whatsapp`, { method: 'POST' })} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{t.sendWa}</button>
-        {!closed && <button disabled={busy} onClick={() => { if (confirm(isAr ? 'إغلاق المشروع؟' : 'Close project?')) api(`/api/admin/companies/${order.id}/close`, { method: 'POST' }); }} className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{t.close}</button>}
+        {!closed && <button disabled={busy} onClick={() => confirmClose ? api(`/api/admin/companies/${order.id}/close`, { method: 'POST' }) : setConfirmClose(true)} className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{confirmClose ? (isAr ? 'تأكيد الإغلاق' : 'Confirm close') : t.close}</button>}
       </div>
 
       {!order.isPaid && (
