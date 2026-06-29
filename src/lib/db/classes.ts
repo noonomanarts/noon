@@ -23,6 +23,8 @@ async function ensureClassMinimumAgeSchema(): Promise<void> {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS audience_gender VARCHAR(20) NOT NULL DEFAULT 'MIXED'`);
     await query(`ALTER TABLE classes ALTER COLUMN audience_gender SET DEFAULT 'FEMALE_ONLY'`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS schedule_sessions JSONB NOT NULL DEFAULT '[]'::jsonb`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS registration_message TEXT`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS registration_message_ar TEXT`);
   })();
 
   return classMinimumAgeSchemaReady;
@@ -130,6 +132,8 @@ export async function findManyClasses(options: {
     registrationCloseAt: row.registration_close_at || null,
     scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
     seatsBooked: row.seats_booked ?? 0,
+    registrationMessage: row.registration_message ?? null,
+    registrationMessageAr: row.registration_message_ar ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
@@ -259,6 +263,8 @@ export async function findManyClassesPaginated(options: {
     registrationCloseAt: row.registration_close_at || null,
     scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
     seatsBooked: row.seats_booked ?? 0,
+    registrationMessage: row.registration_message ?? null,
+    registrationMessageAr: row.registration_message_ar ?? null,
     closedAt: row.closed_at,
     closedByUserId: row.closed_by_user_id,
     trainer: row.u_trainer_id ? {
@@ -359,6 +365,8 @@ export async function findUniqueClass(
     registrationCloseAt: row.registration_close_at || null,
     scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
     seatsBooked: row.seats_booked ?? 0,
+    registrationMessage: row.registration_message ?? null,
+    registrationMessageAr: row.registration_message_ar ?? null,
   };
 
   if (include?.trainer) {
@@ -429,6 +437,8 @@ export async function createClass(data: {
   registrationCloseAt?: Date | string | null;
   audienceGender?: ClassAudienceGender;
   scheduleSessions?: Array<{ startDateTime: string; endDateTime: string }>;
+  registrationMessage?: string | null;
+  registrationMessageAr?: string | null;
 }): Promise<Record<string, unknown>> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
@@ -448,9 +458,10 @@ export async function createClass(data: {
       trainer_share_percent, noon_share_percent, expense_share_percent,
       minimum_age, maximum_age, show_minimum_age,
       start_date_time, end_date_time, registration_close_at, schedule_sessions,
+      registration_message, registration_message_ar,
       created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38::jsonb, $39, $40)
-    RETURNING *`,
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38::jsonb, $39, $40, $41, $42)
+      RETURNING *`,
     [
       id,
       data.slug,
@@ -490,6 +501,8 @@ export async function createClass(data: {
       data.endDateTime ? new Date(data.endDateTime as string) : null,
       data.registrationCloseAt ? new Date(data.registrationCloseAt as string) : null,
       JSON.stringify(data.scheduleSessions ?? []),
+      data.registrationMessage ?? null,
+      data.registrationMessageAr ?? null,
       now,
       now,
     ]
@@ -541,6 +554,8 @@ export async function createClass(data: {
     registrationCloseAt: row.registration_close_at || null,
     scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
     seatsBooked: row.seats_booked ?? 0,
+    registrationMessage: row.registration_message ?? null,
+    registrationMessageAr: row.registration_message_ar ?? null,
   };
 }
 
@@ -590,6 +605,8 @@ export async function updateClass(
     audienceGender: ClassAudienceGender;
     seatsBooked: number;
     scheduleSessions: Array<{ startDateTime: string; endDateTime: string }>;
+    registrationMessage: string | null;
+    registrationMessageAr: string | null;
   }>
 ): Promise<Record<string, unknown> | null> {
   await ensureClassFinanceSchema();
@@ -640,6 +657,8 @@ export async function updateClass(
     registrationCloseAt: 'registration_close_at',
     scheduleSessions: 'schedule_sessions',
     seatsBooked: 'seats_booked',
+    registrationMessage: 'registration_message',
+    registrationMessageAr: 'registration_message_ar',
   };
 
   for (const [key, dbField] of Object.entries(fieldMap)) {
@@ -703,6 +722,8 @@ export async function updateClass(
     registrationCloseAt: row.registration_close_at || null,
     scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
     seatsBooked: row.seats_booked ?? 0,
+    registrationMessage: row.registration_message ?? null,
+    registrationMessageAr: row.registration_message_ar ?? null,
   };
 }
 
@@ -745,6 +766,8 @@ export async function findClassBySlug(slug: string): Promise<{
   currency: string;
   seatsTotal: number;
   seatsBooked: number;
+  registrationMessage: string | null;
+  registrationMessageAr: string | null;
   durationMinutes: number;
   status: string;
   minimumAge: number | null;
@@ -781,6 +804,8 @@ export async function findClassBySlug(slug: string): Promise<{
     currency: row.currency,
     seatsTotal: row.seats_total,
     seatsBooked: row.seats_booked ?? 0,
+    registrationMessage: row.registration_message ?? null,
+    registrationMessageAr: row.registration_message_ar ?? null,
     durationMinutes: row.duration_minutes,
     status: row.status,
     minimumAge: row.minimum_age != null ? Number(row.minimum_age) : null,

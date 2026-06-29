@@ -69,6 +69,8 @@ interface FormData {
   status: ClassStatus;
   metaTitle: string;
   metaDescription: string;
+  registrationMessage: string;
+  registrationMessageAr: string;
   minimumAge: string;
   maximumAge: string;
   showMinimumAge: boolean;
@@ -138,6 +140,8 @@ export default function EditClassPage() {
     status: 'DRAFT',
     metaTitle: '',
     metaDescription: '',
+    registrationMessage: '',
+    registrationMessageAr: '',
     minimumAge: '',
     maximumAge: '',
     showMinimumAge: false,
@@ -235,6 +239,8 @@ export default function EditClassPage() {
         status: data.status || 'DRAFT',
         metaTitle: data.metaTitle || '',
         metaDescription: data.metaDescription || '',
+        registrationMessage: data.registrationMessage || '',
+        registrationMessageAr: data.registrationMessageAr || '',
         minimumAge: data.minimumAge != null ? data.minimumAge.toString() : '',
         maximumAge: data.maximumAge != null ? data.maximumAge.toString() : '',
         showMinimumAge: data.showMinimumAge || false,
@@ -588,6 +594,8 @@ export default function EditClassPage() {
         status: 'DRAFT',
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description || '',
+        registrationMessage: formData.registrationMessage || null,
+        registrationMessageAr: formData.registrationMessageAr || null,
         minimumAge: formData.minimumAge ? parseInt(formData.minimumAge) : null,
         maximumAge: formData.maximumAge ? parseInt(formData.maximumAge) : null,
         showMinimumAge: formData.showMinimumAge,
@@ -696,6 +704,8 @@ export default function EditClassPage() {
         status: formData.status,
         metaTitle: formData.metaTitle || formData.title,
         metaDescription: formData.metaDescription || formData.description,
+        registrationMessage: formData.registrationMessage || null,
+        registrationMessageAr: formData.registrationMessageAr || null,
         minimumAge: formData.minimumAge ? parseInt(formData.minimumAge) : null,
         maximumAge: formData.maximumAge ? parseInt(formData.maximumAge) : null,
         showMinimumAge: formData.showMinimumAge,
@@ -1592,6 +1602,53 @@ export default function EditClassPage() {
             />
             <span>{isRTL ? 'إظهار الوصفات في حسابات العملاء' : 'Show recipes in customer accounts'}</span>
           </label>
+        </div>
+
+        {/* Registration message (Optional) */}
+        <div className={sectionCard}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-lg">
+              <MdDescription className="text-2xl text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              {isRTL ? 'رسالة التسجيل (اختياري)' : 'Registration Message (Optional)'}
+            </h2>
+          </div>
+          <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+            {isRTL
+              ? 'تُرسل هذه الرسالة تلقائياً عبر واتساب لكل مشارك فور تسجيله في هذه الورشة.'
+              : 'This message is sent automatically via WhatsApp to every participant immediately after they register for this class.'}
+          </p>
+          <div className="grid grid-cols-1 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {isRTL ? 'الرسالة (إنجليزي)' : 'Message (English)'}
+              </label>
+              <textarea
+                name="registrationMessage"
+                value={formData.registrationMessage}
+                onChange={handleInputChange}
+                rows={4}
+                placeholder={isRTL ? 'يترك فارغاً لعدم الإرسال' : 'Leave blank to send nothing'}
+                className={inputBase}
+                dir="ltr"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {isRTL ? 'الرسالة (عربي)' : 'Message (Arabic)'}
+              </label>
+              <textarea
+                name="registrationMessageAr"
+                value={formData.registrationMessageAr}
+                onChange={handleInputChange}
+                rows={4}
+                placeholder={isRTL ? 'يترك فارغاً لاستخدام الرسالة الإنجليزية' : 'Leave blank to use the English message'}
+                className={inputBase}
+                dir="rtl"
+              />
+            </div>
+          </div>
         </div>
 
         {/* SEO (Optional) */}

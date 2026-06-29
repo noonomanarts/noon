@@ -15,6 +15,7 @@ import {
 import { validatePromoCode, createPromoCode } from '@/lib/db/promoCodes';
 import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
+import { sendClassRegistrationMessage } from '@/lib/classCustomMessages';
 import { getWorkersWithOrdersPermission } from '@/lib/db/worker';
 import { notifyUser } from '@/lib/notificationService';
 import { createShopSaleFinanceEntry } from '@/lib/db/finance';
@@ -217,7 +218,7 @@ export async function POST(request: NextRequest) {
     let shopTotal = 0;
     let discountAmount = 0;
     const shippingFee = shopItems.length > 0 ? SHIPPING_FEE : 0;
-    const createdClassBookings: Array<{ id: string; bookingNumber: string; totalAmount: number; currency: string; classTitle: string }> = [];
+    const createdClassBookings: Array<{ id: string; bookingNumber: string; totalAmount: number; currency: string; classTitle: string; classId: string }> = [];
 
     try {
       await client.query('BEGIN');
@@ -528,6 +529,7 @@ export async function POST(request: NextRequest) {
               totalAmount: Number(bookingInsert.rows[0].total_amount ?? 0),
               currency: String(bookingInsert.rows[0].currency || currency),
               classTitle: (classRow.title_ar as string | null) || String(classRow.title),
+              classId: String(classRow.id),
             });
             break;
           } catch (error) {
@@ -656,6 +658,11 @@ export async function POST(request: NextRequest) {
         }).catch((error) => {
           console.error('Failed to send class booking WhatsApp message:', error);
         });
+
+        void sendClassRegistrationMessage({
+          userId: authenticatedUser.id,
+          classId: booking.classId,
+        }).catch(() => { /* ignore registration auto-message failure */ });
 
         void sendPaymentAdminNotifications({
           source: 'classBooking',

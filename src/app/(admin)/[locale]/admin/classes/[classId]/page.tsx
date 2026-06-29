@@ -23,6 +23,7 @@ import {
 } from 'react-icons/fi';
 import AdminRenewClassButton from '@/components/admin/AdminRenewClassButton';
 import ClassSettlementPanel from '@/components/admin/ClassSettlementPanel';
+import ClassBroadcastPanel from '@/components/admin/ClassBroadcastPanel';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import { formatDurationClock } from '@/lib/formatDuration';
 import { markdownToSafeHtml } from '@/lib/markdown';
@@ -758,6 +759,9 @@ export default function AdminClassDetailsPage({
         classStatus={classData.status}
         onClosed={async () => { await loadData(); }}
       />
+
+      {/* ── Broadcast panel ── */}
+      <ClassBroadcastPanel classId={classId} locale={locale} />
     </div>
   );
 }

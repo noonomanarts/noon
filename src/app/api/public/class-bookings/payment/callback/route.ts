@@ -4,6 +4,7 @@ import { addBonusPoints } from '@/lib/db/wallet';
 import { createPromoCode } from '@/lib/db/promoCodes';
 import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
+import { sendClassRegistrationMessage } from '@/lib/classCustomMessages';
 import {
   isExpectedAmwalMerchant,
   mapAmwalTransactionToPaymentStatus,
@@ -190,6 +191,11 @@ export async function POST(request: NextRequest) {
       }).catch((error) => {
         console.error('Failed to send class booking WhatsApp message:', error);
       });
+
+      void sendClassRegistrationMessage({
+        userId: String(booking.user_id),
+        classId: String(booking.class_id),
+      }).catch(() => { /* ignore registration auto-message failure */ });
 
       void sendPaymentAdminNotifications({
         source: 'classBooking',

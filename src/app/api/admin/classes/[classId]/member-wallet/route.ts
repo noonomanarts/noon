@@ -5,6 +5,7 @@ import type { Gender, PaymentMethod } from '@/lib/db/types';
 import { getUserById } from '@/lib/db/users';
 import { adminAddWalletCredit, adminDeductWalletCredit, addBonusPoints } from '@/lib/db/wallet';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
+import { sendClassRegistrationMessage } from '@/lib/classCustomMessages';
 
 type ActionType = 'TOPUP' | 'DEDUCT' | 'ENROLL_AND_DEDUCT';
 
@@ -424,6 +425,13 @@ export async function POST(request: NextRequest, props: { params: Promise<{ clas
       }).catch((error) => {
         console.error('Failed to send admin class booking WhatsApp message:', error);
       });
+
+      if (bookingRow?.id) {
+        void sendClassRegistrationMessage({
+          userId,
+          classId: params.classId,
+        }).catch(() => { /* ignore registration auto-message failure */ });
+      }
 
       return NextResponse.json({
         success: true,

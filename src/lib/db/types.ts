@@ -243,6 +243,8 @@ export interface ClassPublic {
   endDateTime: Date | null;
   registrationCloseAt: Date | null;
   scheduleSessions?: Array<{ startDateTime: string; endDateTime: string }>;
+  registrationMessage?: string | null;
+  registrationMessageAr?: string | null;
   durationMinutes: number;
   status: ClassStatus;
   metaTitle: string | null;

@@ -5,6 +5,7 @@ import { getUserById } from '@/lib/db/users';
 import { addBonusPoints } from '@/lib/db/wallet';
 import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
+import { sendClassRegistrationMessage } from '@/lib/classCustomMessages';
 import { isRegistrationClosed } from '@/lib/classRegistration';
 import { prepareAmwalPayment } from '@/lib/amwal';
 import { createPromoCode } from '@/lib/db/promoCodes';
@@ -518,6 +519,11 @@ export async function POST(request: NextRequest) {
     }).catch((error) => {
       console.error('Failed to send class booking WhatsApp message:', error);
     });
+
+    void sendClassRegistrationMessage({
+      userId: user.id,
+      classId: String(classId),
+    }).catch(() => { /* ignore registration auto-message failure */ });
 
     void sendPaymentAdminNotifications({
       source: 'classBooking',

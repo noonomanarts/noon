@@ -77,6 +77,8 @@ export async function POST(_request: NextRequest, props: Params) {
       currency: (typeof source.currency === 'string' ? source.currency : 'OMR') as string,
       metaTitle: typeof source.metaTitle === 'string' ? source.metaTitle : undefined,
       metaDescription: typeof source.metaDescription === 'string' ? source.metaDescription : undefined,
+      registrationMessage: typeof source.registrationMessage === 'string' ? source.registrationMessage : null,
+      registrationMessageAr: typeof source.registrationMessageAr === 'string' ? source.registrationMessageAr : null,
       trainerSharePercent: Number(source.trainerSharePercent || 0),
       noonSharePercent: Number(source.noonSharePercent || 0),
       expenseSharePercent: Number(source.expenseSharePercent || 0),
