@@ -293,6 +293,9 @@ export default function ClassBookingClient({
     momKidPartnerRequired: isArabic
       ? 'الأطفال بعمر 5-9 سنوات يحتاجون شريكاً بعمر 10+ مع تسجيل الاسمين.'
       : 'Children aged 5-9 must be registered with a 10+ partner, and both names must be provided.',
+    momKidPartnerDuplicate: isArabic
+      ? 'لا يمكن ربط الشريك بأكثر من طفل واحد. كل طفل يحتاج شريكاً خاصاً به.'
+      : 'A partner cannot be linked to more than one child. Each child needs their own partner.',
   };
 
   useEffect(() => {
@@ -529,6 +532,12 @@ export default function ClassBookingClient({
             return false;
           }
         }
+      }
+
+      const partnerKeys = freePartners.map((partner) => `${partner.fullName.trim().toLowerCase()}|${partner.dateOfBirth.trim()}`);
+      if (new Set(partnerKeys).size !== partnerKeys.length) {
+        setError(t.momKidPartnerDuplicate);
+        return false;
       }
     }
 

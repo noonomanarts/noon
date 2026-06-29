@@ -55,6 +55,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Participants data is incomplete' }, { status: 400 });
     }
 
+    const partnerKeys = freePartners.map((partner) => `${partner.fullName.trim().toLowerCase()}|${partner.dateOfBirth.trim()}`);
+    if (new Set(partnerKeys).size !== partnerKeys.length) {
+      return NextResponse.json(
+        { error: 'Each partner can only be linked to one child. A partner cannot be registered with two children.' },
+        { status: 400 }
+      );
+    }
+
     const result = await query(
       `SELECT id, slug, title, title_ar, image, start_date_time, price, currency, status, audience_gender, sub_category
        FROM classes

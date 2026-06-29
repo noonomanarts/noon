@@ -327,6 +327,10 @@ export async function POST(request: NextRequest) {
       )) {
         throw new ApiError('Children aged 5-9 must be registered with a 10+ partner, and both names must be provided.', 400);
       }
+      const partnerKeys = freePartners.map((partner) => `${partner.fullName.trim().toLowerCase()}|${partner.dateOfBirth.trim()}`);
+      if (new Set(partnerKeys).size !== partnerKeys.length) {
+        throw new ApiError('Each partner can only be linked to one child. A partner cannot be registered with two children.', 400);
+      }
     }
 
     for (const participant of participants) {
