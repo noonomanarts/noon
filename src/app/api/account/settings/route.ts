@@ -9,6 +9,7 @@ type SettingsPayload = {
   phoneNumber?: string;
   profileImage?: string | null;
   gender?: Gender | null;
+  dateOfBirth?: string | null;
   preferredLanguage?: PreferredLanguage;
   currentPassword?: string;
   newPassword?: string;
@@ -39,6 +40,27 @@ function sanitizeGender(value: unknown): Gender | null | undefined {
   }
 
   return value === 'MALE' || value === 'FEMALE' || value === 'OTHER' ? value : undefined;
+}
+
+function sanitizeDateOfBirth(value: unknown): Date | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value !== 'string' || !value.trim()) {
+    return null;
+  }
+
+  const dob = new Date(`${value.trim()}T00:00:00`);
+  if (Number.isNaN(dob.getTime()) || dob.getTime() > Date.now()) {
+    return undefined;
+  }
+
+  return dob;
 }
 
 function sanitizeProfileImage(value: unknown): string | null | undefined {
@@ -78,6 +100,7 @@ export async function GET() {
         phoneNumber: user.phoneNumber,
         profileImage: user.profileImage,
         gender: user.gender,
+        dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : null,
         preferredLanguage: user.preferredLanguage,
       },
     });
@@ -101,6 +124,7 @@ export async function PATCH(request: Request) {
     const phoneNumber = typeof body.phoneNumber === 'string' ? body.phoneNumber.trim() : user.phoneNumber;
     const preferredLanguage = sanitizePreferredLanguage(body.preferredLanguage);
     const gender = sanitizeGender(body.gender);
+    const dateOfBirth = sanitizeDateOfBirth(body.dateOfBirth);
     const profileImage = sanitizeProfileImage(body.profileImage);
 
     if (fullName.length < 2 || fullName.length > 120) {
@@ -148,6 +172,7 @@ export async function PATCH(request: Request) {
       full_name: fullName,
       phone_number: phoneNumber,
       gender,
+      date_of_birth: dateOfBirth,
       preferred_language: preferredLanguage,
       profile_image: profileImage,
     });
@@ -165,6 +190,7 @@ export async function PATCH(request: Request) {
         phoneNumber: updatedUser.phoneNumber,
         profileImage: updatedUser.profileImage,
         gender: updatedUser.gender,
+        dateOfBirth: updatedUser.dateOfBirth ? new Date(updatedUser.dateOfBirth).toISOString().slice(0, 10) : null,
         preferredLanguage: updatedUser.preferredLanguage,
       },
     });

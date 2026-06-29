@@ -16,5 +16,13 @@ export default async function AccountSettingsPage({
     redirect(`/${locale}/login`);
   }
 
-  return <AccountSettingsPageClient locale={locale} initialUser={user} />;
+  return (
+    <AccountSettingsPageClient
+      locale={locale}
+      initialUser={{
+        ...user,
+        dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().slice(0, 10) : null,
+      }}
+    />
+  );
 }
