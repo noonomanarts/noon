@@ -1,4 +1,4 @@
-import { sendWhatsAppTextViaManagedSession } from '@/lib/whatsapp/apiService';
+import { sendWhatsAppTextViaManagedSession, sendWhatsAppFileViaManagedSession } from '@/lib/whatsapp/apiService';
 
 export function normalizePhoneToChatId(phone: string): string | null {
   let digits = phone.replace(/\D/g, '');
@@ -36,6 +36,24 @@ export async function sendWhatsAppText(input: {
   return sendWhatsAppTextViaManagedSession({
     phoneNumber: input.phoneNumber,
     text: input.text,
+    sessionId: input.session,
+  });
+}
+
+export async function sendWhatsAppFile(input: {
+  phoneNumber: string;
+  data: string;
+  filename: string;
+  mimetype: string;
+  caption?: string;
+  session?: string;
+}): Promise<{ ok: boolean; status: number; body: string }> {
+  return sendWhatsAppFileViaManagedSession({
+    phoneNumber: input.phoneNumber,
+    data: input.data,
+    filename: input.filename,
+    mimetype: input.mimetype,
+    caption: input.caption,
     sessionId: input.session,
   });
 }

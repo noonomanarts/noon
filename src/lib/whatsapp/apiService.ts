@@ -669,3 +669,68 @@ export async function sendWhatsAppTextViaManagedSession(input: {
     },
   };
 }
+
+/**
+ * Sends a document/file to a WhatsApp chat via the managed WAHA session.
+ */
+export async function sendWhatsAppFileViaManagedSession(input: {
+  phoneNumber: string;
+  data: string; // base64-encoded file content
+  filename: string;
+  mimetype: string;
+  caption?: string;
+  sessionId?: string;
+}): Promise<WhatsAppSendResult> {
+  const chatId = phoneToChatId(input.phoneNumber);
+  if (!chatId) {
+    return { ok: false, status: 400, body: 'Invalid phone number.' };
+  }
+
+  if (!input.data) {
+    return { ok: false, status: 400, body: 'File content is required.' };
+  }
+
+  const settings = await readWhatsAppSettings();
+  const activeSession = sanitizeSessionId(input.sessionId ?? settings.activeSession);
+  if (!activeSession) {
+    return { ok: false, status: 400, body: 'No active WhatsApp session configured.' };
+  }
+
+  const base = normalizeBaseUrl(settings.sendApiUrl).replace(
+    /\/(api\/)?(send[A-Za-z]+|messages\/[A-Za-z]+)$/i,
+    ''
+  );
+  if (!base) {
+    return { ok: false, status: 400, body: 'WhatsApp send API URL is not configured.' };
+  }
+
+  const url = `${base}/api/sendFile`;
+  const payload = JSON.stringify({
+    session: activeSession,
+    chatId,
+    file: { mimetype: input.mimetype, filename: input.filename, data: input.data },
+    caption: input.caption ?? '',
+  });
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: buildHeaders(settings.apiCode),
+      body: payload,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(30_000),
+    });
+    const responseText = await response.text();
+    if (response.ok) {
+      return {
+        ok: true,
+        status: 200,
+        body: 'File sent.',
+        diagnostics: { sessionId: activeSession, status: 'ready', hasClient: false, hasWid: false, updatedAt: new Date().toISOString(), attempts: 1 },
+      };
+    }
+    return { ok: false, status: response.status || 502, body: (responseText || 'Failed to send WhatsApp file.').slice(0, 500) };
+  } catch (error) {
+    return { ok: false, status: 0, body: (error instanceof Error ? error.message : 'Network error').slice(0, 500) };
+  }
+}
