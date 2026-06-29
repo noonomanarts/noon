@@ -61,6 +61,7 @@ export default async function ArtsCraftsClassesPage({
       ? "ورش إبداعية عملية لتجارب فنية ممتعة ومهارية."
       : "Hands-on creative workshops for expressive and skillful art experiences.",
     bookNow: isArabic ? "عرض التفاصيل والحجز" : "View Details & Book",
+    fullyBooked: isArabic ? "اكتمل الحجز" : "Fully Booked",
     noClasses: isArabic
       ? "لا توجد دروس فنون وحرف منشورة حالياً."
       : "No published arts & crafts classes right now.",
@@ -149,6 +150,11 @@ export default async function ArtsCraftsClassesPage({
                         <div className="absolute right-2 top-2 rounded-full bg-[color:var(--surface)]/95 px-2 py-1 text-[11px] font-semibold text-[color:var(--text)] shadow-sm backdrop-blur sm:right-4 sm:top-4 sm:px-3 sm:text-xs">
                           {formatAmountWithCurrency(cls.price, cls.currency)}
                         </div>
+                        {Math.max(0, (cls.seatsTotal ?? 0) - (cls.seatsBooked ?? 0)) <= 0 ? (
+                          <div className="absolute left-2 top-2 rounded-full bg-red-600 px-2 py-1 text-[11px] font-semibold text-white shadow-sm sm:left-4 sm:top-4 sm:px-3 sm:text-xs">
+                            {t.fullyBooked}
+                          </div>
+                        ) : null}
                       </div>
 
                       <div className="space-y-3 p-3 sm:space-y-4 sm:p-5">
@@ -188,7 +194,7 @@ export default async function ArtsCraftsClassesPage({
                           href={`/${locale}/classes/${cls.slug}`}
                           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--primary)] px-3 py-2 text-xs font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] sm:px-4 sm:py-2.5 sm:text-sm"
                         >
-                          {t.bookNow}
+                          {Math.max(0, (cls.seatsTotal ?? 0) - (cls.seatsBooked ?? 0)) <= 0 ? t.fullyBooked : t.bookNow}
                           <FiArrowRight className="size-4" />
                         </Link>
                       </div>

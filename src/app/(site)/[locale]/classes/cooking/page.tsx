@@ -42,6 +42,8 @@ type ClassWithSessions = {
   startDateTime: Date | null;
   endDateTime: Date | null;
   status: string;
+  seatsTotal: number;
+  seatsBooked: number;
 };
 
 function ClassCard({
@@ -71,6 +73,7 @@ function ClassCard({
     ? `${formatDate(cls.startDateTime)} · ${formatTime(cls.startDateTime)}`
     : t.noUpcomingSessions;
   const priceText = formatAmountWithCurrency(cls.price, cls.currency);
+  const isFullyBooked = !isEnded && Math.max(0, cls.seatsTotal - cls.seatsBooked) <= 0;
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-none border border-[color:var(--border)] bg-[color:var(--surface)] shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
@@ -95,6 +98,15 @@ function ClassCard({
           <GiChefToque className="size-3 shrink-0 text-yellow-300 sm:size-3.5" />
           <span className="truncate">{subCategoryLabel}</span>
         </span>
+        {isFullyBooked ? (
+          <span
+            className={`absolute bottom-2 inline-flex items-center bg-red-600 px-1.5 py-1 text-[9px] font-semibold text-white sm:bottom-3 sm:px-3 sm:text-xs ${
+              locale === "ar" ? "left-3" : "right-3"
+            }`}
+          >
+            {t.fullyBooked}
+          </span>
+        ) : null}
       </Link>
       <div className="flex flex-1 flex-col space-y-2 p-3 sm:space-y-3 sm:p-5">
         <h3 className="line-clamp-2 inline-flex items-start gap-1 text-[12px] font-semibold leading-[1.3] text-[color:var(--text)] sm:gap-2 sm:text-lg sm:leading-6">
@@ -131,7 +143,7 @@ function ClassCard({
               href={`/${locale}/classes/${cls.slug}`}
               className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-[color:var(--primary)] px-2.5 py-1.5 text-[10px] font-semibold leading-tight tracking-[0.01em] text-[color:var(--primary-foreground)] transition hover:brightness-95 sm:px-4 sm:py-3 sm:text-sm"
             >
-              {t.bookNow}
+              {isFullyBooked ? t.fullyBooked : t.bookNow}
               <FiArrowRight className="size-3 sm:size-3.5" />
             </Link>
           )}
@@ -183,6 +195,8 @@ export default async function CookingClassesPage({
     startDateTime: cls.startDateTime ?? null,
     endDateTime: cls.endDateTime ?? null,
     status: cls.status,
+    seatsTotal: (cls.seatsTotal as number) ?? 0,
+    seatsBooked: (cls.seatsBooked as number) ?? 0,
   }));
 
   const repeatSummaries = await getClassRepeatRequestSummaries(
@@ -201,6 +215,7 @@ export default async function CookingClassesPage({
     momAndKid: isArabic ? "الأم والطفل" : "Mom & Kid",
     other: isArabic ? "أخرى" : "Other",
     bookNow: isArabic ? "احجز" : "Book",
+    fullyBooked: isArabic ? "اكتمل الحجز" : "Fully Booked",
     noClasses: isArabic
       ? "لا توجد دروس طبخ منشورة حالياً."
       : "No published cooking classes right now.",

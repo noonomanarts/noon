@@ -81,6 +81,7 @@ export default async function ClassDetailPage({
     classData.registrationCloseAt
   );
   const canBook = !isEnded && !registrationClosed && !!classData.startDateTime && seatsAvailable > 0;
+  const isFullyBooked = !isEnded && !registrationClosed && !!classData.startDateTime && seatsAvailable <= 0;
 
   const isCooking = classData.category === ClassCategory.COOKING;
   const Icon = isCooking ? GiChefToque : HiPaintBrush;
@@ -138,6 +139,10 @@ export default async function ClassDetailPage({
     registrationClosedHint: isArabic
       ? "انتهى الوقت المتاح للتسجيل في هذه الورشة."
       : "The window to register for this workshop has ended.",
+    fullyBooked: isArabic ? "اكتمل الحجز" : "Fully Booked",
+    fullyBookedHint: isArabic
+      ? "اكتملت جميع المقاعد لهذه الورشة، التسجيل غير متاح حالياً."
+      : "All seats for this workshop are taken. Registration is not available.",
   };
 
   const title = isArabic && classData.titleAr ? classData.titleAr : classData.title;
@@ -417,6 +422,10 @@ export default async function ClassDetailPage({
                     <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
                       {t.registrationClosed}
                     </div>
+                  ) : isFullyBooked ? (
+                    <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+                      {t.fullyBooked}
+                    </div>
                   ) : canBook ? (
                     <Link
                       href={`/${locale}/classes/${classData.slug}/book`}
@@ -498,6 +507,15 @@ export default async function ClassDetailPage({
                 {t.registrationClosed}
                 <p className="mt-1 text-xs font-normal text-red-600/90 dark:text-red-300/80">
                   {t.registrationClosedHint}
+                </p>
+              </div>
+            ) : null}
+
+            {isFullyBooked ? (
+              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+                {t.fullyBooked}
+                <p className="mt-1 text-xs font-normal text-red-600/90 dark:text-red-300/80">
+                  {t.fullyBookedHint}
                 </p>
               </div>
             ) : null}

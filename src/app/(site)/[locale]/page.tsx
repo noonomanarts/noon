@@ -30,6 +30,7 @@ type UpcomingCard = {
   trainerName: string;
   imageSrc: string;
   href: string;
+  isFullyBooked: boolean;
 };
 
 type DynamicHomeStats = {
@@ -158,6 +159,7 @@ async function resolveUpcomingItems(
         imageSrc: classItem.image || "/og-image.png",
         slug: String(classItem.slug),
         href: `/${locale}/classes/${classItem.slug}`,
+        isFullyBooked: Math.max(0, (classItem.seatsTotal ?? 0) - (classItem.seatsBooked ?? 0)) <= 0,
         classStart: dt,
       });
     }
@@ -511,6 +513,11 @@ export default async function HomePage({
                   style={{ aspectRatio: "4 / 3" }}
                 >
                   <Image src={c.imageSrc} alt={c.title} fill sizes="(max-width:640px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-[1.03]" />
+                  {c.isFullyBooked ? (
+                    <span className={`absolute top-2 inline-flex items-center bg-red-600 px-2 py-1 text-[9px] font-semibold text-white sm:top-3 sm:text-xs ${isArabic ? "left-2 sm:left-3" : "right-2 sm:right-3"}`}>
+                      {isArabic ? "اكتمل الحجز" : "Fully Booked"}
+                    </span>
+                  ) : null}
                 </Link>
                 <div className="flex flex-1 flex-col gap-1 p-2 sm:gap-2 sm:p-3.5">
                   <h3 className="line-clamp-2 text-[11px] font-bold leading-snug text-[color:var(--text)] sm:text-sm">
@@ -533,7 +540,7 @@ export default async function HomePage({
                       className="flex w-full items-center justify-center gap-0.5 py-2 text-[10px] font-extrabold uppercase tracking-wide transition active:scale-95 hover:brightness-95 sm:py-2.5 sm:text-xs"
                       style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
                     >
-                      {upcomingBookNowLabel}
+                      {c.isFullyBooked ? (isArabic ? "اكتمل الحجز" : "Fully Booked") : upcomingBookNowLabel}
                       <FiArrowRight className="size-2.5 sm:size-3" />
                     </Link>
                   </div>

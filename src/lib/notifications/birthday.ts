@@ -27,7 +27,7 @@ import { getAdminSettingsByKey } from '@/lib/db/adminSettings';
 import { getEmailLayout } from '@/lib/email/emailLayout';
 
 const TZ = process.env.NOON_TIMEZONE || 'Asia/Muscat';
-const DEFAULT_DISCOUNT_PERCENT = 15;
+const DEFAULT_DISCOUNT_PERCENT = 10;
 
 type BirthdayUserRow = {
   id: string;
