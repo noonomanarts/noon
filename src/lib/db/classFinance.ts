@@ -45,14 +45,20 @@ export type ClassParticipantRow = {
   customerId: string;
   customerName: string;
   customerEmail: string | null;
+  customerPhone: string | null;
   classStartTime: string;
   bookingStatus: string;
   paymentStatus: string;
+  paymentMethod: string | null;
+  bookingCreatedAt: string | null;
+  specialRequests: string | null;
   totalAmount: number;
   participantIndex: number;
   participantName: string;
   participantDateOfBirth: string | null;
   participantPreferredLanguage: string | null;
+  participantGender: string | null;
+  registeredBySelf: boolean;
 };
 
 export type ClassSettlementSnapshot = {
@@ -424,12 +430,16 @@ async function getParticipantRows(classId: string, db: Queryable): Promise<Class
             b.booking_number,
             b.status AS booking_status,
             b.payment_status,
+            b.payment_method,
             b.total_amount,
             b.participants,
+            b.special_requests,
+            b.created_at AS booking_created_at,
             c.start_date_time,
             u.id AS customer_id,
             u.full_name AS customer_name,
-            u.email AS customer_email
+            u.email AS customer_email,
+            u.phone_number AS customer_phone
      FROM bookings b
      INNER JOIN classes c ON c.id = b.class_id
      INNER JOIN users u ON u.id = b.user_id
@@ -449,9 +459,15 @@ async function getParticipantRows(classId: string, db: Queryable): Promise<Class
     const customerId = String(row.customer_id);
     const customerName = String(row.customer_name);
     const customerEmail = row.customer_email ? String(row.customer_email) : null;
+    const customerPhone = row.customer_phone ? String(row.customer_phone) : null;
     const classStartTime = String(row.start_date_time);
     const bookingStatus = String(row.booking_status);
     const paymentStatus = String(row.payment_status);
+    const paymentMethod = row.payment_method ? String(row.payment_method) : null;
+    const bookingCreatedAt = row.booking_created_at ? new Date(String(row.booking_created_at)).toISOString() : null;
+    const specialRequests = typeof row.special_requests === 'string' && row.special_requests.trim()
+      ? row.special_requests.trim()
+      : null;
     const totalAmount = toMoney(row.total_amount);
 
     if (rawParticipants.length === 0) {
@@ -461,14 +477,20 @@ async function getParticipantRows(classId: string, db: Queryable): Promise<Class
         customerId,
         customerName,
         customerEmail,
+        customerPhone,
         classStartTime,
         bookingStatus,
         paymentStatus,
+        paymentMethod,
+        bookingCreatedAt,
+        specialRequests,
         totalAmount,
         participantIndex: 1,
         participantName: customerName,
         participantDateOfBirth: null,
         participantPreferredLanguage: null,
+        participantGender: null,
+        registeredBySelf: true,
       });
       continue;
     }
@@ -478,20 +500,27 @@ async function getParticipantRows(classId: string, db: Queryable): Promise<Class
       if (item.isFreePartner === true) {
         return;
       }
+      const participantName = String(item.fullName || customerName);
       rows.push({
         bookingId,
         bookingNumber,
         customerId,
         customerName,
         customerEmail,
+        customerPhone,
         classStartTime,
         bookingStatus,
         paymentStatus,
+        paymentMethod,
+        bookingCreatedAt,
+        specialRequests,
         totalAmount,
         participantIndex: index + 1,
-        participantName: String(item.fullName || customerName),
+        participantName,
         participantDateOfBirth: item.dateOfBirth ? String(item.dateOfBirth) : null,
         participantPreferredLanguage: item.preferredLanguage ? String(item.preferredLanguage) : null,
+        participantGender: item.gender ? String(item.gender) : null,
+        registeredBySelf: participantName.trim().toLowerCase() === customerName.trim().toLowerCase(),
       });
     });
   }
