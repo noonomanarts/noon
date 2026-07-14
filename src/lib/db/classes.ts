@@ -32,7 +32,11 @@ async function ensureClassMinimumAgeSchema(): Promise<void> {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS sub_categories TEXT[] NOT NULL DEFAULT '{}'`);
     await query(`UPDATE classes SET categories = ARRAY[category::text] WHERE COALESCE(array_length(categories, 1), 0) = 0`);
     await query(`UPDATE classes SET sub_categories = ARRAY[sub_category::text] WHERE COALESCE(array_length(sub_categories, 1), 0) = 0`);
-  })();
+  })().catch((error) => {
+    // Reset so a transient failure doesn't permanently poison the cached promise.
+    classMinimumAgeSchemaReady = null;
+    throw error;
+  });
 
   return classMinimumAgeSchemaReady;
 }
@@ -76,7 +80,7 @@ export async function findManyClasses(options: {
   let paramIndex = 1;
 
   if (options.category) {
-    conditions.push(`(c.category = $${paramIndex} OR $${paramIndex} = ANY(c.categories))`);
+    conditions.push(`(c.category::text = $${paramIndex} OR $${paramIndex} = ANY(c.categories))`);
     paramIndex += 1;
     values.push(options.category);
   }
@@ -252,7 +256,7 @@ export async function findManyClassesPaginated(options: {
   let paramIndex = 1;
 
   if (options.where?.category) {
-    conditions.push(`(c.category = $${paramIndex} OR $${paramIndex} = ANY(c.categories))`);
+    conditions.push(`(c.category::text = $${paramIndex} OR $${paramIndex} = ANY(c.categories))`);
     paramIndex += 1;
     values.push(options.where.category);
   }
