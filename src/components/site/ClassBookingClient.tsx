@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 import type { Gender } from '@/lib/db/types';
 import { getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
 
@@ -120,6 +121,7 @@ export default function ClassBookingClient({
   slug,
   classData,
   currentUser,
+  scheduleConflict = null,
 }: {
   locale: Locale;
   slug: string;
@@ -142,9 +144,16 @@ export default function ClassBookingClient({
     seatsBooked: number;
   };
   currentUser: CurrentUserLite;
+  scheduleConflict?: {
+    title: string;
+    titleAr: string | null;
+    startDateTime: string;
+    endDateTime: string | null;
+  } | null;
 }) {
   const isArabic = locale === 'ar';
   const isSummerCamp = classData.subCategory === 'SUMMER_CAMP';
+  const { confirm } = useAppFeedback();
   const [selfParticipant, setSelfParticipant] = useState<ParticipantWithPartner>(() => buildSelfParticipant(currentUser));
   const [bookingFor, setBookingFor] = useState<RegistrationType>(isSummerCamp ? 'other' : 'self');
   const [otherCount, setOtherCount] = useState(1);
@@ -204,6 +213,20 @@ export default function ClassBookingClient({
   const walletHasEnoughBalance = walletBalance >= payableTotalAmount;
   const classDateLabel = classData.startDateTime
     ? new Date(classData.startDateTime).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: DISPLAY_TIMEZONE,
+      })
+    : null;
+
+  const conflictTitle = scheduleConflict
+    ? (isArabic && scheduleConflict.titleAr ? scheduleConflict.titleAr : scheduleConflict.title)
+    : null;
+  const conflictDateLabel = scheduleConflict
+    ? new Date(scheduleConflict.startDateTime).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
@@ -652,6 +675,22 @@ export default function ClassBookingClient({
       return;
     }
 
+    // Warn about a schedule conflict with an existing booking before completing registration
+    if (scheduleConflict) {
+      const confirmed = await confirm({
+        title: isArabic ? 'تعارض في المواعيد' : 'Schedule conflict',
+        message: isArabic
+          ? `لديك بالفعل حجز في ورشة “${conflictTitle}” في نفس التوقيت (${conflictDateLabel}). هل تريد المتابعة وإتمام هذا الحجز رغم ذلك؟`
+          : `You already have a booking for “${conflictTitle}” at the same time (${conflictDateLabel}). Do you still want to complete this registration?`,
+        confirmLabel: isArabic ? 'متابعة الحجز' : 'Book anyway',
+        cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+        tone: 'danger',
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+
     setProcessing(true);
     try {
       if (paymentMethod === 'WALLET' && !walletHasEnoughBalance) {
@@ -793,6 +832,16 @@ export default function ClassBookingClient({
       <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)]">{t.title}</h1>
       <p className="mt-2 text-sm text-[color:var(--text-muted)]">{t.subtitle}</p>
 
+      {scheduleConflict && (
+        <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
+          <p className="font-semibold">{isArabic ? 'تنبيه: تعارض في المواعيد' : 'Heads up: schedule conflict'}</p>
+          <p className="mt-1">
+            {isArabic
+              ? `أنت مسجل بالفعل في ورشة “${conflictTitle}” في نفس التاريخ والوقت (${conflictDateLabel}). يمكنك المتابعة، لكن انتبه لتداخل المواعيد.`
+              : `You are already registered in “${conflictTitle}” at the same date and time (${conflictDateLabel}). You can continue, but note the overlapping schedule.`}
+          </p>
+        </div>
+      )}
       {error && (
         <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
           {error}

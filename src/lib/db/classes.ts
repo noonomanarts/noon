@@ -880,6 +880,57 @@ export async function countClassBookings(classId: string): Promise<number> {
   return result.rows[0]?.count ?? 0;
 }
 
+export type UserScheduleConflict = {
+  classId: string;
+  slug: string;
+  title: string;
+  titleAr: string | null;
+  startDateTime: Date;
+  endDateTime: Date | null;
+};
+
+/**
+ * Find an active booking of the user for another workshop whose time range
+ * overlaps with the target class. Used to warn about double bookings.
+ */
+export async function findUserScheduleConflict(
+  userId: string,
+  classId: string
+): Promise<UserScheduleConflict | null> {
+  const result = await query(
+    `SELECT existing.id, existing.slug, existing.title, existing.title_ar,
+            existing.start_date_time, existing.end_date_time
+     FROM bookings b
+     INNER JOIN classes existing ON existing.id = b.class_id
+     INNER JOIN classes target ON target.id = $2
+     WHERE b.user_id = $1
+       AND b.class_id <> $2
+       AND b.status IN ('PENDING', 'CONFIRMED')
+       AND b.payment_status IN ('PENDING', 'PAID')
+       AND existing.start_date_time IS NOT NULL
+       AND target.start_date_time IS NOT NULL
+       AND existing.start_date_time
+           < COALESCE(target.end_date_time, target.start_date_time + make_interval(mins => GREATEST(COALESCE(target.duration_minutes, 60), 30)))
+       AND COALESCE(existing.end_date_time, existing.start_date_time + make_interval(mins => GREATEST(COALESCE(existing.duration_minutes, 60), 30)))
+           > target.start_date_time
+     ORDER BY existing.start_date_time ASC
+     LIMIT 1`,
+    [userId, classId]
+  );
+
+  const row = result.rows[0];
+  if (!row) return null;
+
+  return {
+    classId: String(row.id),
+    slug: String(row.slug),
+    title: String(row.title),
+    titleAr: row.title_ar ? String(row.title_ar) : null,
+    startDateTime: new Date(row.start_date_time),
+    endDateTime: row.end_date_time ? new Date(row.end_date_time) : null,
+  };
+}
+
 /**
  * Find class by slug (simplified for site pages)
  */

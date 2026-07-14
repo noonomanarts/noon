@@ -1,6 +1,6 @@
 import { redirect, notFound } from 'next/navigation';
 import { isLocale, type Locale } from '@/lib/locale';
-import { findClassBySlug } from '@/lib/db/classes';
+import { findClassBySlug, findUserScheduleConflict } from '@/lib/db/classes';
 import { getCurrentUser } from '@/lib/session';
 import { isRegistrationClosed, resolveRegistrationCloseAt } from '@/lib/classRegistration';
 import ClassBookingClient from '@/components/site/ClassBookingClient';
@@ -91,6 +91,10 @@ export default async function ClassBookingPage({
     classData.startDateTime,
     classData.registrationCloseAt
   );
+
+  // Warn when the user already has a workshop booked at the same date & time
+  const scheduleConflict = await findUserScheduleConflict(user.id, classData.id).catch(() => null);
+
   const summerCampHasPriorBooking = classData.subCategory === 'SUMMER_CAMP'
     ? (await query(
         `SELECT 1
@@ -129,6 +133,16 @@ export default async function ClassBookingPage({
           seatsTotal: classData.seatsTotal,
           seatsBooked: classData.seatsBooked ?? 0,
         }}
+        scheduleConflict={
+          scheduleConflict
+            ? {
+                title: scheduleConflict.title,
+                titleAr: scheduleConflict.titleAr,
+                startDateTime: scheduleConflict.startDateTime.toISOString(),
+                endDateTime: scheduleConflict.endDateTime ? scheduleConflict.endDateTime.toISOString() : null,
+              }
+            : null
+        }
         currentUser={{
           fullName: user.fullName,
           email: user.email,
