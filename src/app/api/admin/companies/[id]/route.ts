@@ -28,11 +28,11 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   await updateCompanyOrder(id, {
     companyName: typeof body.companyName === 'string' ? body.companyName : undefined,
-    contactName: typeof body.contactName === 'string' ? body.contactName : null,
-    email: typeof body.email === 'string' ? body.email : null,
-    phone: typeof body.phone === 'string' ? body.phone : null,
+    contactName: typeof body.contactName === 'string' ? body.contactName : order.contactName,
+    email: typeof body.email === 'string' ? body.email : order.email,
+    phone: typeof body.phone === 'string' ? body.phone : order.phone,
     invoiceDate: typeof body.invoiceDate === 'string' ? body.invoiceDate : null,
-    notes: typeof body.notes === 'string' ? body.notes : null,
+    notes: typeof body.notes === 'string' ? body.notes : order.notes,
   });
   if (Array.isArray(body.packages)) {
     await replaceCompanyPackages(id, body.packages as CompanyPackageInput[]);

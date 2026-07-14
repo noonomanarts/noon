@@ -78,16 +78,28 @@ export default function CompaniesListClient({ locale, initialOrders }: { locale:
           </div>
           <div className="mt-4">
             <p className="mb-2 text-sm font-semibold">{t.packages}</p>
+            <div className="mb-1 hidden gap-2 text-xs font-medium text-[color:var(--text-muted)] sm:grid sm:grid-cols-[2fr_3fr_70px_90px_auto]">
+              <span>{t.pkgName}</span>
+              <span>{t.desc}</span>
+              <span>{t.qty}</span>
+              <span>{t.price} (OMR)</span>
+              <span />
+            </div>
             {packages.map((p, i) => (
               <div key={i} className="mb-2 grid gap-2 sm:grid-cols-[2fr_3fr_70px_90px_auto]">
                 <input value={p.name} onChange={(e) => setPackages((arr) => arr.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} placeholder={t.pkgName} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2 text-sm" />
                 <input value={p.description} onChange={(e) => setPackages((arr) => arr.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} placeholder={t.desc} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2 text-sm" />
-                <input type="number" value={p.quantity} onChange={(e) => setPackages((arr) => arr.map((x, j) => j === i ? { ...x, quantity: Number(e.target.value) } : x))} placeholder={t.qty} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2 text-sm" />
-                <input type="number" value={p.price} onChange={(e) => setPackages((arr) => arr.map((x, j) => j === i ? { ...x, price: Number(e.target.value) } : x))} placeholder={t.price} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2 text-sm" />
+                <input type="number" min="1" value={p.quantity} onChange={(e) => setPackages((arr) => arr.map((x, j) => j === i ? { ...x, quantity: Number(e.target.value) } : x))} placeholder={t.qty} aria-label={t.qty} title={t.qty} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2 text-sm" />
+                <input type="number" min="0" step="0.001" value={p.price} onChange={(e) => setPackages((arr) => arr.map((x, j) => j === i ? { ...x, price: Number(e.target.value) } : x))} placeholder={t.price} aria-label={t.price} title={t.price} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2 text-sm" />
                 <button onClick={() => setPackages((arr) => arr.filter((_, j) => j !== i))} className="px-2 text-red-500">x</button>
               </div>
             ))}
-            <button onClick={() => setPackages((arr) => [...arr, { name: '', description: '', quantity: 1, price: 0 }])} className="text-sm text-purple-600">+ {t.addPkg}</button>
+            <div className="flex items-center justify-between">
+              <button onClick={() => setPackages((arr) => [...arr, { name: '', description: '', quantity: 1, price: 0 }])} className="text-sm text-purple-600">+ {t.addPkg}</button>
+              <p className="text-sm font-semibold">
+                {t.total}: {packages.reduce((sum, p) => sum + (Number.isFinite(p.price) ? p.price : 0) * Math.max(1, p.quantity || 1), 0).toFixed(3)} OMR
+              </p>
+            </div>
           </div>
           {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
           <button onClick={submit} disabled={saving || !companyName.trim()} className="mt-4 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{t.save}</button>

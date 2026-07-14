@@ -24,6 +24,17 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
   const [costQty, setCostQty] = useState(1);
   const [costNotes, setCostNotes] = useState('');
 
+  type PkgRow = { name: string; description: string; quantity: number; price: number };
+  const [pkgRows, setPkgRows] = useState<PkgRow[]>(() =>
+    initial.packages.length > 0
+      ? initial.packages.map((p) => ({ name: p.name, description: p.description ?? '', quantity: p.quantity, price: p.price }))
+      : [{ name: '', description: '', quantity: 1, price: 0 }]
+  );
+  const pkgTotal = pkgRows.reduce(
+    (sum, p) => sum + (Number.isFinite(p.price) ? Math.max(0, p.price) : 0) * Math.max(1, p.quantity || 1),
+    0
+  );
+
   const t = {
     invoice: isAr ? 'فاتورة' : 'Invoice',
     total: isAr ? 'الإجمالي' : 'Total',
@@ -37,6 +48,14 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
     item: isAr ? 'الصنف' : 'Item',
     qty: isAr ? 'الكمية' : 'Qty',
     notes: isAr ? 'ملاحظات' : 'Notes',
+    pkgName: isAr ? 'اسم الباقة' : 'Package name',
+    pkgDesc: isAr ? 'الوصف' : 'Description',
+    price: isAr ? 'السعر (OMR)' : 'Price (OMR)',
+    addPkg: isAr ? 'إضافة باقة' : 'Add package',
+    savePkgs: isAr ? 'حفظ الإيراد' : 'Save revenue',
+    revenueHint: isAr
+      ? 'إيراد المشروع = مجموع (السعر × الكمية) للباقات. أدخل مبلغ الحملة هنا ليحتسب الربح بشكل صحيح.'
+      : 'Project revenue = sum of (price × qty) of the packages below. Enter the campaign amount here so profit is calculated correctly.',
     attach: isAr ? 'مرفقات داخلية' : 'Internal attachments',
     viewInvoice: isAr ? 'عرض الفاتورة' : 'View invoice',
     sendWa: isAr ? 'إرسال عبر واتساب' : 'Send invoice on WhatsApp',
@@ -92,11 +111,50 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
 
       <h2 className="mt-6 mb-2 font-semibold">{t.invoice}</h2>
       <div className="rounded-xl border border-[color:var(--border)] p-3 text-sm">
-        {order.packages.map((p) => (
-          <div key={p.id} className="flex justify-between border-b border-[color:var(--border)] py-1.5 last:border-0">
-            <span>{p.name} x{p.quantity}</span><span>{(p.price * p.quantity).toFixed(3)}</span>
-          </div>
-        ))}
+        {closed ? (
+          order.packages.map((p) => (
+            <div key={p.id} className="flex justify-between border-b border-[color:var(--border)] py-1.5 last:border-0">
+              <span>{p.name} x{p.quantity}</span><span>{(p.price * p.quantity).toFixed(3)}</span>
+            </div>
+          ))
+        ) : (
+          <>
+            <p className="mb-3 text-xs text-[color:var(--text-muted)]">{t.revenueHint}</p>
+            <div className="mb-1 hidden gap-2 text-xs font-medium text-[color:var(--text-muted)] sm:grid sm:grid-cols-[2fr_3fr_70px_100px_auto]">
+              <span>{t.pkgName}</span>
+              <span>{t.pkgDesc}</span>
+              <span>{t.qty}</span>
+              <span>{t.price}</span>
+              <span />
+            </div>
+            {pkgRows.map((p, i) => (
+              <div key={i} className="mb-2 grid gap-2 sm:grid-cols-[2fr_3fr_70px_100px_auto]">
+                <input value={p.name} onChange={(e) => setPkgRows((arr) => arr.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} placeholder={t.pkgName} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2" />
+                <input value={p.description} onChange={(e) => setPkgRows((arr) => arr.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} placeholder={t.pkgDesc} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2" />
+                <input type="number" min="1" value={p.quantity} onChange={(e) => setPkgRows((arr) => arr.map((x, j) => j === i ? { ...x, quantity: Number(e.target.value) } : x))} aria-label={t.qty} title={t.qty} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2" />
+                <input type="number" min="0" step="0.001" value={p.price} onChange={(e) => setPkgRows((arr) => arr.map((x, j) => j === i ? { ...x, price: Number(e.target.value) } : x))} aria-label={t.price} title={t.price} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2" />
+                <button onClick={() => setPkgRows((arr) => arr.length > 1 ? arr.filter((_, j) => j !== i) : arr)} className="px-2 text-red-500">x</button>
+              </div>
+            ))}
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+              <button onClick={() => setPkgRows((arr) => [...arr, { name: '', description: '', quantity: 1, price: 0 }])} className="text-sm text-purple-600">+ {t.addPkg}</button>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold">{t.total}: {pkgTotal.toFixed(3)} {order.currency}</span>
+                <button
+                  disabled={busy}
+                  onClick={() => api(`/api/admin/companies/${order.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ packages: pkgRows }),
+                  })}
+                  className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {t.savePkgs}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <h2 className="mt-6 mb-2 font-semibold">{t.cost}</h2>
