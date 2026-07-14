@@ -39,7 +39,7 @@ function sanitizeGender(value: unknown): Gender | null | undefined {
     return null;
   }
 
-  return value === 'MALE' || value === 'FEMALE' || value === 'OTHER' ? value : undefined;
+  return value === 'MALE' || value === 'FEMALE' ? value : undefined;
 }
 
 function sanitizeDateOfBirth(value: unknown): Date | null | undefined {

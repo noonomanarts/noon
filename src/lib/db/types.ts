@@ -5,7 +5,7 @@
 // Enums (types)
 export type UserRole = 'ADMIN' | 'TRAINER' | 'CUSTOMER' | 'EMPLOYEE' | 'SOCIAL_MEDIA_ADMIN' | 'PHOTOGRAPHER' | 'WORKER';
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
-export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
+export type Gender = 'MALE' | 'FEMALE';
 export type ClassAudienceGender = 'MALE_ONLY' | 'FEMALE_ONLY' | 'MIXED';
 export type PreferredLanguage = 'ENGLISH' | 'ARABIC';
 export type ClassCategory = 'COOKING' | 'ARTS_CRAFTS';

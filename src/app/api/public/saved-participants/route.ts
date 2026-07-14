@@ -17,7 +17,7 @@ async function ensureSavedParticipantsGenderSchema(): Promise<void> {
 }
 
 function parseGender(value: unknown): Gender | null {
-  if (value === 'MALE' || value === 'FEMALE' || value === 'OTHER') return value;
+  if (value === 'MALE' || value === 'FEMALE') return value;
   return null;
 }
 

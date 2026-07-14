@@ -62,7 +62,6 @@ export default function AccountSettingsPageClient({
     gender: isArabic ? 'الجنس' : 'Gender',
     male: isArabic ? 'ذكر' : 'Male',
     female: isArabic ? 'أنثى' : 'Female',
-    other: isArabic ? 'آخر' : 'Other',
     dateOfBirth: isArabic ? 'تاريخ الميلاد' : 'Date of Birth',
     uploadPhoto: isArabic ? 'رفع صورة جديدة' : 'Upload New Photo',
     removePhoto: isArabic ? 'إزالة الصورة' : 'Remove Photo',
@@ -370,7 +369,6 @@ export default function AccountSettingsPageClient({
                   <option value="">{t.gender}</option>
                   <option value="MALE">{t.male}</option>
                   <option value="FEMALE">{t.female}</option>
-                  <option value="OTHER">{t.other}</option>
                 </select>
               </label>
               <label className="space-y-1 text-sm">

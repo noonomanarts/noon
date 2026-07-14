@@ -37,7 +37,7 @@ function parsePaymentMethod(value: unknown): BookingPaymentMethod {
 }
 
 function parseGender(value: unknown): Gender | null {
-  if (value === 'MALE' || value === 'FEMALE' || value === 'OTHER') {
+  if (value === 'MALE' || value === 'FEMALE') {
     return value;
   }
   return null;

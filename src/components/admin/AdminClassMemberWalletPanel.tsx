@@ -633,7 +633,6 @@ export default function AdminClassMemberWalletPanel({
                       <option value="">{isArabic ? 'اختر الجنس' : 'Select gender'}</option>
                       <option value="MALE">{isArabic ? 'ذكر' : 'Male'}</option>
                       <option value="FEMALE">{isArabic ? 'أنثى' : 'Female'}</option>
-                      <option value="OTHER">{isArabic ? 'أخرى' : 'Other'}</option>
                     </select>
                   </label>
 
@@ -684,7 +683,6 @@ export default function AdminClassMemberWalletPanel({
                           <option value="">{isArabic ? 'اختر الجنس' : 'Select gender'}</option>
                           <option value="MALE">{isArabic ? 'ذكر' : 'Male'}</option>
                           <option value="FEMALE">{isArabic ? 'أنثى' : 'Female'}</option>
-                          <option value="OTHER">{isArabic ? 'أخرى' : 'Other'}</option>
                         </select>
                       </label>
 

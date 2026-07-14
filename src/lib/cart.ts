@@ -11,7 +11,7 @@ export type CartParticipant = {
   fullName: string;
   dateOfBirth: string;
   preferredLanguage: 'en' | 'ar';
-  gender: 'MALE' | 'FEMALE' | 'OTHER';
+  gender: 'MALE' | 'FEMALE';
 };
 
 export type ClassCartItem = {
@@ -70,7 +70,7 @@ function isParticipant(value: unknown): value is CartParticipant {
     typeof row.fullName === 'string' && row.fullName.trim().length > 0 &&
     typeof row.dateOfBirth === 'string' && row.dateOfBirth.trim().length > 0 &&
     (row.preferredLanguage === 'en' || row.preferredLanguage === 'ar') &&
-    (row.gender === 'MALE' || row.gender === 'FEMALE' || row.gender === 'OTHER')
+    (row.gender === 'MALE' || row.gender === 'FEMALE')
   );
 }
 

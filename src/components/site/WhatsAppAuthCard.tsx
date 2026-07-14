@@ -104,7 +104,6 @@ export default function WhatsAppAuthCard({
       confirmPassword: isArabic ? 'تأكيد كلمة المرور' : 'Confirm Password',
       male: isArabic ? 'ذكر' : 'Male',
       female: isArabic ? 'أنثى' : 'Female',
-      other: isArabic ? 'آخر' : 'Other',
       english: isArabic ? 'الإنجليزية' : 'English',
       arabic: isArabic ? 'العربية' : 'Arabic',
       needPhone: isArabic ? 'يرجى إدخال رقم الهاتف.' : 'Please enter a phone number.',
@@ -344,7 +343,6 @@ export default function WhatsAppAuthCard({
                 <option value="">{t.gender}</option>
                 <option value="MALE">{t.male}</option>
                 <option value="FEMALE">{t.female}</option>
-                <option value="OTHER">{t.other}</option>
               </select>
             </Field>
 

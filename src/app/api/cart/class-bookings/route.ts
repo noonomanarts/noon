@@ -7,7 +7,7 @@ type Participant = {
   fullName: string;
   dateOfBirth: string;
   preferredLanguage: 'en' | 'ar';
-  gender: 'MALE' | 'FEMALE' | 'OTHER';
+  gender: 'MALE' | 'FEMALE';
 };
 
 function parseParticipants(value: unknown): Participant[] {
@@ -20,7 +20,7 @@ function parseParticipants(value: unknown): Participant[] {
       && typeof (item as Participant).fullName === 'string'
       && typeof (item as Participant).dateOfBirth === 'string'
       && ((item as Participant).preferredLanguage === 'en' || (item as Participant).preferredLanguage === 'ar')
-      && ((item as Participant).gender === 'MALE' || (item as Participant).gender === 'FEMALE' || (item as Participant).gender === 'OTHER')
+      && ((item as Participant).gender === 'MALE' || (item as Participant).gender === 'FEMALE')
     ))
     .slice(0, 20)
     .map((item) => ({

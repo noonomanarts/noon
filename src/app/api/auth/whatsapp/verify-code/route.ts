@@ -72,7 +72,7 @@ function toPreferredLanguage(value: 'en' | 'ar' | undefined): 'ENGLISH' | 'ARABI
 }
 
 function parseGender(value: unknown): Gender | null {
-  return value === 'MALE' || value === 'FEMALE' || value === 'OTHER' ? value : null;
+  return value === 'MALE' || value === 'FEMALE' ? value : null;
 }
 
 export async function POST(request: Request) {
