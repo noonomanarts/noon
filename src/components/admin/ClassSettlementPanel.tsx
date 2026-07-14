@@ -74,11 +74,20 @@ type SettlementSnapshot = {
     bookingNumber: string;
     customerName: string;
     customerEmail: string | null;
+    customerPhone: string | null;
     classStartTime: string;
+    bookingStatus: string;
+    paymentStatus: string;
+    paymentMethod: string | null;
+    bookingCreatedAt: string | null;
+    specialRequests: string | null;
+    totalAmount: number;
     participantIndex: number;
     participantName: string;
     participantDateOfBirth: string | null;
     participantPreferredLanguage: string | null;
+    participantGender: string | null;
+    registeredBySelf: boolean;
   }>;
   expenses: Array<{
     id: string;
@@ -168,6 +177,7 @@ export default function ClassSettlementPanel({
   const [closing, setClosing] = useState(false);
   const [reprocessing, setReprocessing] = useState(false);
   const [removingParticipantKey, setRemovingParticipantKey] = useState<string | null>(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<SettlementSnapshot['participants'][number] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -224,6 +234,25 @@ export default function ClassSettlementPanel({
     totalCosts: isArabic ? 'إجمالي التكاليف' : 'Total Costs',
     bookedBy: isArabic ? 'الحجز باسم' : 'Booked By',
     participantName: isArabic ? 'اسم المشارك' : 'Participant Name',
+    viewDetails: isArabic ? 'عرض التفاصيل' : 'View details',
+    participantDetails: isArabic ? 'تفاصيل التسجيل' : 'Registration Details',
+    contactInfo: isArabic ? 'بيانات التواصل' : 'Contact Information',
+    phoneNumber: isArabic ? 'رقم الهاتف' : 'Phone Number',
+    emailLabel: isArabic ? 'البريد الإلكتروني' : 'Email',
+    registrationInfo: isArabic ? 'طريقة التسجيل' : 'How They Registered',
+    registeredSelf: isArabic ? 'سجل بنفسه (حسابه الشخصي)' : 'Registered themselves (own account)',
+    registeredOnBehalf: isArabic ? 'تم تسجيله بواسطة' : 'Registered on their behalf by',
+    registeredAt: isArabic ? 'تاريخ التسجيل' : 'Registered On',
+    paymentMethodLabel: isArabic ? 'طريقة الدفع' : 'Payment Method',
+    paymentOnline: isArabic ? 'دفع إلكتروني' : 'Online payment',
+    paymentWallet: isArabic ? 'رصيد المحفظة' : 'Wallet credit',
+    amountPaid: isArabic ? 'المبلغ المدفوع (الحجز كاملاً)' : 'Amount Paid (whole booking)',
+    registrationNotes: isArabic ? 'ملاحظات العميل عند التسجيل' : 'Notes Submitted During Registration',
+    noNotes: isArabic ? 'لم يكتب العميل أي ملاحظات عند التسجيل.' : 'The customer did not submit any notes during registration.',
+    closeDetails: isArabic ? 'إغلاق' : 'Close',
+    genderLabel: isArabic ? 'الجنس' : 'Gender',
+    genderMale: isArabic ? 'ذكر' : 'Male',
+    genderFemale: isArabic ? 'أنثى' : 'Female',
     booking: isArabic ? 'الحجز' : 'Booking',
     classDate: isArabic ? 'تاريخ الدورة' : 'Class Date',
     dob: isArabic ? 'الميلاد' : 'DOB',
@@ -794,7 +823,14 @@ export default function ClassSettlementPanel({
                               <div className="grid min-w-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-center">
                                 <div className="min-w-0">
                                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.participants}</p>
-                                  <h4 className="mt-1 truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{participant.participantName}</h4>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedParticipant(participant)}
+                                    className="mt-1 block max-w-full truncate text-start text-sm font-semibold text-[color:var(--noon-teal-strong)] underline decoration-dotted underline-offset-4 transition hover:text-[color:var(--noon-teal)] dark:text-teal-300"
+                                    title={t.viewDetails}
+                                  >
+                                    {participant.participantName}
+                                  </button>
                                 </div>
                                 <div className="min-w-0">
                                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.bookedBy}</p>
@@ -822,6 +858,13 @@ export default function ClassSettlementPanel({
                             <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.classDate}</dt>
                             <dd className="mt-1 truncate font-medium text-zinc-800 dark:text-zinc-100">{formatDateTime(participant.classStartTime)}</dd>
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedParticipant(participant)}
+                            className="inline-flex min-h-10 items-center justify-center whitespace-nowrap rounded-xl border border-teal-200 px-4 py-2 text-sm font-semibold text-[color:var(--noon-teal-strong)] transition hover:bg-teal-50 dark:border-teal-900/40 dark:text-teal-300 dark:hover:bg-teal-900/20"
+                          >
+                            {t.viewDetails}
+                          </button>
                         </dl>
 
                         {canEdit ? (
@@ -1425,6 +1468,145 @@ export default function ClassSettlementPanel({
           </div>
         </div>
       </div>
+
+      {/* Registration details modal */}
+      {selectedParticipant ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setSelectedParticipant(null)}
+        >
+          <div
+            className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t.participantDetails}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{t.participantDetails}</p>
+                <h3 className="mt-1 text-xl font-semibold text-zinc-900 dark:text-zinc-100">{selectedParticipant.participantName}</h3>
+                <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                  {t.booking}: {selectedParticipant.bookingNumber}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedParticipant(null)}
+                className="rounded-xl border border-zinc-200 px-3 py-1.5 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                {t.closeDetails}
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4 text-sm">
+              {/* Participant */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-950/50">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{t.dob}</p>
+                  <p className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">{selectedParticipant.participantDateOfBirth || '—'}</p>
+                </div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-950/50">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{t.genderLabel}</p>
+                  <p className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
+                    {selectedParticipant.participantGender === 'MALE'
+                      ? t.genderMale
+                      : selectedParticipant.participantGender === 'FEMALE'
+                        ? t.genderFemale
+                        : '—'}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-950/50">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{t.language}</p>
+                  <p className="mt-1 font-medium uppercase text-zinc-900 dark:text-zinc-100">{selectedParticipant.participantPreferredLanguage || '—'}</p>
+                </div>
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-950/50">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{t.classDate}</p>
+                  <p className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">{formatDateTime(selectedParticipant.classStartTime)}</p>
+                </div>
+              </div>
+
+              {/* Contact */}
+              <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.contactInfo}</h4>
+                <dl className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-zinc-500 dark:text-zinc-400">{t.phoneNumber}</dt>
+                    <dd className="font-medium text-zinc-900 dark:text-zinc-100" dir="ltr">
+                      {selectedParticipant.customerPhone ? (
+                        <a href={`tel:${selectedParticipant.customerPhone}`} className="underline decoration-dotted underline-offset-4">
+                          {selectedParticipant.customerPhone}
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-zinc-500 dark:text-zinc-400">{t.emailLabel}</dt>
+                    <dd className="max-w-[60%] truncate font-medium text-zinc-900 dark:text-zinc-100" dir="ltr">
+                      {selectedParticipant.customerEmail ? (
+                        <a href={`mailto:${selectedParticipant.customerEmail}`} className="underline decoration-dotted underline-offset-4">
+                          {selectedParticipant.customerEmail}
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* Registration info */}
+              <div className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+                <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.registrationInfo}</h4>
+                <dl className="mt-3 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <dt className="shrink-0 text-zinc-500 dark:text-zinc-400">{t.bookedBy}</dt>
+                    <dd className="text-end font-medium text-zinc-900 dark:text-zinc-100">
+                      {selectedParticipant.registeredBySelf
+                        ? t.registeredSelf
+                        : `${t.registeredOnBehalf} ${selectedParticipant.customerName}`}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-zinc-500 dark:text-zinc-400">{t.registeredAt}</dt>
+                    <dd className="font-medium text-zinc-900 dark:text-zinc-100">{formatDateTime(selectedParticipant.bookingCreatedAt)}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-zinc-500 dark:text-zinc-400">{t.paymentMethodLabel}</dt>
+                    <dd className="font-medium text-zinc-900 dark:text-zinc-100">
+                      {selectedParticipant.paymentMethod === 'WALLET'
+                        ? t.paymentWallet
+                        : selectedParticipant.paymentMethod === 'ONLINE'
+                          ? t.paymentOnline
+                          : selectedParticipant.paymentMethod || '—'}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-zinc-500 dark:text-zinc-400">{t.amountPaid}</dt>
+                    <dd className="font-medium text-zinc-900 dark:text-zinc-100">
+                      {formatMoney(selectedParticipant.totalAmount, snapshot.currency)}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              {/* Registration notes */}
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/40 dark:bg-amber-900/10">
+                <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200">{t.registrationNotes}</h4>
+                {selectedParticipant.specialRequests ? (
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-amber-900 dark:text-amber-100">
+                    {selectedParticipant.specialRequests}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-sm text-amber-700/80 dark:text-amber-300/70">{t.noNotes}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
