@@ -8,7 +8,7 @@ import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotificat
 import { sendClassRegistrationMessage } from '@/lib/classCustomMessages';
 import { isRegistrationClosed } from '@/lib/classRegistration';
 import { prepareAmwalPayment } from '@/lib/amwal';
-import { createPromoCode } from '@/lib/db/promoCodes';
+import { createPromoCode, incrementPromoCodeUsage, validatePromoCode } from '@/lib/db/promoCodes';
 import type { Gender } from '@/lib/db/types';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -165,6 +165,8 @@ async function insertBookingWithRetry(args: {
   paymentMethod: BookingPaymentMethod;
   paymentStatus: 'PENDING' | 'PAID';
   paidAt: Date | null;
+  promoCodeId: string | null;
+  discountAmount: number;
 }): Promise<Record<string, unknown>> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     try {
@@ -172,10 +174,11 @@ async function insertBookingWithRetry(args: {
         `INSERT INTO bookings (
            booking_number, user_id, class_id, participants, number_of_participants,
            total_amount, currency, status, payment_method, payment_status, paid_at,
-           terms_accepted, terms_accepted_at, special_requests, created_at, updated_at
+           terms_accepted, terms_accepted_at, special_requests, promo_code_id, discount_amount,
+           created_at, updated_at
          ) VALUES (
            $1, $2, $3, $4::jsonb, $5, $6, $7, $8, $9, $10, $11,
-           TRUE, NOW(), $12, NOW(), NOW()
+           TRUE, NOW(), $12, $13, $14, NOW(), NOW()
          )
          RETURNING id, booking_number, total_amount, currency, number_of_participants, payment_method, payment_status`,
         [
@@ -191,6 +194,8 @@ async function insertBookingWithRetry(args: {
           args.paymentStatus,
           args.paidAt,
           args.specialRequests,
+          args.promoCodeId,
+          args.discountAmount,
         ]
       );
 
@@ -235,6 +240,7 @@ export async function POST(request: NextRequest) {
   const numberOfParticipants = normalizeParticipantCount(body.numberOfParticipants);
   const termsAccepted = body.termsAccepted === true;
   const specialRequests = parseSafeString(body.specialRequests, 3000);
+  const promoCodeInput = parseSafeString(body.promoCode, 50);
   const participants = parseParticipants(body.participants);
   const freePartners = parseParticipants(body.freePartners, true);
   const storedParticipants = [...participants, ...freePartners];
@@ -378,8 +384,23 @@ export async function POST(request: NextRequest) {
     const unitPrice = Number(classRow.price ?? 0);
     const bookingCurrency = (classRow.currency as string) || 'OMR';
     const subtotalAmount = Number((unitPrice * numberOfParticipants).toFixed(3));
-    const discountAmount = summerCampGetsDiscount ? Number((subtotalAmount * 0.1).toFixed(3)) : 0;
-    const totalAmount = Number(Math.max(0, subtotalAmount - discountAmount).toFixed(3));
+    const summerCampDiscountAmount = summerCampGetsDiscount ? Number((subtotalAmount * 0.1).toFixed(3)) : 0;
+    const baseTotalAmount = Number(Math.max(0, subtotalAmount - summerCampDiscountAmount).toFixed(3));
+
+    // Promo code (validated server-side against the amount after other discounts)
+    let promoDiscountAmount = 0;
+    let appliedPromo: { id: string; code: string } | null = null;
+    if (promoCodeInput) {
+      const promoValidation = await validatePromoCode(promoCodeInput, baseTotalAmount);
+      if (!promoValidation.valid) {
+        throw new ApiError(promoValidation.reason, 400);
+      }
+      promoDiscountAmount = Number(promoValidation.discountAmount.toFixed(3));
+      appliedPromo = { id: promoValidation.promo.id, code: promoValidation.promo.code };
+    }
+
+    const totalDiscountAmount = Number((summerCampDiscountAmount + promoDiscountAmount).toFixed(3));
+    const totalAmount = Number(Math.max(0, baseTotalAmount - promoDiscountAmount).toFixed(3));
 
     if (paymentMethod === 'ONLINE') {
       const booking = await insertBookingWithRetry({
@@ -395,6 +416,8 @@ export async function POST(request: NextRequest) {
         paymentMethod: 'ONLINE',
         paymentStatus: 'PENDING',
         paidAt: null,
+        promoCodeId: appliedPromo?.id ?? null,
+        discountAmount: totalDiscountAmount,
       });
 
       const amwalPayment = prepareAmwalPayment({
@@ -492,6 +515,8 @@ export async function POST(request: NextRequest) {
       paymentMethod: 'WALLET',
       paymentStatus: 'PAID',
       paidAt: new Date(),
+      promoCodeId: appliedPromo?.id ?? null,
+      discountAmount: totalDiscountAmount,
     });
 
     await client.query(
@@ -502,6 +527,12 @@ export async function POST(request: NextRequest) {
     );
 
     await client.query('COMMIT');
+
+    if (appliedPromo) {
+      void incrementPromoCodeUsage(appliedPromo.id).catch((error) => {
+        console.error('Failed to increment promo code usage:', error);
+      });
+    }
 
     const promoCode = summerCampCreatesFuturePromo
       ? await createSummerCampFuturePromo(user.id, String(booking.booking_number))

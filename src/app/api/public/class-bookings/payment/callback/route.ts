@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db/pool';
 import { addBonusPoints } from '@/lib/db/wallet';
-import { createPromoCode } from '@/lib/db/promoCodes';
+import { createPromoCode, incrementPromoCodeUsage } from '@/lib/db/promoCodes';
 import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import { sendClassRegistrationMessage } from '@/lib/classCustomMessages';
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     const bookingResult = await client.query(
       `SELECT b.id, b.booking_number, b.user_id, b.class_id, b.number_of_participants, b.total_amount,
-              b.currency, b.status, b.payment_status, u.full_name, c.title, c.title_ar, c.start_date_time,
+              b.currency, b.status, b.payment_status, b.promo_code_id, u.full_name, c.title, c.title_ar, c.start_date_time,
               c.registration_close_at, c.status AS class_status, c.seats_total, c.seats_booked, c.sub_category
        FROM bookings b
        INNER JOIN users u ON u.id = b.user_id
@@ -177,6 +177,12 @@ export async function POST(request: NextRequest) {
       );
 
       await client.query('COMMIT');
+
+      if (booking.promo_code_id) {
+        void incrementPromoCodeUsage(String(booking.promo_code_id)).catch((error) => {
+          console.error('Failed to increment promo code usage:', error);
+        });
+      }
 
       void addBonusPoints(String(booking.user_id), Number(booking.total_amount ?? 0)).catch(() => { /* ignore points failure */ });
 

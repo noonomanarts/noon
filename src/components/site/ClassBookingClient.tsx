@@ -157,6 +157,14 @@ export default function ClassBookingClient({
   const [result, setResult] = useState<BookingResult | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<BookingPaymentMethod>('ONLINE');
   const [wallet, setWallet] = useState<WalletPayload | null>(null);
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discountType: 'PERCENTAGE' | 'FIXED';
+    discountValue: number;
+  } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
 
   const seatsAvailable = Math.max(0, classData.seatsTotal - classData.seatsBooked);
   const hasBookableSeats = seatsAvailable > 0;
@@ -185,7 +193,13 @@ export default function ClassBookingClient({
   const totalAmount = Number((classData.price * paidParticipants).toFixed(3));
   const isMomKid = classData.subCategory === 'MOM_AND_KID';
   const summerCampDiscountAmount = isSummerCamp && (paidParticipants >= 2 || classData.summerCampHasPriorBooking) ? Number((totalAmount * 0.1).toFixed(3)) : 0;
-  const payableTotalAmount = Number(Math.max(0, totalAmount - summerCampDiscountAmount).toFixed(3));
+  const baseTotalAmount = Number(Math.max(0, totalAmount - summerCampDiscountAmount).toFixed(3));
+  const promoDiscountAmount = appliedPromo
+    ? appliedPromo.discountType === 'PERCENTAGE'
+      ? Number(Math.min(baseTotalAmount, (baseTotalAmount * appliedPromo.discountValue) / 100).toFixed(3))
+      : Number(Math.min(appliedPromo.discountValue, baseTotalAmount).toFixed(3))
+    : 0;
+  const payableTotalAmount = Number(Math.max(0, baseTotalAmount - promoDiscountAmount).toFixed(3));
   const walletBalance = wallet?.balance ?? 0;
   const walletHasEnoughBalance = walletBalance >= payableTotalAmount;
   const classDateLabel = classData.startDateTime
@@ -249,6 +263,13 @@ export default function ClassBookingClient({
     agree: isArabic ? 'أوافق على الشروط والأحكام' : 'I agree to the terms and conditions',
     total: isArabic ? 'الإجمالي' : 'Total',
     subtotal: isArabic ? 'الإجمالي قبل الخصم' : 'Subtotal',
+    promoCode: isArabic ? 'كود الخصم' : 'Promo Code',
+    promoPlaceholder: isArabic ? 'مثال: NOON20' : 'Example: NOON20',
+    applyPromo: isArabic ? 'تطبيق' : 'Apply',
+    removePromo: isArabic ? 'إزالة' : 'Remove',
+    promoApplied: isArabic ? 'تم تطبيق الكود' : 'Promo applied',
+    promoDiscount: isArabic ? 'خصم كود الخصم' : 'Promo discount',
+    promoInvalid: isArabic ? 'كود الخصم غير صالح.' : 'Invalid promo code.',
     summerCampDiscount: isArabic ? 'خصم المخيم الصيفي' : 'Summer Camp discount',
     summerCampFuturePromo: isArabic
       ? 'حجز طفل واحد يحصل على كود خصم 10% للاستخدام القادم بعد إتمام الدفع.'
@@ -580,6 +601,49 @@ export default function ClassBookingClient({
     }
   }, [otherCount, otherParticipants, othersIncluded]);
 
+  const applyPromoCode = async () => {
+    const code = promoCodeInput.trim();
+    if (!code) return;
+
+    setPromoLoading(true);
+    setPromoError(null);
+    try {
+      const response = await fetch('/api/shop/promo-codes/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, subtotal: baseTotalAmount }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        valid?: boolean;
+        promoCode?: string;
+        discountType?: 'PERCENTAGE' | 'FIXED';
+        discountValue?: number;
+        error?: string;
+      };
+
+      if (!response.ok || payload.valid !== true || !payload.promoCode || !payload.discountType) {
+        throw new Error(payload.error || t.promoInvalid);
+      }
+
+      setAppliedPromo({
+        code: payload.promoCode,
+        discountType: payload.discountType,
+        discountValue: Number(payload.discountValue ?? 0),
+      });
+      setPromoCodeInput('');
+    } catch (promoApplyError) {
+      setAppliedPromo(null);
+      setPromoError(promoApplyError instanceof Error ? promoApplyError.message : t.promoInvalid);
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const removePromoCode = () => {
+    setAppliedPromo(null);
+    setPromoError(null);
+  };
+
   const submitBooking = async () => {
     setError(null);
     setMessage(null);
@@ -607,6 +671,7 @@ export default function ClassBookingClient({
           freePartners,
           specialRequests,
           termsAccepted,
+          promoCode: appliedPromo?.code ?? null,
         }),
       });
 
@@ -1191,6 +1256,53 @@ export default function ClassBookingClient({
               </div>
             ) : null}
           </div>
+          <div className="mt-4 rounded-2xl border border-[color:var(--border)] p-4">
+            <p className="text-sm font-semibold text-[color:var(--text)]">{t.promoCode}</p>
+            {appliedPromo ? (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-emerald-300/60 bg-emerald-500/10 px-3 py-2.5 text-sm">
+                <span className="min-w-0">
+                  <span className="block text-xs text-emerald-700 dark:text-emerald-300">{t.promoApplied}</span>
+                  <span className="block truncate font-semibold text-emerald-900 dark:text-emerald-200">{appliedPromo.code}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={removePromoCode}
+                  className="shrink-0 rounded-lg border border-emerald-300/60 px-2.5 py-1 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-500/10 dark:text-emerald-200"
+                >
+                  {t.removePromo}
+                </button>
+              </div>
+            ) : (
+              <div className="mt-3 flex gap-2">
+                <input
+                  value={promoCodeInput}
+                  onChange={(event) => {
+                    setPromoCodeInput(event.target.value.toUpperCase());
+                    if (promoError) setPromoError(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void applyPromoCode();
+                    }
+                  }}
+                  placeholder={t.promoPlaceholder}
+                  className="min-w-0 flex-1 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-3 py-2 text-sm uppercase text-[color:var(--text)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => void applyPromoCode()}
+                  disabled={promoLoading || !promoCodeInput.trim()}
+                  className="shrink-0 rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--border)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {promoLoading ? t.processing : t.applyPromo}
+                </button>
+              </div>
+            )}
+            {promoError ? (
+              <p className="mt-2 text-xs font-medium text-red-600 dark:text-red-400">{promoError}</p>
+            ) : null}
+          </div>
           <div className="mt-4 space-y-2 text-sm text-[color:var(--text)]">
             <div className="flex items-center justify-between">
               <span>{t.classDate}</span>
@@ -1201,17 +1313,23 @@ export default function ClassBookingClient({
               <span className="font-semibold">{paidParticipants}</span>
             </div>
             <div className="border-t border-[color:var(--border)] pt-2 text-base font-semibold text-[color:var(--text)]">
+              {summerCampDiscountAmount > 0 || promoDiscountAmount > 0 ? (
+                <div className="flex items-center justify-between text-sm font-medium">
+                  <span>{t.subtotal}</span>
+                  <span>{formatAmountWithCurrency(totalAmount, classData.currency)}</span>
+                </div>
+              ) : null}
               {summerCampDiscountAmount > 0 ? (
-                <>
-                  <div className="flex items-center justify-between text-sm font-medium">
-                    <span>{t.subtotal}</span>
-                    <span>{formatAmountWithCurrency(totalAmount, classData.currency)}</span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                    <span>{t.summerCampDiscount}</span>
-                    <span>-{formatAmountWithCurrency(summerCampDiscountAmount, classData.currency)}</span>
-                  </div>
-                </>
+                <div className="mt-1 flex items-center justify-between text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                  <span>{t.summerCampDiscount}</span>
+                  <span>-{formatAmountWithCurrency(summerCampDiscountAmount, classData.currency)}</span>
+                </div>
+              ) : null}
+              {promoDiscountAmount > 0 && appliedPromo ? (
+                <div className="mt-1 flex items-center justify-between text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                  <span>{t.promoDiscount} ({appliedPromo.code})</span>
+                  <span>-{formatAmountWithCurrency(promoDiscountAmount, classData.currency)}</span>
+                </div>
               ) : null}
               <div className="mt-1 flex items-center justify-between">
                 <span>{t.total}</span>
