@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { FiCheck, FiEye, FiEyeOff, FiTrash2 } from 'react-icons/fi';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 import type { Locale } from '@/lib/locale';
 
 type Status = 'PENDING' | 'PUBLISHED' | 'HIDDEN';
@@ -18,6 +19,7 @@ export default function AdminWorkshopSuggestionActions({
 }) {
   const router = useRouter();
   const isArabic = locale === 'ar';
+  const { confirm } = useAppFeedback();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +46,14 @@ export default function AdminWorkshopSuggestionActions({
   }
 
   async function remove() {
-    if (!confirm(t.confirmDelete)) return;
+    const confirmed = await confirm({
+      title: t.delete,
+      message: t.confirmDelete,
+      confirmLabel: t.delete,
+      cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
     setError(null);
     const res = await fetch(`/api/admin/workshop-suggestions/${id}`, { method: 'DELETE' });
     if (!res.ok) {
