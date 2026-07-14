@@ -31,6 +31,7 @@ interface ClassItem {
   trainer: Trainer | null;
   sessions?: Array<{ startDateTime?: string | null; endDateTime?: string | null }>;
   seatsTotal?: number;
+  seatsBooked?: number;
   _count: { bookings: number };
 }
 
@@ -463,7 +464,7 @@ export default function AdminClassesPage() {
                       <div className="rounded-xl bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60">
                         <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400 dark:text-zinc-500">{t.occupancyCol}</div>
                         <div className="mt-1 flex items-center gap-1">
-                          <span className="text-xs font-semibold text-zinc-900 dark:text-white">{item._count.bookings}/{item.seatsTotal ?? '—'}</span>
+                          <span className="text-xs font-semibold text-zinc-900 dark:text-white">{item.seatsBooked ?? 0}/{item.seatsTotal ?? '—'}</span>
                         </div>
                       </div>
                     </div>
@@ -542,7 +543,7 @@ export default function AdminClassesPage() {
                         <td className="px-4 py-3.5">
                           {(() => {
                             const seats = item.seatsTotal ?? 0;
-                            const booked = item._count.bookings;
+                            const booked = item.seatsBooked ?? 0;
                             const pct = seats > 0 ? Math.round((booked / seats) * 100) : 0;
                             const tone = pct >= 100
                               ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'

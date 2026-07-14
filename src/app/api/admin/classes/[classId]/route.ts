@@ -47,10 +47,13 @@ export async function GET(request: NextRequest, props: Params) {
       return NextResponse.json({ error: 'Class not found' }, { status: 404 });
     }
 
-    // Get counts
+    // Get counts (active paid bookings only)
     const countsResult = await query(
       `SELECT 
-        (SELECT COUNT(*)::int FROM bookings WHERE class_id = $1) as bookings_count`,
+        (SELECT COUNT(*)::int FROM bookings
+         WHERE class_id = $1
+           AND payment_status = 'PAID'
+           AND status IN ('CONFIRMED', 'COMPLETED')) as bookings_count`,
       [params.classId]
     );
 

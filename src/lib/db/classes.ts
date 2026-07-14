@@ -202,12 +202,12 @@ export async function getMarketingClassesOverview(): Promise<MarketingClassOverv
     `SELECT c.id, c.slug, c.title, c.title_ar, c.category, c.status, c.image,
             c.seats_total,
             c.start_date_time,
-            (SELECT COUNT(*)::int FROM bookings b WHERE b.class_id = c.id) AS participants
+            COALESCE(c.seats_booked, 0)::int AS participants
      FROM classes c
      WHERE c.status IN ('PUBLISHED', 'DRAFT')
      ORDER BY
        CASE WHEN c.seats_total > 0 THEN
-         (SELECT COUNT(*)::int FROM bookings b WHERE b.class_id = c.id)::float / c.seats_total
+         COALESCE(c.seats_booked, 0)::float / c.seats_total
        ELSE 1 END ASC,
        c.start_date_time ASC NULLS LAST`
   );

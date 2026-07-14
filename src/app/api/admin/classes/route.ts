@@ -32,7 +32,10 @@ export async function GET(request: NextRequest) {
         // Get counts
         const countsResult = await query(
           `SELECT 
-            (SELECT COUNT(*)::int FROM bookings WHERE class_id = $1) as bookings_count,
+            (SELECT COUNT(*)::int FROM bookings
+             WHERE class_id = $1
+               AND payment_status = 'PAID'
+               AND status IN ('CONFIRMED', 'COMPLETED')) as bookings_count,
             (SELECT COUNT(*)::int FROM reviews WHERE class_id = $1) as reviews_count`,
           [cls.id]
         );

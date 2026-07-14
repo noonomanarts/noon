@@ -294,7 +294,7 @@ export async function getPhotographerSchedule(options?: {
        c.description,
        c.category,
        u.full_name AS trainer_name,
-       COALESCE((SELECT COUNT(*)::int FROM bookings b WHERE b.class_id = c.id AND b.status NOT IN ('CANCELLED')), 0) AS seats_booked
+       COALESCE(c.seats_booked, 0) AS seats_booked
      FROM classes c
      LEFT JOIN users u ON u.id = c.trainer_id
      WHERE c.status = 'PUBLISHED'
