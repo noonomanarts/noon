@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FiAward,
+  FiBarChart2,
   FiBell,
   FiBookOpen,
   FiCalendar,
@@ -30,6 +31,7 @@ import {
 const iconMap = {
   FiGrid,
   FiTrendingUp,
+  FiBarChart2,
   FiBookOpen,
   FiCalendar,
   FiAward,

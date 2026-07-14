@@ -62,6 +62,7 @@ export default async function AdminLayout({
     finance: locale === "ar" ? "المالية" : "Finance",
     dashboard: locale === "ar" ? "الرئيسية" : "Dashboard",
     analytics: locale === "ar" ? "التحليلات" : "Insights",
+    reports: locale === "ar" ? "التقارير" : "Reports",
     financeReports: locale === "ar" ? "المالية" : "Finance",
     inventory: locale === "ar" ? "المخزون" : "Inventory",
     classesEvents: locale === "ar" ? "البرامج" : "Programs",
@@ -122,6 +123,7 @@ export default async function AdminLayout({
           items: [
             { iconName: "FiGrid" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.dashboard, href: `/${locale}/admin` },
             { iconName: "FiTrendingUp" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.analytics, href: `/${locale}/admin/analytics` },
+            { iconName: "FiBarChart2" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.reports, href: `/${locale}/admin/reports` },
           ],
         },
         {
