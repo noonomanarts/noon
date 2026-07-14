@@ -377,6 +377,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Notify pending repeat requesters when a workshop is created directly as published
+    if (newClass.status === 'PUBLISHED') {
+      const { notifyRepeatRequestersForPublishedClass } = await import('@/lib/db/classRepeatRequests');
+      void notifyRepeatRequestersForPublishedClass({ classId: newClass.id as string }).catch((error) => {
+        console.error('[classes/create] notifyRepeatRequestersForPublishedClass failed:', error);
+      });
+    }
+
     // Get trainer info
     const trainerResult = await query(
       `SELECT id, full_name, profile_image FROM users WHERE id = $1`,

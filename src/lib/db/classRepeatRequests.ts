@@ -544,6 +544,8 @@ async function sendRepeatAvailableEmail(input: {
   isArabic: boolean;
   classTitle: string;
   classUrl: string;
+  classDate?: string;
+  classTime?: string;
 }): Promise<void> {
   if (!input.email) return;
 
@@ -559,9 +561,22 @@ async function sendRepeatAvailableEmail(input: {
       ? 'مرحباً'
       : 'Hello';
 
+  const scheduleLine = input.classDate
+    ? input.isArabic
+      ? `الموعد الجديد: ${input.classDate}${input.classTime ? ` - ${input.classTime}` : ''}`
+      : `New date: ${input.classDate}${input.classTime ? ` at ${input.classTime}` : ''}`
+    : '';
+
   const text = input.isArabic
-    ? `${greeting}\n\nالورشة التي طلبتِ/طلبتَ إعادتها أصبحت متاحة الآن: ${input.classTitle}\nيمكنك الحجز من هنا:\n${input.classUrl}\n\nفريق Noon`
-    : `${greeting}\n\nThe workshop you asked us to repeat is now available: ${input.classTitle}\nBook here:\n${input.classUrl}\n\nNoon Team`;
+    ? `${greeting}\n\nالورشة التي طلبتِ/طلبتَ إعادتها أصبحت متاحة الآن: ${input.classTitle}${scheduleLine ? `\n${scheduleLine}` : ''}\nيمكنك الحجز من هنا:\n${input.classUrl}\n\nفريق Noon`
+    : `${greeting}\n\nThe workshop you asked us to repeat is now available: ${input.classTitle}${scheduleLine ? `\n${scheduleLine}` : ''}\nBook here:\n${input.classUrl}\n\nNoon Team`;
+
+  const scheduleHtmlAr = scheduleLine
+    ? `<p style="margin: 0 0 14px; font-size: 16px; line-height: 1.9; color: #0f766e; font-weight: 600;">${scheduleLine}</p>`
+    : '';
+  const scheduleHtmlEn = scheduleLine
+    ? `<p style="margin: 0 0 14px; font-size: 16px; line-height: 1.8; color: #0f766e; font-weight: 600;">${scheduleLine}</p>`
+    : '';
 
   const html = input.isArabic
     ? `
@@ -575,6 +590,7 @@ async function sendRepeatAvailableEmail(input: {
             <p style="margin: 0 0 12px; font-size: 16px; line-height: 1.9;">${greeting}</p>
             <p style="margin: 0 0 14px; font-size: 16px; line-height: 1.9;">الورشة التي طلبتِ/طلبتَ إعادتها أصبحت متاحة الآن:</p>
             <p style="margin: 0 0 18px; font-size: 22px; font-weight: 700; line-height: 1.5; color: #111827;">${input.classTitle}</p>
+            ${scheduleHtmlAr}
             <a href="${input.classUrl}" style="display: inline-block; padding: 14px 22px; border-radius: 999px; background: #18181b; color: #ffffff; text-decoration: none; font-weight: 700;">احجز الآن</a>
             <p style="margin: 20px 0 0; font-size: 13px; line-height: 1.8; color: #52525b;">إذا لم يعمل الزر، استخدم هذا الرابط مباشرة:<br /><a href="${input.classUrl}" style="color: #0f766e; text-decoration: none;">${input.classUrl}</a></p>
           </div>
@@ -592,6 +608,7 @@ async function sendRepeatAvailableEmail(input: {
             <p style="margin: 0 0 12px; font-size: 16px; line-height: 1.8;">${greeting}</p>
             <p style="margin: 0 0 14px; font-size: 16px; line-height: 1.8;">The workshop you asked us to repeat is now available again:</p>
             <p style="margin: 0 0 18px; font-size: 22px; font-weight: 700; line-height: 1.5; color: #111827;">${input.classTitle}</p>
+            ${scheduleHtmlEn}
             <a href="${input.classUrl}" style="display: inline-block; padding: 14px 22px; border-radius: 999px; background: #18181b; color: #ffffff; text-decoration: none; font-weight: 700;">Book now</a>
             <p style="margin: 20px 0 0; font-size: 13px; line-height: 1.8; color: #52525b;">If the button does not open, use this link directly:<br /><a href="${input.classUrl}" style="color: #0f766e; text-decoration: none;">${input.classUrl}</a></p>
           </div>
@@ -616,6 +633,9 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
   const classItem = await findUniqueClass({ id: input.classId });
   if (!classItem) return 0;
 
+  // Match pending requesters either through the explicit renew/duplicate link
+  // (classes.renewed_from_class_id) or by a matching title within the same
+  // category (ignoring "(Copy)" style suffixes) for classes republished manually.
   const result = await query<{
     request_id: string;
     user_id: string;
@@ -628,12 +648,18 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
      JOIN classes target_class ON target_class.id = $1
      WHERE crr.fulfilled_by_class_id IS NULL
        AND source_class.id <> target_class.id
-       AND source_class.category = target_class.category
-       AND COALESCE(source_class.sub_category, '') = COALESCE(target_class.sub_category, '')
-       AND LOWER(TRIM(source_class.title)) = LOWER(TRIM(target_class.title))
        AND (
-         source_class.status = 'COMPLETED'
-         OR (source_class.end_date_time IS NOT NULL AND source_class.end_date_time < NOW())
+         target_class.renewed_from_class_id = source_class.id
+         OR (
+           source_class.category = target_class.category
+           AND LOWER(TRIM(REGEXP_REPLACE(source_class.title, '\\s*\\((copy|نسخة)\\)\\s*$', '', 'i')))
+             = LOWER(TRIM(REGEXP_REPLACE(target_class.title, '\\s*\\((copy|نسخة)\\)\\s*$', '', 'i')))
+           AND (
+             source_class.status = 'COMPLETED'
+             OR (source_class.end_date_time IS NOT NULL AND source_class.end_date_time < NOW())
+             OR (source_class.start_date_time IS NOT NULL AND source_class.start_date_time < NOW())
+           )
+         )
        )
      ORDER BY crr.user_id, crr.created_at DESC`,
     [input.classId]
@@ -671,7 +697,9 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
       await notifyUser(row.user_id, {
         type: 'class_repeat_available',
         title: 'Workshop Available Again',
-        message: `"${classItem.title}" is available again for booking.`,
+        message: classDate
+          ? `"${classItem.title}" has been scheduled again on ${classDate}${classTime ? ` at ${classTime}` : ''} and is open for booking.`
+          : `"${classItem.title}" is available again for booking.`,
         data: {
           classId: classItem.id,
           classSlug: classItem.slug,
@@ -696,6 +724,8 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
         classTitle,
         classUrl,
         isArabic,
+        classDate,
+        classTime,
       }).catch(() => {});
     })
   );

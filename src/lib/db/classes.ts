@@ -27,6 +27,7 @@ async function ensureClassMinimumAgeSchema(): Promise<void> {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS registration_message_ar TEXT`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS co_trainer_id UUID REFERENCES users(id) ON DELETE SET NULL`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS venue VARCHAR(20) NOT NULL DEFAULT 'KITCHEN'`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS renewed_from_class_id UUID REFERENCES classes(id) ON DELETE SET NULL`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS categories TEXT[] NOT NULL DEFAULT '{}'`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS sub_categories TEXT[] NOT NULL DEFAULT '{}'`);
     await query(`UPDATE classes SET categories = ARRAY[category::text] WHERE COALESCE(array_length(categories, 1), 0) = 0`);
@@ -520,6 +521,7 @@ export async function createClass(data: {
   trainerId: string | null;
   coTrainerId?: string | null;
   venue?: ClassVenue;
+  renewedFromClassId?: string | null;
   price: number;
   seatsTotal: number;
   durationMinutes: number;
@@ -561,7 +563,7 @@ export async function createClass(data: {
       id, slug, title, title_ar, description, description_ar, category, sub_category,
       categories, sub_categories,
       audience_gender,
-      trainer_id, co_trainer_id, venue, price, currency, seats_total, seats_available, duration_minutes,
+      trainer_id, co_trainer_id, venue, renewed_from_class_id, price, currency, seats_total, seats_available, duration_minutes,
       image, images, status, meta_title, meta_description,
       final_recipe_title, final_recipe_pdf, final_recipe_brief,
       final_recipe_title_ar, final_recipe_pdf_ar, final_recipe_brief_ar,
@@ -571,7 +573,7 @@ export async function createClass(data: {
       start_date_time, end_date_time, registration_close_at, schedule_sessions,
       registration_message, registration_message_ar,
       created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42::jsonb, $43, $44, $45, $46)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43::jsonb, $44, $45, $46, $47)
       RETURNING *`,
     [
       id,
@@ -588,6 +590,7 @@ export async function createClass(data: {
       data.trainerId,
       data.coTrainerId ?? null,
       data.venue === 'OUTSIDE' ? 'OUTSIDE' : 'KITCHEN',
+      data.renewedFromClassId ?? null,
       data.price,
       data.currency || 'OMR',
       data.seatsTotal,

@@ -72,6 +72,7 @@ export async function POST(_request: NextRequest, props: Params) {
       trainerId: source.trainerId,
       coTrainerId: typeof source.coTrainerId === 'string' ? source.coTrainerId : null,
       venue: source.venue === 'OUTSIDE' ? 'OUTSIDE' : 'KITCHEN',
+      renewedFromClassId: classId,
       price: Number(source.price || 0),
       seatsTotal: Number(source.seatsTotal || 1),
       durationMinutes: Number(source.durationMinutes || 60),
