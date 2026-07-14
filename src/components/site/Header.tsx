@@ -69,6 +69,8 @@ export default async function Header({ locale }: { locale: Locale }) {
     privateClasses: locale === "ar" ? "ورش خاصة" : "Private classes",
     birthday: locale === "ar" ? "حفلات أعياد الميلاد" : "Birthday parties",
     contact: locale === "ar" ? "تواصل" : "Contact",
+    contactUs: locale === "ar" ? "تواصل معنا" : "Contact Us",
+    suggestWorkshop: locale === "ar" ? "اقترح ورشة" : "Suggest a Workshop",
     joinUs: locale === "ar" ? "انضم إلينا" : "Join Us",
     login: locale === "ar" ? "تسجيل الدخول" : "Login",
     cart: locale === "ar" ? "السلة" : "Cart",
@@ -126,7 +128,15 @@ export default async function Header({ locale }: { locale: Locale }) {
           </Dropdown>
 
           <NavLink href={`/${locale}/about`} variant="top" tone={navTone}>{t.about}</NavLink>
-          <NavLink href={`/${locale}/contact`} variant="top" tone={navTone}>{t.contact}</NavLink>
+          <Dropdown
+            label={t.contact}
+            buttonClassName={dropdownButtonClass}
+            panelClassName={dropdownPanelClass}
+            panelStyle={headerMenuStyle}
+          >
+            <NavLink href={`/${locale}/contact`} tone={navTone}>{t.contactUs}</NavLink>
+            <NavLink href={`/${locale}/suggest-workshop`} tone={navTone}>{t.suggestWorkshop}</NavLink>
+          </Dropdown>
           <NavLink href={`/${locale}/join-us`} variant="top" tone={navTone}>{t.joinUs}</NavLink>
         </nav>
 
@@ -190,7 +200,8 @@ export default async function Header({ locale }: { locale: Locale }) {
                 {t.birthday}
               </NavLink>
               <NavLink href={`/${locale}/about`} tone={navTone}>{t.about}</NavLink>
-              <NavLink href={`/${locale}/contact`} tone={navTone}>{t.contact}</NavLink>
+              <NavLink href={`/${locale}/contact`} tone={navTone}>{t.contactUs}</NavLink>
+              <NavLink href={`/${locale}/suggest-workshop`} tone={navTone}>{t.suggestWorkshop}</NavLink>
               <NavLink href={`/${locale}/join-us`} tone={navTone}>{t.joinUs}</NavLink>
               {!user && (
                 <div className="mt-2 border-t border-black/10 pt-2">
