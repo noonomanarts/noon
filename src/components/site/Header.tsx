@@ -63,7 +63,6 @@ export default async function Header({ locale }: { locale: Locale }) {
     classes: locale === "ar" ? "ورش" : "Classes",
     cooking: locale === "ar" ? "ورش الطبخ" : "Cooking classes",
     arts: locale === "ar" ? "الفنون والأشغال" : "Arts & crafts classes",
-    summerCamp: locale === "ar" ? "المخيم الصيفي" : "Summer Camp",
     shop: locale === "ar" ? "المتجر" : "Shop",
     group: locale === "ar" ? "فعاليات" : "Events",
     competition: locale === "ar" ? "مسابقة الطبخ" : "Cooking competition",
