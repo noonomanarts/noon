@@ -49,8 +49,8 @@ interface FormData {
   titleAr: string;
   description: string;
   descriptionAr: string;
-  category: ClassCategory | '';
-  subCategory: ClassSubCategory | '';
+  categories: ClassCategory[];
+  subCategories: ClassSubCategory[];
   audienceGender: ClassAudienceGender;
   image: string;
   imageFile: File | null;
@@ -58,6 +58,8 @@ interface FormData {
   imageFiles: File[];
   newImageUrls: string[];
   trainerId: string;
+  coTrainerId: string;
+  venue: 'KITCHEN' | 'OUTSIDE';
   price: string;
   currency: string;
   seatsTotal: string;
@@ -120,8 +122,8 @@ export default function EditClassPage() {
     titleAr: '',
     description: '',
     descriptionAr: '',
-    category: '',
-    subCategory: '',
+    categories: [],
+    subCategories: [],
     audienceGender: 'FEMALE_ONLY',
     image: '',
     imageFile: null,
@@ -129,6 +131,8 @@ export default function EditClassPage() {
     imageFiles: [],
     newImageUrls: [],
     trainerId: '',
+    coTrainerId: '',
+    venue: 'KITCHEN',
     price: '',
     currency: 'AED',
     seatsTotal: '',
@@ -210,8 +214,12 @@ export default function EditClassPage() {
         titleAr: data.titleAr || '',
         description: data.description || '',
         descriptionAr: data.descriptionAr || '',
-        category: data.category || '',
-        subCategory: data.subCategory || '',
+        categories: Array.isArray(data.categories) && data.categories.length > 0
+          ? data.categories
+          : (data.category ? [data.category] : []),
+        subCategories: Array.isArray(data.subCategories) && data.subCategories.length > 0
+          ? data.subCategories
+          : (data.subCategory ? [data.subCategory] : []),
         audienceGender: data.audienceGender || 'FEMALE_ONLY',
         image: data.image || '',
         imageFile: null,
@@ -219,6 +227,8 @@ export default function EditClassPage() {
         imageFiles: [],
         newImageUrls: [],
         trainerId: data.trainerId || '',
+        coTrainerId: data.coTrainerId || '',
+        venue: data.venue === 'OUTSIDE' ? 'OUTSIDE' : 'KITCHEN',
         price: data.price?.toString() || '',
         currency: data.currency || 'AED',
         seatsTotal: data.seatsTotal?.toString() || '',
@@ -294,9 +304,63 @@ export default function EditClassPage() {
   };
 
   const selectedCategoryFinance =
-    formData.category === 'ARTS_CRAFTS'
+    formData.categories[0] === 'ARTS_CRAFTS'
       ? classFinanceSettings.artsCrafts
       : classFinanceSettings.cooking;
+
+  const COOKING_SUB_CATEGORIES: ClassSubCategory[] = ['APPETIZERS_SNACKS', 'MAIN_DISHES', 'DESSERTS_BAKING', 'MOM_AND_KID', 'SUMMER_CAMP'];
+  const ARTS_SUB_CATEGORIES: ClassSubCategory[] = ['PAINTING', 'CRAFTS', 'POTTERY'];
+  const availableSubCategories: ClassSubCategory[] = [
+    ...(formData.categories.includes('COOKING') ? COOKING_SUB_CATEGORIES : []),
+    ...(formData.categories.includes('ARTS_CRAFTS') ? ARTS_SUB_CATEGORIES : []),
+  ];
+
+  const toggleCategory = (value: ClassCategory) => {
+    setFormData((prev) => {
+      const nextCategories = prev.categories.includes(value)
+        ? prev.categories.filter((item) => item !== value)
+        : [...prev.categories, value];
+      const allowedSubs = [
+        ...(nextCategories.includes('COOKING') ? COOKING_SUB_CATEGORIES : []),
+        ...(nextCategories.includes('ARTS_CRAFTS') ? ARTS_SUB_CATEGORIES : []),
+      ];
+      return {
+        ...prev,
+        categories: nextCategories,
+        subCategories: prev.subCategories.filter((item) => allowedSubs.includes(item)),
+      };
+    });
+    if (errors.categories) {
+      setErrors((prev) => ({ ...prev, categories: '' }));
+    }
+  };
+
+  const toggleSubCategory = (value: ClassSubCategory) => {
+    setFormData((prev) => ({
+      ...prev,
+      subCategories: prev.subCategories.includes(value)
+        ? prev.subCategories.filter((item) => item !== value)
+        : [...prev.subCategories, value],
+    }));
+    if (errors.subCategories) {
+      setErrors((prev) => ({ ...prev, subCategories: '' }));
+    }
+  };
+
+  const subCategoryLabel = (value: ClassSubCategory): string => {
+    const labels: Record<ClassSubCategory, [string, string]> = {
+      APPETIZERS_SNACKS: ['Appetizers & Snacks', 'المقبلات والوجبات الخفيفة'],
+      MAIN_DISHES: ['Main Dishes', 'أطباق رئيسية'],
+      DESSERTS_BAKING: ['Desserts & Baking', 'حلويات ومخبوزات'],
+      MOM_AND_KID: ['Mom & Kid', 'أم وطفل'],
+      SUMMER_CAMP: ['Summer Camp', 'المخيم الصيفي'],
+      PAINTING: ['Painting', 'رسم'],
+      CRAFTS: ['Crafts', 'حرف يدوية'],
+      POTTERY: ['Pottery', 'فخار'],
+    };
+    const [en, ar] = labels[value];
+    return isRTL ? ar : en;
+  };
 
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ show: true, type, message });
@@ -469,10 +533,11 @@ export default function EditClassPage() {
     if (!formData.titleAr.trim()) newErrors.titleAr = 'Arabic title is required';
     if (!formData.description.trim()) newErrors.description = 'English description is required';
     if (!formData.descriptionAr.trim()) newErrors.descriptionAr = 'Arabic description is required';
-    if (!formData.category) newErrors.category = 'Category is required';
-    if (!formData.subCategory) newErrors.subCategory = 'Sub-category is required';
+    if (formData.categories.length === 0) newErrors.categories = 'At least one category is required';
+    if (formData.subCategories.length === 0) newErrors.subCategories = 'At least one sub-category is required';
     if (!formData.image) newErrors.image = 'Main image is required';
     if (!formData.trainerId) newErrors.trainerId = 'Trainer is required';
+    if (formData.coTrainerId && formData.coTrainerId === formData.trainerId) newErrors.coTrainerId = 'Co-trainer must be different from the main trainer';
     if (!formData.price) newErrors.price = 'Price is required';
     else if (parseFloat(formData.price) < 0) newErrors.price = 'Price must be positive';
     if (!formData.seatsTotal) newErrors.seatsTotal = 'Total seats is required';
@@ -577,12 +642,16 @@ export default function EditClassPage() {
         titleAr: formData.titleAr || '',
         description: formData.description || '',
         descriptionAr: formData.descriptionAr || '',
-        category: formData.category || null,
-        subCategory: formData.subCategory || null,
+        category: formData.categories[0] || null,
+        subCategory: formData.subCategories[0] || null,
+        categories: formData.categories.length > 0 ? formData.categories : undefined,
+        subCategories: formData.subCategories.length > 0 ? formData.subCategories : undefined,
         audienceGender: formData.audienceGender,
         image: mainImageUrl || null,
         images: allGalleryImages,
         trainerId: formData.trainerId || null,
+        coTrainerId: formData.coTrainerId || null,
+        venue: formData.venue,
         price: formData.price ? parseFloat(formData.price) : 0,
         currency: formData.currency,
         seatsTotal: formData.seatsTotal ? parseInt(formData.seatsTotal) : 12,
@@ -687,12 +756,16 @@ export default function EditClassPage() {
         titleAr: formData.titleAr,
         description: formData.description,
         descriptionAr: formData.descriptionAr,
-        category: formData.category,
-        subCategory: formData.subCategory,
+        category: formData.categories[0],
+        subCategory: formData.subCategories[0],
+        categories: formData.categories,
+        subCategories: formData.subCategories,
         audienceGender: formData.audienceGender,
         image: mainImageUrl,
         images: allGalleryImages,
         trainerId: formData.trainerId,
+        coTrainerId: formData.coTrainerId || null,
+        venue: formData.venue,
         price: parseFloat(formData.price),
         currency: formData.currency,
         seatsTotal: parseInt(formData.seatsTotal),
@@ -933,73 +1006,68 @@ export default function EditClassPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Category */}
+            {/* Categories (a class can belong to more than one) */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {isRTL ? 'الفئة' : 'Category'}
+                {isRTL ? 'الفئات' : 'Categories'}
                 <span className="text-red-500">*</span>
               </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                className={`${selectBase} ${
-                  errors.category ? 'border-red-500 dark:border-red-400' : ''
-                }`}
-              >
-                <option value="">{isRTL ? 'اختر الفئة' : 'Select category'}</option>
-                <option value="COOKING">
-                  {isRTL ? '🍳 طبخ' : '🍳 Cooking'}
-                </option>
-                <option value="ARTS_CRAFTS">
-                  {isRTL ? '🎨 فنون وحرف' : '🎨 Arts & Crafts'}
-                </option>
-              </select>
-              {errors.category && (
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                {isRTL ? 'يمكن اختيار أكثر من فئة (مثل طبخ + فنون)' : 'A workshop can appear under more than one category (e.g. Cooking + Arts & Crafts)'}
+              </p>
+              <div className={`mt-2 flex flex-wrap gap-3 rounded-lg border p-3 ${errors.categories ? 'border-red-500 dark:border-red-400' : 'border-zinc-300 dark:border-zinc-600'}`}>
+                {([
+                  { value: 'COOKING' as ClassCategory, label: isRTL ? '🍳 طبخ' : '🍳 Cooking' },
+                  { value: 'ARTS_CRAFTS' as ClassCategory, label: isRTL ? '🎨 فنون وحرف' : '🎨 Arts & Crafts' },
+                ]).map((option) => (
+                  <label key={option.value} className="inline-flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-200">
+                    <input
+                      type="checkbox"
+                      checked={formData.categories.includes(option.value)}
+                      onChange={() => toggleCategory(option.value)}
+                      className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+              {errors.categories && (
                 <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
                   <IoAlertCircle />
-                  {errors.category}
+                  {errors.categories}
                 </p>
               )}
             </div>
 
-            {/* Sub Category */}
+            {/* Sub Categories */}
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {isRTL ? 'الفئة الفرعية' : 'Sub Category'}
+                {isRTL ? 'الفئات الفرعية' : 'Sub Categories'}
                 <span className="text-red-500">*</span>
               </label>
-              <select
-                name="subCategory"
-                value={formData.subCategory}
-                onChange={handleInputChange}
-                disabled={!formData.category}
-                className={`${selectBase} ${
-                  errors.subCategory ? 'border-red-500 dark:border-red-400' : ''
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                <option value="">{isRTL ? 'اختر الفئة الفرعية' : 'Select sub-category'}</option>
-                {formData.category === 'COOKING' && (
-                  <>
-                    <option value="APPETIZERS_SNACKS">{isRTL ? 'المقبلات والوجبات الخفيفة' : 'Appetizers & Snacks'}</option>
-                    <option value="MAIN_DISHES">{isRTL ? 'أطباق رئيسية' : 'Main Dishes'}</option>
-                    <option value="DESSERTS_BAKING">{isRTL ? 'حلويات ومخبوزات' : 'Desserts & Baking'}</option>
-                    <option value="MOM_AND_KID">{isRTL ? 'أم وطفل' : 'Mom & Kid'}</option>
-                    <option value="SUMMER_CAMP">{isRTL ? 'المخيم الصيفي' : 'Summer Camp'}</option>
-                  </>
+              <div className={`mt-2 flex flex-wrap gap-3 rounded-lg border p-3 ${errors.subCategories ? 'border-red-500 dark:border-red-400' : 'border-zinc-300 dark:border-zinc-600'} ${formData.categories.length === 0 ? 'opacity-50' : ''}`}>
+                {formData.categories.length === 0 ? (
+                  <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                    {isRTL ? 'اختر الفئة أولاً' : 'Select a category first'}
+                  </span>
+                ) : (
+                  availableSubCategories.map((value) => (
+                    <label key={value} className="inline-flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-200">
+                      <input
+                        type="checkbox"
+                        checked={formData.subCategories.includes(value)}
+                        onChange={() => toggleSubCategory(value)}
+                        className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      {subCategoryLabel(value)}
+                    </label>
+                  ))
                 )}
-                {formData.category === 'ARTS_CRAFTS' && (
-                  <>
-                    <option value="PAINTING">{isRTL ? 'رسم' : 'Painting'}</option>
-                    <option value="CRAFTS">{isRTL ? 'حرف يدوية' : 'Crafts'}</option>
-                    <option value="POTTERY">{isRTL ? 'فخار' : 'Pottery'}</option>
-                  </>
-                )}
-              </select>
-              {errors.subCategory && (
+              </div>
+              {errors.subCategories && (
                 <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
                   <IoAlertCircle />
-                  {errors.subCategory}
+                  {errors.subCategories}
                 </p>
               )}
             </div>
@@ -1047,6 +1115,57 @@ export default function EditClassPage() {
                   {errors.trainerId}
                 </p>
               )}
+            </div>
+
+            {/* Co-trainer (optional) */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {isRTL ? 'المدرب المشارك (اختياري)' : 'Co-trainer (optional)'}
+              </label>
+              <select
+                name="coTrainerId"
+                value={formData.coTrainerId}
+                onChange={handleInputChange}
+                className={`${selectBase} ${
+                  errors.coTrainerId ? 'border-red-500 dark:border-red-400' : ''
+                }`}
+              >
+                <option value="">{isRTL ? 'بدون مدرب مشارك' : 'No co-trainer'}</option>
+                {trainers
+                  .filter((trainer) => trainer.id !== formData.trainerId)
+                  .map((trainer) => (
+                    <option key={trainer.id} value={trainer.id}>
+                      {trainer.fullName}
+                    </option>
+                  ))}
+              </select>
+              {errors.coTrainerId && (
+                <p className="text-red-600 dark:text-red-400 text-sm mt-1 flex items-center gap-1">
+                  <IoAlertCircle />
+                  {errors.coTrainerId}
+                </p>
+              )}
+            </div>
+
+            {/* Venue */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {isRTL ? 'المكان' : 'Venue'}
+              </label>
+              <select
+                name="venue"
+                value={formData.venue}
+                onChange={handleInputChange}
+                className={selectBase}
+              >
+                <option value="KITCHEN">{isRTL ? '🍳 المطبخ' : '🍳 Kitchen'}</option>
+                <option value="OUTSIDE">{isRTL ? '📍 خارج المطبخ' : '📍 Outside'}</option>
+              </select>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                {isRTL
+                  ? 'ورش المطبخ تحجز المطبخ تلقائياً في التقويم وتمنع حجز الفعاليات الخاصة في نفس الوقت.'
+                  : 'Kitchen workshops automatically book the kitchen on the calendar and prevent private events at the same time.'}
+              </p>
             </div>
 
             {/* Status */}
@@ -1201,7 +1320,7 @@ export default function EditClassPage() {
               </p>
             </div>
 
-            {formData.subCategory === 'SUMMER_CAMP' ? (
+            {formData.subCategories.includes('SUMMER_CAMP') ? (
               <div className="md:col-span-3">
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                   {isRTL ? 'جدول أيام المخيم' : 'Summer Camp Schedule'}

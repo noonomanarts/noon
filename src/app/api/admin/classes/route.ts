@@ -77,8 +77,12 @@ export async function POST(request: NextRequest) {
       descriptionAr,
       category,
       subCategory,
+      categories,
+      subCategories,
       audienceGender,
       trainerId,
+      coTrainerId,
+      venue,
       price,
       seatsTotal,
       durationMinutes,
@@ -169,9 +173,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (categories !== undefined && (!Array.isArray(categories) || categories.some((item: unknown) => !validCategories.includes(String(item))))) {
+      return NextResponse.json(
+        { error: 'Invalid categories' },
+        { status: 400 }
+      );
+    }
+
     if (subCategory && !validSubCategories.includes(subCategory)) {
       return NextResponse.json(
         { error: 'Invalid sub-category' },
+        { status: 400 }
+      );
+    }
+
+    if (subCategories !== undefined && (!Array.isArray(subCategories) || subCategories.some((item: unknown) => !validSubCategories.includes(String(item))))) {
+      return NextResponse.json(
+        { error: 'Invalid sub-categories' },
+        { status: 400 }
+      );
+    }
+
+    if (venue !== undefined && venue !== null && !['KITCHEN', 'OUTSIDE'].includes(venue)) {
+      return NextResponse.json(
+        { error: 'Invalid venue' },
+        { status: 400 }
+      );
+    }
+
+    if (coTrainerId && coTrainerId === trainerId) {
+      return NextResponse.json(
+        { error: 'Co-trainer must be different from the main trainer' },
         { status: 400 }
       );
     }
@@ -240,9 +272,16 @@ export async function POST(request: NextRequest) {
     }
 
     // For drafts, use defaults for required DB fields when not provided
-    const resolvedCategory = category || 'COOKING';
-    const resolvedSubCategory = subCategory || 'MIXED';
+    const resolvedCategories: string[] = Array.isArray(categories) && categories.length > 0
+      ? Array.from(new Set(categories.map((item: unknown) => String(item))))
+      : (category ? [category] : ['COOKING']);
+    const resolvedSubCategories: string[] = Array.isArray(subCategories) && subCategories.length > 0
+      ? Array.from(new Set(subCategories.map((item: unknown) => String(item))))
+      : (subCategory ? [subCategory] : ['MIXED']);
+    const resolvedCategory = resolvedCategories[0];
+    const resolvedSubCategory = resolvedSubCategories[0];
     const resolvedTrainerId = trainerId || null;
+    const resolvedCoTrainerId = coTrainerId || null;
     const resolvedPrice = typeof price === 'number' ? price : 0;
     const resolvedSeatsTotal = Number.isInteger(seatsTotal) && seatsTotal > 0 ? seatsTotal : 12;
     const resolvedDurationMinutes = Number.isInteger(durationMinutes) && durationMinutes > 0 ? durationMinutes : 120;
@@ -273,16 +312,30 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (resolvedCoTrainerId) {
+      const isCoTrainer = await verifyTrainer(resolvedCoTrainerId);
+      if (!isCoTrainer) {
+        return NextResponse.json(
+          { error: 'Invalid co-trainer ID' },
+          { status: 400 }
+        );
+      }
+    }
+
     const newClass = await createClass({
       slug: finalSlug,
       title,
       titleAr: titleAr || '',
       description: description || '',
       descriptionAr: descriptionAr || '',
-      category: resolvedCategory,
-      subCategory: resolvedSubCategory,
+      category: resolvedCategory as 'COOKING' | 'ARTS_CRAFTS',
+      subCategory: resolvedSubCategory as Parameters<typeof createClass>[0]['subCategory'],
+      categories: resolvedCategories as ('COOKING' | 'ARTS_CRAFTS')[],
+      subCategories: resolvedSubCategories as Parameters<typeof createClass>[0]['subCategories'],
       audienceGender: audienceGender || 'FEMALE_ONLY',
       trainerId: resolvedTrainerId,
+      coTrainerId: resolvedCoTrainerId,
+      venue: venue === 'OUTSIDE' ? 'OUTSIDE' : 'KITCHEN',
       price: resolvedPrice,
       seatsTotal: resolvedSeatsTotal,
       durationMinutes: resolvedDurationMinutes,
@@ -313,38 +366,12 @@ export async function POST(request: NextRequest) {
       scheduleSessions: Array.isArray(scheduleSessions) ? scheduleSessions : [],
     });
 
-    // Create calendar event if date/time is set
+    // Create calendar event if date/time is set (kitchen workshops block the
+    // venue; a 3-hour cleaning block follows kitchen cooking workshops)
     if (startDateTime) {
       try {
-        const { createCalendarEvent } = await import('@/lib/db/events');
-        const start = new Date(startDateTime);
-        const end = endDateTime
-          ? new Date(endDateTime)
-          : new Date(start.getTime() + durationMinutes * 60000);
-
-        await createCalendarEvent({
-          type: 'CLASS',
-          startDateTime: start,
-          endDateTime: end,
-          title,
-          description,
-          classId: newClass.id as string,
-        });
-
-        // If cooking class, add 3-hour cleaning block
-        if (category === 'COOKING') {
-          const cleaningStart = new Date(end);
-          const cleaningEnd = new Date(cleaningStart.getTime() + 3 * 60 * 60000);
-          await createCalendarEvent({
-            type: 'CLEANING',
-            startDateTime: cleaningStart,
-            endDateTime: cleaningEnd,
-            title: 'Cleaning - ' + title,
-            classId: newClass.id as string,
-            isBlocked: true,
-            blockReason: 'Post-cooking class cleaning',
-          });
-        }
+        const { syncClassCalendarEvents } = await import('@/lib/db/events');
+        await syncClassCalendarEvents(newClass.id as string);
       } catch (calError) {
         console.error('Error creating calendar event for class:', calError);
       }

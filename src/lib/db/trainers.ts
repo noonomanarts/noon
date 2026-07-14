@@ -567,7 +567,7 @@ export async function findTrainerClasses(
   trainerId: string,
   options?: { publishedOnly?: boolean; limit?: number }
 ): Promise<TrainerClassPublic[]> {
-  const conditions = [`c.trainer_id = $1`];
+  const conditions = [`(c.trainer_id = $1 OR c.co_trainer_id = $1)`];
   const values: unknown[] = [trainerId];
   let paramIndex = 2;
 
@@ -1210,7 +1210,7 @@ export async function updateTrainerWorkshopSubmission(args: {
          highlighted_ingredients = $8::jsonb,
          updated_at = NOW()
      WHERE c.id = $1
-       AND c.trainer_id = $2
+       AND (c.trainer_id = $2 OR c.co_trainer_id = $2)
      RETURNING
        c.id AS class_id,
        c.slug AS class_slug,
@@ -1395,7 +1395,7 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
         WHERE r.class_id = c.id
           AND r.is_visible = true
       ) AS review_stats ON TRUE
-      WHERE c.trainer_id = $1
+      WHERE (c.trainer_id = $1 OR c.co_trainer_id = $1)
         AND c.status = 'PUBLISHED'
         AND c.start_date_time >= NOW()
       ORDER BY c.start_date_time ASC
@@ -1450,7 +1450,7 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
         WHERE r.class_id = c.id
           AND r.is_visible = true
       ) AS review_stats ON TRUE
-      WHERE c.trainer_id = $1
+      WHERE (c.trainer_id = $1 OR c.co_trainer_id = $1)
         AND c.start_date_time < NOW()
       ORDER BY c.start_date_time DESC
       LIMIT 300`,
@@ -1468,10 +1468,10 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
         cs.currency,
         cs.participants_count,
         cs.gross_revenue,
-        cs.trainer_payout_amount
+        CASE WHEN c.trainer_id = $1 THEN cs.trainer_payout_amount ELSE COALESCE(cs.co_trainer_fee_amount, 0) END AS trainer_payout_amount
       FROM class_settlements cs
       INNER JOIN classes c ON c.id = cs.class_id
-      WHERE c.trainer_id = $1
+      WHERE (c.trainer_id = $1 OR c.co_trainer_id = $1)
         AND cs.status = 'CLOSED'
       ORDER BY cs.settled_at DESC NULLS LAST, cs.created_at DESC
       LIMIT 500`,
@@ -1484,10 +1484,10 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
         COUNT(*)::int AS workshops_count,
         COALESCE(SUM(cs.participants_count), 0)::int AS participants_count,
         COALESCE(SUM(cs.gross_revenue), 0)::numeric AS total_revenue,
-        COALESCE(SUM(cs.trainer_payout_amount), 0)::numeric AS total_payout
+        COALESCE(SUM(CASE WHEN c.trainer_id = $1 THEN cs.trainer_payout_amount ELSE COALESCE(cs.co_trainer_fee_amount, 0) END), 0)::numeric AS total_payout
       FROM class_settlements cs
       INNER JOIN classes c ON c.id = cs.class_id
-      WHERE c.trainer_id = $1
+      WHERE (c.trainer_id = $1 OR c.co_trainer_id = $1)
         AND cs.status = 'CLOSED'
         AND cs.settled_at IS NOT NULL
       GROUP BY DATE_TRUNC('month', cs.settled_at), cs.currency

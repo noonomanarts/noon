@@ -31,6 +31,8 @@ export async function POST(request: Request, props: Params) {
       expenseItems?: unknown;
       inventoryUsageItems?: unknown;
       notes?: unknown;
+      trainerFeeAmount?: unknown;
+      coTrainerFeeAmount?: unknown;
     };
 
     const snapshot = await closeClassSettlement({
@@ -39,6 +41,8 @@ export async function POST(request: Request, props: Params) {
       expenseItems: body.expenseItems,
       inventoryUsageItems: body.inventoryUsageItems,
       notes: body.notes,
+      trainerFeeAmount: body.trainerFeeAmount,
+      coTrainerFeeAmount: body.coTrainerFeeAmount,
     });
 
     return NextResponse.json({ success: true, snapshot });

@@ -62,6 +62,10 @@ export type ClassSettlementSnapshot = {
     id: string;
     fullName: string;
   } | null;
+  coTrainer: {
+    id: string;
+    fullName: string;
+  } | null;
   finance: {
     fixedCosts: {
       kitchenUsageRatePerHour: number;
@@ -89,6 +93,8 @@ export type ClassSettlementSnapshot = {
     trainerFeePercent: number;
     trainerFeeBaseAmount: number;
     trainerFeeAmount: number;
+    suggestedTrainerFeeAmount: number;
+    coTrainerFeeAmount: number;
     noonFeeAmount: number;
     totalCostsAmount: number;
   };
@@ -101,6 +107,8 @@ export type ClassSettlementSnapshot = {
     notes: string | null;
     settledAt: string | null;
     settledByUserId: string | null;
+    manualTrainerFeeAmount?: number | null;
+    manualCoTrainerFeeAmount?: number | null;
   } | null;
   warnings: string[];
   canClose: boolean;
@@ -116,6 +124,8 @@ type FinanceClassRow = {
   title: string;
   trainerId: string | null;
   trainerName: string | null;
+  coTrainerId: string | null;
+  coTrainerName: string | null;
   category: 'COOKING' | 'ARTS_CRAFTS';
   currency: string;
   durationMinutes: number;
@@ -192,6 +202,13 @@ function sanitizeInventoryUsageItems(value: unknown): ClassInventoryUsageInput[]
     .filter((row): row is ClassInventoryUsageInput => Boolean(row));
 }
 
+function sanitizeManualFee(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Number(parsed.toFixed(3));
+}
+
 export async function ensureClassFinanceSchema(): Promise<void> {
   if (classFinanceSchemaReady) {
     return classFinanceSchemaReady;
@@ -203,6 +220,10 @@ export async function ensureClassFinanceSchema(): Promise<void> {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS expense_share_percent DECIMAL(5, 2) NOT NULL DEFAULT 0`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP WITH TIME ZONE`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS closed_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS co_trainer_id UUID REFERENCES users(id) ON DELETE SET NULL`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS venue VARCHAR(20) NOT NULL DEFAULT 'KITCHEN'`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS categories TEXT[] NOT NULL DEFAULT '{}'`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS sub_categories TEXT[] NOT NULL DEFAULT '{}'`);
 
     await query(`
       CREATE TABLE IF NOT EXISTS class_expense_items (
@@ -263,6 +284,10 @@ export async function ensureClassFinanceSchema(): Promise<void> {
     await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS trainer_fee_base_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
     await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS noon_fee_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
     await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS total_costs_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS co_trainer_fee_amount DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS manual_trainer_fee_amount DECIMAL(10, 3)`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS manual_co_trainer_fee_amount DECIMAL(10, 3)`);
+    await query(`ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS co_trainer_wallet_transaction_id UUID REFERENCES wallet_transactions(id) ON DELETE SET NULL`);
   })().catch((error) => {
     classFinanceSchemaReady = null;
     throw error;
@@ -279,15 +304,18 @@ async function getClassFinanceRow(classId: string, db: Queryable): Promise<Finan
             c.currency,
             c.duration_minutes,
             c.trainer_id,
+            c.co_trainer_id,
             c.trainer_share_percent,
             c.noon_share_percent,
             c.expense_share_percent,
             c.closed_at,
             c.closed_by_user_id,
             u.full_name AS trainer_name,
+            cu.full_name AS co_trainer_name,
             tp.share_tiers
      FROM classes c
      LEFT JOIN users u ON u.id = c.trainer_id
+     LEFT JOIN users cu ON cu.id = c.co_trainer_id
      LEFT JOIN trainer_profiles tp ON tp.user_id = c.trainer_id
      WHERE c.id = $1
      LIMIT 1`,
@@ -302,6 +330,8 @@ async function getClassFinanceRow(classId: string, db: Queryable): Promise<Finan
     title: String(row.title || 'Workshop'),
     trainerId: row.trainer_id ? String(row.trainer_id) : null,
     trainerName: row.trainer_name ? String(row.trainer_name) : null,
+    coTrainerId: row.co_trainer_id ? String(row.co_trainer_id) : null,
+    coTrainerName: row.co_trainer_name ? String(row.co_trainer_name) : null,
     category: String(row.category) === 'ARTS_CRAFTS' ? 'ARTS_CRAFTS' : 'COOKING',
     currency: String(row.currency || 'OMR'),
     durationMinutes: Number(row.duration_minutes || 0),
@@ -367,7 +397,8 @@ async function getExpenseItems(classId: string, db: Queryable): Promise<ClassExp
 
 async function getSettlementRow(classId: string, db: Queryable) {
   const result = await db.query(
-    `SELECT status, notes, settled_at, settled_by_user_id
+    `SELECT status, notes, settled_at, settled_by_user_id,
+            manual_trainer_fee_amount, manual_co_trainer_fee_amount
      FROM class_settlements
      WHERE class_id = $1
      LIMIT 1`,
@@ -382,6 +413,8 @@ async function getSettlementRow(classId: string, db: Queryable) {
     notes: row.notes ? String(row.notes) : null,
     settledAt: row.settled_at ? String(row.settled_at) : null,
     settledByUserId: row.settled_by_user_id ? String(row.settled_by_user_id) : null,
+    manualTrainerFeeAmount: row.manual_trainer_fee_amount != null ? toMoney(row.manual_trainer_fee_amount) : null,
+    manualCoTrainerFeeAmount: row.manual_co_trainer_fee_amount != null ? toMoney(row.manual_co_trainer_fee_amount) : null,
   };
 }
 
@@ -498,6 +531,8 @@ function buildSettlementSnapshot(args: {
     notes: string | null;
     settledAt: string | null;
     settledByUserId: string | null;
+    manualTrainerFeeAmount?: number | null;
+    manualCoTrainerFeeAmount?: number | null;
   } | null;
 }): ClassSettlementSnapshot {
   const grossRevenue = args.revenueSummary.grossRevenue;
@@ -523,6 +558,16 @@ function buildSettlementSnapshot(args: {
     trainerShareTiers,
   });
 
+  // Trainer fees are entered manually when closing the workshop; the automatic
+  // calculation is only a pre-filled suggestion.
+  const suggestedTrainerFeeAmount = finance.trainerFee.amount;
+  const manualTrainerFeeAmount = args.settlement?.manualTrainerFeeAmount ?? null;
+  const manualCoTrainerFeeAmount = args.settlement?.manualCoTrainerFeeAmount ?? null;
+  const trainerFeeAmount = manualTrainerFeeAmount != null ? toMoney(manualTrainerFeeAmount) : suggestedTrainerFeeAmount;
+  const coTrainerFeeAmount = args.financeRow.coTrainerId && manualCoTrainerFeeAmount != null ? toMoney(manualCoTrainerFeeAmount) : 0;
+  const noonFeeAmount = toMoney(grossRevenue - finance.fixedCosts.total - materialsCostAmount - trainerFeeAmount - coTrainerFeeAmount);
+  const totalCostsAmount = toMoney(finance.fixedCosts.total + materialsCostAmount + trainerFeeAmount + coTrainerFeeAmount);
+
   const warnings: string[] = [];
   if (participantsCount === 0) {
     warnings.push('No paid participants were found for this class.');
@@ -530,7 +575,7 @@ function buildSettlementSnapshot(args: {
   if (!args.financeRow.trainerId) {
     warnings.push('Trainer is missing for this class.');
   }
-  if (finance.noonFeeAmount < 0) {
+  if (noonFeeAmount < 0) {
     warnings.push('Noon fee is negative. Reduce material costs or review the workshop revenue before closing.');
   }
   if (args.financeRow.closedAt) {
@@ -553,6 +598,12 @@ function buildSettlementSnapshot(args: {
           fullName: args.financeRow.trainerName || 'Trainer',
         }
       : null,
+    coTrainer: args.financeRow.coTrainerId
+      ? {
+          id: args.financeRow.coTrainerId,
+          fullName: args.financeRow.coTrainerName || 'Co-trainer',
+        }
+      : null,
     finance,
     summary: {
       bookingsCount: args.revenueSummary.bookingsCount,
@@ -562,9 +613,11 @@ function buildSettlementSnapshot(args: {
       materialsCostAmount: finance.materialsCostAmount,
       trainerFeePercent: finance.trainerFee.percent,
       trainerFeeBaseAmount: finance.trainerFee.baseAmount,
-      trainerFeeAmount: finance.trainerFee.amount,
-      noonFeeAmount: finance.noonFeeAmount,
-      totalCostsAmount: finance.totalCostsAmount,
+      trainerFeeAmount,
+      suggestedTrainerFeeAmount,
+      coTrainerFeeAmount,
+      noonFeeAmount,
+      totalCostsAmount,
     },
     participants: args.participants,
     expenses: args.expenses,
@@ -822,6 +875,7 @@ async function upsertSettlementRow(params: {
   trainerWalletTransactionId?: string | null;
   adminShareWalletTransactionId?: string | null;
   expenseBudgetWalletTransactionId?: string | null;
+  coTrainerWalletTransactionId?: string | null;
 }) {
   await params.db.query(
     `INSERT INTO class_settlements (
@@ -831,7 +885,9 @@ async function upsertSettlementRow(params: {
        admin_total_payout_amount, actual_expenses_total, expense_variance_amount,
        kitchen_usage_amount, workshop_content_amount, fixed_costs_amount, materials_cost_amount,
        trainer_fee_percent, trainer_fee_base_amount, noon_fee_amount, total_costs_amount,
+       co_trainer_fee_amount, manual_trainer_fee_amount, manual_co_trainer_fee_amount,
        currency, trainer_wallet_transaction_id, admin_share_wallet_transaction_id, expense_budget_wallet_transaction_id,
+       co_trainer_wallet_transaction_id,
        notes, settled_by_user_id, settled_at, created_at, updated_at
      ) VALUES (
        $1, $2, $3, $4,
@@ -840,8 +896,10 @@ async function upsertSettlementRow(params: {
        $11, $12, $13,
        $14, $15, $16, $17,
        $18, $19, $20, $21,
-       $22, $23, $24, $25,
-       $26, $27, $28, NOW(), NOW()
+       $22, $23, $24,
+       $25, $26, $27, $28,
+       $29,
+       $30, $31, $32, NOW(), NOW()
      )
      ON CONFLICT (class_id) DO UPDATE SET
        status = EXCLUDED.status,
@@ -864,10 +922,14 @@ async function upsertSettlementRow(params: {
       trainer_fee_base_amount = EXCLUDED.trainer_fee_base_amount,
       noon_fee_amount = EXCLUDED.noon_fee_amount,
       total_costs_amount = EXCLUDED.total_costs_amount,
+      co_trainer_fee_amount = EXCLUDED.co_trainer_fee_amount,
+      manual_trainer_fee_amount = EXCLUDED.manual_trainer_fee_amount,
+      manual_co_trainer_fee_amount = EXCLUDED.manual_co_trainer_fee_amount,
        currency = EXCLUDED.currency,
        trainer_wallet_transaction_id = COALESCE(EXCLUDED.trainer_wallet_transaction_id, class_settlements.trainer_wallet_transaction_id),
        admin_share_wallet_transaction_id = COALESCE(EXCLUDED.admin_share_wallet_transaction_id, class_settlements.admin_share_wallet_transaction_id),
        expense_budget_wallet_transaction_id = COALESCE(EXCLUDED.expense_budget_wallet_transaction_id, class_settlements.expense_budget_wallet_transaction_id),
+       co_trainer_wallet_transaction_id = COALESCE(EXCLUDED.co_trainer_wallet_transaction_id, class_settlements.co_trainer_wallet_transaction_id),
        notes = EXCLUDED.notes,
        settled_by_user_id = EXCLUDED.settled_by_user_id,
        settled_at = EXCLUDED.settled_at,
@@ -902,10 +964,14 @@ async function upsertSettlementRow(params: {
       params.snapshot.summary.trainerFeeBaseAmount,
       params.snapshot.summary.noonFeeAmount,
       params.snapshot.summary.totalCostsAmount,
+      params.snapshot.summary.coTrainerFeeAmount,
+      params.snapshot.settlement?.manualTrainerFeeAmount ?? null,
+      params.snapshot.settlement?.manualCoTrainerFeeAmount ?? null,
       params.snapshot.currency,
       params.trainerWalletTransactionId || null,
       params.adminShareWalletTransactionId || null,
       params.expenseBudgetWalletTransactionId || null,
+      params.coTrainerWalletTransactionId || null,
       params.notes,
       params.adminUserId,
       params.status === 'CLOSED' ? new Date() : null,
@@ -1097,12 +1163,16 @@ export async function saveClassSettlementDraft(args: {
   expenseItems: unknown;
   inventoryUsageItems?: unknown;
   notes?: unknown;
+  trainerFeeAmount?: unknown;
+  coTrainerFeeAmount?: unknown;
 }): Promise<ClassSettlementSnapshot> {
   await ensureClassFinanceSchema();
 
   const expenseItems = sanitizeExpenseItems(args.expenseItems);
   const inventoryUsageItems = sanitizeInventoryUsageItems(args.inventoryUsageItems);
   const notes = typeof args.notes === 'string' ? args.notes.trim().slice(0, 4000) || null : null;
+  const manualTrainerFeeAmount = sanitizeManualFee(args.trainerFeeAmount);
+  const manualCoTrainerFeeAmount = sanitizeManualFee(args.coTrainerFeeAmount);
 
   const client = await pool.connect();
   try {
@@ -1153,6 +1223,8 @@ export async function saveClassSettlementDraft(args: {
         notes,
         settledAt: null,
         settledByUserId: args.adminUserId,
+        manualTrainerFeeAmount,
+        manualCoTrainerFeeAmount,
       },
     });
 
@@ -1181,6 +1253,8 @@ export async function closeClassSettlement(args: {
   expenseItems: unknown;
   inventoryUsageItems?: unknown;
   notes?: unknown;
+  trainerFeeAmount?: unknown;
+  coTrainerFeeAmount?: unknown;
 }): Promise<ClassSettlementSnapshot> {
   await ensureClassFinanceSchema();
   await ensureAdminFinanceSchema();
@@ -1188,6 +1262,8 @@ export async function closeClassSettlement(args: {
   const expenseItems = sanitizeExpenseItems(args.expenseItems);
   const inventoryUsageItems = sanitizeInventoryUsageItems(args.inventoryUsageItems);
   const notes = typeof args.notes === 'string' ? args.notes.trim().slice(0, 4000) || null : null;
+  const manualTrainerFeeAmount = sanitizeManualFee(args.trainerFeeAmount);
+  const manualCoTrainerFeeAmount = sanitizeManualFee(args.coTrainerFeeAmount);
 
   const client = await pool.connect();
 
@@ -1244,6 +1320,8 @@ export async function closeClassSettlement(args: {
         notes,
         settledAt: new Date().toISOString(),
         settledByUserId: args.adminUserId,
+        manualTrainerFeeAmount,
+        manualCoTrainerFeeAmount,
       },
     });
 
@@ -1282,6 +1360,8 @@ export async function closeClassSettlement(args: {
         notes,
         settledAt: new Date().toISOString(),
         settledByUserId: args.adminUserId,
+        manualTrainerFeeAmount,
+        manualCoTrainerFeeAmount,
       },
     });
 
@@ -1305,6 +1385,18 @@ export async function closeClassSettlement(args: {
             currency: snapshot.currency,
             type: 'CLASS_SETTLEMENT_TRAINER',
             reason: `Trainer payout for ${workshopFinanceTitle}`,
+          })
+        : { transactionId: null };
+
+    const coTrainerCredit =
+      snapshot.coTrainer?.id && snapshot.summary.coTrainerFeeAmount > 0
+        ? await creditWallet({
+            db: client,
+            userId: snapshot.coTrainer.id,
+            amount: snapshot.summary.coTrainerFeeAmount,
+            currency: snapshot.currency,
+            type: 'CLASS_SETTLEMENT_TRAINER',
+            reason: `Co-trainer payout for ${workshopFinanceTitle}`,
           })
         : { transactionId: null };
 
@@ -1356,6 +1448,27 @@ export async function closeClassSettlement(args: {
         trainerUserId: snapshot.trainer.id,
       },
     });
+
+    if (snapshot.coTrainer?.id && snapshot.summary.coTrainerFeeAmount > 0) {
+      await insertAutoFinanceEntry({
+        db: client,
+        type: 'EXPENSE',
+        title: workshopFinanceTitle,
+        amount: snapshot.summary.coTrainerFeeAmount,
+        currency: snapshot.currency,
+        occurredAtIso: settledAt,
+        createdByUserId: args.adminUserId,
+        reason: trainerSalaryReason,
+        counterparty: snapshot.coTrainer.fullName,
+        notes: 'Co-trainer fee auto-generated from workshop close settlement.',
+        metadata: {
+          source: 'CLASS_SETTLEMENT_CLOSE',
+          classId: args.classId,
+          component: 'CO_TRAINER_FEE',
+          trainerUserId: snapshot.coTrainer.id,
+        },
+      });
+    }
 
     await insertAutoFinanceEntry({
       db: client,
@@ -1439,6 +1552,7 @@ export async function closeClassSettlement(args: {
       trainerWalletTransactionId: trainerCredit.transactionId,
       adminShareWalletTransactionId: adminShareCredit.transactionId,
       expenseBudgetWalletTransactionId: null,
+      coTrainerWalletTransactionId: coTrainerCredit.transactionId,
     });
 
     await client.query(

@@ -1,5 +1,6 @@
 import { query } from '@/lib/db/pool';
 import { getAdminSettingsByKey } from '@/lib/db/adminSettings';
+import { ensureCalendarEnhancements } from '@/lib/db/events';
 import type { CalendarEventType, EventType } from '@/lib/db/types';
 
 export type PrivateClassType = 'cooking' | 'arts-crafts';
@@ -141,6 +142,8 @@ export async function findCalendarOccupancy(input: {
   endDateTime: Date;
   excludeEventBookingId?: string;
 }): Promise<CalendarOccupancy[]> {
+  await ensureCalendarEnhancements();
+
   const values: unknown[] = [input.startDateTime, input.endDateTime];
   let sql = `
     SELECT
@@ -155,6 +158,7 @@ export async function findCalendarOccupancy(input: {
     WHERE ce.end_date_time > $1
       AND ce.start_date_time < $2
       AND ce.type NOT IN ('APPOINTMENT', 'SCHEDULER')
+      AND COALESCE(ce.blocks_venue, TRUE) = TRUE
   `;
 
   if (input.excludeEventBookingId) {

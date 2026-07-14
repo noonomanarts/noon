@@ -20,6 +20,7 @@ export type ClassSubCategory =
   | 'CRAFTS'
   | 'MIXED';
 export type ClassStatus = 'DRAFT' | 'PUBLISHED' | 'CANCELLED' | 'COMPLETED';
+export type ClassVenue = 'KITCHEN' | 'OUTSIDE';
 export type EventType = 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY';
 export type EventStatus =
   | 'NEW'
@@ -227,10 +228,14 @@ export interface ClassPublic {
   descriptionAr: string | null;
   category: ClassCategory;
   subCategory: ClassSubCategory;
+  categories?: ClassCategory[];
+  subCategories?: ClassSubCategory[];
   audienceGender: ClassAudienceGender;
   image: string | null;
   images: string[];
   trainerId: string;
+  coTrainerId?: string | null;
+  venue?: ClassVenue;
   price: number;
   currency: string;
   seatsTotal: number;

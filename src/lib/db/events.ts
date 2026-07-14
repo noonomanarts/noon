@@ -456,9 +456,8 @@ export async function countEventBookings(): Promise<number> {
 
 let calendarEnhancementsReady = false;
 
-async function ensureCalendarEnhancements(): Promise<void> {
+export async function ensureCalendarEnhancements(): Promise<void> {
   if (calendarEnhancementsReady) return;
-
   await query(`
     DO $$
     BEGIN
@@ -492,7 +491,8 @@ async function ensureCalendarEnhancements(): Promise<void> {
       ADD COLUMN IF NOT EXISTS reminder_minutes_before INTEGER,
       ADD COLUMN IF NOT EXISTS notify_at_start BOOLEAN NOT NULL DEFAULT false,
       ADD COLUMN IF NOT EXISTS reminder_sent_at TIMESTAMP WITH TIME ZONE,
-      ADD COLUMN IF NOT EXISTS start_notification_sent_at TIMESTAMP WITH TIME ZONE
+      ADD COLUMN IF NOT EXISTS start_notification_sent_at TIMESTAMP WITH TIME ZONE,
+      ADD COLUMN IF NOT EXISTS blocks_venue BOOLEAN NOT NULL DEFAULT true
   `);
 
   calendarEnhancementsReady = true;
@@ -619,6 +619,7 @@ export async function createCalendarEvent(data: {
   reminderSentAt?: Date | null;
   startNotificationSentAt?: Date | null;
   color?: string;
+  blocksVenue?: boolean;
 }): Promise<Record<string, unknown>> {
   await ensureCalendarEnhancements();
 
@@ -633,10 +634,10 @@ export async function createCalendarEvent(data: {
       appointment_contact_name, appointment_contact_phone,
       notifications_enabled, reminder_minutes_before, notify_at_start,
       reminder_sent_at, start_notification_sent_at,
-      color, created_at, updated_at
+      color, blocks_venue, created_at, updated_at
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-      $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
+      $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25
     )
     RETURNING *`,
     [
@@ -662,6 +663,7 @@ export async function createCalendarEvent(data: {
       data.reminderSentAt || null,
       data.startNotificationSentAt || null,
       data.color || null,
+      data.blocksVenue !== false,
       now,
       now,
     ]
@@ -692,6 +694,73 @@ export async function createCalendarEvent(data: {
 }
 
 // ==================== Wallet Operations ====================
+
+/**
+ * Rebuild the CLASS/CLEANING calendar events for a class from its current
+ * schedule, venue, and categories. Kitchen workshops block the venue (so
+ * private events cannot be booked at the same time); outside workshops stay
+ * visible on the calendar without blocking. A 3-hour cleaning block is added
+ * after cooking workshops held in the kitchen.
+ */
+export async function syncClassCalendarEvents(classId: string): Promise<void> {
+  await ensureCalendarEnhancements();
+
+  const classResult = await query(
+    `SELECT id, title, description, category, categories, venue, status,
+            start_date_time, end_date_time, duration_minutes
+     FROM classes
+     WHERE id = $1`,
+    [classId]
+  );
+
+  const row = classResult.rows[0];
+  if (!row) return;
+
+  await query(
+    `DELETE FROM calendar_events WHERE class_id = $1 AND type IN ('CLASS', 'CLEANING')`,
+    [classId]
+  );
+
+  if (!row.start_date_time || row.status === 'CANCELLED') {
+    return;
+  }
+
+  const start = new Date(row.start_date_time);
+  const durationMinutes = Number(row.duration_minutes || 120);
+  const end = row.end_date_time
+    ? new Date(row.end_date_time)
+    : new Date(start.getTime() + durationMinutes * 60000);
+  const isKitchen = row.venue !== 'OUTSIDE';
+  const categories: string[] = Array.isArray(row.categories) && row.categories.length > 0
+    ? row.categories.map((item: unknown) => String(item))
+    : [String(row.category)];
+  const isCooking = categories.includes('COOKING');
+  const title = String(row.title || 'Workshop');
+
+  await createCalendarEvent({
+    type: 'CLASS',
+    startDateTime: start,
+    endDateTime: end,
+    title,
+    description: row.description ? String(row.description) : undefined,
+    classId,
+    blocksVenue: isKitchen,
+  });
+
+  if (isKitchen && isCooking) {
+    const cleaningEnd = new Date(end.getTime() + 3 * 60 * 60000);
+    await createCalendarEvent({
+      type: 'CLEANING',
+      startDateTime: end,
+      endDateTime: cleaningEnd,
+      title: 'Cleaning - ' + title,
+      classId,
+      isBlocked: true,
+      blockReason: 'Post-cooking class cleaning',
+      blocksVenue: true,
+    });
+  }
+}
 
 /**
  * Get or create wallet for user

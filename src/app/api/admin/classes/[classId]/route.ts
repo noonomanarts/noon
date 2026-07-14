@@ -86,6 +86,29 @@ export async function PUT(request: NextRequest, props: Params) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { slug: _, ...updateData } = body;
 
+    if (updateData.venue !== undefined && !['KITCHEN', 'OUTSIDE'].includes(updateData.venue)) {
+      return NextResponse.json(
+        { error: 'Invalid venue' },
+        { status: 400 }
+      );
+    }
+
+    if (updateData.categories !== undefined) {
+      if (!Array.isArray(updateData.categories) || updateData.categories.length === 0) {
+        return NextResponse.json({ error: 'Invalid categories' }, { status: 400 });
+      }
+      updateData.categories = Array.from(new Set(updateData.categories.map((item: unknown) => String(item))));
+      updateData.category = updateData.categories[0];
+    }
+
+    if (updateData.subCategories !== undefined) {
+      if (!Array.isArray(updateData.subCategories) || updateData.subCategories.length === 0) {
+        return NextResponse.json({ error: 'Invalid sub-categories' }, { status: 400 });
+      }
+      updateData.subCategories = Array.from(new Set(updateData.subCategories.map((item: unknown) => String(item))));
+      updateData.subCategory = updateData.subCategories[0];
+    }
+
     if (updateData.startDateTime && !isQuarterHourDateTimeValue(updateData.startDateTime)) {
       return NextResponse.json(
         { error: 'Start date & time minutes must be 00, 15, 30, or 45' },
@@ -151,10 +174,28 @@ export async function PUT(request: NextRequest, props: Params) {
     const existingClass = await findUniqueClass({ id: params.classId });
     const previousStatus = existingClass?.status ?? null;
 
+    if (updateData.coTrainerId !== undefined && updateData.coTrainerId !== null) {
+      const resolvedTrainerId = updateData.trainerId ?? existingClass?.trainerId ?? null;
+      if (updateData.coTrainerId === resolvedTrainerId) {
+        return NextResponse.json(
+          { error: 'Co-trainer must be different from the main trainer' },
+          { status: 400 }
+        );
+      }
+    }
+
     const updatedClass = await updateClass(params.classId, updateData);
 
     if (!updatedClass) {
       return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+    }
+
+    // Keep the calendar in sync with the class schedule and venue
+    try {
+      const { syncClassCalendarEvents } = await import('@/lib/db/events');
+      await syncClassCalendarEvents(params.classId);
+    } catch (calError) {
+      console.error('Error syncing calendar events for class:', calError);
     }
 
     // Notify repeat requesters when this class becomes published

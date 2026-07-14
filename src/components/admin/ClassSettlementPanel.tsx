@@ -33,6 +33,10 @@ type SettlementSnapshot = {
     id: string;
     fullName: string;
   } | null;
+  coTrainer: {
+    id: string;
+    fullName: string;
+  } | null;
   finance: {
     fixedCosts: {
       kitchenUsageRatePerHour: number;
@@ -60,6 +64,8 @@ type SettlementSnapshot = {
     trainerFeePercent: number;
     trainerFeeBaseAmount: number;
     trainerFeeAmount: number;
+    suggestedTrainerFeeAmount: number;
+    coTrainerFeeAmount: number;
     noonFeeAmount: number;
     totalCostsAmount: number;
   };
@@ -111,6 +117,8 @@ type SettlementSnapshot = {
     notes: string | null;
     settledAt: string | null;
     settledByUserId: string | null;
+    manualTrainerFeeAmount?: number | null;
+    manualCoTrainerFeeAmount?: number | null;
   } | null;
   warnings: string[];
   canClose: boolean;
@@ -152,6 +160,9 @@ export default function ClassSettlementPanel({
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([]);
   const [inventoryUsageItems, setInventoryUsageItems] = useState<InventoryUsageItemInput[]>([]);
   const [notes, setNotes] = useState('');
+  // null = follow the automatic suggestion; a number = manual override entered by the admin
+  const [trainerFeeOverride, setTrainerFeeOverride] = useState<number | null>(null);
+  const [coTrainerFee, setCoTrainerFee] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -201,6 +212,14 @@ export default function ClassSettlementPanel({
     fixedCosts: isArabic ? 'التكاليف الثابتة' : 'Fixed Costs',
     materialsCosts: isArabic ? 'تكلفة المواد' : 'Material Costs',
     trainerPayout: isArabic ? 'أتعاب المدرب' : 'Trainer Fee',
+    coTrainerPayout: isArabic ? 'أتعاب المدرب المشارك' : 'Co-trainer Fee',
+    trainerFees: isArabic ? 'أتعاب المدربين' : 'Trainer Fees',
+    trainerFeesHint: isArabic
+      ? 'أدخل أتعاب كل مدرب يدوياً قبل الإغلاق. القيمة المقترحة محسوبة تلقائياً ويمكن تعديلها.'
+      : 'Enter each trainer fee manually before closing. The suggested value is calculated automatically and can be edited.',
+    suggestedFee: isArabic ? 'المقترح' : 'Suggested',
+    useSuggested: isArabic ? 'استخدام المقترح' : 'Use suggested',
+    manualFeeBadge: isArabic ? 'مبلغ يدوي' : 'Manual amount',
     adminPayout: isArabic ? 'رسوم نون' : 'Noon Fee',
     totalCosts: isArabic ? 'إجمالي التكاليف' : 'Total Costs',
     bookedBy: isArabic ? 'الحجز باسم' : 'Booked By',
@@ -320,6 +339,8 @@ export default function ClassSettlementPanel({
           : []
       );
       setNotes(payload.settlement?.notes || '');
+      setTrainerFeeOverride(payload.settlement?.manualTrainerFeeAmount ?? null);
+      setCoTrainerFee(payload.summary?.coTrainerFeeAmount ?? 0);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Failed to load class settlement');
     } finally {
@@ -396,11 +417,23 @@ export default function ClassSettlementPanel({
     });
   }, [grossRevenue, snapshot, totalExpenseAmount]);
 
+  // Effective trainer fees: manual override wins, otherwise the automatic suggestion.
+  const suggestedTrainerFeeAmount = financePreview?.trainerFee.amount ?? snapshot?.summary.suggestedTrainerFeeAmount ?? 0;
+  const effectiveTrainerFeeAmount = trainerFeeOverride ?? suggestedTrainerFeeAmount;
+  const effectiveCoTrainerFeeAmount = snapshot?.coTrainer ? coTrainerFee : 0;
+  const effectiveFixedCosts = financePreview?.fixedCosts.total ?? snapshot?.summary.fixedCostsAmount ?? 0;
+  const effectiveNoonFeeAmount = Number(
+    (grossRevenue - effectiveFixedCosts - totalExpenseAmount - effectiveTrainerFeeAmount - effectiveCoTrainerFeeAmount).toFixed(3)
+  );
+  const effectiveTotalCostsAmount = Number(
+    (effectiveFixedCosts + totalExpenseAmount + effectiveTrainerFeeAmount + effectiveCoTrainerFeeAmount).toFixed(3)
+  );
+
   const canClosePreview = Boolean(
     snapshot
       && snapshot.summary.participantsCount > 0
       && snapshot.trainer?.id
-      && (financePreview?.noonFeeAmount ?? -1) >= 0
+      && effectiveNoonFeeAmount >= 0
       && !hasInventoryShortage
   );
   const summaryCards = [
@@ -427,14 +460,25 @@ export default function ClassSettlementPanel({
     },
     {
       title: t.trainerPayout,
-      value: formatMoney(financePreview?.trainerFee.amount ?? snapshot?.summary.trainerFeeAmount ?? 0, snapshot?.currency || 'OMR'),
+      value: formatMoney(effectiveTrainerFeeAmount, snapshot?.currency || 'OMR'),
       icon: <IoPeopleOutline className="h-5 w-5 text-fuchsia-700 dark:text-fuchsia-300" />,
       iconWrapClassName: 'border-fuchsia-200 bg-fuchsia-50 dark:border-fuchsia-900/40 dark:bg-fuchsia-900/20',
       valueClassName: 'text-fuchsia-700 dark:text-fuchsia-300',
     },
+    ...(snapshot?.coTrainer
+      ? [
+          {
+            title: t.coTrainerPayout,
+            value: formatMoney(effectiveCoTrainerFeeAmount, snapshot?.currency || 'OMR'),
+            icon: <IoPeopleOutline className="h-5 w-5 text-violet-700 dark:text-violet-300" />,
+            iconWrapClassName: 'border-violet-200 bg-violet-50 dark:border-violet-900/40 dark:bg-violet-900/20',
+            valueClassName: 'text-violet-700 dark:text-violet-300',
+          },
+        ]
+      : []),
     {
       title: t.adminPayout,
-      value: formatMoney(financePreview?.noonFeeAmount ?? snapshot?.summary.noonFeeAmount ?? 0, snapshot?.currency || 'OMR'),
+      value: formatMoney(effectiveNoonFeeAmount, snapshot?.currency || 'OMR'),
       icon: <IoCheckmarkCircle className="h-5 w-5 text-[color:var(--noon-teal-strong)] dark:text-teal-300" />,
       iconWrapClassName: 'border-teal-200 bg-teal-50 dark:border-teal-900/40 dark:bg-teal-900/20',
       valueClassName: 'text-[color:var(--noon-teal-strong)] dark:text-teal-300',
@@ -450,7 +494,13 @@ export default function ClassSettlementPanel({
       const response = await fetch(`/api/admin/classes/${classId}/settlement`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expenseItems, inventoryUsageItems, notes }),
+        body: JSON.stringify({
+          expenseItems,
+          inventoryUsageItems,
+          notes,
+          trainerFeeAmount: trainerFeeOverride,
+          coTrainerFeeAmount: snapshot?.coTrainer ? coTrainerFee : null,
+        }),
       });
       const payload = (await response.json().catch(() => ({}))) as {
         success?: boolean;
@@ -482,6 +532,8 @@ export default function ClassSettlementPanel({
           itemUnit: item.itemUnit,
         }))
       );
+      setTrainerFeeOverride(payload.snapshot.settlement?.manualTrainerFeeAmount ?? null);
+      setCoTrainerFee(payload.snapshot.summary?.coTrainerFeeAmount ?? 0);
       setSuccess(t.saved);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Failed to save settlement draft');
@@ -499,7 +551,13 @@ export default function ClassSettlementPanel({
       const response = await fetch(`/api/admin/classes/${classId}/settlement/close`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expenseItems, inventoryUsageItems, notes }),
+        body: JSON.stringify({
+          expenseItems,
+          inventoryUsageItems,
+          notes,
+          trainerFeeAmount: trainerFeeOverride ?? effectiveTrainerFeeAmount,
+          coTrainerFeeAmount: snapshot?.coTrainer ? coTrainerFee : null,
+        }),
       });
       const payload = (await response.json().catch(() => ({}))) as {
         success?: boolean;
@@ -531,6 +589,8 @@ export default function ClassSettlementPanel({
           itemUnit: item.itemUnit,
         }))
       );
+      setTrainerFeeOverride(payload.snapshot.settlement?.manualTrainerFeeAmount ?? null);
+      setCoTrainerFee(payload.snapshot.summary?.coTrainerFeeAmount ?? 0);
       setSuccess(t.closingDone);
       if (onClosed) {
         await onClosed();
@@ -1130,17 +1190,34 @@ export default function ClassSettlementPanel({
                     <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-fuchsia-200 bg-fuchsia-50 dark:border-fuchsia-900/40 dark:bg-fuchsia-900/20">
                       <IoPeopleOutline className="h-4 w-4 text-fuchsia-700 dark:text-fuchsia-300" />
                     </span>
-                    <span className="truncate">{t.trainerPayout}</span>
+                    <span className="truncate">{t.trainerPayout}{snapshot.trainer ? ` - ${snapshot.trainer.fullName}` : ''}</span>
                   </span>
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                    {formatMoney(financePreview?.trainerFee.amount ?? snapshot.summary.trainerFeeAmount, snapshot.currency)}
+                    {formatMoney(effectiveTrainerFeeAmount, snapshot.currency)}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.trainerRule}</p>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  {`${t.trainerBase}: ${formatMoney(financePreview?.trainerFee.baseAmount ?? snapshot.summary.trainerFeeBaseAmount, snapshot.currency)} x ${formatPlainNumber(financePreview?.trainerFee.percent ?? snapshot.summary.trainerFeePercent, { maxFractionDigits: 0 })}%`}
+                  {trainerFeeOverride != null
+                    ? t.manualFeeBadge
+                    : `${t.suggestedFee}: ${formatMoney(suggestedTrainerFeeAmount, snapshot.currency)} (${formatMoney(financePreview?.trainerFee.baseAmount ?? snapshot.summary.trainerFeeBaseAmount, snapshot.currency)} x ${formatPlainNumber(financePreview?.trainerFee.percent ?? snapshot.summary.trainerFeePercent, { maxFractionDigits: 0 })}%)`}
                 </p>
               </div>
+              {snapshot.coTrainer ? (
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="inline-flex min-w-0 items-center gap-3 text-zinc-500 dark:text-zinc-400">
+                      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-200 bg-violet-50 dark:border-violet-900/40 dark:bg-violet-900/20">
+                        <IoPeopleOutline className="h-4 w-4 text-violet-700 dark:text-violet-300" />
+                      </span>
+                      <span className="truncate">{t.coTrainerPayout} - {snapshot.coTrainer.fullName}</span>
+                    </span>
+                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                      {formatMoney(effectiveCoTrainerFeeAmount, snapshot.currency)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.manualFeeBadge}</p>
+                </div>
+              ) : null}
               <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
                 <div className="flex items-center justify-between gap-3">
                   <span className="inline-flex min-w-0 items-center gap-3 text-zinc-500 dark:text-zinc-400">
@@ -1150,7 +1227,7 @@ export default function ClassSettlementPanel({
                     <span className="truncate">{t.adminPayout}</span>
                   </span>
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                    {formatMoney(financePreview?.noonFeeAmount ?? snapshot.summary.noonFeeAmount, snapshot.currency)}
+                    {formatMoney(effectiveNoonFeeAmount, snapshot.currency)}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.remainingAfterCosts}</p>
@@ -1164,10 +1241,71 @@ export default function ClassSettlementPanel({
                     <span className="truncate">{t.totalCosts}</span>
                   </span>
                   <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                    {formatMoney(financePreview?.totalCostsAmount ?? snapshot.summary.totalCostsAmount, snapshot.currency)}
+                    {formatMoney(effectiveTotalCostsAmount, snapshot.currency)}
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
+            <div className="flex items-center gap-2">
+              <IoPeopleOutline className="h-5 w-5 text-fuchsia-600 dark:text-fuchsia-300" />
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{t.trainerFees}</h3>
+            </div>
+            <p className="mt-2 text-xs leading-6 text-zinc-500 dark:text-zinc-400">{t.trainerFeesHint}</p>
+            <div className="mt-4 space-y-4">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    {snapshot.trainer?.fullName || t.trainerPayout}
+                  </p>
+                  <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                    {trainerFeeOverride != null ? t.manualFeeBadge : `${t.suggestedFee}: ${formatMoney(suggestedTrainerFeeAmount, snapshot.currency)}`}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    value={trainerFeeOverride != null ? trainerFeeOverride : effectiveTrainerFeeAmount}
+                    disabled={!canEdit}
+                    onChange={(event) => setTrainerFeeOverride(Math.max(0, Number(event.target.value || 0)))}
+                    className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                  />
+                  {canEdit && trainerFeeOverride != null ? (
+                    <button
+                      type="button"
+                      onClick={() => setTrainerFeeOverride(null)}
+                      className="inline-flex min-h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-xl border border-zinc-300 px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    >
+                      {t.useSuggested}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              {snapshot.coTrainer ? (
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950/50">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{snapshot.coTrainer.fullName}</p>
+                    <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
+                      {t.coTrainerPayout}
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.001"
+                      value={coTrainerFee}
+                      disabled={!canEdit}
+                      onChange={(event) => setCoTrainerFee(Math.max(0, Number(event.target.value || 0)))}
+                      className="w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 shadow-sm outline-none transition focus:border-[color:var(--noon-teal)] focus:ring-2 focus:ring-[color:var(--noon-teal)]/15 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -1208,18 +1346,26 @@ export default function ClassSettlementPanel({
               <div className="mt-4 flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
                 <span className="text-zinc-500 dark:text-zinc-400">{t.trainerPayout}</span>
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  {formatMoney(financePreview?.trainerFee.amount ?? snapshot.summary.trainerFeeAmount, snapshot.currency)}
+                  {formatMoney(effectiveTrainerFeeAmount, snapshot.currency)}
                 </span>
               </div>
+              {snapshot.coTrainer ? (
+                <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
+                  <span className="text-zinc-500 dark:text-zinc-400">{t.coTrainerPayout}</span>
+                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                    {formatMoney(effectiveCoTrainerFeeAmount, snapshot.currency)}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/50">
                 <span className="text-zinc-500 dark:text-zinc-400">{t.adminPayout}</span>
                 <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-                  {formatMoney(financePreview?.noonFeeAmount ?? snapshot.summary.noonFeeAmount, snapshot.currency)}
+                  {formatMoney(effectiveNoonFeeAmount, snapshot.currency)}
                 </span>
               </div>
             </div>
 
-            {financePreview && financePreview.noonFeeAmount < 0 ? (
+            {effectiveNoonFeeAmount < 0 ? (
               <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
                 {t.negativeNoonFee}
               </div>

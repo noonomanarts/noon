@@ -60,9 +60,10 @@ export default async function ClassDetailPage({
 
   const isEnded = hasWorkshopEnded(classData);
 
-  const [reviews, trainer, repeatSummaries, viewerReview, viewerCanReview] = await Promise.all([
+  const [reviews, trainer, coTrainer, repeatSummaries, viewerReview, viewerCanReview] = await Promise.all([
     findClassReviews(classData.id),
     classData.trainerId ? findTrainerById(classData.trainerId) : Promise.resolve(null),
+    classData.coTrainerId ? findTrainerById(classData.coTrainerId) : Promise.resolve(null),
     isEnded
       ? getClassRepeatRequestSummaries([classData.id], currentUser?.id ?? null)
       : Promise.resolve<Record<string, ClassRepeatRequestSummary>>({}),
@@ -357,31 +358,34 @@ export default async function ClassDetailPage({
           {trainer ? (
             <article className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm sm:p-7">
               <h2 className="text-2xl font-semibold text-[color:var(--text)]">{t.trainerSection}</h2>
-              <Link
-                href={`/${locale}/trainers/${trainer.id}`}
-                className="mt-5 flex items-center gap-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 transition hover:shadow-md"
-              >
-                <div className="relative h-16 w-16 overflow-hidden rounded-full border border-[color:var(--border)] bg-[color:var(--surface)]">
-                  {trainer.profileImage ? (
-                    <Image
-                      src={trainer.profileImage}
-                      alt={trainer.fullName || "Trainer"}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                      <Icon className={`h-7 w-7 ${isCooking ? "text-coral" : "text-purple"}`} />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <p className="text-base font-semibold text-[color:var(--text)]">{trainer.fullName}</p>
-                  <p className={`mt-0.5 text-sm font-medium ${isCooking ? "text-coral" : "text-purple"}`}>
-                    {t.viewProfile}
-                  </p>
-                </div>
-              </Link>
+              {[trainer, ...(coTrainer ? [coTrainer] : [])].map((person) => (
+                <Link
+                  key={person.id}
+                  href={`/${locale}/trainers/${person.id}`}
+                  className="mt-5 flex items-center gap-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 transition hover:shadow-md"
+                >
+                  <div className="relative h-16 w-16 overflow-hidden rounded-full border border-[color:var(--border)] bg-[color:var(--surface)]">
+                    {person.profileImage ? (
+                      <Image
+                        src={person.profileImage}
+                        alt={person.fullName || "Trainer"}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Icon className={`h-7 w-7 ${isCooking ? "text-coral" : "text-purple"}`} />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-base font-semibold text-[color:var(--text)]">{person.fullName}</p>
+                    <p className={`mt-0.5 text-sm font-medium ${isCooking ? "text-coral" : "text-purple"}`}>
+                      {t.viewProfile}
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </article>
           ) : null}
 

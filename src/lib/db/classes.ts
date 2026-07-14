@@ -3,7 +3,7 @@
  */
 import { query } from "./pool";
 import { generateUUID } from "./uuid";
-import type { ClassAudienceGender, ClassCategory as ClassCategoryType, ClassSubCategory, ClassStatus, ClassPublic } from "./types";
+import type { ClassAudienceGender, ClassCategory as ClassCategoryType, ClassSubCategory, ClassStatus, ClassVenue, ClassPublic } from "./types";
 import { ClassCategory } from "./types";
 import { ensureClassFinanceSchema } from "./classFinance";
 import { ensureRecipeManagementSchema } from "./recipeManagement";
@@ -25,6 +25,12 @@ async function ensureClassMinimumAgeSchema(): Promise<void> {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS schedule_sessions JSONB NOT NULL DEFAULT '[]'::jsonb`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS registration_message TEXT`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS registration_message_ar TEXT`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS co_trainer_id UUID REFERENCES users(id) ON DELETE SET NULL`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS venue VARCHAR(20) NOT NULL DEFAULT 'KITCHEN'`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS categories TEXT[] NOT NULL DEFAULT '{}'`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS sub_categories TEXT[] NOT NULL DEFAULT '{}'`);
+    await query(`UPDATE classes SET categories = ARRAY[category::text] WHERE COALESCE(array_length(categories, 1), 0) = 0`);
+    await query(`UPDATE classes SET sub_categories = ARRAY[sub_category::text] WHERE COALESCE(array_length(sub_categories, 1), 0) = 0`);
   })();
 
   return classMinimumAgeSchemaReady;
@@ -38,6 +44,18 @@ export interface ClassWithTrainer extends ClassPublic {
     profileImage: string | null;
     email: string;
   } | null;
+  coTrainer: {
+    id: string;
+    fullName: string;
+    profileImage: string | null;
+    email: string;
+  } | null;
+}
+
+function toCategoriesArray(value: unknown, fallback: string | null): string[] {
+  const list = Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : [];
+  if (list.length > 0) return list;
+  return fallback ? [fallback] : [];
 }
 
 /**
@@ -57,7 +75,8 @@ export async function findManyClasses(options: {
   let paramIndex = 1;
 
   if (options.category) {
-    conditions.push(`c.category = $${paramIndex++}`);
+    conditions.push(`(c.category = $${paramIndex} OR $${paramIndex} = ANY(c.categories))`);
+    paramIndex += 1;
     values.push(options.category);
   }
   if (options.status) {
@@ -70,7 +89,8 @@ export async function findManyClasses(options: {
     }
   }
   if (options.trainerId) {
-    conditions.push(`c.trainer_id = $${paramIndex++}`);
+    conditions.push(`(c.trainer_id = $${paramIndex} OR c.co_trainer_id = $${paramIndex})`);
+    paramIndex += 1;
     values.push(options.trainerId);
   }
 
@@ -78,9 +98,11 @@ export async function findManyClasses(options: {
 
   let sql = `
     SELECT c.*,
-           u.id as u_trainer_id, u.full_name as trainer_full_name, u.profile_image as trainer_profile_image, u.email as trainer_email
+           u.id as u_trainer_id, u.full_name as trainer_full_name, u.profile_image as trainer_profile_image, u.email as trainer_email,
+           cu.id as u_co_trainer_id, cu.full_name as co_trainer_full_name, cu.profile_image as co_trainer_profile_image, cu.email as co_trainer_email
     FROM classes c
     LEFT JOIN users u ON c.trainer_id = u.id
+    LEFT JOIN users cu ON c.co_trainer_id = cu.id
     ${whereClause}
     ORDER BY c.created_at DESC
   `;
@@ -101,10 +123,14 @@ export async function findManyClasses(options: {
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    categories: toCategoriesArray(row.categories, row.category) as ClassCategoryType[],
+    subCategories: toCategoriesArray(row.sub_categories, row.sub_category) as ClassSubCategory[],
     audienceGender: row.audience_gender || 'MIXED',
     image: row.image,
     images: row.images || [],
     trainerId: row.trainer_id,
+    coTrainerId: row.co_trainer_id ?? null,
+    venue: (row.venue === 'OUTSIDE' ? 'OUTSIDE' : 'KITCHEN') as ClassVenue,
     price: parseFloat(row.price || 0),
     currency: row.currency,
     seatsTotal: row.seats_total,
@@ -142,6 +168,12 @@ export async function findManyClasses(options: {
       fullName: row.trainer_full_name,
       profileImage: row.trainer_profile_image,
       email: row.trainer_email,
+    } : null,
+    coTrainer: row.u_co_trainer_id ? {
+      id: row.u_co_trainer_id,
+      fullName: row.co_trainer_full_name,
+      profileImage: row.co_trainer_profile_image,
+      email: row.co_trainer_email,
     } : null,
   }));
 }
@@ -219,7 +251,8 @@ export async function findManyClassesPaginated(options: {
   let paramIndex = 1;
 
   if (options.where?.category) {
-    conditions.push(`c.category = $${paramIndex++}`);
+    conditions.push(`(c.category = $${paramIndex} OR $${paramIndex} = ANY(c.categories))`);
+    paramIndex += 1;
     values.push(options.where.category);
   }
   if (options.where?.status) {
@@ -227,7 +260,8 @@ export async function findManyClassesPaginated(options: {
     values.push(options.where.status);
   }
   if (options.where?.trainerId) {
-    conditions.push(`c.trainer_id = $${paramIndex++}`);
+    conditions.push(`(c.trainer_id = $${paramIndex} OR c.co_trainer_id = $${paramIndex})`);
+    paramIndex += 1;
     values.push(options.where.trainerId);
   }
 
@@ -243,9 +277,11 @@ export async function findManyClassesPaginated(options: {
   // Build main query
   let sql = `
     SELECT c.*,
-           u.id as u_trainer_id, u.full_name as trainer_full_name, u.profile_image as trainer_profile_image, u.email as trainer_email
+           u.id as u_trainer_id, u.full_name as trainer_full_name, u.profile_image as trainer_profile_image, u.email as trainer_email,
+           cu.id as u_co_trainer_id, cu.full_name as co_trainer_full_name, cu.profile_image as co_trainer_profile_image, cu.email as co_trainer_email
     FROM classes c
     LEFT JOIN users u ON c.trainer_id = u.id
+    LEFT JOIN users cu ON c.co_trainer_id = cu.id
     ${whereClause}
   `;
 
@@ -276,10 +312,14 @@ export async function findManyClassesPaginated(options: {
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    categories: toCategoriesArray(row.categories, row.category),
+    subCategories: toCategoriesArray(row.sub_categories, row.sub_category),
     audienceGender: row.audience_gender || 'FEMALE_ONLY',
     image: row.image,
     images: row.images || [],
     trainerId: row.trainer_id,
+    coTrainerId: row.co_trainer_id ?? null,
+    venue: row.venue === 'OUTSIDE' ? 'OUTSIDE' : 'KITCHEN',
     price: parseFloat(row.price || 0),
     currency: row.currency,
     seatsTotal: row.seats_total,
@@ -320,6 +360,12 @@ export async function findManyClassesPaginated(options: {
       profileImage: row.trainer_profile_image,
       email: row.trainer_email,
     } : null,
+    coTrainer: row.u_co_trainer_id ? {
+      id: row.u_co_trainer_id,
+      fullName: row.co_trainer_full_name,
+      profileImage: row.co_trainer_profile_image,
+      email: row.co_trainer_email,
+    } : null,
   }));
 
   return { classes, total };
@@ -357,9 +403,12 @@ export async function findUniqueClass(
   const result = await query(
     `SELECT c.*,
             u.id as u_trainer_id, u.full_name as trainer_full_name, 
-            u.profile_image as trainer_profile_image, u.email as trainer_email
+            u.profile_image as trainer_profile_image, u.email as trainer_email,
+            cu.id as u_co_trainer_id, cu.full_name as co_trainer_full_name,
+            cu.profile_image as co_trainer_profile_image, cu.email as co_trainer_email
      FROM classes c
      LEFT JOIN users u ON c.trainer_id = u.id
+     LEFT JOIN users cu ON c.co_trainer_id = cu.id
      WHERE ${conditions.join(' AND ')}`,
     values
   );
@@ -376,10 +425,14 @@ export async function findUniqueClass(
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    categories: toCategoriesArray(row.categories, row.category),
+    subCategories: toCategoriesArray(row.sub_categories, row.sub_category),
     audienceGender: row.audience_gender || 'FEMALE_ONLY',
     image: row.image,
     images: row.images || [],
     trainerId: row.trainer_id,
+    coTrainerId: row.co_trainer_id ?? null,
+    venue: row.venue === 'OUTSIDE' ? 'OUTSIDE' : 'KITCHEN',
     price: parseFloat(row.price || 0),
     currency: row.currency,
     seatsTotal: row.seats_total,
@@ -423,6 +476,12 @@ export async function findUniqueClass(
       profileImage: row.trainer_profile_image,
       email: row.trainer_email,
     } : null;
+    classData.coTrainer = row.u_co_trainer_id ? {
+      id: row.u_co_trainer_id,
+      fullName: row.co_trainer_full_name,
+      profileImage: row.co_trainer_profile_image,
+      email: row.co_trainer_email,
+    } : null;
   }
 
   if (include?.reviews) {
@@ -456,7 +515,11 @@ export async function createClass(data: {
   descriptionAr?: string;
   category: ClassCategory;
   subCategory: ClassSubCategory;
+  categories?: ClassCategoryType[];
+  subCategories?: ClassSubCategory[];
   trainerId: string | null;
+  coTrainerId?: string | null;
+  venue?: ClassVenue;
   price: number;
   seatsTotal: number;
   durationMinutes: number;
@@ -496,8 +559,9 @@ export async function createClass(data: {
   const result = await query(
     `INSERT INTO classes (
       id, slug, title, title_ar, description, description_ar, category, sub_category,
+      categories, sub_categories,
       audience_gender,
-      trainer_id, price, currency, seats_total, seats_available, duration_minutes,
+      trainer_id, co_trainer_id, venue, price, currency, seats_total, seats_available, duration_minutes,
       image, images, status, meta_title, meta_description,
       final_recipe_title, final_recipe_pdf, final_recipe_brief,
       final_recipe_title_ar, final_recipe_pdf_ar, final_recipe_brief_ar,
@@ -507,7 +571,7 @@ export async function createClass(data: {
       start_date_time, end_date_time, registration_close_at, schedule_sessions,
       registration_message, registration_message_ar,
       created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38::jsonb, $39, $40, $41, $42)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42::jsonb, $43, $44, $45, $46)
       RETURNING *`,
     [
       id,
@@ -518,8 +582,12 @@ export async function createClass(data: {
       data.descriptionAr || null,
       data.category,
       data.subCategory,
+      data.categories && data.categories.length > 0 ? data.categories : [data.category],
+      data.subCategories && data.subCategories.length > 0 ? data.subCategories : [data.subCategory],
       data.audienceGender || 'FEMALE_ONLY',
       data.trainerId,
+      data.coTrainerId ?? null,
+      data.venue === 'OUTSIDE' ? 'OUTSIDE' : 'KITCHEN',
       data.price,
       data.currency || 'OMR',
       data.seatsTotal,
@@ -565,8 +633,12 @@ export async function createClass(data: {
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    categories: toCategoriesArray(row.categories, row.category),
+    subCategories: toCategoriesArray(row.sub_categories, row.sub_category),
     audienceGender: row.audience_gender || 'FEMALE_ONLY',
     trainerId: row.trainer_id,
+    coTrainerId: row.co_trainer_id ?? null,
+    venue: row.venue === 'OUTSIDE' ? 'OUTSIDE' : 'KITCHEN',
     price: parseFloat(row.price),
     currency: row.currency,
     seatsTotal: row.seats_total,
@@ -618,7 +690,11 @@ export async function updateClass(
     descriptionAr: string;
     category: ClassCategory;
     subCategory: ClassSubCategory;
+    categories: ClassCategoryType[];
+    subCategories: ClassSubCategory[];
     trainerId: string;
+    coTrainerId: string | null;
+    venue: ClassVenue;
     price: number;
     seatsTotal: number;
     seatsAvailable: number;
@@ -670,8 +746,12 @@ export async function updateClass(
     descriptionAr: 'description_ar',
     category: 'category',
     subCategory: 'sub_category',
+    categories: 'categories',
+    subCategories: 'sub_categories',
     audienceGender: 'audience_gender',
     trainerId: 'trainer_id',
+    coTrainerId: 'co_trainer_id',
+    venue: 'venue',
     price: 'price',
     seatsTotal: 'seats_total',
     seatsAvailable: 'seats_available',
@@ -741,8 +821,12 @@ export async function updateClass(
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    categories: toCategoriesArray(row.categories, row.category),
+    subCategories: toCategoriesArray(row.sub_categories, row.sub_category),
     audienceGender: row.audience_gender || 'MIXED',
     trainerId: row.trainer_id,
+    coTrainerId: row.co_trainer_id ?? null,
+    venue: row.venue === 'OUTSIDE' ? 'OUTSIDE' : 'KITCHEN',
     price: parseFloat(row.price),
     currency: row.currency,
     seatsTotal: row.seats_total,
@@ -805,10 +889,14 @@ export async function findClassBySlug(slug: string): Promise<{
   descriptionAr: string | null;
   category: string;
   subCategory: string | null;
+  categories: string[];
+  subCategories: string[];
   audienceGender: ClassAudienceGender;
   image: string | null;
   images: string[];
   trainerId: string | null;
+  coTrainerId: string | null;
+  venue: ClassVenue;
   price: number;
   currency: string;
   seatsTotal: number;
@@ -843,10 +931,14 @@ export async function findClassBySlug(slug: string): Promise<{
     descriptionAr: row.description_ar,
     category: row.category,
     subCategory: row.sub_category,
+    categories: toCategoriesArray(row.categories, row.category),
+    subCategories: toCategoriesArray(row.sub_categories, row.sub_category),
     audienceGender: row.audience_gender || 'MIXED',
     image: row.image,
     images: row.images || [],
     trainerId: row.trainer_id,
+    coTrainerId: row.co_trainer_id ?? null,
+    venue: (row.venue === 'OUTSIDE' ? 'OUTSIDE' : 'KITCHEN') as ClassVenue,
     price: parseFloat(row.price || 0),
     currency: row.currency,
     seatsTotal: row.seats_total,

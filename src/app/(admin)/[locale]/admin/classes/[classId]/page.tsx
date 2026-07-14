@@ -55,10 +55,15 @@ type ClassDetails = {
   descriptionAr?: string | null;
   category: string;
   subCategory: string;
+  categories?: string[];
+  subCategories?: string[];
+  venue?: string;
   image?: string | null;
   images: string[];
   trainerId: string;
   trainer?: TrainerInfo;
+  coTrainerId?: string | null;
+  coTrainer?: TrainerInfo | null;
   price: number;
   currency: string;
   seatsTotal: number;
@@ -536,8 +541,9 @@ export default function AdminClassDetailsPage({
             </div>
 
             <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800">
-              <InfoRow label={t.category}    value={formatCategory(classData.category, isArabic)} />
-              <InfoRow label={t.subCategory} value={formatSubCategory(classData.subCategory, isArabic)} />
+              <InfoRow label={t.category}    value={(classData.categories?.length ? classData.categories : [classData.category]).map((item) => formatCategory(item, isArabic)).join(' + ')} />
+              <InfoRow label={t.subCategory} value={(classData.subCategories?.length ? classData.subCategories : [classData.subCategory]).map((item) => formatSubCategory(item, isArabic)).join(' + ')} />
+              <InfoRow label={isArabic ? 'المكان' : 'Venue'} value={classData.venue === 'OUTSIDE' ? (isArabic ? 'خارج المطبخ' : 'Outside') : (isArabic ? 'المطبخ' : 'Kitchen')} />
               <InfoRow label={t.duration}    value={formatDurationClock(classData.durationMinutes)} />
               <InfoRow label={t.seats}       value={classData.seatsTotal} />
               <InfoRow label={t.seatsBooked} value={seatsBooked} />
@@ -684,22 +690,33 @@ export default function AdminClassDetailsPage({
 
             <div className="mt-4">
               {classData.trainer ? (
-                <div className="flex items-center gap-3 rounded-xl border border-zinc-100 p-3 dark:border-zinc-800">
-                  {classData.trainer.profileImage ? (
-                    <img
-                      src={classData.trainer.profileImage}
-                      alt={classData.trainer.fullName}
-                      className="size-12 rounded-xl object-cover"
-                    />
-                  ) : (
-                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color:var(--noon-teal-soft)] text-base font-bold text-[color:var(--noon-teal)]">
-                      {classData.trainer.fullName.slice(0, 1).toUpperCase()}
+                <div className="space-y-3">
+                  {[{ info: classData.trainer, roleLabel: null }, ...(classData.coTrainer ? [{ info: classData.coTrainer, roleLabel: isArabic ? 'مدرب مشارك' : 'Co-trainer' }] : [])].map(({ info, roleLabel }) => (
+                    <div key={info.id} className="flex items-center gap-3 rounded-xl border border-zinc-100 p-3 dark:border-zinc-800">
+                      {info.profileImage ? (
+                        <img
+                          src={info.profileImage}
+                          alt={info.fullName}
+                          className="size-12 rounded-xl object-cover"
+                        />
+                      ) : (
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[color:var(--noon-teal-soft)] text-base font-bold text-[color:var(--noon-teal)]">
+                          {info.fullName.slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                          {info.fullName}
+                          {roleLabel ? (
+                            <span className="ms-2 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                              {roleLabel}
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="truncate text-xs text-zinc-500">{info.email || '—'}</p>
+                      </div>
                     </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-zinc-900 dark:text-zinc-100">{classData.trainer.fullName}</p>
-                    <p className="truncate text-xs text-zinc-500">{classData.trainer.email || '—'}</p>
-                  </div>
+                  ))}
                 </div>
               ) : (
                 <div className="rounded-xl border border-dashed border-zinc-300 py-8 text-center text-sm text-zinc-400 dark:border-zinc-700">

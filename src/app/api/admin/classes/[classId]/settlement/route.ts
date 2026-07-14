@@ -51,6 +51,8 @@ export async function PUT(request: Request, props: Params) {
       expenseItems?: unknown;
       inventoryUsageItems?: unknown;
       notes?: unknown;
+      trainerFeeAmount?: unknown;
+      coTrainerFeeAmount?: unknown;
     };
 
     const snapshot = await saveClassSettlementDraft({
@@ -59,6 +61,8 @@ export async function PUT(request: Request, props: Params) {
       expenseItems: body.expenseItems,
       inventoryUsageItems: body.inventoryUsageItems,
       notes: body.notes,
+      trainerFeeAmount: body.trainerFeeAmount,
+      coTrainerFeeAmount: body.coTrainerFeeAmount,
     });
 
     return NextResponse.json({ success: true, snapshot });
