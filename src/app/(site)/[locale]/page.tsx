@@ -168,10 +168,10 @@ async function resolveUpcomingItems(
       });
     }
 
-    // Sort by nearest class first, take 3
+    // Sort by nearest class first, take 6
     const nearest = upcomingCards
       .sort((a, b) => a.classStart.getTime() - b.classStart.getTime())
-      .slice(0, 3)
+      .slice(0, 6)
       .map(({ classStart: _classStart, ...item }) => item);
 
     if (nearest.length > 0) {
