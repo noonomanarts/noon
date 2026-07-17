@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { cookies } from 'next/headers';
 import { findUniqueClass, updateClass, deleteClass, countClassBookings } from '@/lib/db/classes';
 import { cleanupClosedClassSettlement } from '@/lib/db/classFinance';
@@ -203,8 +203,12 @@ export async function PUT(request: NextRequest, props: Params) {
 
     // Notify repeat requesters when this class becomes published
     if (previousStatus !== 'PUBLISHED' && updatedClass.status === 'PUBLISHED') {
-      void notifyRepeatRequestersForPublishedClass({ classId: params.classId }).catch((error) => {
-        console.error('[classes/update] notifyRepeatRequestersForPublishedClass failed:', error);
+      after(async () => {
+        try {
+          await notifyRepeatRequestersForPublishedClass({ classId: params.classId });
+        } catch (error) {
+          console.error('[classes/update] notifyRepeatRequestersForPublishedClass failed:', error);
+        }
       });
     }
 

@@ -546,8 +546,8 @@ async function sendRepeatAvailableEmail(input: {
   classUrl: string;
   classDate?: string;
   classTime?: string;
-}): Promise<void> {
-  if (!input.email) return;
+}): Promise<boolean> {
+  if (!input.email) return false;
 
   const subject = input.isArabic
     ? `تمت إعادة طرح ورشة ${input.classTitle}`
@@ -616,12 +616,14 @@ async function sendRepeatAvailableEmail(input: {
       </div>
     `;
 
-  await sendEmail({
+  const result = await sendEmail({
     to: input.email,
     subject,
     text,
     html,
   });
+
+  return Boolean(result?.ok);
 }
 
 export async function notifyRepeatRequestersForPublishedClass(input: {
@@ -633,14 +635,26 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
   const classItem = await findUniqueClass({ id: input.classId });
   if (!classItem) return 0;
 
-  // Match pending requesters either through the explicit renew/duplicate link
-  // (classes.renewed_from_class_id) or by a matching title within the same
-  // category (ignoring "(Copy)" style suffixes) for classes republished manually.
+  // Match pending requesters through:
+  // 1. the renew/duplicate link chain (classes.renewed_from_class_id), followed
+  //    across multiple renewals, including sibling renewals of the same source
+  // 2. a matching title within the same category (ignoring "(Copy)" style
+  //    suffixes) for classes republished manually.
   const result = await query<{
     request_id: string;
     user_id: string;
   }>(
-    `SELECT DISTINCT ON (crr.user_id)
+    `WITH RECURSIVE target_chain AS (
+       SELECT c.id, c.renewed_from_class_id, 1 AS depth
+       FROM classes c
+       WHERE c.id = $1
+       UNION ALL
+       SELECT parent.id, parent.renewed_from_class_id, tc.depth + 1
+       FROM classes parent
+       JOIN target_chain tc ON parent.id = tc.renewed_from_class_id
+       WHERE tc.depth < 12
+     )
+     SELECT DISTINCT ON (crr.user_id)
         crr.id AS request_id,
         crr.user_id
      FROM class_repeat_requests crr
@@ -649,7 +663,11 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
      WHERE crr.fulfilled_by_class_id IS NULL
        AND source_class.id <> target_class.id
        AND (
-         target_class.renewed_from_class_id = source_class.id
+         source_class.id IN (SELECT id FROM target_chain)
+         OR (
+           source_class.renewed_from_class_id IS NOT NULL
+           AND source_class.renewed_from_class_id IN (SELECT id FROM target_chain)
+         )
          OR (
            source_class.category = target_class.category
            AND LOWER(TRIM(REGEXP_REPLACE(source_class.title, '\\s*\\((copy|نسخة)\\)\\s*$', '', 'i')))
@@ -665,7 +683,10 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
     [input.classId]
   );
 
-  if (result.rows.length === 0) return 0;
+  if (result.rows.length === 0) {
+    console.log(`[repeat-requests] no pending requesters matched for published class ${input.classId}`);
+    return 0;
+  }
 
   const slug = typeof classItem.slug === 'string' ? classItem.slug : '';
   const startValue =
@@ -675,69 +696,98 @@ export async function notifyRepeatRequestersForPublishedClass(input: {
         ? classItem.startDateTime
         : null;
 
+  const fulfilledRequestIds: string[] = [];
+
   await Promise.all(
     result.rows.map(async (row) => {
-      const user = await getUserById(row.user_id);
-      const isArabic = isArabicPreferredLanguage(user?.preferredLanguage);
-      const classTitle =
-        isArabic && typeof classItem.titleAr === 'string' && classItem.titleAr.trim()
-          ? classItem.titleAr
-          : typeof classItem.title === 'string'
-            ? classItem.title
-            : 'Workshop';
-      const classUrl = buildRepeatClassUrl({ slug, isArabic });
-      const locale = isArabic ? 'ar-OM-u-nu-latn' : 'en-OM';
-      const classDate = startValue
-        ? formatNoonDateTime(startValue, locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-        : '';
-      const classTime = startValue
-        ? formatNoonDateTime(startValue, locale, { hour: 'numeric', minute: '2-digit' })
-        : '';
+      try {
+        const user = await getUserById(row.user_id);
+        const isArabic = isArabicPreferredLanguage(user?.preferredLanguage);
+        const classTitle =
+          isArabic && typeof classItem.titleAr === 'string' && classItem.titleAr.trim()
+            ? classItem.titleAr
+            : typeof classItem.title === 'string'
+              ? classItem.title
+              : 'Workshop';
+        const classUrl = buildRepeatClassUrl({ slug, isArabic });
+        const locale = isArabic ? 'ar-OM-u-nu-latn' : 'en-OM';
+        const classDate = startValue
+          ? formatNoonDateTime(startValue, locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+          : '';
+        const classTime = startValue
+          ? formatNoonDateTime(startValue, locale, { hour: 'numeric', minute: '2-digit' })
+          : '';
 
-      await notifyUser(row.user_id, {
-        type: 'class_repeat_available',
-        title: 'Workshop Available Again',
-        message: classDate
-          ? `"${classItem.title}" has been scheduled again on ${classDate}${classTime ? ` at ${classTime}` : ''} and is open for booking.`
-          : `"${classItem.title}" is available again for booking.`,
-        data: {
-          classId: classItem.id,
-          classSlug: classItem.slug,
-          classTitle: classItem.title,
-        },
-      }).catch(() => {});
+        const inAppOk = await notifyUser(row.user_id, {
+          type: 'class_repeat_available',
+          title: 'Workshop Available Again',
+          message: classDate
+            ? `"${classItem.title}" has been scheduled again on ${classDate}${classTime ? ` at ${classTime}` : ''} and is open for booking.`
+            : `"${classItem.title}" is available again for booking.`,
+          data: {
+            classId: classItem.id,
+            classSlug: classItem.slug,
+            classTitle: classItem.title,
+          },
+        })
+          .then(() => true)
+          .catch((error) => {
+            console.error(`[repeat-requests] in-app notification failed for user ${row.user_id}:`, error);
+            return false;
+          });
 
-      await sendUserWhatsAppTemplate({
-        userId: row.user_id,
-        key: 'class_repeat_available',
-        vars: {
+        const whatsappOk = await sendUserWhatsAppTemplate({
+          userId: row.user_id,
+          key: 'class_repeat_available',
+          vars: {
+            classTitle,
+            classUrl,
+            classDate,
+            classTime,
+          },
+        }).catch((error) => {
+          console.error(`[repeat-requests] WhatsApp notification failed for user ${row.user_id}:`, error);
+          return false;
+        });
+
+        const emailOk = await sendRepeatAvailableEmail({
+          email: user?.email,
+          fullName: user?.fullName,
           classTitle,
           classUrl,
+          isArabic,
           classDate,
           classTime,
-        },
-      }).catch(() => {});
+        }).catch((error) => {
+          console.error(`[repeat-requests] email notification failed for user ${row.user_id}:`, error);
+          return false;
+        });
 
-      await sendRepeatAvailableEmail({
-        email: user?.email,
-        fullName: user?.fullName,
-        classTitle,
-        classUrl,
-        isArabic,
-        classDate,
-        classTime,
-      }).catch(() => {});
+        // Only mark the request fulfilled when at least one channel delivered,
+        // so failed deliveries stay pending and are retried on the next publish.
+        if (inAppOk || whatsappOk || emailOk) {
+          fulfilledRequestIds.push(row.request_id);
+        }
+      } catch (error) {
+        console.error(`[repeat-requests] failed to notify user ${row.user_id} for class ${input.classId}:`, error);
+      }
     })
   );
 
-  await query(
-    `UPDATE class_repeat_requests
-     SET fulfilled_by_class_id = $1,
-         notified_at = NOW(),
-         updated_at = NOW()
-     WHERE id = ANY($2::uuid[])`,
-    [input.classId, result.rows.map((row) => row.request_id)]
+  if (fulfilledRequestIds.length > 0) {
+    await query(
+      `UPDATE class_repeat_requests
+       SET fulfilled_by_class_id = $1,
+           notified_at = NOW(),
+           updated_at = NOW()
+       WHERE id = ANY($2::uuid[])`,
+      [input.classId, fulfilledRequestIds]
+    );
+  }
+
+  console.log(
+    `[repeat-requests] notified ${fulfilledRequestIds.length}/${result.rows.length} pending requester(s) for published class ${input.classId}`
   );
 
-  return result.rows.length;
+  return fulfilledRequestIds.length;
 }

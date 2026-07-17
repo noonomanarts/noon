@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { findManyClassesPaginated, createClass, findUniqueClass } from '@/lib/db/classes';
 import { verifyTrainer } from '@/lib/db/trainers';
 import { query } from '@/lib/db/pool';
@@ -382,9 +382,13 @@ export async function POST(request: NextRequest) {
 
     // Notify pending repeat requesters when a workshop is created directly as published
     if (newClass.status === 'PUBLISHED') {
-      const { notifyRepeatRequestersForPublishedClass } = await import('@/lib/db/classRepeatRequests');
-      void notifyRepeatRequestersForPublishedClass({ classId: newClass.id as string }).catch((error) => {
-        console.error('[classes/create] notifyRepeatRequestersForPublishedClass failed:', error);
+      after(async () => {
+        try {
+          const { notifyRepeatRequestersForPublishedClass } = await import('@/lib/db/classRepeatRequests');
+          await notifyRepeatRequestersForPublishedClass({ classId: newClass.id as string });
+        } catch (error) {
+          console.error('[classes/create] notifyRepeatRequestersForPublishedClass failed:', error);
+        }
       });
     }
 

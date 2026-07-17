@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { updateClass } from '@/lib/db/classes';
 import { notifyPhotographerDashboardUsers } from '@/lib/photographerNotifications';
 import { notifyRepeatRequestersForPublishedClass } from '@/lib/db/classRepeatRequests';
@@ -46,11 +46,12 @@ export async function PATCH(
         console.error('[classes/status] notifyPhotographerDashboardUsers failed:', error);
       });
 
-      void notifyRepeatRequestersForPublishedClass({
-        classId,
-        locale: 'en',
-      }).catch((error) => {
-        console.error('[classes/status] notifyRepeatRequestersForPublishedClass failed:', error);
+      after(async () => {
+        try {
+          await notifyRepeatRequestersForPublishedClass({ classId, locale: 'en' });
+        } catch (error) {
+          console.error('[classes/status] notifyRepeatRequestersForPublishedClass failed:', error);
+        }
       });
     }
 
