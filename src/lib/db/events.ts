@@ -707,7 +707,7 @@ export async function syncClassCalendarEvents(classId: string): Promise<void> {
 
   const classResult = await query(
     `SELECT id, title, description, category, categories, venue, status,
-            start_date_time, end_date_time, duration_minutes
+            start_date_time, end_date_time, duration_minutes, schedule_sessions
      FROM classes
      WHERE id = $1`,
     [classId]
@@ -737,28 +737,50 @@ export async function syncClassCalendarEvents(classId: string): Promise<void> {
   const isCooking = categories.includes('COOKING');
   const title = String(row.title || 'Workshop');
 
-  await createCalendarEvent({
-    type: 'CLASS',
-    startDateTime: start,
-    endDateTime: end,
-    title,
-    description: row.description ? String(row.description) : undefined,
-    classId,
-    blocksVenue: isKitchen,
-  });
+  // Multi-day workshops store one session per day; each day gets its own
+  // calendar event. Single-day workshops fall back to the class start/end.
+  const scheduleSessions: Array<{ startDateTime?: string; endDateTime?: string }> =
+    Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [];
+  const sessionRanges = scheduleSessions
+    .map((session) => ({
+      start: session.startDateTime ? new Date(session.startDateTime) : null,
+      end: session.endDateTime ? new Date(session.endDateTime) : null,
+    }))
+    .filter(
+      (range): range is { start: Date; end: Date } =>
+        !!range.start && !!range.end
+        && !Number.isNaN(range.start.getTime())
+        && !Number.isNaN(range.end.getTime())
+    );
+  const eventRanges = sessionRanges.length > 0 ? sessionRanges : [{ start, end }];
 
-  if (isKitchen && isCooking) {
-    const cleaningEnd = new Date(end.getTime() + 3 * 60 * 60000);
+  for (let index = 0; index < eventRanges.length; index += 1) {
+    const range = eventRanges[index];
+    const dayTitle = eventRanges.length > 1 ? `${title} (Day ${index + 1})` : title;
+
     await createCalendarEvent({
-      type: 'CLEANING',
-      startDateTime: end,
-      endDateTime: cleaningEnd,
-      title: 'Cleaning - ' + title,
+      type: 'CLASS',
+      startDateTime: range.start,
+      endDateTime: range.end,
+      title: dayTitle,
+      description: row.description ? String(row.description) : undefined,
       classId,
-      isBlocked: true,
-      blockReason: 'Post-cooking class cleaning',
-      blocksVenue: true,
+      blocksVenue: isKitchen,
     });
+
+    if (isKitchen && isCooking) {
+      const cleaningEnd = new Date(range.end.getTime() + 3 * 60 * 60000);
+      await createCalendarEvent({
+        type: 'CLEANING',
+        startDateTime: range.end,
+        endDateTime: cleaningEnd,
+        title: 'Cleaning - ' + dayTitle,
+        classId,
+        isBlocked: true,
+        blockReason: 'Post-cooking class cleaning',
+        blocksVenue: true,
+      });
+    }
   }
 }
 

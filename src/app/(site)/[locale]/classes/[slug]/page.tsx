@@ -190,6 +190,13 @@ export default async function ClassDetailPage({
       minute: "2-digit",
       timeZone: DISPLAY_TIMEZONE,
     });
+  const isSameDisplayDay = (a: Date | string, b: Date | string) =>
+    new Date(a).toLocaleDateString("en-CA", { timeZone: DISPLAY_TIMEZONE }) ===
+    new Date(b).toLocaleDateString("en-CA", { timeZone: DISPLAY_TIMEZONE });
+  const formatDateRange = (start: Date | string, end?: Date | string | null) =>
+    end && !isSameDisplayDay(start, end)
+      ? `${formatDate(start)} - ${formatDate(end)}`
+      : formatDate(start);
   const scheduleSessions = Array.isArray(classData.scheduleSessions) ? classData.scheduleSessions : [];
   const topCardSessions = scheduleSessions.length > 0
     ? scheduleSessions
@@ -311,7 +318,7 @@ export default async function ClassDetailPage({
                             </p>
                           ) : null}
                           <p className="mt-1 text-sm font-semibold text-[color:var(--text)] sm:text-base">
-                            {formatDate(session.startDateTime)}
+                            {formatDateRange(session.startDateTime, session.endDateTime)}
                           </p>
                           <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
                             <MdAccessTime className="h-4 w-4" />
@@ -396,7 +403,7 @@ export default async function ClassDetailPage({
                 <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
                   <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">
                     <MdCalendarMonth className={`h-4 w-4 ${isCooking ? "text-coral" : "text-purple"}`} />
-                    {formatDate(classData.startDateTime)}
+                    {formatDateRange(classData.startDateTime, classData.endDateTime)}
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-[color:var(--text-muted)]">
                     <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[color:var(--text)] sm:text-base">

@@ -211,15 +211,33 @@ export default function ClassBookingClient({
   const payableTotalAmount = Number(Math.max(0, baseTotalAmount - promoDiscountAmount).toFixed(3));
   const walletBalance = wallet?.balance ?? 0;
   const walletHasEnoughBalance = walletBalance >= payableTotalAmount;
+  const formatBookingDateTime = (value: string) =>
+    new Date(value).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: DISPLAY_TIMEZONE,
+    });
+  const formatBookingDate = (value: string) =>
+    new Date(value).toLocaleDateString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      timeZone: DISPLAY_TIMEZONE,
+    });
+  const isSameDisplayDay = (a: string, b: string) =>
+    new Date(a).toLocaleDateString('en-CA', { timeZone: DISPLAY_TIMEZONE }) ===
+    new Date(b).toLocaleDateString('en-CA', { timeZone: DISPLAY_TIMEZONE });
+  const scheduleSessionList = classData.scheduleSessions ?? [];
+  const classEndForLabel = scheduleSessionList.length > 0
+    ? scheduleSessionList[scheduleSessionList.length - 1]?.endDateTime ?? null
+    : classData.endDateTime;
   const classDateLabel = classData.startDateTime
-    ? new Date(classData.startDateTime).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZone: DISPLAY_TIMEZONE,
-      })
+    ? classEndForLabel && !isSameDisplayDay(classData.startDateTime, classEndForLabel)
+      ? `${formatBookingDateTime(classData.startDateTime)} - ${formatBookingDate(classEndForLabel)}`
+      : formatBookingDateTime(classData.startDateTime)
     : null;
 
   const conflictTitle = scheduleConflict

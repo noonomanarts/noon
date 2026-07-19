@@ -184,7 +184,11 @@ export default async function ArtsCraftsClassesPage({
                             <div className="flex items-center justify-between rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-2.5 py-2 sm:px-3">
                               <p className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[color:var(--text)] sm:gap-2 sm:text-xs">
                                 <FiCalendar className="size-3.5 text-[color:var(--primary)]" />
-                                {formatDate(cls.startDateTime)} · {formatTime(cls.startDateTime)}
+                                {cls.endDateTime
+                                  && new Date(cls.startDateTime).toLocaleDateString("en-CA", { timeZone: DISPLAY_TIMEZONE })
+                                    !== new Date(cls.endDateTime).toLocaleDateString("en-CA", { timeZone: DISPLAY_TIMEZONE })
+                                  ? `${formatDate(cls.startDateTime)} - ${formatDate(cls.endDateTime)} · ${formatTime(cls.startDateTime)}`
+                                  : `${formatDate(cls.startDateTime)} · ${formatTime(cls.startDateTime)}`}
                               </p>
                             </div>
                             {Math.max(0, (cls.seatsTotal ?? 0) - (cls.seatsBooked ?? 0)) > 0 && resolveRegistrationCloseAt(cls.startDateTime, cls.registrationCloseAt) ? (

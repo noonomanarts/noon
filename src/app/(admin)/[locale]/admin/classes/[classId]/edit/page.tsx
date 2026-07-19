@@ -1320,26 +1320,24 @@ export default function EditClassPage() {
               </p>
             </div>
 
-            {formData.subCategories.includes('SUMMER_CAMP') ? (
-              <div className="md:col-span-3">
-                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  {isRTL ? 'جدول أيام المخيم' : 'Summer Camp Schedule'}
-                </label>
-                <textarea
-                  name="scheduleSessionsText"
-                  value={formData.scheduleSessionsText}
-                  onChange={handleInputChange}
-                  rows={4}
-                  placeholder="2026-06-14T10:30, 2026-06-14T12:30&#10;2026-06-15T10:30, 2026-06-15T12:30&#10;2026-06-16T10:30, 2026-06-16T12:30"
-                  className={textareaBase}
-                />
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  {isRTL
-                    ? 'كل سطر: وقت البداية، وقت النهاية. مثال: 2026-06-14T10:30, 2026-06-14T12:30'
-                    : 'One session per line: start, end. Example: 2026-06-14T10:30, 2026-06-14T12:30'}
-                </p>
-              </div>
-            ) : null}
+            <div className="md:col-span-3">
+              <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {isRTL ? 'جدول الأيام (للورش متعددة الأيام)' : 'Daily Schedule (for multi-day workshops)'}
+              </label>
+              <textarea
+                name="scheduleSessionsText"
+                value={formData.scheduleSessionsText}
+                onChange={handleInputChange}
+                rows={4}
+                placeholder="2026-06-14T10:30, 2026-06-14T12:30&#10;2026-06-15T10:30, 2026-06-15T12:30&#10;2026-06-16T10:30, 2026-06-16T12:30"
+                className={textareaBase}
+              />
+              <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                {isRTL
+                  ? 'اختياري. للورش التي تمتد على أكثر من يوم، أضف سطراً لكل يوم: وقت البداية، وقت النهاية. مثال: 2026-06-14T10:30, 2026-06-14T12:30'
+                  : 'Optional. For workshops spanning more than one day, add one line per day: start, end. Example: 2026-06-14T10:30, 2026-06-14T12:30'}
+              </p>
+            </div>
 
             {/* Duration */}
             <div className="md:col-span-3">

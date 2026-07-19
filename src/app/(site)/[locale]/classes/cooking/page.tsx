@@ -72,8 +72,16 @@ function ClassCard({
 }) {
   const title = locale === "ar" && cls.titleAr ? cls.titleAr : cls.title;
   const trainerName = cls.trainer?.fullName ?? null;
+  const spansMultipleDays = Boolean(
+    cls.startDateTime
+    && cls.endDateTime
+    && new Date(cls.startDateTime).toLocaleDateString("en-CA", { timeZone: DISPLAY_TIMEZONE })
+      !== new Date(cls.endDateTime).toLocaleDateString("en-CA", { timeZone: DISPLAY_TIMEZONE })
+  );
   const datetimeText = cls.startDateTime
-    ? `${formatDate(cls.startDateTime)} · ${formatTime(cls.startDateTime)}`
+    ? spansMultipleDays && cls.endDateTime
+      ? `${formatDate(cls.startDateTime)} - ${formatDate(cls.endDateTime)} · ${formatTime(cls.startDateTime)}`
+      : `${formatDate(cls.startDateTime)} · ${formatTime(cls.startDateTime)}`
     : t.noUpcomingSessions;
   const priceText = formatAmountWithCurrency(cls.price, cls.currency);
   const isFullyBooked = !isEnded && Math.max(0, cls.seatsTotal - cls.seatsBooked) <= 0;

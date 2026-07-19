@@ -167,7 +167,7 @@ export async function PUT(request: NextRequest, props: Params) {
           || !isQuarterHourDateTimeValue((session as { endDateTime?: string }).endDateTime)
         ) {
           return NextResponse.json(
-            { error: 'Summer camp schedule session minutes must be 00, 15, 30, or 45' },
+            { error: 'Schedule session minutes must be 00, 15, 30, or 45' },
             { status: 400 }
           );
         }
