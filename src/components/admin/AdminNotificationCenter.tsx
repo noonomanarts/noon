@@ -110,11 +110,14 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [filter, setFilter] = useState<'all' | 'newOrder' | 'important'>('all');
+  const [timeFilter, setTimeFilter] = useState<'all' | 'today' | '24h' | '7d'>('all');
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
   const [prefsReady, setPrefsReady] = useState(false);
+  const [undoState, setUndoState] = useState<{ ids: string[]; count: number } | null>(null);
+  const undoTimeoutRef = useRef<number | null>(null);
   const knownNotificationIdsRef = useRef<Set<string>>(new Set());
   const hasFetchedOnceRef = useRef(false);
 
@@ -125,8 +128,14 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
     filterAll: locale === 'ar' ? 'الكل' : 'All',
     filterNewOrders: locale === 'ar' ? 'طلبات جديدة' : 'New orders',
     filterImportant: locale === 'ar' ? 'مهم' : 'Important',
+    timeAll: locale === 'ar' ? 'كل الأوقات' : 'All time',
+    timeToday: locale === 'ar' ? 'اليوم' : 'Today',
+    time24h: locale === 'ar' ? 'آخر 24 ساعة' : 'Last 24h',
+    time7d: locale === 'ar' ? 'آخر 7 أيام' : 'Last 7d',
     unreadOnly: locale === 'ar' ? 'غير مقروء فقط' : 'Unread only',
     markFilterRead: locale === 'ar' ? 'قراءة الفلتر' : 'Mark filter read',
+    undo: locale === 'ar' ? 'تراجع' : 'Undo',
+    undoMessage: locale === 'ar' ? 'تم تحديد الإشعارات كمقروءة' : 'Notifications marked as read',
     sound: locale === 'ar' ? 'صوت التنبيه' : 'Notification sound',
     soundNewOrder: locale === 'ar' ? 'صوت الطلبات الجديدة' : 'New order sound',
     soundImportant: locale === 'ar' ? 'صوت التنبيهات المهمة' : 'Important alerts sound',
@@ -173,9 +182,31 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
     return getNotificationLevel(item) === 'important';
   };
 
+  const timeFilterMatches = (item: NotificationItem) => {
+    if (timeFilter === 'all') return true;
+    const createdAt = new Date(item.created_at);
+    if (Number.isNaN(createdAt.getTime())) return false;
+
+    const now = new Date();
+    if (timeFilter === 'today') {
+      return (
+        createdAt.getFullYear() === now.getFullYear() &&
+        createdAt.getMonth() === now.getMonth() &&
+        createdAt.getDate() === now.getDate()
+      );
+    }
+
+    const diffMs = now.getTime() - createdAt.getTime();
+    if (timeFilter === '24h') {
+      return diffMs <= 24 * 60 * 60 * 1000;
+    }
+
+    return diffMs <= 7 * 24 * 60 * 60 * 1000;
+  };
+
   const [unreadOnly, setUnreadOnly] = useState(false);
 
-  const filteredNotifications = notifications.filter(filterMatches);
+  const filteredNotifications = notifications.filter((item) => filterMatches(item) && timeFilterMatches(item));
   const visibleNotifications = unreadOnly
     ? filteredNotifications.filter((item) => !item.is_read)
     : filteredNotifications;
@@ -408,13 +439,69 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
         )
         .filter((id): id is string => Boolean(id))
     );
+    const successIdList = Array.from(successIds);
     setNotifications((prev) =>
       prev.map((item) =>
         successIds.has(item.id) ? { ...item, is_read: true } : item
       )
     );
     setUnreadCount((prev) => Math.max(0, prev - successCount));
+
+    if (undoTimeoutRef.current) {
+      window.clearTimeout(undoTimeoutRef.current);
+    }
+    setUndoState({ ids: successIdList, count: successCount });
+    undoTimeoutRef.current = window.setTimeout(() => {
+      setUndoState(null);
+    }, 9000);
   };
+
+  const undoMarkFilterRead = async () => {
+    if (!undoState || undoState.ids.length === 0) return;
+
+    const ids = undoState.ids;
+    setUndoState(null);
+    if (undoTimeoutRef.current) {
+      window.clearTimeout(undoTimeoutRef.current);
+      undoTimeoutRef.current = null;
+    }
+
+    const results = await Promise.allSettled(
+      ids.map((notificationId) =>
+        fetch('/api/notifications/read-state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId, isRead: false }),
+        })
+      )
+    );
+
+    const restoredIds = new Set(
+      results
+        .map((result, index) =>
+          result.status === 'fulfilled' && result.value.ok ? ids[index] : null
+        )
+        .filter((id): id is string => Boolean(id))
+    );
+
+    const restoredCount = restoredIds.size;
+    if (restoredCount <= 0) return;
+
+    setNotifications((prev) =>
+      prev.map((item) =>
+        restoredIds.has(item.id) ? { ...item, is_read: false } : item
+      )
+    );
+    setUnreadCount((prev) => prev + restoredCount);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (undoTimeoutRef.current) {
+        window.clearTimeout(undoTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="relative">
@@ -436,6 +523,21 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
           className={`absolute top-11 ${locale === 'ar' ? 'left-0' : 'right-0'} z-[170] w-[360px] max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950`}
           dir={locale === 'ar' ? 'rtl' : 'ltr'}
         >
+          {undoState && (
+            <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-2 text-xs text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-200">
+              <div className="flex items-center justify-between gap-2">
+                <span>{t.undoMessage} ({undoState.count})</span>
+                <button
+                  type="button"
+                  onClick={() => void undoMarkFilterRead()}
+                  className="rounded border border-emerald-500/40 px-2 py-0.5 font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                >
+                  {t.undo}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/70 px-4 py-3 dark:border-zinc-700/60">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">{t.title}</h3>
             <div className="flex flex-wrap items-center gap-3">
@@ -621,6 +723,52 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
                   }`}
                 >
                   {t.filterImportant} ({importantCount})
+                </button>
+              </div>
+              <div className="mb-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('all')}
+                  className={`rounded px-2 py-1 text-xs font-medium ${
+                    timeFilter === 'all'
+                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                  }`}
+                >
+                  {t.timeAll}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('today')}
+                  className={`rounded px-2 py-1 text-xs font-medium ${
+                    timeFilter === 'today'
+                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                  }`}
+                >
+                  {t.timeToday}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('24h')}
+                  className={`rounded px-2 py-1 text-xs font-medium ${
+                    timeFilter === '24h'
+                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                  }`}
+                >
+                  {t.time24h}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeFilter('7d')}
+                  className={`rounded px-2 py-1 text-xs font-medium ${
+                    timeFilter === '7d'
+                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                  }`}
+                >
+                  {t.time7d}
                 </button>
               </div>
               <div className="flex items-center justify-between gap-2">

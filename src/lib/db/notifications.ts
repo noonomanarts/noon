@@ -66,6 +66,25 @@ export async function markNotificationAsRead(notificationId: string, userId: str
   return (result.rowCount ?? 0) > 0;
 }
 
+export async function setNotificationReadState(
+  notificationId: string,
+  userId: string,
+  userRole: UserRole,
+  isRead: boolean
+): Promise<boolean> {
+  const result = await pool.query(
+    `UPDATE app_notifications
+     SET is_read = $4,
+         read_at = CASE WHEN $4 THEN NOW() ELSE NULL END
+     WHERE id = $1
+       AND (recipient_user_id = $2 OR recipient_role = $3)
+     RETURNING id`,
+    [notificationId, userId, userRole, isRead]
+  );
+
+  return (result.rowCount ?? 0) > 0;
+}
+
 export async function markAllNotificationsAsRead(userId: string, userRole: UserRole): Promise<number> {
   const result = await pool.query(
     `UPDATE app_notifications
