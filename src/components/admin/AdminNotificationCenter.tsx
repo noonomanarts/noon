@@ -89,6 +89,7 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
     sound: locale === 'ar' ? 'صوت التنبيه' : 'Notification sound',
     badge: locale === 'ar' ? 'شارة الإشعارات' : 'Notification badge',
     polling: locale === 'ar' ? 'التحديث التلقائي' : 'Auto refresh',
+    testSound: locale === 'ar' ? 'اختبار الصوت' : 'Test sound',
     sec10: locale === 'ar' ? 'كل 10 ثوان' : 'Every 10 sec',
     sec20: locale === 'ar' ? 'كل 20 ثانية' : 'Every 20 sec',
     sec30: locale === 'ar' ? 'كل 30 ثانية' : 'Every 30 sec',
@@ -97,6 +98,11 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
     empty: locale === 'ar' ? 'لا توجد إشعارات' : 'No notifications',
     viewAll: locale === 'ar' ? 'عرض الكل' : 'View all',
   }), [locale]);
+
+  const viewAllHref =
+    userRole === 'ADMIN' || userRole === 'SOCIAL_MEDIA_ADMIN'
+      ? `/${locale}/admin/notifications`
+      : `/${locale}/account/notifications`;
 
   const fetchNotifications = async (opts?: { alertOnNew?: boolean }) => {
     try {
@@ -296,7 +302,7 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
                 {t.markAllRead}
               </button>
               <Link
-                href={`/${locale}/admin/notifications`}
+                href={viewAllHref}
                 onClick={() => setOpen(false)}
                 className="text-xs text-zinc-600 hover:underline dark:text-zinc-300"
               >
@@ -316,6 +322,16 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
                     onChange={(event) => setPreferences((prev) => ({ ...prev, soundEnabled: event.target.checked }))}
                   />
                 </label>
+                <div className="flex items-center justify-between gap-3">
+                  <span>{t.testSound}</span>
+                  <button
+                    type="button"
+                    onClick={playNotificationSound}
+                    className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                  >
+                    {t.testSound}
+                  </button>
+                </div>
                 <label className="flex items-center justify-between gap-3">
                   <span>{t.badge}</span>
                   <input

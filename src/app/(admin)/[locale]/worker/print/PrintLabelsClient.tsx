@@ -26,6 +26,7 @@ interface LabelSettings {
   paddingMm: number;
   gapMm: number;
   fontScale: number;
+  printProfile: "balanced" | "highContrast" | "thermal";
   pageMode: "single" | "sheet";
   showDates: boolean;
   showSku: boolean;
@@ -65,6 +66,10 @@ function sanitizeSettings(input: Partial<LabelSettings> | null | undefined): Lab
     paddingMm: clamp(Number(input?.paddingMm ?? 2.5), 0, 8),
     gapMm: clamp(Number(input?.gapMm ?? 0), 0, 10),
     fontScale: clamp(Number(input?.fontScale ?? 100), 70, 130),
+    printProfile:
+      input?.printProfile === "balanced" || input?.printProfile === "thermal"
+        ? input.printProfile
+        : "highContrast",
     pageMode: input?.pageMode === "sheet" ? "sheet" : "single",
     showDates: input?.showDates ?? true,
     showSku: input?.showSku ?? true,
@@ -103,6 +108,7 @@ export default function PrintLabelsClient({ locale, products }: Props) {
     paddingMm: 2.5,
     gapMm: 0,
     fontScale: 100,
+    printProfile: "highContrast",
     pageMode: "single",
     showDates: true,
     showSku: true,
@@ -145,6 +151,10 @@ export default function PrintLabelsClient({ locale, products }: Props) {
       spacing: isArabic ? "المسافة بين الملصقات (مم)" : "Label spacing (mm)",
       padding: isArabic ? "الحشوة الداخلية (مم)" : "Inner padding (mm)",
       fontScale: isArabic ? "تكبير النص (%)" : "Font scale (%)",
+      printProfile: isArabic ? "وضع جودة الطباعة" : "Print quality mode",
+      profileBalanced: isArabic ? "متوازن" : "Balanced",
+      profileHighContrast: isArabic ? "تباين قوي" : "High contrast",
+      profileThermal: isArabic ? "حراري/ملصقات" : "Thermal/Sticker",
       visibleFields: isArabic ? "العناصر الظاهرة" : "Visible fields",
       presetName: isArabic ? "اسم المقاس" : "Preset name",
       saveCurrentPreset: isArabic ? "حفظ المقاس الحالي" : "Save current size",
@@ -277,6 +287,7 @@ export default function PrintLabelsClient({ locale, products }: Props) {
       paddingMm: 2.5,
       gapMm: 0,
       fontScale: 100,
+      printProfile: "highContrast",
       pageMode: "single",
       showDates: true,
       showSku: true,
@@ -435,19 +446,19 @@ export default function PrintLabelsClient({ locale, products }: Props) {
                 }}
               >
                 <div className="space-y-1 text-center">
-                  <p className="text-[11px] font-bold leading-tight">
+                  <p className="label-title text-[11px] font-bold leading-tight">
                     {isArabic ? item.product.name_ar : item.product.name_en}
                   </p>
                   {settings.showSecondaryLanguage && !isArabic && item.product.name_ar && (
-                    <p className="text-[10px] text-zinc-500">{item.product.name_ar}</p>
+                    <p className="label-subtitle text-[10px] text-zinc-500">{item.product.name_ar}</p>
                   )}
                   {settings.showSecondaryLanguage && isArabic && item.product.name_en && (
-                    <p className="text-[10px] text-zinc-500">{item.product.name_en}</p>
+                    <p className="label-subtitle text-[10px] text-zinc-500">{item.product.name_en}</p>
                   )}
                 </div>
                 <div className="space-y-1">
                   {settings.showDates && (
-                    <div className="space-y-0.5 text-[9px] leading-tight text-zinc-700">
+                    <div className="label-dates space-y-0.5 text-[9px] leading-tight text-zinc-700">
                       <p className="flex items-center justify-between gap-2">
                         <span className="font-semibold">{t.productionDate}</span>
                         <span>{formatLabelDate(item.product.latest_production_date)}</span>
@@ -459,14 +470,14 @@ export default function PrintLabelsClient({ locale, products }: Props) {
                     </div>
                   )}
                   {(settings.showSku || settings.showPrice) && (
-                    <div className="flex items-end justify-between gap-2 border-t border-zinc-200 pt-1">
+                    <div className="label-footer flex items-end justify-between gap-2 border-t border-zinc-200 pt-1">
                       {settings.showSku && item.product.sku ? (
-                        <span className="text-[8px] text-zinc-400">{item.product.sku}</span>
+                        <span className="label-sku text-[8px] text-zinc-400">{item.product.sku}</span>
                       ) : (
                         <span />
                       )}
                       {settings.showPrice && (
-                        <span className="text-sm font-bold">
+                        <span className="label-price text-sm font-bold">
                           {item.product.price.toFixed(3)} {item.product.currency}
                         </span>
                       )}
@@ -535,6 +546,10 @@ export default function PrintLabelsClient({ locale, products }: Props) {
               overflow: hidden;
               box-sizing: border-box;
               padding: ${settings.paddingMm}mm;
+              font-family: ${isArabic
+                ? "'Noto Naskh Arabic', Tahoma, 'Arial Unicode MS', Arial, sans-serif"
+                : "'Arial Narrow', Arial, Helvetica, sans-serif"};
+              color: #000 !important;
             }
 
             .label:last-child {
@@ -558,13 +573,13 @@ export default function PrintLabelsClient({ locale, products }: Props) {
 
             .label p,
             .label span {
-              color: #111827 !important;
+              color: #000 !important;
             }
 
             .label .text-zinc-500,
             .label .text-zinc-400,
             .label .text-zinc-700 {
-              color: #374151 !important;
+              color: #000 !important;
             }
 
             .label .border-zinc-200 {
@@ -601,7 +616,43 @@ export default function PrintLabelsClient({ locale, products }: Props) {
 
             .label p,
             .label span {
-              line-height: 1.2 !important;
+              line-height: ${settings.printProfile === "thermal" ? 1.12 : 1.18} !important;
+              text-rendering: geometricPrecision;
+            }
+
+            .label-title {
+              font-weight: ${settings.printProfile === "balanced" ? 700 : 800} !important;
+              letter-spacing: ${settings.printProfile === "thermal" ? "0.05px" : "0.15px"};
+              max-height: 2.45em;
+              overflow: hidden;
+            }
+
+            .label-subtitle {
+              font-weight: ${settings.printProfile === "balanced" ? 500 : 600} !important;
+            }
+
+            .label-dates {
+              font-weight: ${settings.printProfile === "balanced" ? 500 : 600} !important;
+            }
+
+            .label-sku {
+              font-weight: ${settings.printProfile === "thermal" ? 700 : 600} !important;
+              letter-spacing: 0.2px;
+            }
+
+            .label-price {
+              font-weight: 900 !important;
+              font-size: ${(15 * settings.fontScale) / 100}px !important;
+              letter-spacing: 0.2px;
+            }
+
+            .label-footer {
+              border-top-color: ${settings.printProfile === "balanced" ? "#111" : "#000"} !important;
+              border-top-width: ${settings.printProfile === "balanced" ? "1px" : "1.4px"} !important;
+            }
+
+            .label * {
+              -webkit-font-smoothing: antialiased;
             }
           }
         `}</style>
@@ -894,6 +945,23 @@ export default function PrintLabelsClient({ locale, products }: Props) {
                       onChange={(e) => updateNumberSetting("fontScale", Number(e.target.value || 0), 70, 130)}
                       className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-white"
                     />
+                  </label>
+                  <label className="space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
+                    <span>{t.printProfile}</span>
+                    <select
+                      value={settings.printProfile}
+                      onChange={(e) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          printProfile: e.target.value as LabelSettings["printProfile"],
+                        }))
+                      }
+                      className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-white"
+                    >
+                      <option value="balanced">{t.profileBalanced}</option>
+                      <option value="highContrast">{t.profileHighContrast}</option>
+                      <option value="thermal">{t.profileThermal}</option>
+                    </select>
                   </label>
                   <label className="space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
                     <span>{t.pageMode}</span>
