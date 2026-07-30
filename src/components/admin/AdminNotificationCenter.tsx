@@ -29,12 +29,18 @@ type BadgeNavigator = Navigator & {
 
 type NotificationPreferences = {
   soundEnabled: boolean;
+  newOrderSoundEnabled: boolean;
+  importantSoundEnabled: boolean;
+  vibrateEnabled: boolean;
   badgeEnabled: boolean;
   pollingIntervalSeconds: number;
 };
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   soundEnabled: true,
+  newOrderSoundEnabled: true,
+  importantSoundEnabled: true,
+  vibrateEnabled: true,
   badgeEnabled: true,
   pollingIntervalSeconds: 20,
 };
@@ -46,7 +52,18 @@ function isImportantNotification(item: NotificationItem): boolean {
   return /ORDER|BOOKING|PAYMENT|ALERT|URGENT|CANCEL|PENDING|RESTOCK|WALLET/.test(haystack);
 }
 
-function playNotificationSound() {
+function isNewOrderNotification(item: NotificationItem): boolean {
+  const haystack = `${item.type} ${item.title} ${item.message}`.toUpperCase();
+  return /NEW_ORDER|SHOP_ORDER|ORDER_CREATED|ORDER\s*#|WEBSITE ORDER/.test(haystack);
+}
+
+function getNotificationLevel(item: NotificationItem): 'newOrder' | 'important' | 'normal' {
+  if (isNewOrderNotification(item)) return 'newOrder';
+  if (isImportantNotification(item)) return 'important';
+  return 'normal';
+}
+
+function playNotificationSound(kind: 'newOrder' | 'important' | 'normal' = 'normal') {
   try {
     const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextConstructor) return;
@@ -55,11 +72,12 @@ function playNotificationSound() {
     const oscillator = context.createOscillator();
     const gain = context.createGain();
 
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(940, context.currentTime);
+    oscillator.type = kind === 'newOrder' ? 'triangle' : 'sine';
+    const frequency = kind === 'newOrder' ? 1140 : kind === 'important' ? 940 : 840;
+    oscillator.frequency.setValueAtTime(frequency, context.currentTime);
     gain.gain.setValueAtTime(0.0001, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.22);
+    gain.gain.exponentialRampToValueAtTime(kind === 'newOrder' ? 0.11 : 0.08, context.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + (kind === 'newOrder' ? 0.32 : 0.22));
 
     oscillator.connect(gain);
     gain.connect(context.destination);
@@ -68,6 +86,17 @@ function playNotificationSound() {
     void context.resume().catch(() => undefined);
   } catch {
     // Browsers can block autoplay audio; ignore failures.
+  }
+}
+
+function vibrateForNotification(kind: 'newOrder' | 'important' | 'normal') {
+  if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+  if (kind === 'newOrder') {
+    navigator.vibrate([120, 50, 120]);
+    return;
+  }
+  if (kind === 'important') {
+    navigator.vibrate(120);
   }
 }
 
@@ -87,6 +116,9 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
     markAllRead: locale === 'ar' ? 'تحديد الكل كمقروء' : 'Mark all as read',
     settings: locale === 'ar' ? 'الإعدادات' : 'Settings',
     sound: locale === 'ar' ? 'صوت التنبيه' : 'Notification sound',
+    soundNewOrder: locale === 'ar' ? 'صوت الطلبات الجديدة' : 'New order sound',
+    soundImportant: locale === 'ar' ? 'صوت التنبيهات المهمة' : 'Important alerts sound',
+    vibrate: locale === 'ar' ? 'اهتزاز على الجوال' : 'Mobile vibration',
     badge: locale === 'ar' ? 'شارة الإشعارات' : 'Notification badge',
     polling: locale === 'ar' ? 'التحديث التلقائي' : 'Auto refresh',
     testSound: locale === 'ar' ? 'اختبار الصوت' : 'Test sound',
@@ -114,8 +146,22 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
 
       if (opts?.alertOnNew && hasFetchedOnceRef.current) {
         const newItems = nextNotifications.filter((item) => !knownNotificationIdsRef.current.has(item.id));
-        if (preferences.soundEnabled && newItems.some(isImportantNotification)) {
-          playNotificationSound();
+        const highestLevel = newItems.some((item) => getNotificationLevel(item) === 'newOrder')
+          ? 'newOrder'
+          : newItems.some((item) => getNotificationLevel(item) === 'important')
+            ? 'important'
+            : null;
+
+        if (highestLevel && preferences.soundEnabled) {
+          if (highestLevel === 'newOrder' && preferences.newOrderSoundEnabled) {
+            playNotificationSound('newOrder');
+          } else if (highestLevel === 'important' && preferences.importantSoundEnabled) {
+            playNotificationSound('important');
+          }
+        }
+
+        if (highestLevel && preferences.vibrateEnabled) {
+          vibrateForNotification(highestLevel);
         }
       }
 
@@ -139,6 +185,9 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
         if (cancelled) return;
         setPreferences({
           soundEnabled: data.soundEnabled ?? true,
+          newOrderSoundEnabled: data.newOrderSoundEnabled ?? true,
+          importantSoundEnabled: data.importantSoundEnabled ?? true,
+          vibrateEnabled: data.vibrateEnabled ?? true,
           badgeEnabled: data.badgeEnabled ?? true,
           pollingIntervalSeconds: [10, 20, 30, 60, 120].includes(Number(data.pollingIntervalSeconds))
             ? Number(data.pollingIntervalSeconds)
@@ -184,9 +233,19 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
         const payload = JSON.parse(event.data) as { notification?: NotificationItem };
         const incomingNotification = payload.notification;
         if (incomingNotification) {
-          if (preferences.soundEnabled && !incomingNotification.is_read && isImportantNotification(incomingNotification)) {
-            playNotificationSound();
+          const level = getNotificationLevel(incomingNotification);
+          if (preferences.soundEnabled && !incomingNotification.is_read) {
+            if (level === 'newOrder' && preferences.newOrderSoundEnabled) {
+              playNotificationSound('newOrder');
+            } else if (level === 'important' && preferences.importantSoundEnabled) {
+              playNotificationSound('important');
+            }
           }
+
+          if (!incomingNotification.is_read && preferences.vibrateEnabled) {
+            vibrateForNotification(level);
+          }
+
           knownNotificationIdsRef.current.add(incomingNotification.id);
           setNotifications((prev) => [incomingNotification, ...prev]);
           setUnreadCount((prev) => prev + 1);
@@ -211,7 +270,7 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
       source.removeEventListener('error', onError as EventListener);
       source.close();
     };
-  }, [preferences.soundEnabled, userRole]);
+  }, [preferences.importantSoundEnabled, preferences.newOrderSoundEnabled, preferences.soundEnabled, preferences.vibrateEnabled, userRole]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -322,16 +381,46 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
                     onChange={(event) => setPreferences((prev) => ({ ...prev, soundEnabled: event.target.checked }))}
                   />
                 </label>
+                <label className="flex items-center justify-between gap-3">
+                  <span>{t.soundNewOrder}</span>
+                  <input
+                    type="checkbox"
+                    checked={preferences.newOrderSoundEnabled}
+                    onChange={(event) =>
+                      setPreferences((prev) => ({ ...prev, newOrderSoundEnabled: event.target.checked }))
+                    }
+                    disabled={!preferences.soundEnabled}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <span>{t.soundImportant}</span>
+                  <input
+                    type="checkbox"
+                    checked={preferences.importantSoundEnabled}
+                    onChange={(event) =>
+                      setPreferences((prev) => ({ ...prev, importantSoundEnabled: event.target.checked }))
+                    }
+                    disabled={!preferences.soundEnabled}
+                  />
+                </label>
                 <div className="flex items-center justify-between gap-3">
                   <span>{t.testSound}</span>
                   <button
                     type="button"
-                    onClick={playNotificationSound}
+                    onClick={() => playNotificationSound('newOrder')}
                     className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
                   >
                     {t.testSound}
                   </button>
                 </div>
+                <label className="flex items-center justify-between gap-3">
+                  <span>{t.vibrate}</span>
+                  <input
+                    type="checkbox"
+                    checked={preferences.vibrateEnabled}
+                    onChange={(event) => setPreferences((prev) => ({ ...prev, vibrateEnabled: event.target.checked }))}
+                  />
+                </label>
                 <label className="flex items-center justify-between gap-3">
                   <span>{t.badge}</span>
                   <input
@@ -372,7 +461,15 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
                   onClick={() => {
                     if (!item.is_read) void markOneRead(item.id);
                   }}
-                  className={`w-full border-b border-zinc-100 px-4 py-3 text-start transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50 ${item.is_read ? '' : 'bg-indigo-50/70 dark:bg-indigo-900/20'}`}
+                  className={`w-full border-b border-zinc-100 px-4 py-3 text-start transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50 ${
+                    !item.is_read && getNotificationLevel(item) === 'newOrder'
+                      ? 'bg-rose-50/80 dark:bg-rose-900/25'
+                      : !item.is_read && getNotificationLevel(item) === 'important'
+                        ? 'bg-amber-50/80 dark:bg-amber-900/25'
+                        : item.is_read
+                          ? ''
+                          : 'bg-indigo-50/70 dark:bg-indigo-900/20'
+                  }`}
                 >
                   {(() => {
                     const localized = formatNotificationContent(

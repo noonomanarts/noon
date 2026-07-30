@@ -7,12 +7,18 @@ const PREF_KEY = 'notifications.ui.v1';
 
 type NotificationPreferences = {
   soundEnabled: boolean;
+  newOrderSoundEnabled: boolean;
+  importantSoundEnabled: boolean;
+  vibrateEnabled: boolean;
   badgeEnabled: boolean;
   pollingIntervalSeconds: number;
 };
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   soundEnabled: true,
+  newOrderSoundEnabled: true,
+  importantSoundEnabled: true,
+  vibrateEnabled: true,
   badgeEnabled: true,
   pollingIntervalSeconds: 20,
 };
@@ -25,6 +31,9 @@ function sanitizePreferences(input: unknown): NotificationPreferences {
   const value = (input && typeof input === 'object' ? input : {}) as Partial<NotificationPreferences>;
   return {
     soundEnabled: value.soundEnabled ?? DEFAULT_PREFERENCES.soundEnabled,
+    newOrderSoundEnabled: value.newOrderSoundEnabled ?? DEFAULT_PREFERENCES.newOrderSoundEnabled,
+    importantSoundEnabled: value.importantSoundEnabled ?? DEFAULT_PREFERENCES.importantSoundEnabled,
+    vibrateEnabled: value.vibrateEnabled ?? DEFAULT_PREFERENCES.vibrateEnabled,
     badgeEnabled: value.badgeEnabled ?? DEFAULT_PREFERENCES.badgeEnabled,
     pollingIntervalSeconds: clamp(
       Number(value.pollingIntervalSeconds ?? DEFAULT_PREFERENCES.pollingIntervalSeconds),
