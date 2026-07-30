@@ -200,7 +200,7 @@ export default async function PhotographerLayout({
                 labelAr={t.languageAr}
               />
 
-              <AdminNotificationCenter locale={locale} />
+              <AdminNotificationCenter locale={locale} userRole={user.role} />
 
               <Link
                 href={`/${locale}`}

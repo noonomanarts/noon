@@ -1,4 +1,5 @@
 import { createNotification } from '@/lib/db/notifications';
+import { listActiveUserIdsByRole } from '@/lib/db/users';
 import { emitAdminEvent, emitUserEvent } from '@/lib/realtime/adminEvents';
 import type { UserRole } from '@/lib/db/types';
 
@@ -39,6 +40,14 @@ export async function notifyRole(role: UserRole, input: NotifyInput) {
       notification,
     });
   }
+
+  // Fan out role-wide notifications to connected per-user streams as well.
+  const recipients = await listActiveUserIdsByRole(role);
+  recipients.forEach((userId) => {
+    emitUserEvent(userId, 'notification_created', {
+      notification,
+    });
+  });
 
   return notification;
 }

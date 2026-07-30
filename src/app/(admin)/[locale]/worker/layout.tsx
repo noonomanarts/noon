@@ -268,7 +268,7 @@ export default async function WorkerLayout({
             {/* Right side */}
             <div className="flex min-w-0 items-center justify-end gap-1.5 sm:gap-3">
               <LocaleSwitcher currentLocale={locale} />
-              <AdminNotificationCenter locale={locale} />
+              <AdminNotificationCenter locale={locale} userRole={user.role} />
               <AdminProfileMenu
                 userName={user.fullName}
                 userEmail={user.email}

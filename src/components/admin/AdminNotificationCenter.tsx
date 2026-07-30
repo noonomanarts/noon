@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { FiBell, FiCheck } from 'react-icons/fi';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { FiBell, FiCheck, FiSettings } from 'react-icons/fi';
 import Link from 'next/link';
 import type { Locale } from '@/lib/locale';
 import { formatNotificationContent } from '@/lib/notifications/formatNotification';
+import type { UserRole } from '@/lib/db/types';
 
 type NotificationItem = {
   id: string;
@@ -18,62 +19,219 @@ type NotificationItem = {
 
 interface AdminNotificationCenterProps {
   locale: Locale;
+  userRole?: UserRole;
 }
 
-export default function AdminNotificationCenter({ locale }: AdminNotificationCenterProps) {
+type BadgeNavigator = Navigator & {
+  setAppBadge?: (contents?: number) => Promise<void>;
+  clearAppBadge?: () => Promise<void>;
+};
+
+type NotificationPreferences = {
+  soundEnabled: boolean;
+  badgeEnabled: boolean;
+  pollingIntervalSeconds: number;
+};
+
+const DEFAULT_PREFERENCES: NotificationPreferences = {
+  soundEnabled: true,
+  badgeEnabled: true,
+  pollingIntervalSeconds: 20,
+};
+
+const NOTIFICATION_PREFS_API = '/api/notifications/preferences';
+
+function isImportantNotification(item: NotificationItem): boolean {
+  const haystack = `${item.type} ${item.title} ${item.message}`.toUpperCase();
+  return /ORDER|BOOKING|PAYMENT|ALERT|URGENT|CANCEL|PENDING|RESTOCK|WALLET/.test(haystack);
+}
+
+function playNotificationSound() {
+  try {
+    const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    const context = new AudioContextConstructor();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(940, context.currentTime);
+    gain.gain.setValueAtTime(0.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.22);
+
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.24);
+    void context.resume().catch(() => undefined);
+  } catch {
+    // Browsers can block autoplay audio; ignore failures.
+  }
+}
+
+export default function AdminNotificationCenter({ locale, userRole }: AdminNotificationCenterProps) {
   const [open, setOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES);
+  const [prefsReady, setPrefsReady] = useState(false);
+  const knownNotificationIdsRef = useRef<Set<string>>(new Set());
+  const hasFetchedOnceRef = useRef(false);
 
   const t = useMemo(() => ({
     title: locale === 'ar' ? 'الإشعارات' : 'Notifications',
     markAllRead: locale === 'ar' ? 'تحديد الكل كمقروء' : 'Mark all as read',
+    settings: locale === 'ar' ? 'الإعدادات' : 'Settings',
+    sound: locale === 'ar' ? 'صوت التنبيه' : 'Notification sound',
+    badge: locale === 'ar' ? 'شارة الإشعارات' : 'Notification badge',
+    polling: locale === 'ar' ? 'التحديث التلقائي' : 'Auto refresh',
+    sec10: locale === 'ar' ? 'كل 10 ثوان' : 'Every 10 sec',
+    sec20: locale === 'ar' ? 'كل 20 ثانية' : 'Every 20 sec',
+    sec30: locale === 'ar' ? 'كل 30 ثانية' : 'Every 30 sec',
+    sec60: locale === 'ar' ? 'كل 60 ثانية' : 'Every 60 sec',
+    sec120: locale === 'ar' ? 'كل 120 ثانية' : 'Every 120 sec',
     empty: locale === 'ar' ? 'لا توجد إشعارات' : 'No notifications',
     viewAll: locale === 'ar' ? 'عرض الكل' : 'View all',
   }), [locale]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (opts?: { alertOnNew?: boolean }) => {
     try {
       const response = await fetch('/api/notifications');
       if (!response.ok) return;
       const data = await response.json();
-      setNotifications(data.notifications ?? []);
-      setUnreadCount(data.unreadCount ?? 0);
+      const nextNotifications = (data.notifications ?? []) as NotificationItem[];
+      const nextUnreadCount = Number(data.unreadCount ?? 0);
+
+      if (opts?.alertOnNew && hasFetchedOnceRef.current) {
+        const newItems = nextNotifications.filter((item) => !knownNotificationIdsRef.current.has(item.id));
+        if (preferences.soundEnabled && newItems.some(isImportantNotification)) {
+          playNotificationSound();
+        }
+      }
+
+      knownNotificationIdsRef.current = new Set(nextNotifications.map((item) => item.id));
+      hasFetchedOnceRef.current = true;
+      setNotifications(nextNotifications);
+      setUnreadCount(nextUnreadCount);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadPreferences = async () => {
+      try {
+        const response = await fetch(NOTIFICATION_PREFS_API, { method: 'GET', cache: 'no-store' });
+        if (!response.ok) return;
+        const data = (await response.json()) as Partial<NotificationPreferences>;
+        if (cancelled) return;
+        setPreferences({
+          soundEnabled: data.soundEnabled ?? true,
+          badgeEnabled: data.badgeEnabled ?? true,
+          pollingIntervalSeconds: [10, 20, 30, 60, 120].includes(Number(data.pollingIntervalSeconds))
+            ? Number(data.pollingIntervalSeconds)
+            : 20,
+        });
+      } finally {
+        if (!cancelled) setPrefsReady(true);
+      }
+    };
+
+    void loadPreferences();
     void fetchNotifications();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    const source = new EventSource('/api/admin/stream');
+    if (!prefsReady) return;
+
+    const timeoutId = window.setTimeout(() => {
+      void fetch(NOTIFICATION_PREFS_API, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(preferences),
+      }).catch(() => {
+        // Keep current runtime settings when save fails.
+      });
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [preferences, prefsReady]);
+
+  useEffect(() => {
+    const streamPath = userRole === 'ADMIN' ? '/api/admin/stream' : '/api/stream';
+    const source = new EventSource(streamPath);
 
     const onNotification = (event: MessageEvent) => {
       try {
         const payload = JSON.parse(event.data) as { notification?: NotificationItem };
         const incomingNotification = payload.notification;
         if (incomingNotification) {
+          if (preferences.soundEnabled && !incomingNotification.is_read && isImportantNotification(incomingNotification)) {
+            playNotificationSound();
+          }
+          knownNotificationIdsRef.current.add(incomingNotification.id);
           setNotifications((prev) => [incomingNotification, ...prev]);
           setUnreadCount((prev) => prev + 1);
         } else {
-          void fetchNotifications();
+          void fetchNotifications({ alertOnNew: true });
         }
       } catch {
-        void fetchNotifications();
+        void fetchNotifications({ alertOnNew: true });
       }
     };
 
+    const onError = () => {
+      // Keep the feed reliable when SSE disconnects, especially on mobile background/resume.
+      void fetchNotifications({ alertOnNew: true });
+    };
+
     source.addEventListener('notification_created', onNotification as EventListener);
+    source.addEventListener('error', onError as EventListener);
 
     return () => {
       source.removeEventListener('notification_created', onNotification as EventListener);
+      source.removeEventListener('error', onError as EventListener);
       source.close();
     };
-  }, []);
+  }, [preferences.soundEnabled, userRole]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void fetchNotifications({ alertOnNew: true });
+    }, preferences.pollingIntervalSeconds * 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [preferences.pollingIntervalSeconds]);
+
+  useEffect(() => {
+    const nav = navigator as BadgeNavigator;
+    if (preferences.badgeEnabled && (typeof nav.setAppBadge === 'function' || typeof nav.clearAppBadge === 'function')) {
+      if (unreadCount > 0) {
+        void nav.setAppBadge?.(Math.min(unreadCount, 99));
+      } else {
+        void nav.clearAppBadge?.();
+      }
+    } else if (typeof nav.clearAppBadge === 'function') {
+      void nav.clearAppBadge?.();
+    }
+
+    const baseTitle = locale === 'ar' ? 'نون' : 'Noon';
+    document.title = preferences.badgeEnabled && unreadCount > 0 ? `(${unreadCount}) ${baseTitle}` : baseTitle;
+  }, [locale, preferences.badgeEnabled, unreadCount]);
 
   const markOneRead = async (notificationId: string) => {
     const response = await fetch('/api/notifications/read', {
@@ -108,8 +266,10 @@ export default function AdminNotificationCenter({ locale }: AdminNotificationCen
         aria-label={t.title}
       >
         <FiBell className="size-5" />
-        {unreadCount > 0 && (
-          <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-red-500" aria-label={`${unreadCount}`} />
+        {preferences.badgeEnabled && unreadCount > 0 && (
+          <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-5 text-white" aria-label={`${unreadCount}`}>
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
         )}
       </button>
 
@@ -121,6 +281,13 @@ export default function AdminNotificationCenter({ locale }: AdminNotificationCen
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/70 px-4 py-3 dark:border-zinc-700/60">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">{t.title}</h3>
             <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => setShowSettings((value) => !value)}
+                className="inline-flex items-center gap-1.5 text-xs text-zinc-600 hover:underline dark:text-zinc-300"
+              >
+                <FiSettings className="size-4" />
+                {t.settings}
+              </button>
               <button
                 onClick={markAllRead}
                 className="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
@@ -137,6 +304,45 @@ export default function AdminNotificationCenter({ locale }: AdminNotificationCen
               </Link>
             </div>
           </div>
+
+          {showSettings && (
+            <div className="border-b border-zinc-200/70 px-4 py-3 text-xs text-zinc-700 dark:border-zinc-700/60 dark:text-zinc-200">
+              <div className="grid gap-3">
+                <label className="flex items-center justify-between gap-3">
+                  <span>{t.sound}</span>
+                  <input
+                    type="checkbox"
+                    checked={preferences.soundEnabled}
+                    onChange={(event) => setPreferences((prev) => ({ ...prev, soundEnabled: event.target.checked }))}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <span>{t.badge}</span>
+                  <input
+                    type="checkbox"
+                    checked={preferences.badgeEnabled}
+                    onChange={(event) => setPreferences((prev) => ({ ...prev, badgeEnabled: event.target.checked }))}
+                  />
+                </label>
+                <label className="flex items-center justify-between gap-3">
+                  <span>{t.polling}</span>
+                  <select
+                    value={preferences.pollingIntervalSeconds}
+                    onChange={(event) =>
+                      setPreferences((prev) => ({ ...prev, pollingIntervalSeconds: Number(event.target.value) }))
+                    }
+                    className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-600 dark:bg-zinc-900"
+                  >
+                    <option value={10}>{t.sec10}</option>
+                    <option value={20}>{t.sec20}</option>
+                    <option value={30}>{t.sec30}</option>
+                    <option value={60}>{t.sec60}</option>
+                    <option value={120}>{t.sec120}</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          )}
 
           <div className="max-h-[420px] overflow-y-auto overscroll-contain">
             {loading ? (

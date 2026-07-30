@@ -632,6 +632,18 @@ export async function countUsersByRole(): Promise<Record<string, number>> {
   }, {} as Record<string, number>);
 }
 
+export async function listActiveUserIdsByRole(role: UserRole): Promise<string[]> {
+  const result = await query(
+    `SELECT id
+     FROM users
+     WHERE role = $1
+       AND status = 'ACTIVE'`,
+    [role]
+  );
+
+  return result.rows.map((row) => String(row.id));
+}
+
 /**
  * Mark user as WhatsApp-verified
  */
