@@ -26,6 +26,10 @@ interface LabelSettings {
   paddingMm: number;
   gapMm: number;
   fontScale: number;
+  fontFamily: "auto" | "arial" | "tahoma" | "naskh" | "mono";
+  titleScale: number;
+  metaScale: number;
+  priceScale: number;
   printProfile: "balanced" | "highContrast" | "thermal";
   pageMode: "single" | "sheet";
   showDates: boolean;
@@ -65,7 +69,17 @@ function sanitizeSettings(input: Partial<LabelSettings> | null | undefined): Lab
     heightMm: clamp(Number(input?.heightMm ?? 38), 20, 120),
     paddingMm: clamp(Number(input?.paddingMm ?? 2.5), 0, 8),
     gapMm: clamp(Number(input?.gapMm ?? 0), 0, 10),
-    fontScale: clamp(Number(input?.fontScale ?? 100), 70, 130),
+    fontScale: clamp(Number(input?.fontScale ?? 112), 80, 150),
+    fontFamily:
+      input?.fontFamily === "arial" ||
+      input?.fontFamily === "tahoma" ||
+      input?.fontFamily === "naskh" ||
+      input?.fontFamily === "mono"
+        ? input.fontFamily
+        : "auto",
+    titleScale: clamp(Number(input?.titleScale ?? 135), 100, 220),
+    metaScale: clamp(Number(input?.metaScale ?? 120), 90, 180),
+    priceScale: clamp(Number(input?.priceScale ?? 150), 100, 220),
     printProfile:
       input?.printProfile === "balanced" || input?.printProfile === "thermal"
         ? input.printProfile
@@ -107,7 +121,11 @@ export default function PrintLabelsClient({ locale, products }: Props) {
     heightMm: 38,
     paddingMm: 2.5,
     gapMm: 0,
-    fontScale: 100,
+    fontScale: 112,
+    fontFamily: "auto",
+    titleScale: 135,
+    metaScale: 120,
+    priceScale: 150,
     printProfile: "highContrast",
     pageMode: "single",
     showDates: true,
@@ -151,6 +169,15 @@ export default function PrintLabelsClient({ locale, products }: Props) {
       spacing: isArabic ? "المسافة بين الملصقات (مم)" : "Label spacing (mm)",
       padding: isArabic ? "الحشوة الداخلية (مم)" : "Inner padding (mm)",
       fontScale: isArabic ? "تكبير النص (%)" : "Font scale (%)",
+      fontFamily: isArabic ? "نوع الخط" : "Font family",
+      fontAuto: isArabic ? "تلقائي" : "Auto",
+      fontArial: isArabic ? "Arial" : "Arial",
+      fontTahoma: isArabic ? "Tahoma" : "Tahoma",
+      fontNaskh: isArabic ? "Naskh (Arabic)" : "Naskh (Arabic)",
+      fontMono: isArabic ? "Monospace" : "Monospace",
+      titleScale: isArabic ? "تكبير العنوان (%)" : "Title scale (%)",
+      metaScale: isArabic ? "تكبير التفاصيل (%)" : "Details scale (%)",
+      priceScale: isArabic ? "تكبير السعر (%)" : "Price scale (%)",
       printProfile: isArabic ? "وضع جودة الطباعة" : "Print quality mode",
       profileBalanced: isArabic ? "متوازن" : "Balanced",
       profileHighContrast: isArabic ? "تباين قوي" : "High contrast",
@@ -286,7 +313,11 @@ export default function PrintLabelsClient({ locale, products }: Props) {
       heightMm: 38,
       paddingMm: 2.5,
       gapMm: 0,
-      fontScale: 100,
+      fontScale: 112,
+      fontFamily: "auto",
+      titleScale: 135,
+      metaScale: 120,
+      priceScale: 150,
       printProfile: "highContrast",
       pageMode: "single",
       showDates: true,
@@ -511,6 +542,9 @@ export default function PrintLabelsClient({ locale, products }: Props) {
               min-height: auto !important;
               margin: 0 !important;
               padding: 0 !important;
+              display: flex;
+              justify-content: center;
+              align-items: center;
             }
 
             body * {
@@ -523,13 +557,17 @@ export default function PrintLabelsClient({ locale, products }: Props) {
             }
 
             .label-grid {
-              position: ${settings.pageMode === "single" ? "absolute" : "static"};
-              left: 0;
-              top: 0;
+              position: ${settings.pageMode === "single" ? "fixed" : "static"};
+              left: ${settings.pageMode === "single" ? "50%" : "auto"};
+              top: ${settings.pageMode === "single" ? "50%" : "auto"};
+              transform: ${settings.pageMode === "single" ? "translate(-50%, -50%)" : "none"};
               display: flex;
               flex-wrap: wrap;
-              width: ${settings.pageMode === "single" ? `${settings.widthMm}mm` : "auto"};
-              margin: 0;
+              justify-content: center;
+              align-content: center;
+              width: ${settings.pageMode === "single" ? `${settings.widthMm}mm` : "fit-content"};
+              max-width: ${settings.pageMode === "single" ? `${settings.widthMm}mm` : "calc(100% - 16mm)"};
+              margin: ${settings.pageMode === "single" ? "0" : "0 auto"};
               padding: 0;
               gap: ${settings.gapMm}mm;
             }
@@ -546,9 +584,19 @@ export default function PrintLabelsClient({ locale, products }: Props) {
               overflow: hidden;
               box-sizing: border-box;
               padding: ${settings.paddingMm}mm;
-              font-family: ${isArabic
-                ? "'Noto Naskh Arabic', Tahoma, 'Arial Unicode MS', Arial, sans-serif"
-                : "'Arial Narrow', Arial, Helvetica, sans-serif"};
+              font-family: ${
+                settings.fontFamily === "arial"
+                  ? "Arial, Helvetica, sans-serif"
+                  : settings.fontFamily === "tahoma"
+                    ? "Tahoma, Arial, sans-serif"
+                    : settings.fontFamily === "naskh"
+                      ? "'Noto Naskh Arabic', Tahoma, 'Arial Unicode MS', Arial, sans-serif"
+                      : settings.fontFamily === "mono"
+                        ? "'Courier New', Courier, monospace"
+                        : isArabic
+                          ? "'Noto Naskh Arabic', Tahoma, 'Arial Unicode MS', Arial, sans-serif"
+                          : "'Arial Narrow', Arial, Helvetica, sans-serif"
+              };
               color: #000 !important;
             }
 
@@ -587,23 +635,23 @@ export default function PrintLabelsClient({ locale, products }: Props) {
             }
 
             .label .text-sm {
-              font-size: ${(14 * settings.fontScale) / 100}px !important;
+              font-size: ${(14 * settings.fontScale * settings.metaScale) / 10000}px !important;
             }
 
             .label .text-\[11px\] {
-              font-size: ${(11 * settings.fontScale) / 100}px !important;
+              font-size: ${(11 * settings.fontScale * settings.titleScale) / 10000}px !important;
             }
 
             .label .text-\[10px\] {
-              font-size: ${(10 * settings.fontScale) / 100}px !important;
+              font-size: ${(10 * settings.fontScale * settings.metaScale) / 10000}px !important;
             }
 
             .label .text-\[9px\] {
-              font-size: ${(9 * settings.fontScale) / 100}px !important;
+              font-size: ${(9 * settings.fontScale * settings.metaScale) / 10000}px !important;
             }
 
             .label .text-\[8px\] {
-              font-size: ${(8 * settings.fontScale) / 100}px !important;
+              font-size: ${(8 * settings.fontScale * settings.metaScale) / 10000}px !important;
             }
 
             .label .border-t {
@@ -642,7 +690,7 @@ export default function PrintLabelsClient({ locale, products }: Props) {
 
             .label-price {
               font-weight: 900 !important;
-              font-size: ${(15 * settings.fontScale) / 100}px !important;
+              font-size: ${(15 * settings.fontScale * settings.priceScale) / 10000}px !important;
               letter-spacing: 0.2px;
             }
 
@@ -938,11 +986,66 @@ export default function PrintLabelsClient({ locale, products }: Props) {
                     <span>{t.fontScale}</span>
                     <input
                       type="number"
-                      min={70}
-                      max={130}
+                      min={80}
+                      max={150}
                       step={5}
                       value={settings.fontScale}
-                      onChange={(e) => updateNumberSetting("fontScale", Number(e.target.value || 0), 70, 130)}
+                      onChange={(e) => updateNumberSetting("fontScale", Number(e.target.value || 0), 80, 150)}
+                      className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-white"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
+                    <span>{t.fontFamily}</span>
+                    <select
+                      value={settings.fontFamily}
+                      onChange={(e) =>
+                        setSettings((prev) => ({
+                          ...prev,
+                          fontFamily: e.target.value as LabelSettings["fontFamily"],
+                        }))
+                      }
+                      className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-white"
+                    >
+                      <option value="auto">{t.fontAuto}</option>
+                      <option value="arial">{t.fontArial}</option>
+                      <option value="tahoma">{t.fontTahoma}</option>
+                      <option value="naskh">{t.fontNaskh}</option>
+                      <option value="mono">{t.fontMono}</option>
+                    </select>
+                  </label>
+                  <label className="space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
+                    <span>{t.titleScale}</span>
+                    <input
+                      type="number"
+                      min={100}
+                      max={220}
+                      step={5}
+                      value={settings.titleScale}
+                      onChange={(e) => updateNumberSetting("titleScale", Number(e.target.value || 0), 100, 220)}
+                      className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-white"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
+                    <span>{t.metaScale}</span>
+                    <input
+                      type="number"
+                      min={90}
+                      max={180}
+                      step={5}
+                      value={settings.metaScale}
+                      onChange={(e) => updateNumberSetting("metaScale", Number(e.target.value || 0), 90, 180)}
+                      className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-white"
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs text-zinc-600 dark:text-zinc-300">
+                    <span>{t.priceScale}</span>
+                    <input
+                      type="number"
+                      min={100}
+                      max={220}
+                      step={5}
+                      value={settings.priceScale}
+                      onChange={(e) => updateNumberSetting("priceScale", Number(e.target.value || 0), 100, 220)}
                       className="w-full rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm text-zinc-900 focus:border-emerald-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-white"
                     />
                   </label>

@@ -12,6 +12,11 @@ type LabelSettings = {
   paddingMm: number;
   gapMm: number;
   fontScale: number;
+  fontFamily: "auto" | "arial" | "tahoma" | "naskh" | "mono";
+  titleScale: number;
+  metaScale: number;
+  priceScale: number;
+  printProfile: "balanced" | "highContrast" | "thermal";
   pageMode: "single" | "sheet";
   showDates: boolean;
   showSku: boolean;
@@ -37,7 +42,12 @@ const DEFAULT_SETTINGS: LabelSettings = {
   heightMm: 38,
   paddingMm: 2.5,
   gapMm: 0,
-  fontScale: 100,
+  fontScale: 112,
+  fontFamily: "auto",
+  titleScale: 135,
+  metaScale: 120,
+  priceScale: 150,
+  printProfile: "highContrast",
   pageMode: "single",
   showDates: true,
   showSku: true,
@@ -56,7 +66,21 @@ function sanitizeSettings(input: unknown): LabelSettings {
     heightMm: clamp(Number(value.heightMm ?? DEFAULT_SETTINGS.heightMm), 20, 120),
     paddingMm: clamp(Number(value.paddingMm ?? DEFAULT_SETTINGS.paddingMm), 0, 8),
     gapMm: clamp(Number(value.gapMm ?? DEFAULT_SETTINGS.gapMm), 0, 10),
-    fontScale: clamp(Number(value.fontScale ?? DEFAULT_SETTINGS.fontScale), 70, 130),
+    fontScale: clamp(Number(value.fontScale ?? DEFAULT_SETTINGS.fontScale), 80, 150),
+    fontFamily:
+      value.fontFamily === "arial" ||
+      value.fontFamily === "tahoma" ||
+      value.fontFamily === "naskh" ||
+      value.fontFamily === "mono"
+        ? value.fontFamily
+        : "auto",
+    titleScale: clamp(Number(value.titleScale ?? DEFAULT_SETTINGS.titleScale), 100, 220),
+    metaScale: clamp(Number(value.metaScale ?? DEFAULT_SETTINGS.metaScale), 90, 180),
+    priceScale: clamp(Number(value.priceScale ?? DEFAULT_SETTINGS.priceScale), 100, 220),
+    printProfile:
+      value.printProfile === "balanced" || value.printProfile === "thermal"
+        ? value.printProfile
+        : "highContrast",
     pageMode: value.pageMode === "sheet" ? "sheet" : "single",
     showDates: value.showDates ?? DEFAULT_SETTINGS.showDates,
     showSku: value.showSku ?? DEFAULT_SETTINGS.showSku,
