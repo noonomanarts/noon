@@ -12,6 +12,9 @@ type NotificationPreferences = {
   vibrateEnabled: boolean;
   badgeEnabled: boolean;
   pollingIntervalSeconds: number;
+  dndEnabled: boolean;
+  dndStartHour: number;
+  dndEndHour: number;
 };
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -21,6 +24,9 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   vibrateEnabled: true,
   badgeEnabled: true,
   pollingIntervalSeconds: 20,
+  dndEnabled: false,
+  dndStartHour: 23,
+  dndEndHour: 8,
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -40,6 +46,9 @@ function sanitizePreferences(input: unknown): NotificationPreferences {
       10,
       120
     ),
+    dndEnabled: value.dndEnabled ?? DEFAULT_PREFERENCES.dndEnabled,
+    dndStartHour: clamp(Number(value.dndStartHour ?? DEFAULT_PREFERENCES.dndStartHour), 0, 23),
+    dndEndHour: clamp(Number(value.dndEndHour ?? DEFAULT_PREFERENCES.dndEndHour), 0, 23),
   };
 }
 

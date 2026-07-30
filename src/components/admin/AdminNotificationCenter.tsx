@@ -34,6 +34,9 @@ type NotificationPreferences = {
   vibrateEnabled: boolean;
   badgeEnabled: boolean;
   pollingIntervalSeconds: number;
+  dndEnabled: boolean;
+  dndStartHour: number;
+  dndEndHour: number;
 };
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -43,6 +46,9 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   vibrateEnabled: true,
   badgeEnabled: true,
   pollingIntervalSeconds: 20,
+  dndEnabled: false,
+  dndStartHour: 23,
+  dndEndHour: 8,
 };
 
 const NOTIFICATION_PREFS_API = '/api/notifications/preferences';
@@ -103,6 +109,7 @@ function vibrateForNotification(kind: 'newOrder' | 'important' | 'normal') {
 export default function AdminNotificationCenter({ locale, userRole }: AdminNotificationCenterProps) {
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'newOrder' | 'important'>('all');
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -115,10 +122,18 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
     title: locale === 'ar' ? 'الإشعارات' : 'Notifications',
     markAllRead: locale === 'ar' ? 'تحديد الكل كمقروء' : 'Mark all as read',
     settings: locale === 'ar' ? 'الإعدادات' : 'Settings',
+    filterAll: locale === 'ar' ? 'الكل' : 'All',
+    filterNewOrders: locale === 'ar' ? 'طلبات جديدة' : 'New orders',
+    filterImportant: locale === 'ar' ? 'مهم' : 'Important',
+    unreadOnly: locale === 'ar' ? 'غير مقروء فقط' : 'Unread only',
+    markFilterRead: locale === 'ar' ? 'قراءة الفلتر' : 'Mark filter read',
     sound: locale === 'ar' ? 'صوت التنبيه' : 'Notification sound',
     soundNewOrder: locale === 'ar' ? 'صوت الطلبات الجديدة' : 'New order sound',
     soundImportant: locale === 'ar' ? 'صوت التنبيهات المهمة' : 'Important alerts sound',
     vibrate: locale === 'ar' ? 'اهتزاز على الجوال' : 'Mobile vibration',
+    dnd: locale === 'ar' ? 'عدم الإزعاج' : 'Do not disturb',
+    dndFrom: locale === 'ar' ? 'من الساعة' : 'From hour',
+    dndTo: locale === 'ar' ? 'إلى الساعة' : 'To hour',
     badge: locale === 'ar' ? 'شارة الإشعارات' : 'Notification badge',
     polling: locale === 'ar' ? 'التحديث التلقائي' : 'Auto refresh',
     testSound: locale === 'ar' ? 'اختبار الصوت' : 'Test sound',
@@ -136,6 +151,40 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
       ? `/${locale}/admin/notifications`
       : `/${locale}/account/notifications`;
 
+  const isInsideDndWindow = () => {
+    if (!preferences.dndEnabled) return false;
+    const nowHour = new Date().getHours();
+    const start = preferences.dndStartHour;
+    const end = preferences.dndEndHour;
+
+    if (start === end) return true;
+    if (start < end) {
+      return nowHour >= start && nowHour < end;
+    }
+
+    return nowHour >= start || nowHour < end;
+  };
+
+  const shouldAlertNow = () => !isInsideDndWindow();
+
+  const filterMatches = (item: NotificationItem) => {
+    if (filter === 'all') return true;
+    if (filter === 'newOrder') return getNotificationLevel(item) === 'newOrder';
+    return getNotificationLevel(item) === 'important';
+  };
+
+  const [unreadOnly, setUnreadOnly] = useState(false);
+
+  const filteredNotifications = notifications.filter(filterMatches);
+  const visibleNotifications = unreadOnly
+    ? filteredNotifications.filter((item) => !item.is_read)
+    : filteredNotifications;
+
+  const allCount = notifications.length;
+  const newOrderCount = notifications.filter((item) => getNotificationLevel(item) === 'newOrder').length;
+  const importantCount = notifications.filter((item) => getNotificationLevel(item) === 'important').length;
+  const unreadInFilterCount = filteredNotifications.filter((item) => !item.is_read).length;
+
   const fetchNotifications = async (opts?: { alertOnNew?: boolean }) => {
     try {
       const response = await fetch('/api/notifications');
@@ -152,7 +201,7 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
             ? 'important'
             : null;
 
-        if (highestLevel && preferences.soundEnabled) {
+        if (highestLevel && preferences.soundEnabled && shouldAlertNow()) {
           if (highestLevel === 'newOrder' && preferences.newOrderSoundEnabled) {
             playNotificationSound('newOrder');
           } else if (highestLevel === 'important' && preferences.importantSoundEnabled) {
@@ -160,7 +209,7 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
           }
         }
 
-        if (highestLevel && preferences.vibrateEnabled) {
+        if (highestLevel && preferences.vibrateEnabled && shouldAlertNow()) {
           vibrateForNotification(highestLevel);
         }
       }
@@ -192,6 +241,15 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
           pollingIntervalSeconds: [10, 20, 30, 60, 120].includes(Number(data.pollingIntervalSeconds))
             ? Number(data.pollingIntervalSeconds)
             : 20,
+          dndEnabled: data.dndEnabled ?? false,
+          dndStartHour:
+            Number.isFinite(Number(data.dndStartHour)) && Number(data.dndStartHour) >= 0 && Number(data.dndStartHour) <= 23
+              ? Number(data.dndStartHour)
+              : 23,
+          dndEndHour:
+            Number.isFinite(Number(data.dndEndHour)) && Number(data.dndEndHour) >= 0 && Number(data.dndEndHour) <= 23
+              ? Number(data.dndEndHour)
+              : 8,
         });
       } finally {
         if (!cancelled) setPrefsReady(true);
@@ -234,7 +292,7 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
         const incomingNotification = payload.notification;
         if (incomingNotification) {
           const level = getNotificationLevel(incomingNotification);
-          if (preferences.soundEnabled && !incomingNotification.is_read) {
+          if (preferences.soundEnabled && !incomingNotification.is_read && shouldAlertNow()) {
             if (level === 'newOrder' && preferences.newOrderSoundEnabled) {
               playNotificationSound('newOrder');
             } else if (level === 'important' && preferences.importantSoundEnabled) {
@@ -242,7 +300,7 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
             }
           }
 
-          if (!incomingNotification.is_read && preferences.vibrateEnabled) {
+          if (!incomingNotification.is_read && preferences.vibrateEnabled && shouldAlertNow()) {
             vibrateForNotification(level);
           }
 
@@ -270,7 +328,7 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
       source.removeEventListener('error', onError as EventListener);
       source.close();
     };
-  }, [preferences.importantSoundEnabled, preferences.newOrderSoundEnabled, preferences.soundEnabled, preferences.vibrateEnabled, userRole]);
+  }, [preferences.dndEnabled, preferences.dndEndHour, preferences.dndStartHour, preferences.importantSoundEnabled, preferences.newOrderSoundEnabled, preferences.soundEnabled, preferences.vibrateEnabled, userRole]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -321,6 +379,41 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
 
     setNotifications((prev) => prev.map((item) => ({ ...item, is_read: true })));
     setUnreadCount(0);
+  };
+
+  const markFilterRead = async () => {
+    const targetIds = filteredNotifications.filter((item) => !item.is_read).map((item) => item.id);
+    if (targetIds.length === 0) return;
+
+    const results = await Promise.allSettled(
+      targetIds.map((notificationId) =>
+        fetch('/api/notifications/read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId }),
+        })
+      )
+    );
+
+    const successCount = results.filter(
+      (result) => result.status === 'fulfilled' && result.value.ok
+    ).length;
+
+    if (successCount <= 0) return;
+
+    const successIds = new Set(
+      results
+        .map((result, index) =>
+          result.status === 'fulfilled' && result.value.ok ? targetIds[index] : null
+        )
+        .filter((id): id is string => Boolean(id))
+    );
+    setNotifications((prev) =>
+      prev.map((item) =>
+        successIds.has(item.id) ? { ...item, is_read: true } : item
+      )
+    );
+    setUnreadCount((prev) => Math.max(0, prev - successCount));
   };
 
   return (
@@ -422,6 +515,50 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
                   />
                 </label>
                 <label className="flex items-center justify-between gap-3">
+                  <span>{t.dnd}</span>
+                  <input
+                    type="checkbox"
+                    checked={preferences.dndEnabled}
+                    onChange={(event) => setPreferences((prev) => ({ ...prev, dndEnabled: event.target.checked }))}
+                  />
+                </label>
+                {preferences.dndEnabled && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex items-center justify-between gap-2">
+                      <span>{t.dndFrom}</span>
+                      <select
+                        value={preferences.dndStartHour}
+                        onChange={(event) =>
+                          setPreferences((prev) => ({ ...prev, dndStartHour: Number(event.target.value) }))
+                        }
+                        className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-600 dark:bg-zinc-900"
+                      >
+                        {Array.from({ length: 24 }).map((_, hour) => (
+                          <option key={`dnd-start-${hour}`} value={hour}>
+                            {String(hour).padStart(2, '0')}:00
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="flex items-center justify-between gap-2">
+                      <span>{t.dndTo}</span>
+                      <select
+                        value={preferences.dndEndHour}
+                        onChange={(event) =>
+                          setPreferences((prev) => ({ ...prev, dndEndHour: Number(event.target.value) }))
+                        }
+                        className="rounded border border-zinc-300 bg-white px-2 py-1 text-xs dark:border-zinc-600 dark:bg-zinc-900"
+                      >
+                        {Array.from({ length: 24 }).map((_, hour) => (
+                          <option key={`dnd-end-${hour}`} value={hour}>
+                            {String(hour).padStart(2, '0')}:00
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                )}
+                <label className="flex items-center justify-between gap-3">
                   <span>{t.badge}</span>
                   <input
                     type="checkbox"
@@ -450,12 +587,67 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
           )}
 
           <div className="max-h-[420px] overflow-y-auto overscroll-contain">
+            <div className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 px-3 py-2 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
+              <div className="mb-2 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFilter('all')}
+                  className={`rounded px-2 py-1 text-xs font-medium ${
+                    filter === 'all'
+                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                  }`}
+                >
+                  {t.filterAll} ({allCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilter('newOrder')}
+                  className={`rounded px-2 py-1 text-xs font-medium ${
+                    filter === 'newOrder'
+                      ? 'bg-rose-600 text-white'
+                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                  }`}
+                >
+                  {t.filterNewOrders} ({newOrderCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilter('important')}
+                  className={`rounded px-2 py-1 text-xs font-medium ${
+                    filter === 'important'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
+                  }`}
+                >
+                  {t.filterImportant} ({importantCount})
+                </button>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <label className="inline-flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+                  <input
+                    type="checkbox"
+                    checked={unreadOnly}
+                    onChange={(event) => setUnreadOnly(event.target.checked)}
+                  />
+                  <span>{t.unreadOnly}</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void markFilterRead()}
+                  disabled={unreadInFilterCount === 0}
+                  className="rounded border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  {t.markFilterRead} ({unreadInFilterCount})
+                </button>
+              </div>
+            </div>
             {loading ? (
               <div className="px-4 py-6 text-sm text-zinc-500 dark:text-zinc-400">...</div>
-            ) : notifications.length === 0 ? (
+            ) : visibleNotifications.length === 0 ? (
               <div className="px-4 py-6 text-sm text-zinc-500 dark:text-zinc-400">{t.empty}</div>
             ) : (
-              notifications.map((item) => (
+              visibleNotifications.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => {
