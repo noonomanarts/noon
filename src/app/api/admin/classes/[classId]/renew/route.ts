@@ -84,6 +84,7 @@ export async function POST(_request: NextRequest, props: Params) {
       metaDescription: typeof source.metaDescription === 'string' ? source.metaDescription : undefined,
       registrationMessage: typeof source.registrationMessage === 'string' ? source.registrationMessage : null,
       registrationMessageAr: typeof source.registrationMessageAr === 'string' ? source.registrationMessageAr : null,
+      repeatRequestsEnabled: source.repeatRequestsEnabled !== false,
       trainerSharePercent: Number(source.trainerSharePercent || 0),
       noonSharePercent: Number(source.noonSharePercent || 0),
       expenseSharePercent: Number(source.expenseSharePercent || 0),

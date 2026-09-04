@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     const product = await getShopProductById(productId);
-    if (!product || !product.is_active) {
+    if (!product || !product.is_active || !product.available_online) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 

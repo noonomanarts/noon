@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/db/users";
-import { getWorkerStats, getWorkerPermissions } from "@/lib/db/worker";
+import { getFullWorkerPermissions, getWorkerStats, getWorkerPermissions } from "@/lib/db/worker";
 import { isLocale, type Locale } from "@/lib/locale";
 import WorkerDashboardClient from "./WorkerDashboardClient";
 
@@ -21,13 +21,13 @@ export default async function WorkerDashboardPage({
   }
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "WORKER") {
+  if (!user || (user.role !== "WORKER" && user.role !== "ADMIN")) {
     redirect(`/${locale}/account`);
   }
 
   const [stats, permissions] = await Promise.all([
     getWorkerStats(user.id),
-    getWorkerPermissions(user.id),
+    user.role === "ADMIN" ? getFullWorkerPermissions(user.id) : getWorkerPermissions(user.id),
   ]);
 
   return (

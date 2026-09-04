@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getUserById } from "@/lib/db/users";
-import { getWorkerPermissions } from "@/lib/db/worker";
+import { getFullWorkerPermissions, getWorkerPermissions } from "@/lib/db/worker";
 import { isLocale, type Locale } from "@/lib/locale";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
@@ -59,12 +59,12 @@ export default async function WorkerLayout({
   }
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "WORKER") {
+  if (!user || (user.role !== "WORKER" && user.role !== "ADMIN")) {
     redirect(`/${locale}/account`);
   }
 
   // Get worker permissions
-  const permissions = await getWorkerPermissions(user.id);
+  const permissions = user.role === "ADMIN" ? getFullWorkerPermissions(user.id) : await getWorkerPermissions(user.id);
 
   async function handleLogout() {
     "use server";

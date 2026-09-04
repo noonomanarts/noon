@@ -29,6 +29,7 @@ export default function RequestRepeatButton({
     countLabel: isArabic ? "الطلبات" : "Repeats",
     countUnit: isArabic ? "" : "",
     loginRequired: isArabic ? "سجّل الدخول أولاً." : "Login first.",
+    requestFailed: isArabic ? "فشل إرسال الطلب." : "Failed to submit repeat request.",
   };
 
   async function onRequestRepeat() {
@@ -53,13 +54,13 @@ export default function RequestRepeatButton({
       };
 
       if (!response.ok) {
-        throw new Error(payload.error || t.loginRequired);
+        throw new Error(payload.error || t.requestFailed);
       }
 
       setRequested(true);
       setCount(typeof payload.requestsCount === "number" ? payload.requestsCount : count + 1);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Failed to submit request.");
+      setError(requestError instanceof Error ? requestError.message : t.requestFailed);
     } finally {
       setSubmitting(false);
     }
@@ -71,7 +72,7 @@ export default function RequestRepeatButton({
         type="button"
         onClick={() => void onRequestRepeat()}
         disabled={requested || submitting}
-        className={`inline-flex w-full items-center justify-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold leading-tight transition sm:gap-2 sm:px-4 sm:py-3 sm:text-sm ${
+        className={`inline-flex w-full items-center justify-center gap-1 rounded-lg font-semibold leading-tight transition sm:gap-2 ${compact ? "px-2.5 py-1.5 text-[10px] sm:px-3 sm:py-2 sm:text-xs" : "px-3 py-2 text-xs sm:px-4 sm:py-3 sm:text-sm"} ${
           requested
             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
             : "bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:bg-[color:var(--primary-hover)] disabled:opacity-60"
@@ -80,7 +81,7 @@ export default function RequestRepeatButton({
         {requested ? <FiCheckCircle className="size-3.5 sm:size-4" /> : <FiRefreshCw className="size-3.5 sm:size-4" />}
         {requested ? t.requested : t.request}
       </button>
-      <p className="mt-1.5 text-center text-[9px] leading-3.5 text-[color:var(--text-muted)] sm:mt-2 sm:text-xs">
+      <p className="mt-1.5 text-center text-[9px] leading-3.5 text-[color:var(--text-muted)] sm:mt-2 sm:text-xs" aria-live="polite">
         {t.countLabel}: {count}{t.countUnit ? ` ${t.countUnit}` : ""}
       </p>
       {error ? (

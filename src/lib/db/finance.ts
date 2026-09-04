@@ -567,9 +567,12 @@ async function insertAutoFinanceEntry(params: {
   currency: string;
   occurredAt: Date;
   reason: { reasonId: string | null; reasonName: string; category: string };
+  reference?: string | null;
   counterparty?: string | null;
+  paymentMethod?: string | null;
   notes?: string | null;
   metadata?: Record<string, unknown>;
+  createdByUserId?: string | null;
 }): Promise<void> {
   if (params.amount <= 0) {
     return;
@@ -578,12 +581,12 @@ async function insertAutoFinanceEntry(params: {
   await params.db.query(
     `INSERT INTO admin_finance_entries (
        entry_type, title, category, reason_id, reason_name,
-       amount, currency, occurred_at, counterparty, notes, metadata,
+       amount, currency, occurred_at, payment_method, reference, counterparty, notes, metadata,
        created_by_user_id, updated_by_user_id, created_at, updated_at
      ) VALUES (
        $1, $2, $3, $4, $5,
-       $6, $7, $8, $9, $10, $11,
-       NULL, NULL, NOW(), NOW()
+       $6, $7, $8, $9, $10, $11, $12, $13,
+       $14, $14, NOW(), NOW()
      )`,
     [
       params.type,
@@ -594,9 +597,12 @@ async function insertAutoFinanceEntry(params: {
       params.amount,
       params.currency,
       params.occurredAt.toISOString(),
+      params.paymentMethod || null,
+      params.reference || null,
       params.counterparty || null,
       params.notes || null,
       params.metadata ?? {},
+      params.createdByUserId || null,
     ]
   );
 }
@@ -978,6 +984,27 @@ async function resolveReasonAndCategory(input: {
       reasonName: reason.name,
       category: reason.name,
     };
+  }
+
+  if (category) {
+    const matchingReasonResult = await query(
+      `SELECT id, name
+       FROM admin_finance_reasons
+       WHERE entry_type = $1
+         AND name = $2
+         AND is_archived = FALSE
+         AND is_active = TRUE
+       LIMIT 1`,
+      [input.type, category]
+    );
+    const matchingReason = matchingReasonResult.rows[0];
+    if (matchingReason) {
+      return {
+        reasonId: String(matchingReason.id),
+        reasonName: String(matchingReason.name),
+        category: String(matchingReason.name),
+      };
+    }
   }
 
   if (input.settings.requireReasonSelection && !input.settings.allowCustomReason) {
@@ -1375,6 +1402,45 @@ export async function getAdminFinanceReport(
 type Queryable = {
   query: (text: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[]; rowCount?: number | null }>;
 };
+
+export async function createInventoryValueExpenseEntry(params: {
+  db: Queryable;
+  title: string;
+  amount: number;
+  currency: string;
+  occurredAt?: Date;
+  reference?: string | null;
+  counterparty?: string | null;
+  notes?: string | null;
+  metadata?: Record<string, unknown>;
+  createdByUserId: string;
+}): Promise<void> {
+  await ensureAdminFinanceSchema();
+  if (params.amount <= 0) return;
+
+  const reason = await resolveAutoFinanceReason({
+    db: params.db,
+    type: 'EXPENSE',
+    preferredNames: ['Workshop Materials', 'Supplies', 'Other Expense'],
+    fallbackName: 'Workshop Materials',
+  });
+
+  await insertAutoFinanceEntry({
+    db: params.db,
+    type: 'EXPENSE',
+    title: params.title,
+    amount: params.amount,
+    currency: params.currency,
+    occurredAt: params.occurredAt ?? new Date(),
+    paymentMethod: 'INVENTORY_VALUE',
+    reference: params.reference,
+    reason,
+    counterparty: params.counterparty,
+    notes: params.notes,
+    metadata: { ...params.metadata, source: 'INVENTORY_VALUE_EXPENSE', component: 'INVENTORY_VALUE_CUT' },
+    createdByUserId: params.createdByUserId,
+  });
+}
 
 /**
  * Create a shop sale finance entry inside an existing transaction.

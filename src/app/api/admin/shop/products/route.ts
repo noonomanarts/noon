@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
       image?: string;
       galleryImages?: string[];
       stockQuantity?: number;
+      availableOnline?: boolean;
       isActive?: boolean;
       isFeatured?: boolean;
       sortOrder?: number;
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
       image: body.image,
       galleryImages: Array.isArray(body.galleryImages) ? body.galleryImages : [],
       stockQuantity: Number.isFinite(body.stockQuantity) ? Number(body.stockQuantity) : 0,
+      availableOnline: body.availableOnline,
       isActive: body.isActive,
       isFeatured: body.isFeatured,
       sortOrder: Number.isFinite(body.sortOrder) ? Number(body.sortOrder) : 0,

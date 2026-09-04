@@ -212,6 +212,7 @@ export function normalizeCart(input: unknown): CartState {
     : [];
 
   const items: CartItem[] = [];
+  const shopItemIndexes = new Map<string, number>();
 
   for (const rawItem of rawItems) {
     if (!rawItem || typeof rawItem !== 'object') continue;
@@ -227,6 +228,22 @@ export function normalizeCart(input: unknown): CartState {
           : normalizeShopItem(record);
 
     if (!normalizedItem) continue;
+
+    if (normalizedItem.kind === 'SHOP_PRODUCT') {
+      const existingIndex = shopItemIndexes.get(normalizedItem.productId);
+      if (existingIndex !== undefined) {
+        const existingItem = items[existingIndex];
+        if (existingItem?.kind === 'SHOP_PRODUCT') {
+          items[existingIndex] = {
+            ...existingItem,
+            quantity: Math.min(MAX_QTY_PER_ITEM, existingItem.quantity + normalizedItem.quantity),
+          };
+        }
+        continue;
+      }
+
+      shopItemIndexes.set(normalizedItem.productId, items.length);
+    }
 
     items.push(normalizedItem);
 

@@ -150,6 +150,16 @@ function emptyInventoryUsage(): InventoryUsageItemInput {
   };
 }
 
+function calculateParticipantAge(dateOfBirth: string | null): number | null {
+  if (!dateOfBirth) return null;
+  const dob = new Date(`${dateOfBirth.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(dob.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  if (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) age -= 1;
+  return age >= 0 && age <= 120 ? age : null;
+}
+
 export default function ClassSettlementPanel({
   classId,
   locale,
@@ -846,6 +856,7 @@ export default function ClassSettlementPanel({
                                   </span>
                                   <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-semibold tracking-[0.04em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300">
                                     {participant.participantDateOfBirth || '—'}
+                                    {calculateParticipantAge(participant.participantDateOfBirth) !== null ? ` · ${calculateParticipantAge(participant.participantDateOfBirth)} ${isArabic ? 'سنة' : 'yrs'}` : ''}
                                   </span>
                                 </div>
                               </div>
@@ -1504,7 +1515,10 @@ export default function ClassSettlementPanel({
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-950/50">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{t.dob}</p>
-                  <p className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">{selectedParticipant.participantDateOfBirth || '—'}</p>
+                  <p className="mt-1 font-medium text-zinc-900 dark:text-zinc-100">
+                    {selectedParticipant.participantDateOfBirth || '—'}
+                    {calculateParticipantAge(selectedParticipant.participantDateOfBirth) !== null ? ` · ${calculateParticipantAge(selectedParticipant.participantDateOfBirth)} ${isArabic ? 'سنة' : 'years'}` : ''}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-950/50">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{t.genderLabel}</p>

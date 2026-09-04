@@ -129,7 +129,12 @@ export default function AdminSidebarNav({
                   </span>
                   <span className="flex-1 truncate whitespace-nowrap">{item.label}</span>
                   {typeof item.badgeCount === "number" && item.badgeCount > 0 ? (
-                    <span className={`size-2 rounded-full ${active ? "bg-[color:var(--noon-teal-strong)]" : "bg-[color:var(--noon-coral)]"}`} aria-label={`${item.badgeCount}`} />
+                    <span
+                      className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white ${active ? "bg-[color:var(--noon-teal-strong)]" : "bg-[color:var(--noon-coral)]"}`}
+                      aria-label={`${item.badgeCount}`}
+                    >
+                      {item.badgeCount > 99 ? "99+" : item.badgeCount}
+                    </span>
                   ) : null}
                 </Link>
               );

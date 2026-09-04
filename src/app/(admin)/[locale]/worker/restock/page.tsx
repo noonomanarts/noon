@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/db/users";
-import { getWorkerPermissions, getProductsForWorker, getStockRestocks } from "@/lib/db/worker";
+import { getFullWorkerPermissions, getWorkerPermissions, getProductsForWorker, getStockRestocks } from "@/lib/db/worker";
 import { isLocale, type Locale } from "@/lib/locale";
 import WorkerRestockClient from "./WorkerRestockClient";
 
@@ -21,18 +21,18 @@ export default async function WorkerRestockPage({
   }
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "WORKER") {
+  if (!user || (user.role !== "WORKER" && user.role !== "ADMIN")) {
     redirect(`/${locale}/account`);
   }
 
-  const permissions = await getWorkerPermissions(user.id);
+  const permissions = user.role === "ADMIN" ? getFullWorkerPermissions(user.id) : await getWorkerPermissions(user.id);
   if (!permissions?.can_restock) {
     redirect(`/${locale}/worker`);
   }
 
   const [products, { restocks }] = await Promise.all([
     getProductsForWorker(),
-    getStockRestocks({ workerUserId: user.id, limit: 20 }),
+    getStockRestocks(user.role === "ADMIN" ? { limit: 20 } : { workerUserId: user.id, limit: 20 }),
   ]);
 
   return (

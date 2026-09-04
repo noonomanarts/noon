@@ -125,29 +125,34 @@
 
 .dark {
   /* Dark theme - Midnight Atelier */
-  --background: #ffffff;
-  --foreground: #1f1a15;
-  --surface: #ffffff;
-  --muted: #f5f5f5;
-  --muted-foreground: #7a6d5f;
-  --border: #e5e7eb;
-  --input-border: #b0a89f;
+  --background: #0f0d0b;
+  --foreground: #f5f5f4;
+  --surface: #181614;
+  --muted: #24201d;
+  --muted-foreground: #b4aaa0;
+  --border: #403a35;
+  --input-border: #6d645c;
 
-  --text: #211b16;
-  --text-muted: #625646;
-  --text-subtle: #817261;
+  --text: #f5f5f4;
+  --text-muted: #c7beb4;
+  --text-subtle: #a89d92;
 
   --primary: #2ec4b6;
   --primary-hover: #47d2c5;
   --primary-foreground: #0f0d0b;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #211b16;
-  --accent: #f5f5f5;
-  --accent-foreground: #211b16;
+  --secondary: #2b2622;
+  --secondary-foreground: #f5f5f4;
+  --accent: #2b2622;
+  --accent-foreground: #f5f5f4;
   --focus: rgba(46, 196, 182, 0.28);
   --backdrop-pattern: none;
 
-  color-scheme: light;
+  --noon-coral-soft: color-mix(in oklab, var(--noon-coral) 18%, var(--surface));
+  --noon-yellow-soft: color-mix(in oklab, var(--noon-yellow) 28%, var(--surface));
+  --noon-purple-soft: color-mix(in oklab, var(--noon-purple) 16%, var(--surface));
+  --noon-teal-soft: color-mix(in oklab, var(--noon-teal) 18%, var(--surface));
+
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -337,19 +342,19 @@ body {
   }
 
   .noon-soft-teal {
-    background: color-mix(in oklab, var(--noon-teal) 18%, white);
+    background: color-mix(in oklab, var(--noon-teal) 18%, var(--surface));
   }
 
   .noon-soft-coral {
-    background: color-mix(in oklab, var(--noon-coral) 18%, white);
+    background: color-mix(in oklab, var(--noon-coral) 18%, var(--surface));
   }
 
   .noon-soft-purple {
-    background: color-mix(in oklab, var(--noon-purple) 16%, white);
+    background: color-mix(in oklab, var(--noon-purple) 16%, var(--surface));
   }
 
   .noon-soft-yellow {
-    background: color-mix(in oklab, var(--noon-yellow) 28%, white);
+    background: color-mix(in oklab, var(--noon-yellow) 28%, var(--surface));
   }
 
   .admin-panel input,

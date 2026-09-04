@@ -707,6 +707,254 @@ export async function createInventoryPurchase(input: {
   }
 }
 
+async function rebuildInventoryItemAggregates(client: Queryable, itemId: string, adminUserId: string): Promise<void> {
+  const aggregateResult = await client.query(
+    `SELECT
+       COALESCE(SUM(CASE WHEN direction = 'IN' THEN quantity ELSE -quantity END), 0) AS current_stock,
+       COALESCE(SUM(CASE WHEN movement_type = 'PURCHASE' AND direction = 'IN' THEN total_cost ELSE 0 END), 0) AS total_purchase_cost,
+       COALESCE(SUM(CASE WHEN movement_type IN ('WORKSHOP_USAGE', 'ADJUSTMENT_OUT') AND direction = 'OUT' THEN total_cost ELSE 0 END), 0) AS total_consumed_cost,
+       COALESCE(SUM(CASE WHEN movement_type = 'PURCHASE' AND direction = 'IN' THEN quantity ELSE 0 END), 0) AS purchased_quantity
+     FROM inventory_movements
+     WHERE inventory_item_id = $1`,
+    [itemId]
+  );
+
+  const aggregate = aggregateResult.rows[0];
+  const currentStock = toMoney(aggregate?.current_stock);
+  if (currentStock < -0.001) {
+    throw new Error('This purchase cannot be changed because some of its stock has already been consumed.');
+  }
+
+  const totalPurchaseCost = toMoney(aggregate?.total_purchase_cost);
+  const purchasedQuantity = toMoney(aggregate?.purchased_quantity);
+  const averageUnitCost = purchasedQuantity > 0 ? toMoney(totalPurchaseCost / purchasedQuantity) : 0;
+
+  await client.query(
+    `UPDATE inventory_items
+     SET current_stock = $1,
+         average_unit_cost = $2,
+         total_purchase_cost = $3,
+         total_consumed_cost = $4,
+         updated_by_user_id = $5,
+         updated_at = NOW()
+     WHERE id = $6`,
+    [Math.max(0, currentStock), averageUnitCost, totalPurchaseCost, toMoney(aggregate?.total_consumed_cost), adminUserId, itemId]
+  );
+}
+
+async function removePurchaseEffects(client: Queryable, purchaseId: string): Promise<string[]> {
+  const itemResult = await client.query(
+    `SELECT inventory_item_id FROM inventory_purchase_lines WHERE purchase_id = $1 FOR UPDATE`,
+    [purchaseId]
+  );
+  const itemIds = new Set(itemResult.rows.map((row) => String(row.inventory_item_id)));
+
+  const movementResult = await client.query(
+    `SELECT inventory_item_id
+     FROM inventory_movements
+     WHERE reference_type = 'PURCHASE' AND reference_id = $1
+     FOR UPDATE`,
+    [purchaseId]
+  );
+  for (const row of movementResult.rows) itemIds.add(String(row.inventory_item_id));
+
+  await client.query(`DELETE FROM inventory_movements WHERE reference_type = 'PURCHASE' AND reference_id = $1`, [purchaseId]);
+  await client.query(`DELETE FROM inventory_purchase_lines WHERE purchase_id = $1`, [purchaseId]);
+  return Array.from(itemIds);
+}
+
+async function appendPurchaseLines(
+  client: Queryable,
+  purchaseId: string,
+  normalizedLines: InventoryPurchaseLineInput[],
+  occurredAt: string,
+  adminUserId: string
+): Promise<number> {
+  let totalCost = 0;
+
+  for (const line of normalizedLines) {
+    const itemResult = await client.query(
+      `SELECT id, name, unit, current_stock, average_unit_cost
+       FROM inventory_items WHERE id = $1 LIMIT 1 FOR UPDATE`,
+      [line.inventoryItemId]
+    );
+    const itemRow = itemResult.rows[0];
+    if (!itemRow) throw new Error('One of the selected inventory items does not exist');
+
+    const currentStock = toMoney(itemRow.current_stock);
+    const currentAverage = toMoney(itemRow.average_unit_cost);
+    const lineTotalCost = toMoney(line.quantity * line.unitCost);
+    const nextStock = toMoney(currentStock + line.quantity);
+    const nextAverage = nextStock > 0 ? toMoney(((currentStock * currentAverage) + lineTotalCost) / nextStock) : 0;
+
+    await client.query(
+      `UPDATE inventory_items
+       SET current_stock = $1, average_unit_cost = $2,
+           total_purchase_cost = total_purchase_cost + $3,
+           updated_by_user_id = $4, updated_at = NOW()
+       WHERE id = $5`,
+      [nextStock, nextAverage, lineTotalCost, adminUserId, line.inventoryItemId]
+    );
+    await client.query(
+      `INSERT INTO inventory_purchase_lines (
+         purchase_id, inventory_item_id, quantity, unit_cost, total_cost, notes, created_at
+       ) VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
+      [purchaseId, line.inventoryItemId, line.quantity, line.unitCost, lineTotalCost, line.notes ?? null]
+    );
+    await client.query(
+      `INSERT INTO inventory_movements (
+         inventory_item_id, movement_type, direction, quantity, unit_cost, total_cost,
+         reference_type, reference_id, class_id, notes, occurred_at, created_by_user_id, created_at
+       ) VALUES ($1, 'PURCHASE', 'IN', $2, $3, $4, 'PURCHASE', $5, NULL, $6, $7, $8, NOW())`,
+      [line.inventoryItemId, line.quantity, line.unitCost, lineTotalCost, purchaseId, line.notes ?? null, occurredAt, adminUserId]
+    );
+    totalCost = toMoney(totalCost + lineTotalCost);
+  }
+
+  return totalCost;
+}
+
+function normalizePurchaseLines(lines: InventoryPurchaseLineInput[]): InventoryPurchaseLineInput[] {
+  return lines
+    .map((line) => ({
+      inventoryItemId: String(line.inventoryItemId || '').trim(),
+      quantity: toMoney(line.quantity),
+      unitCost: toMoney(line.unitCost),
+      notes: sanitizeText(line.notes, 800),
+    }))
+    .filter((line) => line.inventoryItemId && line.quantity > 0 && line.unitCost >= 0);
+}
+
+export async function updateInventoryPurchase(input: {
+  purchaseId: string;
+  supplierName?: string | null;
+  invoiceNumber?: string | null;
+  occurredAt?: string | null;
+  notes?: string | null;
+  lines: InventoryPurchaseLineInput[];
+  adminUserId: string;
+}): Promise<boolean> {
+  await ensureInventorySchema();
+  const normalizedLines = normalizePurchaseLines(input.lines);
+  if (normalizedLines.length === 0) throw new Error('At least one valid purchase line is required');
+
+  const occurredAtDate = input.occurredAt ? new Date(input.occurredAt) : new Date();
+  if (Number.isNaN(occurredAtDate.getTime())) throw new Error('Invalid purchase date');
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const purchaseResult = await client.query(`SELECT id FROM inventory_purchases WHERE id = $1 FOR UPDATE`, [input.purchaseId]);
+    if (!purchaseResult.rows[0]) {
+      await client.query('ROLLBACK');
+      return false;
+    }
+
+    const affectedItemIds = await removePurchaseEffects(client, input.purchaseId);
+    for (const itemId of affectedItemIds) await rebuildInventoryItemAggregates(client, itemId, input.adminUserId);
+    const totalCost = await appendPurchaseLines(client, input.purchaseId, normalizedLines, occurredAtDate.toISOString(), input.adminUserId);
+
+    await client.query(
+      `UPDATE inventory_purchases
+       SET supplier_name = $1, invoice_number = $2, occurred_at = $3, notes = $4, total_cost = $5, updated_at = NOW()
+       WHERE id = $6`,
+      [sanitizeText(input.supplierName, 255), sanitizeText(input.invoiceNumber, 120), occurredAtDate.toISOString(), sanitizeText(input.notes, 4000), totalCost, input.purchaseId]
+    );
+    await client.query('COMMIT');
+    return true;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function deleteInventoryPurchase(purchaseId: string, adminUserId: string): Promise<boolean> {
+  await ensureInventorySchema();
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const purchaseResult = await client.query(`SELECT id FROM inventory_purchases WHERE id = $1 FOR UPDATE`, [purchaseId]);
+    if (!purchaseResult.rows[0]) {
+      await client.query('ROLLBACK');
+      return false;
+    }
+
+    const affectedItemIds = await removePurchaseEffects(client, purchaseId);
+    await client.query(`DELETE FROM inventory_purchases WHERE id = $1`, [purchaseId]);
+    for (const itemId of affectedItemIds) await rebuildInventoryItemAggregates(client, itemId, adminUserId);
+    await client.query('COMMIT');
+    return true;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function consumeInventoryValue(input: {
+  amount: number;
+  referenceType: string;
+  referenceId: string;
+  notes?: string | null;
+  adminUserId: string;
+  db?: Queryable;
+}): Promise<{ inventoryItemId: string; quantity: number; amount: number }> {
+  await ensureInventorySchema();
+  const amount = toMoney(input.amount);
+  if (amount <= 0) throw new Error('Inventory amount must be greater than zero');
+
+  const ownsTransaction = !input.db;
+  const client = input.db ?? await pool.connect();
+  try {
+    if (ownsTransaction) await client.query('BEGIN');
+    const poolResult = await client.query(
+      `SELECT id, name, current_stock, average_unit_cost
+       FROM inventory_items
+       WHERE is_active = TRUE
+         AND (allows_manual_cost = TRUE OR LOWER(name) = 'general materials pool' OR LOWER(unit) = 'credit')
+       ORDER BY CASE WHEN allows_manual_cost THEN 0 ELSE 1 END, name ASC
+       LIMIT 1
+       FOR UPDATE`
+    );
+    const poolRow = poolResult.rows[0];
+    if (!poolRow) throw new Error('No inventory value pool is configured.');
+
+    const currentStock = toMoney(poolRow.current_stock);
+    const unitCost = toMoney(poolRow.average_unit_cost);
+    if (unitCost <= 0) throw new Error('Inventory value pool has no usable unit cost.');
+    const stockValue = toMoney(currentStock * unitCost);
+    if (stockValue + 0.001 < amount) throw new Error('Insufficient inventory value for this expense.');
+
+    const quantity = toMoney(amount / unitCost);
+    await client.query(
+      `UPDATE inventory_items
+       SET current_stock = current_stock - $1,
+           total_consumed_cost = total_consumed_cost + $2,
+           updated_by_user_id = $3,
+           updated_at = NOW()
+       WHERE id = $4`,
+      [quantity, amount, input.adminUserId, String(poolRow.id)]
+    );
+    await client.query(
+      `INSERT INTO inventory_movements (
+         inventory_item_id, movement_type, direction, quantity, unit_cost, total_cost,
+         reference_type, reference_id, notes, occurred_at, created_by_user_id, created_at
+       ) VALUES ($1, 'WORKSHOP_USAGE', 'OUT', $2, $3, $4, $5, $6, $7, NOW(), $8, NOW())`,
+      [String(poolRow.id), quantity, unitCost, amount, input.referenceType, input.referenceId, sanitizeText(input.notes, 800), input.adminUserId]
+    );
+    if (ownsTransaction) await client.query('COMMIT');
+    return { inventoryItemId: String(poolRow.id), quantity, amount };
+  } catch (error) {
+    if (ownsTransaction) await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    if (ownsTransaction && 'release' in client && typeof client.release === 'function') client.release();
+  }
+}
+
 export async function listRecentInventoryPurchases(limit = 12): Promise<InventoryPurchase[]> {
   await ensureInventorySchema();
 

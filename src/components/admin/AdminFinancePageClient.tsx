@@ -216,6 +216,7 @@ export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
     amount: isArabic ? 'المبلغ' : 'Amount',
     occurredAt: isArabic ? 'تاريخ العملية' : 'Occurred At',
     paymentMethod: isArabic ? 'طريقة الدفع' : 'Payment Method',
+    inventoryValue: isArabic ? 'خصم من قيمة المخزون' : 'Cut from Inventory Value',
     reference: isArabic ? 'المرجع' : 'Reference',
     counterparty: isArabic ? 'الطرف المقابل' : 'Counterparty',
     notes: isArabic ? 'ملاحظات' : 'Notes',
@@ -1038,12 +1039,17 @@ export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
 
                 <label className="text-sm text-zinc-700 dark:text-zinc-200">
                   <span className="mb-1 block">{t.paymentMethod}</span>
-                  <input
-                    type="text"
+                  <select
                     value={entryForm.paymentMethod}
                     onChange={(event) => setEntryForm((prev) => ({ ...prev, paymentMethod: event.target.value }))}
                     className="w-full rounded-lg border border-zinc-300 px-3 py-2 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
-                  />
+                  >
+                    <option value="">—</option>
+                    <option value="INVENTORY_VALUE">{t.inventoryValue}</option>
+                    <option value="CASH">Cash</option>
+                    <option value="CARD">Card</option>
+                    <option value="BANK_TRANSFER">Bank transfer</option>
+                  </select>
                 </label>
 
                 <label className="text-sm text-zinc-700 dark:text-zinc-200">

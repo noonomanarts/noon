@@ -29,6 +29,7 @@ type ShopProduct = {
   image: string | null;
   gallery_images: string[];
   stock_quantity: number;
+  available_online: boolean;
   is_active: boolean;
   is_featured: boolean;
   sort_order: number;
@@ -53,6 +54,7 @@ type EditorState = {
   image: string;
   galleryInput: string;
   stockQuantity: string;
+  availableOnline: boolean;
   sortOrder: string;
   isActive: boolean;
   isFeatured: boolean;
@@ -72,6 +74,7 @@ const emptyEditor: EditorState = {
   image: '',
   galleryInput: '',
   stockQuantity: '0',
+  availableOnline: true,
   sortOrder: '0',
   isActive: true,
   isFeatured: false,
@@ -124,6 +127,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
     currency: isArabic ? 'العملة' : 'Currency',
     sku: 'SKU',
     stock: isArabic ? 'المخزون' : 'Stock quantity',
+    online: isArabic ? 'متاح عبر المتجر الإلكتروني' : 'Available online',
     sortOrder: isArabic ? 'ترتيب العرض' : 'Sort order',
     mainImage: isArabic ? 'الصورة الرئيسية' : 'Main image URL',
     gallery: isArabic ? 'صور إضافية (كل سطر رابط)' : 'Gallery images (one URL per line)',
@@ -222,6 +226,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
       image: product.image || '',
       galleryInput: (product.gallery_images || []).join('\n'),
       stockQuantity: String(product.stock_quantity),
+      availableOnline: product.available_online,
       sortOrder: String(product.sort_order),
       isActive: product.is_active,
       isFeatured: product.is_featured,
@@ -326,6 +331,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
         image: editor.image,
         galleryImages: parseGallery(editor.galleryInput),
         stockQuantity: Number(editor.stockQuantity || '0'),
+        availableOnline: editor.availableOnline,
         sortOrder: Number(editor.sortOrder || '0'),
         isActive: editor.isActive,
         isFeatured: editor.isFeatured,
@@ -492,6 +498,11 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                         {product.is_featured && (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                             {t.featured}
+                          </span>
+                        )}
+                        {!product.available_online && (
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            {isArabic ? 'للمركز فقط' : 'Center only'}
                           </span>
                         )}
                       </div>
@@ -711,6 +722,14 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                       onChange={(event) => setEditor((prev) => ({ ...prev, isFeatured: event.target.checked }))}
                     />
                     {t.featured}
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      checked={editor.availableOnline}
+                      onChange={(event) => setEditor((prev) => ({ ...prev, availableOnline: event.target.checked }))}
+                    />
+                    {t.online}
                   </label>
                 </div>
               </div>

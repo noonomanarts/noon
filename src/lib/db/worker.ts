@@ -4,6 +4,7 @@
 
 import { pool } from './index';
 import { createShopRestockExpenseEntry, createShopRevenueFinanceEntry, createShopSaleCostExpenseEntry } from './finance';
+import { consumeInventoryValue } from './inventory';
 import type {
   WorkerPermissions,
   StockRestock,
@@ -54,6 +55,21 @@ export async function getWorkerPermissions(userId: string): Promise<WorkerPermis
     can_print_bills: row.can_print_bills,
     created_at: new Date(row.created_at),
     updated_at: new Date(row.updated_at),
+  };
+}
+
+export function getFullWorkerPermissions(userId: string): WorkerPermissions {
+  const now = new Date();
+  return {
+    id: `admin-${userId}`,
+    user_id: userId,
+    can_restock: true,
+    can_record_sales: true,
+    can_manage_orders: true,
+    can_print_labels: true,
+    can_print_bills: true,
+    created_at: now,
+    updated_at: now,
   };
 }
 
@@ -177,6 +193,15 @@ export async function createStockRestock(input: CreateRestockInput): Promise<Sto
     );
 
     const restockRow = restockResult.rows[0];
+
+    await consumeInventoryValue({
+      db: client,
+      amount: totalCost,
+      referenceType: 'SHOP_RESTOCK',
+      referenceId: String(restockRow.id),
+      notes: input.notes ?? `Materials value used to restock ${productName}.`,
+      adminUserId: input.workerUserId,
+    });
 
     await createShopRestockExpenseEntry({
       db: client,

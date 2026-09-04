@@ -38,6 +38,22 @@ export default function MobileSidebar({
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
@@ -49,6 +65,10 @@ export default function MobileSidebar({
     };
   }, [isOpen]);
 
+  const navigationId = "admin-mobile-navigation";
+  const closeMenuLabel = locale === "ar" ? "إغلاق القائمة" : "Close menu";
+  const openMenuLabel = locale === "ar" ? "فتح القائمة" : "Open menu";
+
   const drawer = isOpen
     ? createPortal(
         <>
@@ -58,6 +78,7 @@ export default function MobileSidebar({
           />
 
           <aside
+            id={navigationId}
             className={`fixed inset-y-0 z-[200] h-dvh w-[min(20rem,calc(100vw-1rem))] transform border-zinc-200 bg-white shadow-2xl transition-transform duration-300 dark:border-zinc-800 dark:bg-zinc-950 lg:hidden ${
               locale === "ar" ? "right-0 border-l" : "left-0 border-r"
             } ${isOpen ? "translate-x-0" : locale === "ar" ? "translate-x-full" : "-translate-x-full"}`}
@@ -82,7 +103,7 @@ export default function MobileSidebar({
                 <button
                   onClick={() => setIsOpen(false)}
                   className="rounded-lg p-2 text-zinc-600 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                  aria-label="Close menu"
+                  aria-label={closeMenuLabel}
                 >
                   <FiX className="size-5" />
                 </button>
@@ -119,7 +140,9 @@ export default function MobileSidebar({
       <button
         onClick={() => setIsOpen(true)}
         className="rounded-lg p-2 text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 lg:hidden"
-        aria-label="Open menu"
+        aria-label={openMenuLabel}
+        aria-expanded={isOpen}
+        aria-controls={navigationId}
       >
         <FiMenu className="size-5" />
       </button>

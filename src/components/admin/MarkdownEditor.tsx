@@ -130,8 +130,29 @@ type ToolbarAction = {
   icon?: React.ReactNode;
   text?: string;
   title: string;
-  action: () => void;
+  command: 'heading' | 'bold' | 'italic' | 'strike' | 'code' | 'link' | 'bullet' | 'numbered' | 'quote' | 'divider';
 };
+
+const toolbarGroups: ToolbarAction[][] = [
+  [
+    { label: 'H', text: 'H', title: 'Heading', command: 'heading' },
+    { label: 'Bold', icon: <span className="font-black text-[13px]">B</span>, title: 'Bold (Ctrl+B)', command: 'bold' },
+    { label: 'Italic', icon: <span className="italic text-[13px]">I</span>, title: 'Italic (Ctrl+I)', command: 'italic' },
+    { label: 'Strike', icon: <span className="line-through text-[13px]">S</span>, title: 'Strikethrough', command: 'strike' },
+  ],
+  [
+    { label: 'Code', icon: <FiCode className="size-3.5" />, title: 'Inline code', command: 'code' },
+    { label: 'Link', icon: <FiLink className="size-3.5" />, title: 'Link', command: 'link' },
+  ],
+  [
+    { label: 'Bullet list', icon: <FiList className="size-3.5" />, title: 'Bullet list', command: 'bullet' },
+    { label: 'Numbered list', icon: <span className="text-[11px] font-semibold">1.</span>, title: 'Numbered list', command: 'numbered' },
+    { label: 'Quote', icon: <FiHash className="size-3.5" />, title: 'Blockquote', command: 'quote' },
+  ],
+  [
+    { label: 'Divider', icon: <FiMinus className="size-3.5" />, title: 'Horizontal rule', command: 'divider' },
+  ],
+];
 
 export default function MarkdownEditor({
   label,
@@ -194,26 +215,20 @@ export default function MarkdownEditor({
     });
   }, [value, onChange]);
 
-  const toolbarGroups: ToolbarAction[][] = [
-    [
-      { label: 'H', text: 'H', title: 'Heading', action: () => insertAtLineStart('## ') },
-      { label: 'Bold', icon: <span className="font-black text-[13px]">B</span>, title: 'Bold (Ctrl+B)', action: () => wrapSelection('**') },
-      { label: 'Italic', icon: <span className="italic text-[13px]">I</span>, title: 'Italic (Ctrl+I)', action: () => wrapSelection('*') },
-      { label: 'Strike', icon: <span className="line-through text-[13px]">S</span>, title: 'Strikethrough', action: () => wrapSelection('~~') },
-    ],
-    [
-      { label: 'Code', icon: <FiCode className="size-3.5" />, title: 'Inline code', action: () => wrapSelection('`') },
-      { label: 'Link', icon: <FiLink className="size-3.5" />, title: 'Link', action: () => wrapSelection('[', '](https://)') },
-    ],
-    [
-      { label: 'Bullet list', icon: <FiList className="size-3.5" />, title: 'Bullet list', action: () => insertPrefixPerLine('- ') },
-      { label: 'Numbered list', icon: <span className="text-[11px] font-semibold">1.</span>, title: 'Numbered list', action: () => insertPrefixPerLine('1. ') },
-      { label: 'Quote', icon: <FiHash className="size-3.5" />, title: 'Blockquote', action: () => insertPrefixPerLine('> ') },
-    ],
-    [
-      { label: 'Divider', icon: <FiMinus className="size-3.5" />, title: 'Horizontal rule', action: () => onChange(`${value}\n---\n`) },
-    ],
-  ];
+  const handleToolbarAction = (command: ToolbarAction['command']) => {
+    switch (command) {
+      case 'heading': insertAtLineStart('## '); break;
+      case 'bold': wrapSelection('**'); break;
+      case 'italic': wrapSelection('*'); break;
+      case 'strike': wrapSelection('~~'); break;
+      case 'code': wrapSelection('`'); break;
+      case 'link': wrapSelection('[', '](https://)'); break;
+      case 'bullet': insertPrefixPerLine('- '); break;
+      case 'numbered': insertPrefixPerLine('1. '); break;
+      case 'quote': insertPrefixPerLine('> '); break;
+      case 'divider': onChange(`${value}\n---\n`); break;
+    }
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
@@ -278,7 +293,7 @@ export default function MarkdownEditor({
                   key={action.label}
                   type="button"
                   title={action.title}
-                  onClick={action.action}
+                  onClick={() => handleToolbarAction(action.command)}
                   className="flex size-7 items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
                 >
                   {action.icon ?? <span className="text-[12px] font-semibold">{action.text}</span>}
