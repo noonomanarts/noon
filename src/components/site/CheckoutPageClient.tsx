@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { MuscatLocationPicker } from '@/components/site/MuscatLocationPicker';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 
 type ShopCartApiItem = {
   id: string;
@@ -35,6 +36,14 @@ type ClassCartApiItem = {
   currency: string;
   numberOfParticipants: number;
   lineTotal: number;
+  scheduleConflict?: {
+    classId: string;
+    slug: string;
+    title: string;
+    titleAr: string | null;
+    startDateTime: string;
+    endDateTime: string | null;
+  } | null;
 };
 
 type EventCartApiItem = {
@@ -119,6 +128,7 @@ const CHECKOUT_DRAFT_STORAGE_KEY = 'checkout_draft_v1';
 
 export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const isArabic = locale === 'ar';
+  const { confirm } = useAppFeedback();
   const [cart, setCart] = useState<CartPayload | null>(null);
   const [wallet, setWallet] = useState<WalletPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -202,6 +212,9 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
       ? 'يرجى تحديد موقع التوصيل على الخريطة قبل المتابعة.'
       : 'Please choose the delivery location on the map before continuing.',
     items: isArabic ? 'منتجات' : 'items',
+    scheduleConflictTitle: isArabic ? 'تعارض في المواعيد' : 'Schedule conflict',
+    scheduleConflictConfirmLabel: isArabic ? 'المتابعة رغم ذلك' : 'Continue anyway',
+    scheduleConflictCancelLabel: isArabic ? 'إلغاء' : 'Cancel',
   };
   const checkoutTextBoxClassName =
     'w-full rounded-xl border border-solid border-[#b5ada4] bg-[color:var(--muted)] px-3 py-2 text-[color:var(--text)] focus:border-[color:var(--primary)] focus:outline-2 focus:outline-[color:var(--focus)]';
@@ -268,6 +281,13 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const requiresAuthenticatedCheckout = basePayableNow > 0;
   const isRequestOnlyCart = hasEventItems && basePayableNow <= 0;
   const isLocationMissing = hasShopItems && selectedLocation === null;
+  const conflictingClassItems = useMemo(
+    () =>
+      (cart?.items ?? []).filter(
+        (item): item is ClassCartApiItem => item.kind === 'CLASS_BOOKING' && Boolean(item.scheduleConflict)
+      ),
+    [cart]
+  );
 
   const clearCheckoutDraft = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -361,6 +381,24 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
       return;
     }
 
+    if (conflictingClassItems.length > 0) {
+      const names = conflictingClassItems
+        .map((item) => (isArabic && item.titleAr ? item.titleAr : item.title))
+        .join(isArabic ? '، ' : ', ');
+      const confirmed = await confirm({
+        title: t.scheduleConflictTitle,
+        message: isArabic
+          ? `لديك تعارض في المواعيد في حجوزاتك (${names}). هل تريد المتابعة وإتمام الدفع رغم ذلك؟`
+          : `You have a schedule conflict in your bookings (${names}). Do you still want to continue and complete payment?`,
+        confirmLabel: t.scheduleConflictConfirmLabel,
+        cancelLabel: t.scheduleConflictCancelLabel,
+        tone: 'danger',
+      });
+      if (!confirmed) {
+        return;
+      }
+    }
+
     setProcessing(true);
     try {
       const response = await fetch('/api/checkout', {
@@ -406,6 +444,8 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   }, [
     appliedPromo?.promoCode,
     clearCheckoutDraft,
+    confirm,
+    conflictingClassItems,
     form,
     hasItems,
     isArabic,
@@ -413,6 +453,9 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     requiredMissing,
     selectedLocation,
     t.locationRequired,
+    t.scheduleConflictCancelLabel,
+    t.scheduleConflictConfirmLabel,
+    t.scheduleConflictTitle,
     t.shippingRequired,
   ]);
 
@@ -544,6 +587,21 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             {t.subtitle}
           </p>
         </section>
+
+        {conflictingClassItems.length > 0 ? (
+          <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-center text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
+            <p className="font-semibold">{t.scheduleConflictTitle}</p>
+            <p className="mt-1">
+              {isArabic
+                ? `لديك تعارض في المواعيد في حجوزاتك: ${conflictingClassItems
+                    .map((item) => item.titleAr || item.title)
+                    .join('، ')}. يمكنك المتابعة، لكن انتبه لتداخل المواعيد.`
+                : `You have a schedule conflict in your bookings: ${conflictingClassItems
+                    .map((item) => item.title)
+                    .join(', ')}. You can continue, but note the overlapping schedule.`}
+            </p>
+          </div>
+        ) : null}
 
         {error ? (
           <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">

@@ -2,12 +2,17 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { CART_COOKIE_NAME, parseCartCookie } from '@/lib/cart';
 import { getShopProductsByIdsForPublic } from '@/lib/db/shop';
+import { findScheduleConflictsForClasses } from '@/lib/db/classes';
+import { getUserById } from '@/lib/db/users';
 
 export async function GET() {
   try {
     const cookieStore = await cookies();
     const cartCookie = cookieStore.get(CART_COOKIE_NAME)?.value;
     const cart = parseCartCookie(cartCookie);
+
+    const sessionId = cookieStore.get('noon_session')?.value;
+    const authenticatedUser = sessionId ? await getUserById(sessionId) : null;
 
     const shopItems = cart.items.filter((item) => item.kind === 'SHOP_PRODUCT');
     const classItems = cart.items.filter((item) => item.kind === 'CLASS_BOOKING');
@@ -62,10 +67,30 @@ export async function GET() {
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
 
-    const hydratedClassItems = classItems.map((item) => ({
-      ...item,
-      lineTotal: Number((item.price * item.numberOfParticipants).toFixed(3)),
-    }));
+    const scheduleConflicts = authenticatedUser && classItems.length > 0
+      ? await findScheduleConflictsForClasses(
+          authenticatedUser.id,
+          classItems.map((item) => item.classId)
+        ).catch(() => new Map())
+      : new Map();
+
+    const hydratedClassItems = classItems.map((item) => {
+      const conflict = scheduleConflicts.get(item.classId);
+      return {
+        ...item,
+        lineTotal: Number((item.price * item.numberOfParticipants).toFixed(3)),
+        scheduleConflict: conflict
+          ? {
+              classId: conflict.classId,
+              slug: conflict.slug,
+              title: conflict.title,
+              titleAr: conflict.titleAr,
+              startDateTime: conflict.startDateTime.toISOString(),
+              endDateTime: conflict.endDateTime ? conflict.endDateTime.toISOString() : null,
+            }
+          : null,
+      };
+    });
 
     const hydratedEventItems = eventItems.map((item) => ({
       ...item,

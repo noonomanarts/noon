@@ -40,6 +40,14 @@ type ClassCartApiItem = {
   currency: string;
   numberOfParticipants: number;
   lineTotal: number;
+  scheduleConflict?: {
+    classId: string;
+    slug: string;
+    title: string;
+    titleAr: string | null;
+    startDateTime: string;
+    endDateTime: string | null;
+  } | null;
 };
 
 type EventCartApiItem = {
@@ -143,6 +151,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
     items: isArabic ? 'منتجات' : 'items',
     estimatedTotal: isArabic ? 'الإجمالي التقديري' : 'Estimated Total',
     payableNow: isArabic ? 'المطلوب الآن' : 'Payable Now',
+    scheduleConflictTitle: isArabic ? 'تنبيه: تعارض في المواعيد' : 'Heads up: schedule conflict',
   };
 
   const loadCart = useCallback(async () => {
@@ -335,6 +344,16 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                           <p className="text-xs text-[color:var(--text-subtle)]">{t.classBooking}</p>
                           <p className="text-xs text-[color:var(--text-subtle)]">{t.participants}: {item.numberOfParticipants}</p>
                           <p className="text-sm font-semibold text-[color:var(--text)]">{formatAmountWithCurrency(item.lineTotal, item.currency)}</p>
+                          {item.scheduleConflict ? (
+                            <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-left text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
+                              <p className="font-semibold">{t.scheduleConflictTitle}</p>
+                              <p className="mt-0.5">
+                                {isArabic
+                                  ? `لديك تعارض في المواعيد مع "${item.scheduleConflict.titleAr || item.scheduleConflict.title}" في نفس التاريخ والوقت.`
+                                  : `Conflicts in time with "${item.scheduleConflict.title}" at the same date and time.`}
+                              </p>
+                            </div>
+                          ) : null}
                         </>
                       ) : (
                         <>

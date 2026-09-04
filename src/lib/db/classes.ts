@@ -936,6 +936,97 @@ export async function findUserScheduleConflict(
 }
 
 /**
+ * Batched version of findUserScheduleConflict for a set of candidate classes
+ * (e.g. everything currently in a cart). For each classId, reports either a
+ * conflict with an existing active booking, or a conflict with another
+ * candidate class in the same set (in case two unbooked classes overlap).
+ */
+export async function findScheduleConflictsForClasses(
+  userId: string,
+  classIds: string[]
+): Promise<Map<string, UserScheduleConflict>> {
+  const uniqueIds = Array.from(new Set(classIds));
+  const conflicts = new Map<string, UserScheduleConflict>();
+  if (uniqueIds.length === 0) return conflicts;
+
+  const existingResult = await query(
+    `SELECT target.id AS target_id, existing.id, existing.slug, existing.title, existing.title_ar,
+            existing.start_date_time, existing.end_date_time
+     FROM classes target
+     INNER JOIN bookings b
+       ON b.user_id = $1
+       AND b.class_id <> target.id
+       AND b.status IN ('PENDING', 'CONFIRMED')
+       AND b.payment_status IN ('PENDING', 'PAID')
+     INNER JOIN classes existing ON existing.id = b.class_id
+     WHERE target.id = ANY($2::uuid[])
+       AND existing.start_date_time IS NOT NULL
+       AND target.start_date_time IS NOT NULL
+       AND existing.start_date_time
+           < COALESCE(target.end_date_time, target.start_date_time + make_interval(mins => GREATEST(COALESCE(target.duration_minutes, 60), 30)))
+       AND COALESCE(existing.end_date_time, existing.start_date_time + make_interval(mins => GREATEST(COALESCE(existing.duration_minutes, 60), 30)))
+           > target.start_date_time
+     ORDER BY existing.start_date_time ASC`,
+    [userId, uniqueIds]
+  );
+
+  for (const row of existingResult.rows) {
+    const targetId = String(row.target_id);
+    if (conflicts.has(targetId)) continue;
+    conflicts.set(targetId, {
+      classId: String(row.id),
+      slug: String(row.slug),
+      title: String(row.title),
+      titleAr: row.title_ar ? String(row.title_ar) : null,
+      startDateTime: new Date(row.start_date_time),
+      endDateTime: row.end_date_time ? new Date(row.end_date_time) : null,
+    });
+  }
+
+  if (uniqueIds.length > 1) {
+    const candidatesResult = await query(
+      `SELECT id, slug, title, title_ar, start_date_time, end_date_time, duration_minutes
+       FROM classes
+       WHERE id = ANY($1::uuid[]) AND start_date_time IS NOT NULL`,
+      [uniqueIds]
+    );
+    const candidates = candidatesResult.rows.map((row) => {
+      const start = new Date(row.start_date_time as string).getTime();
+      const end = row.end_date_time
+        ? new Date(row.end_date_time as string).getTime()
+        : start + Math.max(Number(row.duration_minutes) || 60, 30) * 60000;
+      return {
+        id: String(row.id),
+        slug: String(row.slug),
+        title: String(row.title),
+        titleAr: row.title_ar ? String(row.title_ar) : null,
+        start,
+        end,
+      };
+    });
+
+    for (const target of candidates) {
+      if (conflicts.has(target.id)) continue;
+      const overlapping = candidates.find(
+        (other) => other.id !== target.id && target.start < other.end && other.start < target.end
+      );
+      if (overlapping) {
+        conflicts.set(target.id, {
+          classId: overlapping.id,
+          slug: overlapping.slug,
+          title: overlapping.title,
+          titleAr: overlapping.titleAr,
+          startDateTime: new Date(overlapping.start),
+          endDateTime: new Date(overlapping.end),
+        });
+      }
+    }
+  }
+
+  return conflicts;
+}
+
+/**
  * Find class by slug (simplified for site pages)
  */
 export async function findClassBySlug(slug: string): Promise<{
