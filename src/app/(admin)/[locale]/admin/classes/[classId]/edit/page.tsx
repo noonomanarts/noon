@@ -10,7 +10,8 @@ import {
   IoAlertCircle,
   IoImage,
   IoCloudUpload,
-  IoCheckmark
+  IoCheckmark,
+  IoRefresh
 } from 'react-icons/io5';
 import {
   MdTitle,
@@ -76,6 +77,7 @@ interface FormData {
   minimumAge: string;
   maximumAge: string;
   showMinimumAge: boolean;
+  repeatRequestsEnabled: boolean;
   finalRecipeTitle: string;
   finalRecipeTitleAr: string;
   finalRecipeBrief: string;
@@ -149,6 +151,7 @@ export default function EditClassPage() {
     minimumAge: '',
     maximumAge: '',
     showMinimumAge: false,
+    repeatRequestsEnabled: false,
     finalRecipeTitle: '',
     finalRecipeTitleAr: '',
     finalRecipeBrief: '',
@@ -254,6 +257,7 @@ export default function EditClassPage() {
         minimumAge: data.minimumAge != null ? data.minimumAge.toString() : '',
         maximumAge: data.maximumAge != null ? data.maximumAge.toString() : '',
         showMinimumAge: data.showMinimumAge || false,
+        repeatRequestsEnabled: data.repeatRequestsEnabled || false,
         finalRecipeTitle: data.finalRecipeTitle || '',
         finalRecipeTitleAr: data.finalRecipeTitleAr || '',
         finalRecipeBrief: data.finalRecipeBrief || '',
@@ -668,6 +672,7 @@ export default function EditClassPage() {
         minimumAge: formData.minimumAge ? parseInt(formData.minimumAge) : null,
         maximumAge: formData.maximumAge ? parseInt(formData.maximumAge) : null,
         showMinimumAge: formData.showMinimumAge,
+        repeatRequestsEnabled: formData.repeatRequestsEnabled,
         finalRecipeTitle: formData.finalRecipeTitle || null,
         finalRecipeTitleAr: formData.finalRecipeTitleAr || null,
         finalRecipeBrief: formData.finalRecipeBrief || null,
@@ -782,6 +787,7 @@ export default function EditClassPage() {
         minimumAge: formData.minimumAge ? parseInt(formData.minimumAge) : null,
         maximumAge: formData.maximumAge ? parseInt(formData.maximumAge) : null,
         showMinimumAge: formData.showMinimumAge,
+        repeatRequestsEnabled: formData.repeatRequestsEnabled,
         finalRecipeTitle: formData.finalRecipeTitle || null,
         finalRecipeTitleAr: formData.finalRecipeTitleAr || null,
         finalRecipeBrief: formData.finalRecipeBrief || null,
@@ -1481,6 +1487,51 @@ export default function EditClassPage() {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Repeat Requests */}
+        <div className={sectionCard}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-teal-500/10 dark:bg-teal-500/20 rounded-lg">
+              <IoRefresh className="text-2xl text-teal-600 dark:text-teal-400" />
+            </div>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              {isRTL ? 'طلبات الإعادة' : 'Repeat Requests'}
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((prev) => ({
+                  ...prev,
+                  repeatRequestsEnabled: !prev.repeatRequestsEnabled,
+                }))
+              }
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                formData.repeatRequestsEnabled
+                  ? 'bg-teal-600'
+                  : 'bg-zinc-300 dark:bg-zinc-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  formData.repeatRequestsEnabled
+                    ? isRTL ? '-translate-x-6' : 'translate-x-6'
+                    : isRTL ? '-translate-x-1' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className="text-sm text-zinc-700 dark:text-zinc-300">
+              {isRTL ? 'السماح بطلب إعادة هذه الورشة بعد انتهائها' : 'Allow customers to request a repeat once this workshop has ended'}
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            {isRTL
+              ? 'عند التفعيل، تظهر هذه الورشة في قسم "الورش المنتهية" على الموقع ويمكن للعملاء طلب إعادتها.'
+              : 'When enabled, this ended workshop appears in the public "Ended Workshops" section and customers can request a repeat.'}
+          </p>
         </div>
 
         {/* Images */}

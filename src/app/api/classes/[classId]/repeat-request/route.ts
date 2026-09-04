@@ -28,7 +28,7 @@ export async function POST(
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to submit repeat request.';
-    const status = message.includes('ended workshops') ? 400 : 500;
+    const status = message.startsWith('Repeat requests') ? 400 : 500;
     return NextResponse.json({ error: message }, { status });
   }
 }

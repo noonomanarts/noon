@@ -315,6 +315,9 @@ export async function createClassRepeatRequest(input: {
   if (!isEndedClassForRepeatRequest(classItem)) {
     throw new Error('Repeat requests are only available for ended workshops.');
   }
+  if (!classItem.repeatRequestsEnabled) {
+    throw new Error('Repeat requests are not enabled for this workshop.');
+  }
 
   const insertResult = await query(
     `INSERT INTO class_repeat_requests (class_id, user_id)

@@ -250,6 +250,7 @@ export interface ClassPublic {
   scheduleSessions?: Array<{ startDateTime: string; endDateTime: string }>;
   registrationMessage?: string | null;
   registrationMessageAr?: string | null;
+  repeatRequestsEnabled?: boolean;
   durationMinutes: number;
   status: ClassStatus;
   metaTitle: string | null;

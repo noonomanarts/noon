@@ -47,6 +47,7 @@ type ClassWithSessions = {
   seatsTotal: number;
   seatsBooked: number;
   registrationCloseAt: Date | null;
+  repeatRequestsEnabled: boolean;
 };
 
 function ClassCard({
@@ -213,6 +214,7 @@ export default async function CookingClassesPage({
     seatsTotal: (cls.seatsTotal as number) ?? 0,
     seatsBooked: (cls.seatsBooked as number) ?? 0,
     registrationCloseAt: cls.registrationCloseAt ?? null,
+    repeatRequestsEnabled: Boolean(cls.repeatRequestsEnabled),
   }));
 
   const repeatSummaries = await getClassRepeatRequestSummaries(
@@ -268,7 +270,7 @@ export default async function CookingClassesPage({
     (cls) => cls.status === "PUBLISHED" && !hasWorkshopEnded(cls)
   );
   const endedClasses = classesWithSessions
-    .filter((cls) => hasWorkshopEnded(cls))
+    .filter((cls) => hasWorkshopEnded(cls) && cls.repeatRequestsEnabled)
     .sort((a, b) => {
       const aTime = a.endDateTime ? new Date(a.endDateTime).getTime() : 0;
       const bTime = b.endDateTime ? new Date(b.endDateTime).getTime() : 0;

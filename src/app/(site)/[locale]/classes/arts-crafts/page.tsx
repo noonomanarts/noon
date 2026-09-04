@@ -99,7 +99,7 @@ export default async function ArtsCraftsClassesPage({
     (cls) => cls.status === "PUBLISHED" && !hasWorkshopEnded(cls)
   );
   const endedClasses = classesWithDates
-    .filter((cls) => hasWorkshopEnded(cls))
+    .filter((cls) => hasWorkshopEnded(cls) && cls.repeatRequestsEnabled)
     .sort((a, b) => {
       const aTime = a.endDateTime ? new Date(a.endDateTime).getTime() : 0;
       const bTime = b.endDateTime ? new Date(b.endDateTime).getTime() : 0;

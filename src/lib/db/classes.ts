@@ -30,6 +30,7 @@ async function ensureClassMinimumAgeSchema(): Promise<void> {
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS renewed_from_class_id UUID REFERENCES classes(id) ON DELETE SET NULL`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS categories TEXT[] NOT NULL DEFAULT '{}'`);
     await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS sub_categories TEXT[] NOT NULL DEFAULT '{}'`);
+    await query(`ALTER TABLE classes ADD COLUMN IF NOT EXISTS repeat_requests_enabled BOOLEAN NOT NULL DEFAULT FALSE`);
     await query(`UPDATE classes SET categories = ARRAY[category::text] WHERE COALESCE(array_length(categories, 1), 0) = 0`);
     await query(`UPDATE classes SET sub_categories = ARRAY[sub_category::text] WHERE COALESCE(array_length(sub_categories, 1), 0) = 0`);
   })().catch((error) => {
@@ -165,6 +166,7 @@ export async function findManyClasses(options: {
     seatsBooked: row.seats_booked ?? 0,
     registrationMessage: row.registration_message ?? null,
     registrationMessageAr: row.registration_message_ar ?? null,
+    repeatRequestsEnabled: Boolean(row.repeat_requests_enabled),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
@@ -357,6 +359,7 @@ export async function findManyClassesPaginated(options: {
     seatsBooked: row.seats_booked ?? 0,
     registrationMessage: row.registration_message ?? null,
     registrationMessageAr: row.registration_message_ar ?? null,
+    repeatRequestsEnabled: Boolean(row.repeat_requests_enabled),
     closedAt: row.closed_at,
     closedByUserId: row.closed_by_user_id,
     trainer: row.u_trainer_id ? {
@@ -472,6 +475,7 @@ export async function findUniqueClass(
     seatsBooked: row.seats_booked ?? 0,
     registrationMessage: row.registration_message ?? null,
     registrationMessageAr: row.registration_message_ar ?? null,
+    repeatRequestsEnabled: Boolean(row.repeat_requests_enabled),
   };
 
   if (include?.trainer) {
@@ -737,6 +741,7 @@ export async function updateClass(
     scheduleSessions: Array<{ startDateTime: string; endDateTime: string }>;
     registrationMessage: string | null;
     registrationMessageAr: string | null;
+    repeatRequestsEnabled: boolean;
   }>
 ): Promise<Record<string, unknown> | null> {
   await ensureClassFinanceSchema();
@@ -793,6 +798,7 @@ export async function updateClass(
     seatsBooked: 'seats_booked',
     registrationMessage: 'registration_message',
     registrationMessageAr: 'registration_message_ar',
+    repeatRequestsEnabled: 'repeat_requests_enabled',
   };
 
   for (const [key, dbField] of Object.entries(fieldMap)) {
@@ -862,6 +868,7 @@ export async function updateClass(
     seatsBooked: row.seats_booked ?? 0,
     registrationMessage: row.registration_message ?? null,
     registrationMessageAr: row.registration_message_ar ?? null,
+    repeatRequestsEnabled: Boolean(row.repeat_requests_enabled),
   };
 }
 
@@ -1061,6 +1068,7 @@ export async function findClassBySlug(slug: string): Promise<{
   endDateTime: Date | null;
   registrationCloseAt: Date | null;
   scheduleSessions: Array<{ startDateTime: string; endDateTime: string }>;
+  repeatRequestsEnabled: boolean;
 } | null> {
   await ensureClassMinimumAgeSchema();
   const result = await query(
@@ -1103,6 +1111,7 @@ export async function findClassBySlug(slug: string): Promise<{
     endDateTime: row.end_date_time || null,
     registrationCloseAt: row.registration_close_at || null,
     scheduleSessions: Array.isArray(row.schedule_sessions) ? row.schedule_sessions : [],
+    repeatRequestsEnabled: Boolean(row.repeat_requests_enabled),
   };
 }
 

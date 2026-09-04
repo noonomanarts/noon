@@ -59,12 +59,13 @@ export default async function ClassDetailPage({
   const currentUser = await getCurrentUser();
 
   const isEnded = hasWorkshopEnded(classData);
+  const canRequestRepeat = isEnded && Boolean(classData.repeatRequestsEnabled);
 
   const [reviews, trainer, coTrainer, repeatSummaries, viewerReview, viewerCanReview] = await Promise.all([
     findClassReviews(classData.id),
     classData.trainerId ? findTrainerById(classData.trainerId) : Promise.resolve(null),
     classData.coTrainerId ? findTrainerById(classData.coTrainerId) : Promise.resolve(null),
-    isEnded
+    canRequestRepeat
       ? getClassRepeatRequestSummaries([classData.id], currentUser?.id ?? null)
       : Promise.resolve<Record<string, ClassRepeatRequestSummary>>({}),
     currentUser ? getClassReviewForUser(classData.id, currentUser.id) : Promise.resolve(null),
@@ -128,6 +129,12 @@ export default async function ClassDetailPage({
     workshopEnded: isArabic ? "انتهت هذه الورشة" : "This workshop has ended",
     noActiveSchedule:
       isArabic ? "لا يوجد موعد نشط لهذه الورشة حالياً، ويمكنك طلب إعادتها من القسم الجانبي." : "There is no active schedule for this workshop right now. You can request a repeat from the side panel.",
+    noActiveScheduleGeneric:
+      isArabic ? "لا يوجد موعد نشط لهذه الورشة حالياً." : "There is no active schedule for this workshop right now.",
+    workshopEndedHint:
+      isArabic
+        ? "لا تتوفر حالياً خيارات لإعادة هذه الورشة."
+        : "There are no options available for repeating this workshop right now.",
     minimumAge: isArabic ? "الحد الأدنى للعمر" : "Minimum Age",
     maximumAge: isArabic ? "الحد الأقصى للعمر" : "Maximum Age",
     ageRange: isArabic ? "الفئة العمرية" : "Age Range",
@@ -338,7 +345,7 @@ export default async function ClassDetailPage({
                       {t.workshopEnded}
                     </p>
                     <p className="mt-1 text-sm leading-6 text-amber-800/90 dark:text-amber-100/80">
-                      {t.noActiveSchedule}
+                      {canRequestRepeat ? t.noActiveSchedule : t.noActiveScheduleGeneric}
                     </p>
                   </div>
                 ) : null}
@@ -450,7 +457,7 @@ export default async function ClassDetailPage({
             ) : isEnded ? (
               <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
                 <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">{t.workshopEnded}</p>
-                <p className="mt-2 text-sm leading-6 text-amber-800/90 dark:text-amber-100/80">{t.noActiveSchedule}</p>
+                <p className="mt-2 text-sm leading-6 text-amber-800/90 dark:text-amber-100/80">{canRequestRepeat ? t.noActiveSchedule : t.noActiveScheduleGeneric}</p>
               </div>
             ) : (
               <p className="mt-4 text-sm text-[color:var(--text-muted)]">{t.noSchedule}</p>
@@ -485,7 +492,7 @@ export default async function ClassDetailPage({
 
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm sm:p-7">
-            <h3 className="text-xl font-semibold text-[color:var(--text)]">{isEnded ? t.repeatThisWorkshop : t.bookingCardTitle}</h3>
+            <h3 className="text-xl font-semibold text-[color:var(--text)]">{canRequestRepeat ? t.repeatThisWorkshop : isEnded ? t.workshopEnded : t.bookingCardTitle}</h3>
 
             <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4 text-center">
               <p className={`text-3xl font-semibold ${isCooking ? "text-coral" : "text-purple"}`}>
@@ -493,7 +500,7 @@ export default async function ClassDetailPage({
               </p>
               <p className="mt-1 text-xs text-[color:var(--text-muted)]">{isEnded ? t.lastPublishedPrice : t.perPerson}</p>
             </div>
-            <p className="mt-4 text-sm leading-6 text-[color:var(--text-muted)]">{isEnded ? t.repeatHint : t.bookingHint}</p>
+            <p className="mt-4 text-sm leading-6 text-[color:var(--text-muted)]">{canRequestRepeat ? t.repeatHint : isEnded ? t.workshopEndedHint : t.bookingHint}</p>
 
             {!isEnded && registrationCloseAt && !registrationClosed ? (
               <div className="mt-4">
@@ -531,7 +538,7 @@ export default async function ClassDetailPage({
               </div>
             ) : null}
 
-            {isEnded ? (
+            {canRequestRepeat ? (
               <div className="mt-5">
                 <RequestRepeatButton
                   classId={classData.id}
