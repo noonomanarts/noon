@@ -8,7 +8,7 @@ import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import { getWorkersWithOrdersPermission } from '@/lib/db/worker';
 import { notifyUser } from '@/lib/notificationService';
-import { createShopSaleCostExpenseEntry, createShopSaleFinanceEntry } from '@/lib/db/finance';
+import { createShopSaleFinanceEntry } from '@/lib/db/finance';
 import type { ShopCartItem } from '@/lib/cart';
 
 const SHIPPING_FEE = 2;
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
 
       const productIds = shopCartItems.map((item) => item.productId.trim()).filter((id) => id.length > 0);
       const productResult = await client.query(
-        `SELECT p.id, p.slug, p.name_en, p.name_ar, p.image, p.price, p.cost, p.currency, p.stock_quantity, p.is_active,
+      `SELECT p.id, p.slug, p.name_en, p.name_ar, p.image, p.price, p.cost, p.currency, p.stock_quantity, p.is_active, p.available_online,
                 c.is_active AS category_is_active
          FROM shop_products p
          JOIN shop_categories c ON c.id = p.category_id
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'A cart item is no longer available' }, { status: 409 });
         }
 
-        const isActive = Boolean(product.is_active) && Boolean(product.category_is_active);
+        const isActive = Boolean(product.is_active) && Boolean(product.available_online) && Boolean(product.category_is_active);
         if (!isActive) {
           await client.query('ROLLBACK');
           return NextResponse.json({ error: 'A cart item is inactive and cannot be purchased' }, { status: 409 });

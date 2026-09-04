@@ -6,6 +6,7 @@ import {
   FiAlertTriangle,
   FiBox,
   FiCheckCircle,
+  FiEdit3,
   FiPackage,
   FiPlus,
   FiRefreshCw,
@@ -159,6 +160,10 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
     remove: isArabic ? 'حذف' : 'Remove',
     addLine: isArabic ? 'إضافة سطر' : 'Add Line',
     savePurchase: isArabic ? 'حفظ الشراء' : 'Save Purchase',
+    updatePurchase: isArabic ? 'تحديث الشراء' : 'Update Purchase',
+    editPurchase: isArabic ? 'تعديل' : 'Edit',
+    deletePurchase: isArabic ? 'حذف الشراء' : 'Delete Purchase',
+    editPurchaseConfirm: isArabic ? 'هل تريد حذف سجل الشراء هذا؟ سيتم تحديث رصيد المخزون.' : 'Delete this purchase record? Inventory balances will be recalculated.',
     itemsTable: isArabic ? 'مواد المخزون' : 'Inventory Items',
     workshopSpend: isArabic ? 'تكلفة المواد لكل ورشة' : 'Material Spend by Workshop',
     recentPurchases: isArabic ? 'آخر المشتريات' : 'Recent Purchases',
@@ -201,6 +206,8 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
   const [savingPurchase, setSavingPurchase] = useState(false);
   const [clearingStock, setClearingStock] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const [deletingPurchaseId, setDeletingPurchaseId] = useState<string | null>(null);
+  const [editingPurchaseId, setEditingPurchaseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeFormTab, setActiveFormTab] = useState<'purchase' | 'addItem'>('purchase');
@@ -294,7 +301,31 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
     }
   };
 
-  const handleCreatePurchase = async () => {
+  const toDateTimeInput = (value: string): string => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return defaultOccurredAtInput();
+    const pad = (part: number) => String(part).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const beginEditPurchase = (purchase: Purchase) => {
+    setEditingPurchaseId(purchase.id);
+    setPurchaseForm({
+      supplierName: purchase.supplierName || '',
+      invoiceNumber: purchase.invoiceNumber || '',
+      occurredAt: toDateTimeInput(purchase.occurredAt),
+      notes: purchase.notes || '',
+      lines: purchase.lines.map((line) => ({
+        inventoryItemId: line.inventoryItemId,
+        quantity: String(line.quantity),
+        unitCost: String(line.unitCost),
+        notes: line.notes || '',
+      })),
+    });
+    setActiveFormTab('purchase');
+  };
+
+  const handleSavePurchase = async () => {
     const validLines = purchaseForm.lines
       .map((line) => ({
         inventoryItemId: line.inventoryItemId,
@@ -308,8 +339,11 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
     setSavingPurchase(true); setError(null); setSuccess(null);
     try {
       const occurredAt = purchaseForm.occurredAt ? new Date(purchaseForm.occurredAt).toISOString() : new Date().toISOString();
-      const res = await fetch('/api/admin/inventory/purchases', {
-        method: 'POST',
+      const endpoint = editingPurchaseId
+        ? `/api/admin/inventory/purchases/${editingPurchaseId}`
+        : '/api/admin/inventory/purchases';
+      const res = await fetch(endpoint, {
+        method: editingPurchaseId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           supplierName: purchaseForm.supplierName || null,
@@ -322,12 +356,40 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
       const payload = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) throw new Error(payload.error || 'Failed to save purchase');
       setPurchaseForm(emptyPurchaseForm());
-      setSuccess(t.createPurchaseSuccess);
+      setEditingPurchaseId(null);
+      setSuccess(editingPurchaseId ? t.updatePurchase : t.createPurchaseSuccess);
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save purchase');
     } finally {
       setSavingPurchase(false);
+    }
+  };
+
+  const handleDeletePurchase = async (purchaseId: string) => {
+    const confirmed = await confirm({
+      title: t.deletePurchase,
+      message: t.editPurchaseConfirm,
+      confirmLabel: t.deletePurchase,
+      cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+    setDeletingPurchaseId(purchaseId); setError(null); setSuccess(null);
+    try {
+      const res = await fetch(`/api/admin/inventory/purchases/${purchaseId}`, { method: 'DELETE' });
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new Error(payload.error || 'Failed to delete purchase');
+      if (editingPurchaseId === purchaseId) {
+        setEditingPurchaseId(null);
+        setPurchaseForm(emptyPurchaseForm());
+      }
+      setSuccess(t.deletePurchase);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete purchase');
+    } finally {
+      setDeletingPurchaseId(null);
     }
   };
 
@@ -877,13 +939,22 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
 
                   <button
                     type="button"
-                    onClick={() => void handleCreatePurchase()}
+                    onClick={() => void handleSavePurchase()}
                     disabled={savingPurchase || purchaseFormTotal === 0}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] disabled:opacity-50"
                   >
                     <FiShoppingCart className="size-4" />
-                    {savingPurchase ? '…' : t.savePurchase}
+                    {savingPurchase ? '…' : editingPurchaseId ? t.updatePurchase : t.savePurchase}
                   </button>
+                  {editingPurchaseId ? (
+                    <button
+                      type="button"
+                      onClick={() => { setEditingPurchaseId(null); setPurchaseForm(emptyPurchaseForm()); }}
+                      className="w-full rounded-lg border border-zinc-300 px-4 py-2 text-xs font-semibold text-zinc-600 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    >
+                      {isArabic ? 'إلغاء التعديل' : 'Cancel Edit'}
+                    </button>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -974,6 +1045,23 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
                     </button>
                     {isExpanded && (
                       <div className="mx-4 mb-3 rounded-lg border border-zinc-100 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/40">
+                        <div className="flex justify-end gap-2 border-b border-zinc-100 px-3 py-2 dark:border-zinc-800">
+                          <button
+                            type="button"
+                            onClick={() => beginEditPurchase(purchase)}
+                            className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-2 py-1 text-[11px] font-semibold text-zinc-600 hover:bg-white dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                          >
+                            <FiEdit3 className="size-3" /> {t.editPurchase}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDeletePurchase(purchase.id)}
+                            disabled={deletingPurchaseId === purchase.id}
+                            className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-40 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                          >
+                            <FiTrash2 className="size-3" /> {deletingPurchaseId === purchase.id ? '…' : t.deletePurchase}
+                          </button>
+                        </div>
                         {purchase.lines.map((line) => (
                           <div key={line.id} className="flex items-center justify-between gap-2 border-b border-zinc-100 px-3 py-2 last:border-0 dark:border-zinc-800">
                             <div>

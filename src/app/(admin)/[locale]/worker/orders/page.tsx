@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/db/users";
-import { getWorkerPermissions } from "@/lib/db/worker";
+import { getFullWorkerPermissions, getWorkerPermissions } from "@/lib/db/worker";
 import { listShopOrdersForAdmin } from "@/lib/db/shop";
 import { isLocale, type Locale } from "@/lib/locale";
 import WorkerOrdersClient from "./WorkerOrdersClient";
@@ -22,11 +22,11 @@ export default async function WorkerOrdersPage({
   }
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "WORKER") {
+  if (!user || (user.role !== "WORKER" && user.role !== "ADMIN")) {
     redirect(`/${locale}/account`);
   }
 
-  const permissions = await getWorkerPermissions(user.id);
+  const permissions = user.role === "ADMIN" ? getFullWorkerPermissions(user.id) : await getWorkerPermissions(user.id);
   if (!permissions?.can_manage_orders) {
     redirect(`/${locale}/worker`);
   }

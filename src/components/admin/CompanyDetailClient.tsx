@@ -21,7 +21,6 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
   const [costType, setCostType] = useState<CompanyCostType>('DIRECT_BILL');
   const [costAmount, setCostAmount] = useState(0);
   const [costItem, setCostItem] = useState('');
-  const [costQty, setCostQty] = useState(1);
   const [costNotes, setCostNotes] = useState('');
 
   type PkgRow = { name: string; description: string; quantity: number; price: number };
@@ -42,7 +41,7 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
     profit: isAr ? 'الربح' : 'Profit',
     addCost: isAr ? 'إضافة تكلفة' : 'Add cost',
     direct: isAr ? 'فاتورة مباشرة' : 'Direct bill',
-    inv: isAr ? 'خصم من المخزون' : 'Cut from inventory',
+    inv: isAr ? 'خصم من قيمة المخزون' : 'Cut from inventory value',
     title: isAr ? 'العنوان' : 'Title',
     amount: isAr ? 'المبلغ' : 'Amount',
     item: isAr ? 'الصنف' : 'Item',
@@ -161,7 +160,7 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
       <div className="rounded-xl border border-[color:var(--border)] p-3 text-sm">
         {order.costs.map((c) => (
           <div key={c.id} className="flex items-center justify-between border-b border-[color:var(--border)] py-1.5 last:border-0">
-            <span>{c.title} <span className="text-[color:var(--text-muted)]">({c.costType === 'INVENTORY_CUT' ? `${c.inventoryItemName} x${c.quantity}` : t.direct})</span></span>
+            <span>{c.title} <span className="text-[color:var(--text-muted)]">({c.costType === 'INVENTORY_CUT' ? `${c.inventoryItemName} · ${c.amount.toFixed(3)}` : t.direct})</span></span>
             <span className="flex gap-3">{c.amount.toFixed(3)} {!closed && <button onClick={() => api(`/api/admin/companies/${order.id}/costs?costId=${c.id}`, { method: 'DELETE' })} className="text-red-500">x</button>}</span>
           </div>
         ))}
@@ -178,13 +177,13 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
                   <option value="">{t.item}</option>
                   {inventory.map((i) => <option key={i.id} value={i.id}>{i.name} ({i.currentStock} {i.unit})</option>)}
                 </select>
-                <input type="number" value={costQty} onChange={(e) => setCostQty(Number(e.target.value))} placeholder={t.qty} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2" />
+                <input type="number" min="0.001" step="0.001" value={costAmount || ''} onChange={(e) => setCostAmount(Number(e.target.value))} placeholder={t.amount} aria-label={t.amount} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2" />
               </>
             ) : (
               <input type="number" value={costAmount} onChange={(e) => setCostAmount(Number(e.target.value))} placeholder={t.amount} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2" />
             )}
             <input value={costNotes} onChange={(e) => setCostNotes(e.target.value)} placeholder={t.notes} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2 sm:col-span-2" />
-            <button disabled={busy} onClick={() => api(`/api/admin/companies/${order.id}/costs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: costTitle, costType, amount: costAmount, inventoryItemId: costItem || null, quantity: costQty, notes: costNotes }) }).then(() => { setCostTitle(''); setCostAmount(0); setCostItem(''); setCostNotes(''); })} className="rounded-lg bg-purple-600 px-4 py-2 font-semibold text-white sm:col-span-2">{t.addCost}</button>
+            <button disabled={busy} onClick={() => api(`/api/admin/companies/${order.id}/costs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: costTitle, costType, amount: costAmount, inventoryItemId: costItem || null, notes: costNotes }) }).then((result) => { if (result) { setCostTitle(''); setCostAmount(0); setCostItem(''); setCostNotes(''); } })} className="rounded-lg bg-purple-600 px-4 py-2 font-semibold text-white sm:col-span-2">{t.addCost}</button>
           </div>
         )}
       </div>

@@ -506,6 +506,7 @@ export interface ShopProduct {
   image: string | null;
   gallery_images: string[];
   stock_quantity: number;
+  available_online: boolean;
   is_active: boolean;
   is_featured: boolean;
   sort_order: number;

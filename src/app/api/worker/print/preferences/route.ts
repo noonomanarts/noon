@@ -132,9 +132,9 @@ async function requireAuthorizedWorker() {
   if (!sessionId) return null;
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "WORKER") return null;
+  if (!user || (user.role !== "WORKER" && user.role !== "ADMIN")) return null;
 
-  const permissions = await getWorkerPermissions(user.id);
+  const permissions = user.role === "ADMIN" ? { can_print_labels: true } : await getWorkerPermissions(user.id);
   if (!permissions?.can_print_labels) return null;
 
   return user;

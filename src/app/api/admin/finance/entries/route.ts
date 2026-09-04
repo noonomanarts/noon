@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
+  createInventoryValueExpenseEntry,
   createAdminFinanceEntry,
   getAdminFinanceReport,
   getAdminFinanceSettings,
@@ -8,6 +9,8 @@ import {
   listAdminFinanceReasons,
   type AdminFinanceEntryType,
 } from '@/lib/db/finance';
+import { consumeInventoryValue } from '@/lib/db/inventory';
+import { pool } from '@/lib/db/pool';
 import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
 import { requireAdminSession } from '../_auth';
 
@@ -120,6 +123,39 @@ export async function POST(request: NextRequest) {
 
     if (!isQuarterHourDateTimeValue(body.occurredAt)) {
       return NextResponse.json({ error: 'Finance date/time minutes must be 00, 15, 30, or 45' }, { status: 400 });
+    }
+
+    if (body.type === 'EXPENSE' && body.paymentMethod === 'INVENTORY_VALUE') {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await consumeInventoryValue({
+          db: client,
+          amount: Number(body.amount ?? 0),
+          referenceType: 'ADMIN_FINANCE_ENTRY',
+          referenceId: crypto.randomUUID(),
+          notes: body.notes,
+          adminUserId: auth.user.id,
+        });
+        await createInventoryValueExpenseEntry({
+          db: client,
+          title: body.title ?? '',
+          amount: Number(body.amount ?? 0),
+          currency: body.currency || 'OMR',
+          occurredAt: new Date(body.occurredAt as string),
+          reference: body.reference,
+          counterparty: body.counterparty,
+          notes: body.notes,
+          createdByUserId: auth.user.id,
+        });
+        await client.query('COMMIT');
+        return NextResponse.json({ success: true }, { status: 201 });
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
     }
 
     const entry = await createAdminFinanceEntry({

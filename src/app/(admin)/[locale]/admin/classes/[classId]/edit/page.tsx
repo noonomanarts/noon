@@ -1000,6 +1000,24 @@ export default function EditClassPage() {
           </div>
         </div>
 
+        <div className={sectionCard}>
+          <label className="flex items-start gap-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <input
+              type="checkbox"
+              name="repeatRequestsEnabled"
+              checked={formData.repeatRequestsEnabled}
+              onChange={handleInputChange}
+              className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-teal-700 focus:ring-teal-500"
+            />
+            <span>
+              <span className="block">{isRTL ? 'السماح بطلب إعادة الورشة' : 'Allow repeat requests'}</span>
+              <span className="mt-1 block text-xs font-normal text-zinc-500 dark:text-zinc-400">
+                {isRTL ? 'عند التفعيل يمكن للعملاء طلب إعادة هذه الورشة بعد انتهائها.' : 'When enabled, customers can request this workshop again after it ends.'}
+              </span>
+            </span>
+          </label>
+        </div>
+
         {/* Category & Details */}
         <div className={sectionCard}>
           <div className="flex items-center gap-3 mb-4">

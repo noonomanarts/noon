@@ -260,7 +260,7 @@ export async function POST(request: NextRequest) {
       if (shopItems.length > 0) {
         const productIds = shopItems.map((item) => item.productId.trim()).filter((id) => id.length > 0);
         const productResult = await client.query(
-          `SELECT p.id, p.slug, p.name_en, p.name_ar, p.image, p.price, p.currency, p.stock_quantity, p.is_active,
+          `SELECT p.id, p.slug, p.name_en, p.name_ar, p.image, p.price, p.currency, p.stock_quantity, p.is_active, p.available_online,
                   c.is_active AS category_is_active
            FROM shop_products p
            JOIN shop_categories c ON c.id = p.category_id
@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
 
           const stock = Number(product.stock_quantity);
           const requestedQty = Math.max(1, Math.trunc(Number(cartItem.quantity)));
-          if (!Boolean(product.is_active) || !Boolean(product.category_is_active) || stock < requestedQty) {
+          if (!Boolean(product.is_active) || !Boolean(product.available_online) || !Boolean(product.category_is_active) || stock < requestedQty) {
             await client.query('ROLLBACK');
             return NextResponse.json({ error: `Insufficient stock for ${String(product.name_en)}` }, { status: 409 });
           }

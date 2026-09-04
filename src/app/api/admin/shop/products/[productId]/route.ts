@@ -64,6 +64,7 @@ export async function PATCH(
       image?: string | null;
       galleryImages?: string[];
       stockQuantity?: number;
+      availableOnline?: boolean;
       isActive?: boolean;
       isFeatured?: boolean;
       sortOrder?: number;
@@ -96,6 +97,7 @@ export async function PATCH(
       image: body.image,
       galleryImages: Array.isArray(body.galleryImages) ? body.galleryImages : undefined,
       stockQuantity: body.stockQuantity !== undefined ? Number(body.stockQuantity) : undefined,
+      availableOnline: body.availableOnline,
       isActive: body.isActive,
       isFeatured: body.isFeatured,
       sortOrder: body.sortOrder !== undefined ? Number(body.sortOrder) : undefined,

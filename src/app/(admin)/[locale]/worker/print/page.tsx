@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/db/users";
-import { getWorkerPermissions, getProductsForWorker } from "@/lib/db/worker";
+import { getFullWorkerPermissions, getWorkerPermissions, getProductsForWorker } from "@/lib/db/worker";
 import PrintLabelsClient from "./PrintLabelsClient";
 
 export default async function PrintLabelsPage({
@@ -16,9 +16,9 @@ export default async function PrintLabelsPage({
   if (!sessionId) redirect(`/${locale}/login`);
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "WORKER") redirect(`/${locale}`);
+  if (!user || (user.role !== "WORKER" && user.role !== "ADMIN")) redirect(`/${locale}`);
 
-  const permissions = await getWorkerPermissions(user.id);
+  const permissions = user.role === "ADMIN" ? getFullWorkerPermissions(user.id) : await getWorkerPermissions(user.id);
   if (!permissions?.can_print_labels) redirect(`/${locale}/worker`);
 
   const products = await getProductsForWorker();

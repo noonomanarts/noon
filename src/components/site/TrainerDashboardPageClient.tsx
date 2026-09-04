@@ -50,6 +50,18 @@ function formatRating(value: number | null | undefined): string {
   return value.toFixed(1);
 }
 
+function calculateAge(dateOfBirth: string | null): number | null {
+  if (!dateOfBirth) return null;
+  const dob = new Date(`${dateOfBirth.slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(dob.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const beforeBirthday = today.getMonth() < dob.getMonth()
+    || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate());
+  if (beforeBirthday) age -= 1;
+  return age >= 0 && age <= 120 ? age : null;
+}
+
 function formatCategoryLabel(value: string): string {
   return value
     .toLowerCase()
@@ -763,6 +775,27 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm dark:border-zinc-700 dark:bg-zinc-900/60 sm:col-span-2">
+                      <p className="mb-2 font-semibold text-zinc-800 dark:text-zinc-100">
+                        {isArabic ? 'المشاركون' : 'Participants'} ({workshop.participants.length})
+                      </p>
+                      {workshop.participants.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {workshop.participants.map((participant, index) => {
+                            const age = calculateAge(participant.dateOfBirth);
+                            return (
+                              <span key={`${participant.name}-${index}`} className="rounded-full bg-white px-3 py-1.5 text-xs text-zinc-700 shadow-sm dark:bg-zinc-800 dark:text-zinc-200">
+                                {participant.name}{age !== null ? ` · ${age} ${isArabic ? 'سنة' : age === 1 ? 'year' : 'years'}` : ''}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          {isArabic ? 'لا توجد بيانات مشاركين بعد.' : 'No participant details available yet.'}
+                        </p>
+                      )}
+                    </div>
                     <div className="text-sm sm:col-span-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-zinc-700 dark:text-zinc-300">

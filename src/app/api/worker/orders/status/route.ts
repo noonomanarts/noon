@@ -17,12 +17,12 @@ export async function POST(request: Request) {
     }
 
     const user = await getUserById(sessionId);
-    if (!user || user.role !== 'WORKER') {
+    if (!user || (user.role !== 'WORKER' && user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check permission
-    const permissions = await getWorkerPermissions(user.id);
+    const permissions = user.role === 'ADMIN' ? { can_manage_orders: true } : await getWorkerPermissions(user.id);
     if (!permissions?.can_manage_orders) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }

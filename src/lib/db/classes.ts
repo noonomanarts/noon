@@ -559,6 +559,7 @@ export async function createClass(data: {
   scheduleSessions?: Array<{ startDateTime: string; endDateTime: string }>;
   registrationMessage?: string | null;
   registrationMessageAr?: string | null;
+  repeatRequestsEnabled?: boolean;
 }): Promise<Record<string, unknown>> {
   await ensureClassFinanceSchema();
   await ensureClassMinimumAgeSchema();
@@ -580,8 +581,9 @@ export async function createClass(data: {
       minimum_age, maximum_age, show_minimum_age,
       start_date_time, end_date_time, registration_close_at, schedule_sessions,
       registration_message, registration_message_ar,
+      repeat_requests_enabled,
       created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43::jsonb, $44, $45, $46, $47)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43::jsonb, $44, $45, $46, $47, $48)
       RETURNING *`,
     [
       id,
@@ -629,6 +631,7 @@ export async function createClass(data: {
       JSON.stringify(data.scheduleSessions ?? []),
       data.registrationMessage ?? null,
       data.registrationMessageAr ?? null,
+      data.repeatRequestsEnabled ?? true,
       now,
       now,
     ]
@@ -686,6 +689,7 @@ export async function createClass(data: {
     seatsBooked: row.seats_booked ?? 0,
     registrationMessage: row.registration_message ?? null,
     registrationMessageAr: row.registration_message_ar ?? null,
+    repeatRequestsEnabled: row.repeat_requests_enabled !== false,
   };
 }
 

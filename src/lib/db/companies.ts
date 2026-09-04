@@ -260,6 +260,10 @@ export async function addCompanyCost(orderId: string, input: {
 }): Promise<void> {
   const title = text(input.title, 200);
   if (!title) throw new Error('Cost title is required.');
+  const amount = Math.max(0, toMoney(input.amount));
+  if (input.costType === 'INVENTORY_CUT' && amount <= 0) {
+    throw new Error('Enter the amount to cut from inventory value.');
+  }
   await query(
     `INSERT INTO company_order_costs (order_id, title, cost_type, amount, inventory_item_id, quantity, notes, created_by_user_id)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
@@ -267,7 +271,7 @@ export async function addCompanyCost(orderId: string, input: {
       orderId,
       title,
       input.costType,
-      Math.max(0, toMoney(input.amount)),
+      amount,
       input.costType === 'INVENTORY_CUT' ? input.inventoryItemId || null : null,
       input.costType === 'INVENTORY_CUT' ? (input.quantity == null ? null : toMoney(input.quantity)) : null,
       text(input.notes ?? null, 2000),
@@ -314,35 +318,48 @@ export async function closeCompanyOrder(orderId: string, adminUserId: string): P
 
   const client = await getClient();
   let totalCost = 0;
+  const postedCostAmounts = new Map<string, number>();
   try {
     await client.query('BEGIN');
 
     for (const cost of detail.costs) {
-      if (cost.costType === 'INVENTORY_CUT' && cost.inventoryItemId && cost.quantity && cost.quantity > 0) {
+      if (cost.costType === 'INVENTORY_CUT' && cost.inventoryItemId) {
         const itemResult = await client.query(
-          `SELECT current_stock, average_unit_cost, name FROM inventory_items WHERE id = $1 FOR UPDATE`,
+          `SELECT current_stock, average_unit_cost, allows_manual_cost, name FROM inventory_items WHERE id = $1 FOR UPDATE`,
           [cost.inventoryItemId]
         );
         const itemRow = itemResult.rows[0];
         if (!itemRow) throw new Error('Inventory item not found.');
         const stock = toMoney(itemRow.current_stock);
-        if (stock < cost.quantity) {
-          throw new Error(`Insufficient stock for "${String(itemRow.name)}". Available: ${stock.toFixed(3)}, required: ${cost.quantity.toFixed(3)}.`);
-        }
         const unitCost = toMoney(itemRow.average_unit_cost);
-        const lineCost = cost.amount > 0 ? cost.amount : toMoney(cost.quantity * unitCost);
+        const requestedAmount = cost.amount > 0
+          ? cost.amount
+          : toMoney((cost.quantity ?? 0) * unitCost);
+        if (requestedAmount <= 0) {
+          throw new Error(`Enter an amount for inventory cost "${String(itemRow.name)}".`);
+        }
+        if (unitCost <= 0) {
+          throw new Error(`Inventory item "${String(itemRow.name)}" has no average cost.`);
+        }
+        const requiredQuantity = toMoney(requestedAmount / unitCost);
+        if (stock < requiredQuantity) {
+          throw new Error(`Insufficient stock for "${String(itemRow.name)}". Available value: ${(stock * unitCost).toFixed(3)}, required: ${requestedAmount.toFixed(3)}.`);
+        }
+        const lineCost = requestedAmount;
         totalCost += lineCost;
         await client.query(
           `UPDATE inventory_items SET current_stock = current_stock - $1, total_consumed_cost = total_consumed_cost + $2, updated_by_user_id = $3, updated_at = NOW() WHERE id = $4`,
-          [cost.quantity, lineCost, adminUserId, cost.inventoryItemId]
+          [requiredQuantity, lineCost, adminUserId, cost.inventoryItemId]
         );
         await client.query(
           `INSERT INTO inventory_movements (inventory_item_id, movement_type, direction, quantity, unit_cost, total_cost, reference_type, reference_id, company_order_id, notes, occurred_at, created_by_user_id, created_at)
            VALUES ($1, 'ADJUSTMENT_OUT', 'OUT', $2, $3, $4, 'COMPANY_SETTLEMENT', $5, $5, $6, NOW(), $7, NOW())`,
-          [cost.inventoryItemId, cost.quantity, unitCost, lineCost, orderId, cost.notes || null, adminUserId]
+          [cost.inventoryItemId, requiredQuantity, unitCost, lineCost, orderId, cost.notes || null, adminUserId]
         );
+        postedCostAmounts.set(cost.id, lineCost);
       } else {
         totalCost += cost.amount;
+        postedCostAmounts.set(cost.id, cost.amount);
       }
     }
 
@@ -361,7 +378,7 @@ export async function closeCompanyOrder(orderId: string, adminUserId: string): P
 
   const label = `Company project: ${detail.companyName} (#${detail.invoiceNumber})`;
   for (const cost of detail.costs) {
-    const amount = cost.amount;
+    const amount = postedCostAmounts.get(cost.id) ?? cost.amount;
     if (amount <= 0) continue;
     await createAdminFinanceEntry({
       type: 'EXPENSE',
@@ -376,17 +393,16 @@ export async function closeCompanyOrder(orderId: string, adminUserId: string): P
     }).catch(() => undefined);
   }
 
-  const profit = toMoney(detail.totalAmount - totalCost);
-  if (profit > 0) {
+  if (detail.totalAmount > 0) {
     await createAdminFinanceEntry({
       type: 'INCOME',
-      title: `${label} - net income`,
+      title: `${label} - revenue`,
       category: 'Other Income',
-      amount: profit,
+      amount: detail.totalAmount,
       currency: detail.currency,
       counterparty: detail.companyName,
-      notes: 'Net profit from company project after costs.',
-      metadata: { source: 'COMPANY_SETTLEMENT', companyOrderId: orderId, component: 'NET_PROFIT' },
+      notes: 'Gross revenue from company project.',
+      metadata: { source: 'COMPANY_SETTLEMENT', companyOrderId: orderId, component: 'GROSS_REVENUE' },
       createdByUserId: adminUserId,
     }).catch(() => undefined);
   }

@@ -1,0 +1,2 @@
+ALTER TABLE classes
+ADD COLUMN IF NOT EXISTS repeat_requests_enabled BOOLEAN NOT NULL DEFAULT TRUE;

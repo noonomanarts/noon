@@ -100,6 +100,10 @@ export type TrainerDashboardWorkshopPublic = {
   participantsCount?: number;
   feedbackCount?: number;
   averageRating?: number | null;
+  participants: Array<{
+    name: string;
+    dateOfBirth: string | null;
+  }>;
   submission: {
     recipeSubmitted: boolean;
     recipePdf: string | null;
@@ -1271,6 +1275,7 @@ export async function updateTrainerWorkshopSubmission(args: {
     seatsAvailable: Math.max(0, seatsTotal - seatsBooked),
     bookingsCount: 0,
     participantsCount: 0,
+    participants: [],
     feedbackCount: 0,
     averageRating: null,
     submission: {
@@ -1318,6 +1323,14 @@ function mapDashboardWorkshopRow(row: Record<string, unknown>): TrainerDashboard
     participantsCount: Number(row.participants_count || 0),
     feedbackCount: Number(row.feedback_count || 0),
     averageRating: row.average_rating === null || row.average_rating === undefined ? null : Number(row.average_rating),
+    participants: Array.isArray(row.participants)
+      ? row.participants
+          .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+          .map((item) => ({
+            name: sanitizeText(item.name, 255) || 'Participant',
+            dateOfBirth: sanitizeText(item.dateOfBirth, 30),
+          }))
+      : [],
     submission: {
       recipeSubmitted: Boolean(row.recipe_submitted),
       recipePdf: sanitizeText(row.recipe_pdf, 500),
@@ -1378,6 +1391,7 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
         COALESCE(booking_stats.participants_count, 0) AS participants_count,
         COALESCE(review_stats.feedback_count, 0) AS feedback_count,
         review_stats.average_rating
+        ,participants_stats.participants
       FROM classes c
       LEFT JOIN LATERAL (
         SELECT
@@ -1387,6 +1401,20 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
         WHERE b.class_id = c.id
           AND b.status <> 'CANCELLED'
       ) AS booking_stats ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(jsonb_agg(jsonb_build_object(
+          'name', COALESCE(NULLIF(TRIM(p.participant->>'fullName'), ''), u.full_name),
+          'dateOfBirth', NULLIF(p.participant->>'dateOfBirth', '')
+        ) ORDER BY b.created_at ASC), '[]'::jsonb) AS participants
+        FROM bookings b
+        INNER JOIN users u ON u.id = b.user_id
+        CROSS JOIN LATERAL jsonb_array_elements(
+          CASE WHEN jsonb_typeof(b.participants) = 'array' THEN b.participants ELSE '[]'::jsonb END
+        ) AS p(participant)
+        WHERE b.class_id = c.id
+          AND b.status <> 'CANCELLED'
+          AND COALESCE((p.participant->>'isFreePartner')::boolean, FALSE) = FALSE
+      ) AS participants_stats ON TRUE
       LEFT JOIN LATERAL (
         SELECT
           COUNT(*)::int AS feedback_count,
@@ -1433,6 +1461,7 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
         COALESCE(booking_stats.participants_count, 0) AS participants_count,
         COALESCE(review_stats.feedback_count, 0) AS feedback_count,
         review_stats.average_rating
+        ,participants_stats.participants
       FROM classes c
       LEFT JOIN LATERAL (
         SELECT
@@ -1442,6 +1471,20 @@ export async function getTrainerDashboardData(trainerId: string): Promise<Traine
         WHERE b.class_id = c.id
           AND b.status <> 'CANCELLED'
       ) AS booking_stats ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT COALESCE(jsonb_agg(jsonb_build_object(
+          'name', COALESCE(NULLIF(TRIM(p.participant->>'fullName'), ''), u.full_name),
+          'dateOfBirth', NULLIF(p.participant->>'dateOfBirth', '')
+        ) ORDER BY b.created_at ASC), '[]'::jsonb) AS participants
+        FROM bookings b
+        INNER JOIN users u ON u.id = b.user_id
+        CROSS JOIN LATERAL jsonb_array_elements(
+          CASE WHEN jsonb_typeof(b.participants) = 'array' THEN b.participants ELSE '[]'::jsonb END
+        ) AS p(participant)
+        WHERE b.class_id = c.id
+          AND b.status <> 'CANCELLED'
+          AND COALESCE((p.participant->>'isFreePartner')::boolean, FALSE) = FALSE
+      ) AS participants_stats ON TRUE
       LEFT JOIN LATERAL (
         SELECT
           COUNT(*)::int AS feedback_count,

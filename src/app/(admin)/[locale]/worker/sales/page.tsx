@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/db/users";
-import { getWorkerPermissions, getInShopSales } from "@/lib/db/worker";
+import { getFullWorkerPermissions, getWorkerPermissions, getInShopSales } from "@/lib/db/worker";
 import { isLocale, type Locale } from "@/lib/locale";
 import WorkerSalesClient from "./WorkerSalesClient";
 
@@ -21,17 +21,17 @@ export default async function WorkerSalesPage({
   }
 
   const user = await getUserById(sessionId);
-  if (!user || user.role !== "WORKER") {
+  if (!user || (user.role !== "WORKER" && user.role !== "ADMIN")) {
     redirect(`/${locale}/account`);
   }
 
-  const permissions = await getWorkerPermissions(user.id);
+  const permissions = user.role === "ADMIN" ? getFullWorkerPermissions(user.id) : await getWorkerPermissions(user.id);
   if (!permissions?.can_record_sales) {
     redirect(`/${locale}/worker`);
   }
 
   const { sales } = await getInShopSales({
-    workerUserId: user.id,
+    workerUserId: user.role === "ADMIN" ? undefined : user.id,
     limit: 50,
   });
 

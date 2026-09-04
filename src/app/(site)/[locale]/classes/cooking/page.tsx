@@ -147,13 +147,15 @@ function ClassCard({
             {priceText}
           </p>
           {isEnded ? (
-            <RequestRepeatButton
-              classId={cls.id}
-              locale={locale}
-              initialCount={repeatRequestsCount}
-              initialRequested={requestedByCurrentUser}
-              compact
-            />
+            cls.repeatRequestsEnabled ? (
+              <RequestRepeatButton
+                classId={cls.id}
+                locale={locale}
+                initialCount={repeatRequestsCount}
+                initialRequested={requestedByCurrentUser}
+                compact
+              />
+            ) : null
           ) : (
             <Link
               href={`/${locale}/classes/${cls.slug}`}

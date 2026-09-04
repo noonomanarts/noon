@@ -86,6 +86,7 @@ async function ensureShopProductsTable(): Promise<void> {
         image TEXT,
         gallery_images JSONB NOT NULL DEFAULT '[]'::jsonb,
         stock_quantity INTEGER NOT NULL DEFAULT 0,
+        available_online BOOLEAN NOT NULL DEFAULT TRUE,
         is_active BOOLEAN NOT NULL DEFAULT TRUE,
         is_featured BOOLEAN NOT NULL DEFAULT FALSE,
         sort_order INTEGER NOT NULL DEFAULT 0,
@@ -98,6 +99,7 @@ async function ensureShopProductsTable(): Promise<void> {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_products_slug ON shop_products(slug)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_shop_products_active_featured ON shop_products(is_active, is_featured)`);
     await pool.query(`ALTER TABLE shop_products ADD COLUMN IF NOT EXISTS cost DECIMAL(10, 3) NOT NULL DEFAULT 0`);
+    await pool.query(`ALTER TABLE shop_products ADD COLUMN IF NOT EXISTS available_online BOOLEAN NOT NULL DEFAULT TRUE`);
     await pool.query(`
       CREATE TABLE IF NOT EXISTS shop_product_reviews (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -311,6 +313,7 @@ function mapProduct(row: Record<string, unknown>): ShopProduct {
     image: (row.image as string | null) ?? null,
     gallery_images: Array.isArray(gallery) ? (gallery as string[]) : [],
     stock_quantity: Number(row.stock_quantity ?? 0),
+    available_online: row.available_online !== false,
     is_active: Boolean(row.is_active),
     is_featured: Boolean(row.is_featured),
     sort_order: Number(row.sort_order ?? 0),
@@ -672,6 +675,7 @@ export async function createShopProduct(input: {
   image?: string | null;
   galleryImages?: string[];
   stockQuantity?: number;
+  availableOnline?: boolean;
   isActive?: boolean;
   isFeatured?: boolean;
   sortOrder?: number;
@@ -695,9 +699,9 @@ export async function createShopProduct(input: {
   const result = await pool.query(
     `INSERT INTO shop_products
       (category_id, slug, name_en, name_ar, description_en, description_ar, price, cost, currency, sku, image, gallery_images,
-       stock_quantity, is_active, is_featured, sort_order)
-     VALUES
-      ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, ''), $11, $12::jsonb, $13, $14, $15, $16)
+       stock_quantity, available_online, is_active, is_featured, sort_order)
+      VALUES
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULLIF($10, ''), $11, $12::jsonb, $13, $14, $15, $16, $17)
      RETURNING *`,
     [
       input.categoryId,
@@ -713,6 +717,7 @@ export async function createShopProduct(input: {
       input.image?.trim() || null,
       JSON.stringify(galleryImages),
       Number.isFinite(input.stockQuantity) ? Number(input.stockQuantity) : 0,
+      input.availableOnline ?? true,
       input.isActive ?? true,
       input.isFeatured ?? false,
       Number.isFinite(input.sortOrder) ? Number(input.sortOrder) : 0,
@@ -738,6 +743,7 @@ export async function updateShopProduct(
     image?: string | null;
     galleryImages?: string[];
     stockQuantity?: number;
+    availableOnline?: boolean;
     isActive?: boolean;
     isFeatured?: boolean;
     sortOrder?: number;
@@ -811,6 +817,10 @@ export async function updateShopProduct(
     updates.push(`stock_quantity = $${idx++}`);
     values.push(Number.isFinite(input.stockQuantity) ? Number(input.stockQuantity) : 0);
   }
+  if (input.availableOnline !== undefined) {
+    updates.push(`available_online = $${idx++}`);
+    values.push(input.availableOnline);
+  }
   if (input.isActive !== undefined) {
     updates.push(`is_active = $${idx++}`);
     values.push(input.isActive);
@@ -863,7 +873,7 @@ export async function listShopProductsForPublic(options?: {
   await ensureShopProductsTable();
 
   const params: Array<string | boolean | number> = [true, true];
-  const where: string[] = ['p.is_active = $1', 'c.is_active = $2'];
+  const where: string[] = ['p.is_active = $1', 'p.available_online = TRUE', 'c.is_active = $2'];
 
   if (options?.categorySlug?.trim()) {
     params.push(normalizeSlug(options.categorySlug));
@@ -917,6 +927,7 @@ export async function getShopProductBySlugForPublic(slug: string): Promise<
      JOIN shop_categories c ON c.id = p.category_id
      WHERE p.slug = $1
        AND p.is_active = TRUE
+       AND p.available_online = TRUE
        AND c.is_active = TRUE
      LIMIT 1`,
     [normalizedSlug]
@@ -1104,6 +1115,7 @@ export async function listRelatedShopProductsForPublic(options: {
      WHERE p.category_id = $1
        AND p.id <> $2
        AND p.is_active = TRUE
+       AND p.available_online = TRUE
        AND c.is_active = TRUE
      ORDER BY p.is_featured DESC, p.sort_order ASC, p.created_at DESC
      LIMIT $3`,
@@ -1136,6 +1148,7 @@ export async function getShopProductsByIdsForPublic(ids: string[]): Promise<
      JOIN shop_categories c ON c.id = p.category_id
      WHERE p.id = ANY($1::uuid[])
        AND p.is_active = TRUE
+       AND p.available_online = TRUE
        AND c.is_active = TRUE`,
     [cleanedIds]
   );
