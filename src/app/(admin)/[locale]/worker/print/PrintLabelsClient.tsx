@@ -149,7 +149,6 @@ export default function PrintLabelsClient({ locale, products }: Props) {
   const isArabic = locale === "ar";
   const [search, setSearch] = useState("");
   const [labelItems, setLabelItems] = useState<LabelItem[]>([]);
-  const [showPreview, setShowPreview] = useState(false);
   const [settings, setSettings] = useState<LabelSettings>({
     widthMm: 58,
     heightMm: 38,
@@ -238,6 +237,8 @@ export default function PrintLabelsClient({ locale, products }: Props) {
       typographyPreview: isArabic ? "معاينة الخط" : "Font preview",
       sampleProduct: isArabic ? "منتج تجريبي" : "Sample Product",
       sampleDetails: isArabic ? "تفاصيل المنتج والتاريخ" : "Product details and date",
+      livePreviewHint: isArabic ? "تظهر التغييرات هنا مباشرة قبل الطباعة" : "All print setting changes appear here in real time",
+      previewEmptyHint: isArabic ? "أضف منتجًا إلى قائمة الطباعة لرؤية الملصق الفعلي" : "Add a product to the print queue to preview the actual label",
     }),
     [isArabic]
   );
@@ -471,285 +472,287 @@ export default function PrintLabelsClient({ locale, products }: Props) {
 
   const totalLabels = labelItems.reduce((sum, item) => sum + item.quantity, 0);
   const labelFontFamily = getLabelFontFamily(settings.fontFamily, isArabic);
-
-  const handlePrint = () => {
-    setShowPreview(true);
-    setTimeout(() => {
-      window.print();
-    }, 100);
+  const labelEntries = labelItems.flatMap((item) =>
+    Array.from({ length: item.quantity }, (_, copyIndex) => ({ item, copyIndex }))
+  );
+  const previewProduct: ProductForLabel = {
+    id: "live-preview",
+    name_en: t.sampleProduct,
+    name_ar: t.sampleProduct,
+    sku: "SKU-001",
+    price: 12.5,
+    currency: "OMR",
+    stock_quantity: 0,
+    image: null,
+    latest_expiry_date: null,
+    latest_production_date: null,
   };
+  const previewEntries =
+    labelEntries.length > 0
+      ? labelEntries
+      : [{ item: { product: previewProduct, quantity: 1 }, copyIndex: 0, placeholder: true }];
 
-  if (showPreview) {
+  const renderLabel = (entry: (typeof previewEntries)[number]) => {
+    const { item, copyIndex } = entry;
+    const placeholder = "placeholder" in entry && entry.placeholder;
+
     return (
-      <div className="print-preview-root min-h-screen bg-white p-4">
-        {/* Print Controls */}
-        <div className="mb-4 flex justify-center gap-4 print:hidden">
-          <button
-            type="button"
-            onClick={() => setShowPreview(false)}
-            className="rounded-lg bg-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-300"
+      <div
+        key={item.product.id + "-" + copyIndex}
+        className={"label flex flex-col justify-between border border-zinc-300 p-2 print:border-0 " + (placeholder ? "print:hidden opacity-70" : "")}
+        dir={isArabic ? "rtl" : "ltr"}
+        style={{
+          width: settings.widthMm + "mm",
+          height: settings.heightMm + "mm",
+          padding: settings.paddingMm + "mm",
+          fontFamily: labelFontFamily,
+        }}
+      >
+        <div className="space-y-1 text-center">
+          <p
+            className="label-title font-bold leading-tight"
+            style={{ fontSize: getScaledFontSize(11, settings.fontScale, settings.titleScale) }}
           >
-            {t.back}
-          </button>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800"
-          >
-            <FiPrinter className="h-4 w-4" />
-            {t.print}
-          </button>
-        </div>
-        <p className="mb-4 text-center text-xs text-zinc-500 print:hidden">
-          {settings.pageMode === "single" ? t.printHintSingle : t.printHintSheet}
-        </p>
-
-        {/* Labels Grid */}
-        <div
-          className="label-grid flex flex-wrap print:gap-0"
-          style={{ gap: `${settings.gapMm}mm` }}
-        >
-          {labelItems.flatMap((item) =>
-            Array.from({ length: item.quantity }).map((_, i) => (
-              <div
-                key={`${item.product.id}-${i}`}
-                className="label flex flex-col justify-between border border-zinc-300 p-2 print:border-0"
-                dir={isArabic ? "rtl" : "ltr"}
-                style={{
-                  width: `${settings.widthMm}mm`,
-                  height: `${settings.heightMm}mm`,
-                  padding: `${settings.paddingMm}mm`,
-                  fontFamily: labelFontFamily,
-                }}
-              >
-                <div className="space-y-1 text-center">
-                  <p
-                    className="label-title font-bold leading-tight"
-                    style={{ fontSize: getScaledFontSize(11, settings.fontScale, settings.titleScale) }}
-                  >
-                    {isArabic ? item.product.name_ar : item.product.name_en}
-                  </p>
-                  {settings.showSecondaryLanguage && !isArabic && item.product.name_ar && (
-                    <p
-                      className="label-subtitle text-zinc-500"
-                      style={{ fontSize: getScaledFontSize(10, settings.fontScale, settings.metaScale) }}
-                    >
-                      {item.product.name_ar}
-                    </p>
-                  )}
-                  {settings.showSecondaryLanguage && isArabic && item.product.name_en && (
-                    <p
-                      className="label-subtitle text-zinc-500"
-                      style={{ fontSize: getScaledFontSize(10, settings.fontScale, settings.metaScale) }}
-                    >
-                      {item.product.name_en}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  {settings.showDates && (
-                    <div
-                      className="label-dates space-y-0.5 leading-tight text-zinc-700"
-                      style={{ fontSize: getScaledFontSize(9, settings.fontScale, settings.metaScale) }}
-                    >
-                      <p className="flex items-center justify-between gap-2">
-                        <span className="font-semibold">{t.productionDate}</span>
-                        <span>{formatLabelDate(item.product.latest_production_date)}</span>
-                      </p>
-                      <p className="flex items-center justify-between gap-2">
-                        <span className="font-semibold">{t.expiryDate}</span>
-                        <span>{formatLabelDate(item.product.latest_expiry_date)}</span>
-                      </p>
-                    </div>
-                  )}
-                  {(settings.showSku || settings.showPrice) && (
-                    <div className="label-footer flex items-end justify-between gap-2 border-t border-zinc-200 pt-1">
-                      {settings.showSku && item.product.sku ? (
-                        <span
-                          className="label-sku text-zinc-400"
-                          style={{ fontSize: getScaledFontSize(8, settings.fontScale, settings.metaScale) }}
-                        >
-                          {item.product.sku}
-                        </span>
-                      ) : (
-                        <span />
-                      )}
-                      {settings.showPrice && (
-                        <span
-                          className="label-price font-bold"
-                          style={{ fontSize: getScaledFontSize(15, settings.fontScale, settings.priceScale) }}
-                        >
-                          {item.product.price.toFixed(3)} {item.product.currency}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))
+            {isArabic ? item.product.name_ar : item.product.name_en}
+          </p>
+          {settings.showSecondaryLanguage && !isArabic && item.product.name_ar && (
+            <p
+              className="label-subtitle text-zinc-500"
+              style={{ fontSize: getScaledFontSize(10, settings.fontScale, settings.metaScale) }}
+            >
+              {item.product.name_ar}
+            </p>
+          )}
+          {settings.showSecondaryLanguage && isArabic && item.product.name_en && (
+            <p
+              className="label-subtitle text-zinc-500"
+              style={{ fontSize: getScaledFontSize(10, settings.fontScale, settings.metaScale) }}
+            >
+              {item.product.name_en}
+            </p>
           )}
         </div>
-
-        {/* Print Styles */}
-        <style jsx global>{`
-          @page {
-            size: ${settings.pageMode === "single" ? `${settings.widthMm}mm ${settings.heightMm}mm` : "A4 portrait"};
-            margin: ${settings.pageMode === "single" ? "0" : "8mm"};
-          }
-
-          @media print {
-            html,
-            body {
-              width: ${settings.pageMode === "single" ? `${settings.widthMm}mm` : "auto"};
-              height: ${settings.pageMode === "single" ? `${settings.heightMm}mm` : "auto"};
-              margin: 0 !important;
-              padding: 0 !important;
-              background: #fff;
-              overflow: visible !important;
-            }
-
-            .print-preview-root {
-              min-height: auto !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-            }
-
-            body * {
-              visibility: hidden;
-            }
-
-            .label-grid,
-            .label-grid * {
-              visibility: visible;
-            }
-
-            .label-grid {
-              position: ${settings.pageMode === "single" ? "fixed" : "static"};
-              left: ${settings.pageMode === "single" ? "50%" : "auto"};
-              top: ${settings.pageMode === "single" ? "50%" : "auto"};
-              transform: ${settings.pageMode === "single" ? "translate(-50%, -50%)" : "none"};
-              display: flex;
-              flex-wrap: wrap;
-              justify-content: center;
-              align-content: center;
-              width: ${settings.pageMode === "single" ? `${settings.widthMm}mm` : "fit-content"};
-              max-width: ${settings.pageMode === "single" ? `${settings.widthMm}mm` : "calc(100% - 16mm)"};
-              margin: ${settings.pageMode === "single" ? "0" : "0 auto"};
-              padding: 0;
-              gap: ${settings.gapMm}mm;
-            }
-
-            .label {
-              width: ${settings.widthMm}mm !important;
-              height: ${settings.heightMm}mm !important;
-              margin: 0 !important;
-              border: 0 !important;
-              page-break-inside: avoid;
-              break-inside: avoid;
-              page-break-after: ${settings.pageMode === "single" ? "always" : "auto"};
-              break-after: ${settings.pageMode === "single" ? "page" : "auto"};
-              overflow: hidden;
-              box-sizing: border-box;
-              padding: ${settings.paddingMm}mm;
-              color: #000 !important;
-              overflow-wrap: anywhere;
-            }
-
-            .label:last-child {
-              page-break-after: auto;
-              break-after: auto;
-            }
-
-            .print\:hidden {
-              display: none !important;
-            }
-
-            .dark,
-            .dark * {
-              color-scheme: light;
-            }
-
-            * {
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-
-            .label p,
-            .label span {
-              color: #000 !important;
-            }
-
-            .label .text-zinc-500,
-            .label .text-zinc-400,
-            .label .text-zinc-700 {
-              color: #000 !important;
-            }
-
-            .label .border-zinc-200 {
-              border-color: #e5e7eb !important;
-            }
-
-            .label .border-t {
-              border-top-width: 1px;
-            }
-
-            .label * {
-              page-break-inside: avoid;
-            }
-
-            .label p,
-            .label span {
-              line-height: ${settings.printProfile === "thermal" ? 1.12 : 1.18} !important;
-              text-rendering: geometricPrecision;
-            }
-
-            .label-title {
-              font-weight: ${settings.printProfile === "balanced" ? 700 : 800} !important;
-              letter-spacing: ${settings.printProfile === "thermal" ? "0.05px" : "0.15px"};
-              max-height: 2.45em;
-              overflow: hidden;
-              overflow-wrap: anywhere;
-            }
-
-            .label-subtitle {
-              font-weight: ${settings.printProfile === "balanced" ? 500 : 600} !important;
-            }
-
-            .label-dates {
-              font-weight: ${settings.printProfile === "balanced" ? 500 : 600} !important;
-            }
-
-            .label-sku {
-              font-weight: ${settings.printProfile === "thermal" ? 700 : 600} !important;
-              letter-spacing: 0.2px;
-            }
-
-            .label-price {
-              font-weight: 900 !important;
-              letter-spacing: 0.2px;
-              white-space: nowrap;
-            }
-
-            .label-footer {
-              border-top-color: ${settings.printProfile === "balanced" ? "#111" : "#000"} !important;
-              border-top-width: ${settings.printProfile === "balanced" ? "1px" : "1.4px"} !important;
-            }
-
-            .label * {
-              -webkit-font-smoothing: antialiased;
-            }
-          }
-        `}</style>
+        <div className="space-y-1">
+          {settings.showDates && (
+            <div
+              className="label-dates space-y-0.5 leading-tight text-zinc-700"
+              style={{ fontSize: getScaledFontSize(9, settings.fontScale, settings.metaScale) }}
+            >
+              <p className="flex items-center justify-between gap-2">
+                <span className="font-semibold">{t.productionDate}</span>
+                <span>{formatLabelDate(item.product.latest_production_date)}</span>
+              </p>
+              <p className="flex items-center justify-between gap-2">
+                <span className="font-semibold">{t.expiryDate}</span>
+                <span>{formatLabelDate(item.product.latest_expiry_date)}</span>
+              </p>
+            </div>
+          )}
+          {(settings.showSku || settings.showPrice) && (
+            <div className="label-footer flex items-end justify-between gap-2 border-t border-zinc-200 pt-1">
+              {settings.showSku && item.product.sku ? (
+                <span
+                  className="label-sku text-zinc-400"
+                  style={{ fontSize: getScaledFontSize(8, settings.fontScale, settings.metaScale) }}
+                >
+                  {item.product.sku}
+                </span>
+              ) : (
+                <span />
+              )}
+              {settings.showPrice && (
+                <span
+                  className="label-price font-bold"
+                  style={{ fontSize: getScaledFontSize(15, settings.fontScale, settings.priceScale) }}
+                >
+                  {item.product.price.toFixed(3)} {item.product.currency}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
-  }
+  };
 
+  const handlePrint = () => {
+    if (totalLabels === 0) return;
+    window.print();
+  };
   return (
-    <div className="space-y-6">
+    <div className="print-preview-root space-y-6">
       <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
+
+      <section
+        id="live-label-preview"
+        className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+      >
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3 print:hidden">
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">{t.preview}</h2>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              {settings.pageMode === "single" ? t.printHintSingle : t.printHintSheet}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
+              {totalLabels} {t.labels}
+            </span>
+            <button
+              type="button"
+              onClick={handlePrint}
+              disabled={totalLabels === 0}
+              className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+            >
+              <FiPrinter className="h-4 w-4" />
+              {t.print}
+            </button>
+          </div>
+        </div>
+
+        <div className="preview-stage max-h-[520px] overflow-auto rounded-lg border border-dashed border-zinc-300 bg-zinc-100 p-4 dark:border-zinc-700 dark:bg-zinc-950">
+          <div
+            className="label-grid flex min-h-[180px] min-w-full flex-wrap items-center justify-center"
+            style={{ gap: settings.gapMm + "mm" }}
+          >
+            {previewEntries.map(renderLabel)}
+          </div>
+        </div>
+
+        <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400 print:hidden">
+          {totalLabels === 0 ? t.previewEmptyHint : t.livePreviewHint}
+        </p>
+      </section>
+
+      <style jsx global>{`
+        @page {
+          size: ${settings.pageMode === "single" ? `${settings.widthMm}mm ${settings.heightMm}mm` : "A4 portrait"};
+          margin: ${settings.pageMode === "single" ? "0" : "8mm"};
+        }
+
+        @media print {
+          html,
+          body {
+            width: ${settings.pageMode === "single" ? `${settings.widthMm}mm` : "auto"};
+            height: ${settings.pageMode === "single" ? `${settings.heightMm}mm` : "auto"};
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff;
+            overflow: visible !important;
+          }
+
+          .print-preview-root {
+            min-height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          body * {
+            visibility: hidden;
+          }
+
+          .label-grid,
+          .label-grid * {
+            visibility: visible;
+          }
+
+          .preview-stage {
+            max-height: none !important;
+            overflow: visible !important;
+            border: 0 !important;
+            background: #fff !important;
+            padding: 0 !important;
+          }
+
+          .label-grid {
+            position: ${settings.pageMode === "single" ? "fixed" : "static"};
+            left: ${settings.pageMode === "single" ? "50%" : "auto"};
+            top: ${settings.pageMode === "single" ? "50%" : "auto"};
+            transform: ${settings.pageMode === "single" ? "translate(-50%, -50%)" : "none"};
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-content: center;
+            width: ${settings.pageMode === "single" ? `${settings.widthMm}mm` : "fit-content"};
+            max-width: ${settings.pageMode === "single" ? `${settings.widthMm}mm` : "calc(100% - 16mm)"};
+            margin: ${settings.pageMode === "single" ? "0" : "0 auto"};
+            padding: 0;
+            min-height: 0 !important;
+            gap: ${settings.gapMm}mm;
+          }
+
+          .label {
+            width: ${settings.widthMm}mm !important;
+            height: ${settings.heightMm}mm !important;
+            margin: 0 !important;
+            border: 0 !important;
+            box-sizing: border-box;
+            padding: ${settings.paddingMm}mm;
+            overflow: hidden;
+            color: #000 !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            page-break-after: ${settings.pageMode === "single" ? "always" : "auto"};
+            break-after: ${settings.pageMode === "single" ? "page" : "auto"};
+            overflow-wrap: anywhere;
+          }
+
+          .label:last-child {
+            page-break-after: auto;
+            break-after: auto;
+          }
+
+          .print\\:hidden {
+            display: none !important;
+          }
+
+          * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+
+          .label p,
+          .label span {
+            color: #000 !important;
+            line-height: ${settings.printProfile === "thermal" ? 1.12 : 1.18} !important;
+            text-rendering: geometricPrecision;
+          }
+
+          .label-title {
+            font-weight: ${settings.printProfile === "balanced" ? 700 : 800} !important;
+            letter-spacing: ${settings.printProfile === "thermal" ? "0.05px" : "0.15px"};
+            max-height: 2.45em;
+            overflow: hidden;
+            overflow-wrap: anywhere;
+          }
+
+          .label-subtitle,
+          .label-dates {
+            font-weight: ${settings.printProfile === "balanced" ? 500 : 600} !important;
+          }
+
+          .label-sku {
+            font-weight: ${settings.printProfile === "thermal" ? 700 : 600} !important;
+            letter-spacing: 0.2px;
+          }
+
+          .label-price {
+            font-weight: 900 !important;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+          }
+
+          .label-footer {
+            border-top-color: ${settings.printProfile === "balanced" ? "#111" : "#000"} !important;
+            border-top-width: ${settings.printProfile === "balanced" ? "1px" : "1.4px"} !important;
+          }
+
+          .label * {
+            page-break-inside: avoid;
+            -webkit-font-smoothing: antialiased;
+          }
+        }
+      `}</style>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Product Search */}
@@ -831,8 +834,7 @@ export default function PrintLabelsClient({ locale, products }: Props) {
               <p className="text-sm text-zinc-500 dark:text-zinc-400">{t.noItems}</p>
             </div>
           ) : (
-            <>
-              <div className="mb-4 max-h-[300px] space-y-2 overflow-y-auto">
+            <div className="mb-4 max-h-[300px] space-y-2 overflow-y-auto">
                 {labelItems.map((item) => (
                   <div
                     key={item.product.id}
@@ -874,9 +876,10 @@ export default function PrintLabelsClient({ locale, products }: Props) {
                     </div>
                   </div>
                 ))}
-              </div>
+            </div>
+          )}
 
-              <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/60">
+          <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-800/60">
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">{t.printSettings}</h3>
                   <div className="flex items-center gap-3">
@@ -1201,30 +1204,20 @@ export default function PrintLabelsClient({ locale, products }: Props) {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between border-t border-zinc-200 pt-4 dark:border-zinc-700">
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {totalLabels} {t.labels}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowPreview(true)}
-                    className="rounded-lg bg-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
-                  >
-                    {t.preview}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handlePrint}
-                    className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
-                  >
-                    <FiPrinter className="h-4 w-4" />
-                    {t.print}
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
+          <div className="flex items-center justify-between border-t border-zinc-200 pt-4 dark:border-zinc-700">
+            <span className="text-sm text-zinc-600 dark:text-zinc-400">
+              {totalLabels} {t.labels}
+            </span>
+            <button
+              type="button"
+              onClick={handlePrint}
+              disabled={totalLabels === 0}
+              className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100"
+            >
+              <FiPrinter className="h-4 w-4" />
+              {t.print}
+            </button>
+          </div>
         </div>
       </div>
     </div>
