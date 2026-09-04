@@ -1,7 +1,9 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FiPrinter } from 'react-icons/fi';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
@@ -135,6 +137,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
     uploadGallery: isArabic ? 'رفع صورة للمعرض' : 'Upload gallery image',
     delete: isArabic ? 'حذف' : 'Delete',
     edit: isArabic ? 'تعديل' : 'Edit',
+    printLabels: isArabic ? 'طباعة الباركود والأسعار' : 'Print barcodes & prices',
   };
 
   const createMode = !editor.id;
@@ -414,7 +417,16 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
+          <Link
+            href={`/${locale}/admin/shop/products/print`}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/30 focus:ring-offset-2 dark:focus:ring-offset-zinc-950 sm:text-sm"
+          >
+            <FiPrinter className="size-4" />
+            {t.printLabels}
+          </Link>
+        </div>
       </div>
 
       {info && (

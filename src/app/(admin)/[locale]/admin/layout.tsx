@@ -82,6 +82,7 @@ export default async function AdminLayout({
     shop: locale === "ar" ? "المتجر" : "Shop",
     shopCategories: locale === "ar" ? "الفئات" : "Categories",
     shopProducts: locale === "ar" ? "المنتجات" : "Products",
+    shopPrintLabels: locale === "ar" ? "طباعة الباركود والأسعار" : "Print Barcodes & Prices",
     shopDiscoverMore: locale === "ar" ? "الروابط" : "Links",
     shopOrders: locale === "ar" ? "الطلبات" : "Orders",
     workerTools: locale === "ar" ? "عمليات المتجر" : "Shop Operations",
@@ -180,6 +181,7 @@ export default async function AdminLayout({
           items: [
             { iconName: "FiPackage" as const, iconColor: "text-blue-600 dark:text-blue-400", label: t.shopCategories, href: `/${locale}/admin/shop/categories` },
             { iconName: "FiShoppingBag" as const, iconColor: "text-purple-600 dark:text-purple-400", label: t.shopProducts, href: `/${locale}/admin/shop/products` },
+            { iconName: "FiPrinter" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.shopPrintLabels, href: `/${locale}/admin/shop/products/print` },
             { iconName: "FiFileText" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.shopDiscoverMore, href: `/${locale}/admin/shop/discover-more` },
             { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: t.shopOrders, href: `/${locale}/admin/shop/orders` },
             { iconName: "FiTruck" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.workerTools, href: `/${locale}/worker` },
