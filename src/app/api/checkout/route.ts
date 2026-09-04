@@ -89,6 +89,20 @@ function getEventItems(items: CartItem[]): EventCartItem[] {
   return items.filter((item): item is EventCartItem => item.kind === 'EVENT_BOOKING');
 }
 
+type LockedClassRow = {
+  id: string;
+  title: string;
+  title_ar: string | null;
+  price: number | string;
+  currency: string;
+  sub_category: string | null;
+  seats_total: number | string | null;
+  seats_booked: number | string | null;
+  status: string;
+  start_date_time: string | Date | null;
+  registration_close_at: string | Date | null;
+};
+
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
 
@@ -283,7 +297,12 @@ export async function POST(request: NextRequest) {
 
           const stock = Number(product.stock_quantity);
           const requestedQty = Math.max(1, Math.trunc(Number(cartItem.quantity)));
-          if (!Boolean(product.is_active) || !Boolean(product.available_online) || !Boolean(product.category_is_active) || stock < requestedQty) {
+          if (!Boolean(product.is_active) || !Boolean(product.available_online) || !Boolean(product.category_is_active)) {
+            await client.query('ROLLBACK');
+            return NextResponse.json({ error: `${String(product.name_en)} is no longer available online` }, { status: 409 });
+          }
+
+          if (stock < requestedQty) {
             await client.query('ROLLBACK');
             return NextResponse.json({ error: `Insufficient stock for ${String(product.name_en)}` }, { status: 409 });
           }
@@ -315,14 +334,79 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Never trust class pricing or availability data from the client cart.
+      // Lock each class once, validate the aggregate seat request, and use the
+      // authoritative database values for both the charge and booking rows.
+      const classRowsById = new Map<string, LockedClassRow>();
+      const requestedSeatsByClass = new Map<string, number>();
+      for (const item of classItems) {
+        let classRow = classRowsById.get(item.classId);
+        if (!classRow) {
+          const classResult = await client.query<LockedClassRow>(
+            `SELECT id, title, title_ar, price, currency, sub_category, seats_total, seats_booked, status, start_date_time, registration_close_at
+             FROM classes
+             WHERE id = $1
+             FOR UPDATE`,
+            [item.classId]
+          );
+          classRow = classResult.rows[0];
+          if (classRow) {
+            classRowsById.set(item.classId, classRow);
+          }
+        }
+
+        if (!classRow || classRow.status !== 'PUBLISHED') {
+          await client.query('ROLLBACK');
+          return NextResponse.json({ error: 'A class in your cart is no longer available' }, { status: 409 });
+        }
+
+        if (classRow.start_date_time && new Date(classRow.start_date_time).getTime() < Date.now()) {
+          await client.query('ROLLBACK');
+          return NextResponse.json({ error: 'A class in your cart has already started' }, { status: 409 });
+        }
+
+        if (isRegistrationClosed(classRow.start_date_time, classRow.registration_close_at)) {
+          await client.query('ROLLBACK');
+          return NextResponse.json({ error: 'Registration for a class in your cart is closed' }, { status: 409 });
+        }
+
+        requestedSeatsByClass.set(
+          item.classId,
+          (requestedSeatsByClass.get(item.classId) ?? 0) + item.numberOfParticipants
+        );
+      }
+
+      for (const [classId, requestedSeats] of requestedSeatsByClass) {
+        const classRow = classRowsById.get(classId);
+        const seatsAvailable = classRow
+          ? Math.max(0, Number(classRow.seats_total ?? 0) - Number(classRow.seats_booked ?? 0))
+          : 0;
+        if (!classRow || requestedSeats > seatsAvailable) {
+          await client.query('ROLLBACK');
+          return NextResponse.json({ error: 'Not enough seats available for a class in your cart' }, { status: 409 });
+        }
+      }
+
+      const authoritativeClassItems = classItems.map((item) => {
+        const classRow = classRowsById.get(item.classId) as LockedClassRow;
+        const unitPrice = Number(classRow.price);
+        const rawTotal = Number((unitPrice * item.numberOfParticipants).toFixed(3));
+        return {
+          cartItem: item,
+          classRow,
+          totalAmount: rawTotal,
+          discountedTotal: rawTotal,
+        };
+      });
+
       const discountedSubtotal = Number(Math.max(0, subtotal - discountAmount).toFixed(3));
 
       // Summer Camp discount: 10% off when booking 2+ workshops or 2+ kids
-      const summerCampItems = classItems.filter(item => item.subCategory === 'SUMMER_CAMP');
+      const summerCampItems = authoritativeClassItems.filter(({ classRow }) => classRow.sub_category === 'SUMMER_CAMP');
       let summerCampGetsDiscount = false;
       let shouldGenerateSummerCampPromo = false;
       if (summerCampItems.length > 0) {
-        const totalSummerCampKids = summerCampItems.reduce((sum, item) => sum + item.numberOfParticipants, 0);
+        const totalSummerCampKids = summerCampItems.reduce((sum, item) => sum + item.cartItem.numberOfParticipants, 0);
         const priorBookingResult = await client.query(
           `SELECT 1
            FROM bookings b
@@ -333,7 +417,7 @@ export async function POST(request: NextRequest) {
              AND b.payment_status = 'PAID'
              AND b.status IN ('CONFIRMED', 'COMPLETED')
            LIMIT 1`,
-          [authenticatedUser.id, summerCampItems.map(i => i.classId)]
+          [authenticatedUser.id, summerCampItems.map(i => i.cartItem.classId)]
         );
         const hasPriorBooking = priorBookingResult.rows.length > 0;
         summerCampGetsDiscount = summerCampItems.length >= 2 || totalSummerCampKids >= 2 || hasPriorBooking;
@@ -341,9 +425,12 @@ export async function POST(request: NextRequest) {
       }
 
       const classTotal = Number(
-        classItems.reduce((sum, item) => {
-          const raw = Number((item.price * item.numberOfParticipants).toFixed(3));
-          return sum + (item.subCategory === 'SUMMER_CAMP' && summerCampGetsDiscount ? Number((raw * 0.9).toFixed(3)) : raw);
+        authoritativeClassItems.reduce((sum, item) => {
+          const discountedTotal = item.classRow.sub_category === 'SUMMER_CAMP' && summerCampGetsDiscount
+            ? Number((item.totalAmount * 0.9).toFixed(3))
+            : item.totalAmount;
+          item.discountedTotal = discountedTotal;
+          return sum + discountedTotal;
         }, 0).toFixed(3)
       );
       const payableTotal = Number((discountedSubtotal + shippingFee + classTotal).toFixed(3));
@@ -455,35 +542,9 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      for (const item of classItems) {
-        const classResult = await client.query(
-          `SELECT id, title, title_ar, price, currency, seats_total, seats_booked, status, start_date_time, registration_close_at
-           FROM classes
-           WHERE id = $1
-           FOR UPDATE`,
-          [item.classId]
-        );
-        const classRow = classResult.rows[0];
-        if (!classRow || classRow.status !== 'PUBLISHED') {
-          await client.query('ROLLBACK');
-          return NextResponse.json({ error: 'A class in your cart is no longer available' }, { status: 409 });
-        }
-
-        if (classRow.start_date_time && new Date(classRow.start_date_time as string).getTime() < Date.now()) {
-          await client.query('ROLLBACK');
-          return NextResponse.json({ error: 'A class in your cart has already started' }, { status: 409 });
-        }
-
-        if (isRegistrationClosed(classRow.start_date_time, classRow.registration_close_at)) {
-          await client.query('ROLLBACK');
-          return NextResponse.json({ error: 'Registration for a class in your cart is closed' }, { status: 409 });
-        }
-
-        const seatsAvailable = Math.max(0, Number(classRow.seats_total ?? 0) - Number(classRow.seats_booked ?? 0));
-        if (item.numberOfParticipants > seatsAvailable) {
-          await client.query('ROLLBACK');
-          return NextResponse.json({ error: 'Not enough seats available for a class in your cart' }, { status: 409 });
-        }
+      for (const authoritativeItem of authoritativeClassItems) {
+        const item = authoritativeItem.cartItem;
+        const classRow = authoritativeItem.classRow;
 
         let bookingNumber = '';
         for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -505,13 +566,8 @@ export async function POST(request: NextRequest) {
                 item.classId,
                 JSON.stringify([...item.participants, ...item.freePartners]),
                 item.numberOfParticipants,
-                (() => {
-                  const raw = Number((item.price * item.numberOfParticipants).toFixed(3));
-                  return item.subCategory === 'SUMMER_CAMP' && summerCampGetsDiscount
-                    ? Number((raw * 0.9).toFixed(3))
-                    : raw;
-                })(),
-                item.currency,
+                authoritativeItem.discountedTotal,
+                String(classRow.currency || currency),
                 item.specialRequests || null,
               ]
             );
@@ -528,7 +584,7 @@ export async function POST(request: NextRequest) {
               bookingNumber: String(bookingInsert.rows[0].booking_number),
               totalAmount: Number(bookingInsert.rows[0].total_amount ?? 0),
               currency: String(bookingInsert.rows[0].currency || currency),
-              classTitle: (classRow.title_ar as string | null) || String(classRow.title),
+              classTitle: classRow.title_ar || String(classRow.title),
               classId: String(classRow.id),
             });
             break;
