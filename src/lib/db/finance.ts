@@ -1571,6 +1571,10 @@ export async function createShopRestockExpenseEntry(params: {
   });
 }
 
+/**
+ * @deprecated Shop sales are recorded as income only in Finance. Product cost
+ * remains in shop/inventory data and must not create a separate Finance expense.
+ */
 export async function createShopSaleCostExpenseEntry(params: {
   db: Queryable;
   saleType: 'SHOP_ORDER' | 'IN_SHOP_SALE';
@@ -1581,34 +1585,11 @@ export async function createShopSaleCostExpenseEntry(params: {
   customerName?: string | null;
   occurredAt?: Date;
 }): Promise<void> {
-  await ensureAdminFinanceSchema();
-
   if (params.totalCost <= 0) {
     return;
   }
 
-  const expenseReason = await resolveAutoFinanceReason({
-    db: params.db,
-    type: 'EXPENSE',
-    preferredNames: ['Cost of Goods Sold', 'Supplies', 'Other Expense'],
-    fallbackName: 'Cost of Goods Sold',
-  });
-
-  await insertAutoFinanceEntry({
-    db: params.db,
-    type: 'EXPENSE',
-    title: `Shop sale cost: ${params.referenceNumber}`,
-    amount: params.totalCost,
-    currency: params.currency,
-    occurredAt: params.occurredAt ?? new Date(),
-    reason: expenseReason,
-    counterparty: params.customerName || null,
-    notes: 'Auto-generated product cost for a completed shop sale.',
-    metadata: {
-      source: params.saleType,
-      referenceId: params.referenceId,
-      referenceNumber: params.referenceNumber,
-      component: 'PRODUCT_COST',
-    },
-  });
+  // Intentionally no finance insert. Callers can be removed incrementally;
+  // this central guard keeps all current sale paths income-only.
+  await ensureAdminFinanceSchema();
 }
