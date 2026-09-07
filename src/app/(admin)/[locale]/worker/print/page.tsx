@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/db/users";
-import { getFullWorkerPermissions, getWorkerPermissions, getProductsForWorker } from "@/lib/db/worker";
+import { getProductsForPrintLabels } from "@/lib/db/print-labels";
+import { getFullWorkerPermissions, getWorkerPermissions } from "@/lib/db/worker";
 import PrintLabelsClient from "./PrintLabelsClient";
 
 export default async function PrintLabelsPage({
@@ -21,7 +22,7 @@ export default async function PrintLabelsPage({
   const permissions = user.role === "ADMIN" ? getFullWorkerPermissions(user.id) : await getWorkerPermissions(user.id);
   if (!permissions?.can_print_labels) redirect(`/${locale}/worker`);
 
-  const products = await getProductsForWorker();
+  const products = await getProductsForPrintLabels();
 
   return <PrintLabelsClient locale={locale} products={products} />;
 }
