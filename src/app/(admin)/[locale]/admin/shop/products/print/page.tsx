@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/db/users";
-import { getProductsForWorker } from "@/lib/db/worker";
+import { getProductsForPrintLabels } from "@/lib/db/print-labels";
 import { isLocale, type Locale } from "@/lib/locale";
 import PrintLabelsClient from "../../../../worker/print/PrintLabelsClient";
 
@@ -24,7 +24,7 @@ export default async function AdminPrintLabelsPage({
     redirect(`/${locale}/account`);
   }
 
-  const products = await getProductsForWorker();
+  const products = await getProductsForPrintLabels();
 
   return <PrintLabelsClient locale={locale} products={products} />;
 }
