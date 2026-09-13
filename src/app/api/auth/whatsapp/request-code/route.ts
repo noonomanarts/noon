@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getUserByEmail, getUserByPhoneNormalized } from '@/lib/db/users';
+import { query } from '@/lib/db/pool';
 import { issueWhatsAppVerificationCode, type WhatsAppVerificationPurpose } from '@/lib/db/whatsappAuth';
-import { sendWhatsAppText } from '@/lib/whatsappClient';
+import { sendWhatsAppOtp } from '@/lib/whatsapp/otpSender';
 
 export const runtime = 'nodejs';
 
@@ -16,12 +17,24 @@ function getClientIp(request: Request): string | undefined {
   return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || undefined;
 }
 
+async function invalidateVerificationCode(verificationId: string): Promise<void> {
+  await query(
+    `UPDATE whatsapp_verification_codes
+     SET consumed_at = NOW(), updated_at = NOW()
+     WHERE id = $1
+       AND consumed_at IS NULL`,
+    [verificationId]
+  );
+}
+
 export async function POST(request: Request) {
+  let isArabic = false;
+
   try {
     const body = (await request.json().catch(() => ({}))) as RequestPayload;
 
     const purpose = body.purpose === 'register' ? 'REGISTER' : body.purpose === 'login' ? 'LOGIN' : null;
-    const isArabic = body.locale === 'ar';
+    isArabic = body.locale === 'ar';
     const phoneNumber = typeof body.phoneNumber === 'string' ? body.phoneNumber.trim() : '';
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
 
@@ -34,10 +47,9 @@ export async function POST(request: Request) {
       if (!user || user.status !== 'ACTIVE') {
         return NextResponse.json(
           {
-            error:
-              isArabic
-                ? 'لا يوجد حساب مفعل بهذا الرقم.'
-                : 'No active account found with this phone number.',
+            error: isArabic
+              ? 'لا يوجد حساب مفعل بهذا الرقم.'
+              : 'No active account found with this phone number.',
           },
           { status: 404 }
         );
@@ -49,10 +61,9 @@ export async function POST(request: Request) {
       if (existingByPhone) {
         return NextResponse.json(
           {
-            error:
-              isArabic
-                ? 'رقم الهاتف مسجل بالفعل. استخدم تسجيل الدخول.'
-                : 'Phone number is already registered. Please login instead.',
+            error: isArabic
+              ? 'رقم الهاتف مسجل بالفعل. استخدم تسجيل الدخول.'
+              : 'Phone number is already registered. Please login instead.',
           },
           { status: 409 }
         );
@@ -79,33 +90,39 @@ export async function POST(request: Request) {
       maxAttempts: 5,
     });
 
-    const codeMessage =
-      isArabic
-        ? `رمز التحقق الخاص بك في Noon هو: ${issued.code}\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أي شخص.`
-        : `Your Noon verification code is: ${issued.code}\nValid for 10 minutes. Do not share this code with anyone.`;
+    const codeMessage = isArabic
+      ? `رمز التحقق الخاص بك في Noon هو: ${issued.code}\nصالح لمدة 10 دقائق. لا تشارك هذا الرمز مع أي شخص.`
+      : `Your Noon verification code is: ${issued.code}\nValid for 10 minutes. Do not share this code with anyone.`;
 
-    const sendResult = await sendWhatsAppText({
+    const sendResult = await sendWhatsAppOtp({
       phoneNumber,
       text: codeMessage,
     });
 
     if (!sendResult.ok) {
-      const sessionStatus = sendResult.diagnostics?.status;
-      const sessionId = sendResult.diagnostics?.sessionId;
-      const details = [
-        sendResult.body.slice(0, 300),
-        sessionId ? `session=${sessionId}` : null,
-        sessionStatus ? `status=${sessionStatus}` : null,
-      ]
-        .filter(Boolean)
-        .join(' | ');
+      // Do not leave a failed delivery as an active code. This also prevents a
+      // WAHA outage from trapping the customer behind the 45-second resend guard.
+      await invalidateVerificationCode(issued.verificationId).catch((error) => {
+        console.error('[whatsapp-auth] Failed to invalidate undelivered verification code:', error);
+      });
+
+      console.error('[whatsapp-auth] OTP delivery failed:', {
+        httpStatus: sendResult.status,
+        sessionId: sendResult.diagnostics.sessionId,
+        sessionStatus: sendResult.diagnostics.sessionStatus,
+        attempts: sendResult.diagnostics.attempts,
+        recovery: sendResult.diagnostics.recovery,
+        upstream: sendResult.internalError,
+      });
 
       return NextResponse.json(
         {
-          error: `Failed to send WhatsApp code (${sendResult.status}).`,
-          details,
+          error: isArabic
+            ? 'خدمة واتساب غير متاحة مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل.'
+            : 'WhatsApp is temporarily unavailable. Please try again shortly.',
+          code: 'WHATSAPP_TEMPORARILY_UNAVAILABLE',
         },
-        { status: 502 }
+        { status: 503 }
       );
     }
 
@@ -116,7 +133,26 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to issue verification code.';
-    const status = message.includes('Please wait before requesting another code') ? 429 : 500;
-    return NextResponse.json({ error: message }, { status });
+
+    if (message.includes('Please wait before requesting another code')) {
+      return NextResponse.json(
+        {
+          error: isArabic
+            ? 'يرجى الانتظار قليلاً قبل طلب رمز آخر.'
+            : 'Please wait before requesting another code.',
+        },
+        { status: 429 }
+      );
+    }
+
+    console.error('[whatsapp-auth] Failed to issue verification code:', error);
+    return NextResponse.json(
+      {
+        error: isArabic
+          ? 'تعذر إرسال رمز التحقق الآن. يرجى المحاولة مرة أخرى.'
+          : 'Unable to send the verification code right now. Please try again.',
+      },
+      { status: 500 }
+    );
   }
 }
