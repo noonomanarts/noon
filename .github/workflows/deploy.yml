@@ -31,8 +31,15 @@ jobs:
 
             cd /root/noon
 
+            echo "Preparing working tree..."
+            APPLE_PAY_ASSOCIATION="public/.well-known/apple-developer-merchantid-domain-association"
+            if [ -e "$APPLE_PAY_ASSOCIATION" ] && ! git ls-files --error-unmatch "$APPLE_PAY_ASSOCIATION" >/dev/null 2>&1; then
+              echo "Removing legacy untracked Apple Pay association file..."
+              rm -f "$APPLE_PAY_ASSOCIATION"
+            fi
+
             echo "Pulling latest code..."
-            git pull origin main
+            git pull --ff-only origin main
 
             echo "Rebuilding and starting containers..."
             docker compose up -d --build
