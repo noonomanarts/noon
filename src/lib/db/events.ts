@@ -210,21 +210,6 @@ export async function findUniqueEventBooking(
 
   const row = result.rows[0];
 
-  void sendAdminEventWhatsApp({
-    text: [
-      'New Event Booking',
-      `Booking: ${row.booking_number}`,
-      `Name: ${data.fullName}`,
-      `Type: ${data.eventType}`,
-      `Date: ${data.selectedDate.toISOString().slice(0, 10)}`,
-      `Time: ${data.selectedTime}`,
-      `Participants: ${data.numberOfParticipants}`,
-      `Phone: ${data.phoneNumber}`,
-    ].join('\n'),
-  }).catch((error) => {
-    console.error('Failed to send event booking admin WhatsApp notification:', error);
-  });
-
   return {
     id: row.id,
     bookingNumber: row.booking_number,
@@ -340,6 +325,21 @@ export async function createEventBooking(data: {
   );
 
   const row = result.rows[0];
+
+  void sendAdminEventWhatsApp({
+    text: [
+      'New Event Booking',
+      `Booking: ${row.booking_number}`,
+      `Name: ${data.fullName}`,
+      `Type: ${data.eventType}`,
+      `Date: ${data.selectedDate.toISOString().slice(0, 10)}`,
+      `Time: ${data.selectedTime}`,
+      `Participants: ${data.numberOfParticipants}`,
+      `Phone: ${data.phoneNumber}`,
+    ].join('\n'),
+  }).catch((error) => {
+    console.error('Failed to send event booking admin WhatsApp notification:', error);
+  });
   return {
     id: row.id,
     bookingNumber: row.booking_number,
