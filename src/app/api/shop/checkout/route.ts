@@ -10,6 +10,7 @@ import { getWorkersWithOrdersPermission } from '@/lib/db/worker';
 import { notifyUser } from '@/lib/notificationService';
 import { createShopSaleFinanceEntry } from '@/lib/db/finance';
 import type { ShopCartItem } from '@/lib/cart';
+import { sendAdminEventWhatsApp } from '@/lib/whatsapp/adminEventNotifications';
 
 const SHIPPING_FEE = 2;
 const DELIVERY_CITY = 'Muscat';
@@ -435,6 +436,20 @@ export async function POST(request: NextRequest) {
       });
 
       await client.query('COMMIT');
+
+      void sendAdminEventWhatsApp({
+        audience: 'SHOP_ORDER_TEAM',
+        text: [
+          'New Shop Order',
+          `Order: ${String(orderInsert.rows[0].order_number)}`,
+          `Customer: ${recipientFullName}`,
+          `Total: ${totalAmount.toFixed(3)} ${String(walletRow.currency || 'OMR')}`,
+          `Phone: ${recipientPhone}`,
+          `Area: ${area}, ${city}`,
+        ].join('\n'),
+      }).catch((error) => {
+        console.error('Failed to send shop order team WhatsApp notification:', error);
+      });
 
       void sendUserTransactionWhatsApp({
         userId: user.id,
