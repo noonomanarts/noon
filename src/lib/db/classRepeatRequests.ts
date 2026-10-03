@@ -10,6 +10,36 @@ import { formatNoonDateTime } from '@/lib/dateTime';
 
 let classRepeatRequestsReady: Promise<void> | null = null;
 
+const CLASS_FAMILY_CTE = `
+WITH RECURSIVE class_ancestry AS (
+  SELECT
+    c.id AS class_id,
+    c.id AS ancestor_id,
+    c.renewed_from_class_id,
+    0 AS depth
+  FROM classes c
+
+  UNION ALL
+
+  SELECT
+    ca.class_id,
+    parent.id AS ancestor_id,
+    parent.renewed_from_class_id,
+    ca.depth + 1
+  FROM class_ancestry ca
+  INNER JOIN classes parent ON parent.id = ca.renewed_from_class_id
+  WHERE ca.renewed_from_class_id IS NOT NULL
+    AND ca.depth < 25
+),
+class_family AS (
+  SELECT DISTINCT ON (class_id)
+    class_id,
+    ancestor_id AS root_class_id
+  FROM class_ancestry
+  ORDER BY class_id, depth DESC
+)
+`;
+
 async function ensureClassRepeatRequestsTable(): Promise<void> {
   if (classRepeatRequestsReady) return classRepeatRequestsReady;
 
@@ -161,9 +191,11 @@ export async function countPendingClassRepeatRequestGroups(): Promise<number> {
   await ensureClassRepeatRequestsTable();
 
   const result = await query<{ count: number }>(
-    `SELECT COUNT(DISTINCT class_id)::int AS count
-     FROM class_repeat_requests
-     WHERE fulfilled_by_class_id IS NULL`
+    `${CLASS_FAMILY_CTE}
+     SELECT COUNT(DISTINCT cf.root_class_id)::int AS count
+     FROM class_repeat_requests crr
+     INNER JOIN class_family cf ON cf.class_id = crr.class_id
+     WHERE crr.fulfilled_by_class_id IS NULL`
   );
 
   return Number(result.rows[0]?.count ?? 0);
@@ -231,8 +263,9 @@ export async function getAdminClassRepeatRequests(options?: {
     last_pending_requested_at: Date | null;
     last_notified_at: Date | null;
   }>(
-    `SELECT
-       crr.class_id,
+    `${CLASS_FAMILY_CTE}
+     SELECT
+       cf.root_class_id AS class_id,
        cls.slug,
        cls.title,
        cls.title_ar,
@@ -249,10 +282,11 @@ export async function getAdminClassRepeatRequests(options?: {
        MAX(crr.created_at) FILTER (WHERE crr.fulfilled_by_class_id IS NULL) AS last_pending_requested_at,
        MAX(crr.notified_at) AS last_notified_at
      FROM class_repeat_requests crr
-     INNER JOIN classes cls ON cls.id = crr.class_id
+     INNER JOIN class_family cf ON cf.class_id = crr.class_id
+     INNER JOIN classes cls ON cls.id = cf.root_class_id
      ${whereSql}
      GROUP BY
-       crr.class_id,
+       cf.root_class_id,
        cls.slug,
        cls.title,
        cls.title_ar,
@@ -407,7 +441,14 @@ async function getPendingRepeatRequestersByClassId(classId: string): Promise<Pen
     full_name: string | null;
     preferred_language: string | null;
   }>(
-    `SELECT
+    `${CLASS_FAMILY_CTE},
+     target_family AS (
+       SELECT root_class_id
+       FROM class_family
+       WHERE class_id = $1
+       LIMIT 1
+     )
+     SELECT
        crr.id AS request_id,
        usr.id AS user_id,
        usr.email,
@@ -415,9 +456,10 @@ async function getPendingRepeatRequestersByClassId(classId: string): Promise<Pen
        usr.full_name,
        usr.preferred_language
      FROM class_repeat_requests crr
+     INNER JOIN class_family cf ON cf.class_id = crr.class_id
+     INNER JOIN target_family tf ON tf.root_class_id = cf.root_class_id
      INNER JOIN users usr ON usr.id = crr.user_id
-     WHERE crr.class_id = $1
-       AND crr.fulfilled_by_class_id IS NULL
+     WHERE crr.fulfilled_by_class_id IS NULL
      ORDER BY crr.created_at DESC`,
     [classId]
   );
