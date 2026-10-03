@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createContactMessage } from "@/lib/db/contacts";
 import { notifyRole } from "@/lib/notificationService";
 import { isValidEmail, isValidPhone } from "@/lib/forms/eventBooking";
+import { sendAdminEventWhatsApp } from "@/lib/whatsapp/adminEventNotifications";
 
 function parseSafeString(value: unknown, maxLength = 3000): string {
   if (typeof value !== "string") return "";
@@ -59,6 +60,18 @@ export async function POST(request: NextRequest) {
         email,
         subject,
       },
+    });
+
+    void sendAdminEventWhatsApp({
+      text: [
+        "New Contact Us Message",
+        `Name: ${name}`,
+        `Subject: ${subject}`,
+        `Email: ${email}`,
+        phone ? `Phone: ${phone}` : "",
+      ].filter(Boolean).join("\n"),
+    }).catch((error) => {
+      console.error("Failed to send Contact Us admin WhatsApp notification:", error);
     });
 
     return NextResponse.json({
