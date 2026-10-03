@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createJoinUsApplication, getJoinUsFormsConfig } from "@/lib/db/joinUs";
 import { notifyRole } from "@/lib/notificationService";
 import { isValidEmail, isValidPhone } from "@/lib/forms/eventBooking";
+import { sendAdminEventWhatsApp } from "@/lib/whatsapp/adminEventNotifications";
 
 function parseSafeString(value: unknown, maxLength = 3000): string {
   if (typeof value !== "string") return "";
@@ -187,6 +188,19 @@ export async function POST(request: NextRequest) {
         formType,
         workshopCategory,
       },
+    });
+
+    void sendAdminEventWhatsApp({
+      text: [
+        "New Join Us Application",
+        `Name: ${fullName}`,
+        `Type: ${formType}`,
+        `Category: ${workshopCategory || "Not specified"}`,
+        `Email: ${email}`,
+        `Phone: ${phone}`,
+      ].join("\n"),
+    }).catch((error) => {
+      console.error("Failed to send Join Us admin WhatsApp notification:", error);
     });
 
     return NextResponse.json({
