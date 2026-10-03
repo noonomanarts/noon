@@ -157,13 +157,22 @@ export async function getClassRepeatRequestSummaries(
     requests_count: number;
     requested_by_current_user: boolean;
   }>(
-    `SELECT
-       crr.class_id,
-       COUNT(*)::int AS requests_count,
-       BOOL_OR(crr.user_id = $2) AS requested_by_current_user
-     FROM class_repeat_requests crr
-     WHERE crr.class_id = ANY($1::uuid[])
-     GROUP BY crr.class_id`,
+    `${CLASS_FAMILY_CTE}
+     SELECT
+       requested.class_id,
+       COUNT(crr.id)::int AS requests_count,
+       COALESCE(
+         BOOL_OR(
+           crr.user_id = $2
+           AND crr.fulfilled_by_class_id IS NULL
+         ),
+         FALSE
+       ) AS requested_by_current_user
+     FROM UNNEST($1::uuid[]) AS requested(class_id)
+     INNER JOIN class_family target_family ON target_family.class_id = requested.class_id
+     INNER JOIN class_family member_family ON member_family.root_class_id = target_family.root_class_id
+     LEFT JOIN class_repeat_requests crr ON crr.class_id = member_family.class_id
+     GROUP BY requested.class_id`,
     [uniqueClassIds, currentUserId ?? null]
   );
 
