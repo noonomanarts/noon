@@ -48,6 +48,7 @@ type ClassWithSessions = {
   seatsBooked: number;
   registrationCloseAt: Date | null;
   repeatRequestsEnabled: boolean;
+  renewedFromClassId: string | null;
 };
 
 function ClassCard({
@@ -217,6 +218,7 @@ export default async function CookingClassesPage({
     seatsBooked: (cls.seatsBooked as number) ?? 0,
     registrationCloseAt: cls.registrationCloseAt ?? null,
     repeatRequestsEnabled: Boolean(cls.repeatRequestsEnabled),
+    renewedFromClassId: cls.renewedFromClassId ?? null,
   }));
 
   const repeatSummaries = await getClassRepeatRequestSummaries(
@@ -271,13 +273,38 @@ export default async function CookingClassesPage({
   const activeClasses = classesWithSessions.filter(
     (cls) => cls.status === "PUBLISHED" && !hasWorkshopEnded(cls)
   );
-  const endedClasses = classesWithSessions
-    .filter((cls) => hasWorkshopEnded(cls) && cls.repeatRequestsEnabled)
+
+  const classesById = new Map(classesWithSessions.map((cls) => [cls.id, cls]));
+  const getFamilyRootId = (cls: ClassWithSessions): string => {
+    let current = cls;
+    const seen = new Set<string>();
+
+    while (current.renewedFromClassId && !seen.has(current.id)) {
+      seen.add(current.id);
+      const parent = classesById.get(current.renewedFromClassId);
+      if (!parent) break;
+      current = parent;
+    }
+
+    return current.id;
+  };
+
+  const activeFamilyIds = new Set(activeClasses.map((cls) => getFamilyRootId(cls)));
+  const endedByFamily = new Map<string, ClassWithSessions>();
+
+  for (const cls of classesWithSessions
+    .filter((item) => hasWorkshopEnded(item) && item.repeatRequestsEnabled)
     .sort((a, b) => {
       const aTime = a.endDateTime ? new Date(a.endDateTime).getTime() : 0;
       const bTime = b.endDateTime ? new Date(b.endDateTime).getTime() : 0;
       return bTime - aTime;
-    });
+    })) {
+    const familyId = getFamilyRootId(cls);
+    if (activeFamilyIds.has(familyId) || endedByFamily.has(familyId)) continue;
+    endedByFamily.set(familyId, cls);
+  }
+
+  const endedClasses = Array.from(endedByFamily.values());
 
   return (
     <div className="route-sharp pb-14">

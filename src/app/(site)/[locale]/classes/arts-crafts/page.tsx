@@ -98,13 +98,38 @@ export default async function ArtsCraftsClassesPage({
   const activeClasses = classesWithDates.filter(
     (cls) => cls.status === "PUBLISHED" && !hasWorkshopEnded(cls)
   );
-  const endedClasses = classesWithDates
-    .filter((cls) => hasWorkshopEnded(cls) && cls.repeatRequestsEnabled)
+
+  const classesById = new Map(classesWithDates.map((cls) => [String(cls.id), cls]));
+  const getFamilyRootId = (cls: (typeof classesWithDates)[number]): string => {
+    let current = cls;
+    const seen = new Set<string>();
+
+    while (current.renewedFromClassId && !seen.has(String(current.id))) {
+      seen.add(String(current.id));
+      const parent = classesById.get(current.renewedFromClassId);
+      if (!parent) break;
+      current = parent;
+    }
+
+    return String(current.id);
+  };
+
+  const activeFamilyIds = new Set(activeClasses.map((cls) => getFamilyRootId(cls)));
+  const endedByFamily = new Map<string, (typeof classesWithDates)[number]>();
+
+  for (const cls of classesWithDates
+    .filter((item) => hasWorkshopEnded(item) && item.repeatRequestsEnabled)
     .sort((a, b) => {
       const aTime = a.endDateTime ? new Date(a.endDateTime).getTime() : 0;
       const bTime = b.endDateTime ? new Date(b.endDateTime).getTime() : 0;
       return bTime - aTime;
-    });
+    })) {
+    const familyId = getFamilyRootId(cls);
+    if (activeFamilyIds.has(familyId) || endedByFamily.has(familyId)) continue;
+    endedByFamily.set(familyId, cls);
+  }
+
+  const endedClasses = Array.from(endedByFamily.values());
 
   return (
     <div className="route-sharp pb-14">

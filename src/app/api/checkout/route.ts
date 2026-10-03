@@ -22,6 +22,7 @@ import { createShopSaleFinanceEntry } from '@/lib/db/finance';
 import { addBonusPoints } from '@/lib/db/wallet';
 import { isRegistrationClosed } from '@/lib/classRegistration';
 import { createEventBooking } from '@/lib/db/events';
+import { sendAdminEventWhatsApp } from '@/lib/whatsapp/adminEventNotifications';
 
 const SHIPPING_FEE = 2;
 const DELIVERY_CITY = 'Muscat';
@@ -657,6 +658,20 @@ export async function POST(request: NextRequest) {
       }
 
       if (shopOrderId && shopOrderNumber) {
+        void sendAdminEventWhatsApp({
+          audience: 'SHOP_ORDER_TEAM',
+          text: [
+            'New Shop Order',
+            `Order: ${shopOrderNumber}`,
+            `Customer: ${recipientFullName}`,
+            `Total: ${shopTotal.toFixed(3)} ${currency}`,
+            `Phone: ${recipientPhone}`,
+            `Area: ${area}, ${city}`,
+          ].join('\n'),
+        }).catch((error) => {
+          console.error('Failed to send shop order team WhatsApp notification:', error);
+        });
+
         void sendUserTransactionWhatsApp({
           userId: authenticatedUser.id,
           key: 'shop_purchase_paid',
