@@ -15,7 +15,6 @@ async function getRecipients(audience: AdminWhatsAppAudience): Promise<Recipient
   const result = await query<RecipientRow>(
     `SELECT DISTINCT u.id, u.full_name, u.phone_number
      FROM users u
-     LEFT JOIN worker_permissions wp ON wp.user_id = u.id
      WHERE u.status = 'ACTIVE'
        AND NULLIF(TRIM(COALESCE(u.phone_number, '')), '') IS NOT NULL
        AND (
@@ -23,8 +22,8 @@ async function getRecipients(audience: AdminWhatsAppAudience): Promise<Recipient
          OR (
            $1::boolean = TRUE
            AND (
-             LOWER(TRIM(COALESCE(u.full_name, ''))) LIKE 'warda%'
-             OR (u.role = 'WORKER' AND COALESCE(wp.can_manage_orders, FALSE) = TRUE)
+             LOWER(TRIM(COALESCE(u.full_name, ''))) LIKE '%warda%'
+             OR u.role = 'WORKER'
            )
          )
        )
