@@ -3,6 +3,7 @@
  */
 import { query, transaction } from "./pool";
 import { generateUUID } from "./uuid";
+import { sendAdminEventWhatsApp } from "@/lib/whatsapp/adminEventNotifications";
 import type { EventType, EventStatus, PackageType, PaymentStatus, CalendarEventType } from "./types";
 
 let eventBookingsDiscountColumnReady: Promise<void> | null = null;
@@ -208,6 +209,22 @@ export async function findUniqueEventBooking(
   if (result.rows.length === 0) return null;
 
   const row = result.rows[0];
+
+  void sendAdminEventWhatsApp({
+    text: [
+      'New Event Booking',
+      `Booking: ${row.booking_number}`,
+      `Name: ${data.fullName}`,
+      `Type: ${data.eventType}`,
+      `Date: ${data.selectedDate.toISOString().slice(0, 10)}`,
+      `Time: ${data.selectedTime}`,
+      `Participants: ${data.numberOfParticipants}`,
+      `Phone: ${data.phoneNumber}`,
+    ].join('\n'),
+  }).catch((error) => {
+    console.error('Failed to send event booking admin WhatsApp notification:', error);
+  });
+
   return {
     id: row.id,
     bookingNumber: row.booking_number,
