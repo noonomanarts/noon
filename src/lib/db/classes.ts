@@ -44,6 +44,7 @@ async function ensureClassMinimumAgeSchema(): Promise<void> {
 
 // Extended ClassPublic with trainer info
 export interface ClassWithTrainer extends ClassPublic {
+  renewedFromClassId: string | null;
   trainer: {
     id: string;
     fullName: string;
@@ -167,6 +168,7 @@ export async function findManyClasses(options: {
     registrationMessage: row.registration_message ?? null,
     registrationMessageAr: row.registration_message_ar ?? null,
     repeatRequestsEnabled: Boolean(row.repeat_requests_enabled),
+    renewedFromClassId: row.renewed_from_class_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
