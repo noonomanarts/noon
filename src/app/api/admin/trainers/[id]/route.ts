@@ -136,9 +136,18 @@ export async function GET(
     // Get trainer profile
     const profile = await getTrainerProfile(id);
 
-    // Get all published classes for this trainer (used by admin UI to pick
-    // which previous classes appear on the public trainer page).
-    const classes = await findTrainerClasses(id, { publishedOnly: true });
+    // Only past workshops that were actually public/completed are eligible
+    // for the manually curated "Previous Classes" section.
+    const now = Date.now();
+    const classes = (await findTrainerClasses(id, { publishedOnly: false }))
+      .filter((cls) => {
+        if (!cls.startDateTime || cls.startDateTime.getTime() > now) return false;
+        return cls.status === 'PUBLISHED' || cls.status === 'COMPLETED';
+      })
+      .sort(
+        (left, right) =>
+          (right.startDateTime?.getTime() ?? 0) - (left.startDateTime?.getTime() ?? 0)
+      );
 
     return NextResponse.json({
       ...user,
@@ -214,10 +223,10 @@ export async function PATCH(
           : undefined;
     const manualUpcomingCourses = sanitizeManualUpcomingCourses(body.manualUpcomingCourses);
 
-    const featuredPreviousClassIds = Array.isArray(body.featuredPreviousClassIds)
+    const requestedFeaturedPreviousClassIds = Array.isArray(body.featuredPreviousClassIds)
       ? (body.featuredPreviousClassIds as unknown[])
           .filter((item): item is string => typeof item === 'string')
-          .map((item) => item.trim())
+          .map((item) => item.trim().toLowerCase())
           .filter((item) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item))
       : undefined;
 
@@ -274,6 +283,21 @@ export async function PATCH(
     // Promote to trainer if not already
     if (user.role !== 'TRAINER') {
       await updateUser(id, { role: 'TRAINER' });
+    }
+
+    let featuredPreviousClassIds: string[] | undefined;
+    if (requestedFeaturedPreviousClassIds !== undefined) {
+      const now = Date.now();
+      const eligiblePreviousClasses = (await findTrainerClasses(id, { publishedOnly: false })).filter(
+        (cls) =>
+          Boolean(cls.startDateTime) &&
+          (cls.startDateTime?.getTime() ?? Number.POSITIVE_INFINITY) <= now &&
+          (cls.status === 'PUBLISHED' || cls.status === 'COMPLETED')
+      );
+      const eligibleIds = new Set(eligiblePreviousClasses.map((cls) => cls.id.toLowerCase()));
+      featuredPreviousClassIds = requestedFeaturedPreviousClassIds.filter((classId) =>
+        eligibleIds.has(classId)
+      );
     }
 
     const savedClassFinance = await getAdminSettingsByKey<ClassFinanceAdminSettings>('class-finance');
