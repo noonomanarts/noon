@@ -321,8 +321,8 @@ export async function PATCH(
       shareTiers: shareTiers ?? defaultShareTiers,
       featuredMediaType: featuredMediaType as TrainerFeaturedMediaType | undefined,
       featuredMediaUrl,
-      manualUpcomingCourses,
-      featuredPreviousClassIds,
+      ...(manualUpcomingCourses !== undefined ? { manualUpcomingCourses } : {}),
+      ...(featuredPreviousClassIds !== undefined ? { featuredPreviousClassIds } : {}),
       isActive,
     });
 
