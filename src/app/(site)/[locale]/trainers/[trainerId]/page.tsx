@@ -215,23 +215,22 @@ export default async function TrainerProfilePage({
   }
 
   const trainerProfile = await getTrainerProfile(trainerId);
-  const classes = await findTrainerClasses(trainerId, { publishedOnly: true });
+  const classes = await findTrainerClasses(trainerId, { publishedOnly: false });
 
   const now = new Date();
   const upcomingClasses = classes.filter((cls) => {
-    if (!cls.startDateTime) return false;
-    return new Date(cls.startDateTime) > now;
+    if (cls.status !== "PUBLISHED" || !cls.startDateTime) return false;
+    return cls.startDateTime > now;
   });
 
   const featuredPreviousClassIds = trainerProfile?.featuredPreviousClassIds ?? [];
-  const previousClasses = featuredPreviousClassIds.length > 0
-    ? featuredPreviousClassIds
-        .map((id) => classes.find((cls) => cls.id === id))
-        .filter((cls): cls is NonNullable<typeof cls> => Boolean(cls))
-    : classes.filter((cls) => {
-        if (!cls.startDateTime) return true;
-        return new Date(cls.startDateTime) <= now;
-      });
+  const previousClasses = featuredPreviousClassIds
+    .map((id) => classes.find((cls) => cls.id === id))
+    .filter((cls): cls is NonNullable<typeof cls> => Boolean(cls))
+    .filter((cls) => {
+      if (!cls.startDateTime || cls.startDateTime > now) return false;
+      return cls.status === "PUBLISHED" || cls.status === "COMPLETED";
+    });
 
   const t = {
     trainer: locale === "ar" ? "المدرب" : "Trainer",
@@ -286,30 +285,9 @@ export default async function TrainerProfilePage({
   const featuredImageUrl =
     featuredMediaType === "IMAGE" ? featuredMediaUrl || trainer.profileImage : trainer.profileImage;
 
-  const manualUpcomingCourses = trainerProfile?.manualUpcomingCourses ?? [];
-
-  const upcomingItems: UpcomingItem[] = [
-    ...manualUpcomingCourses.map((course) => ({
-      kind: "manual" as const,
-      id: course.id,
-      title: course.title,
-      titleAr: course.titleAr,
-      mediaType: (
-        course.mediaType === "YOUTUBE"
-          ? "YOUTUBE"
-          : course.mediaType === "VIDEO"
-            ? "VIDEO"
-            : "IMAGE"
-      ) as "IMAGE" | "VIDEO" | "YOUTUBE",
-      mediaUrl: course.mediaUrl || course.imageUrl || null,
-      description: course.description,
-      bookingUrl: course.bookingUrl,
-      price: course.price,
-      currency: course.currency,
-      scheduledAt: course.dateTime,
-    })),
-    ...upcomingClasses.map((cls) => {
-      const startDt = cls.startDateTime ? new Date(cls.startDateTime).toISOString() : null;
+  const upcomingItems: UpcomingItem[] = upcomingClasses
+    .map((cls) => {
+      const startDt = cls.startDateTime ? cls.startDateTime.toISOString() : null;
       return {
         kind: "class" as const,
         id: cls.id,
@@ -321,8 +299,8 @@ export default async function TrainerProfilePage({
         currency: cls.currency,
         scheduledAt: startDt,
       };
-    }),
-  ].sort((left, right) => getSortTime(left.scheduledAt) - getSortTime(right.scheduledAt));
+    })
+    .sort((left, right) => getSortTime(left.scheduledAt) - getSortTime(right.scheduledAt));
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(12,180,166,0.14),_transparent_40%),radial-gradient(circle_at_85%_15%,_rgba(245,101,101,0.18),_transparent_35%),linear-gradient(to_bottom,_#fafaf9,_#ffffff)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(12,180,166,0.12),_transparent_42%),radial-gradient(circle_at_85%_15%,_rgba(245,101,101,0.15),_transparent_38%),linear-gradient(to_bottom,_#09090b,_#111827)]">
