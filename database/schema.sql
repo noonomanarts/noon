@@ -88,6 +88,7 @@ CREATE TABLE trainer_profiles (
   featured_media_type VARCHAR(20) NOT NULL DEFAULT 'IMAGE',
   featured_media_url VARCHAR(500),
   manual_upcoming_courses JSONB NOT NULL DEFAULT '[]'::jsonb,
+  featured_previous_class_ids UUID[] NOT NULL DEFAULT '{}'::uuid[],
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
