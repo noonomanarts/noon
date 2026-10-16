@@ -372,14 +372,17 @@ export default async function Footer({ locale }: { locale: Locale }) {
         <div style={{ backgroundColor: headerColor, color: footerTextColor }}>
           <div className="mx-auto flex w-full max-w-7xl flex-col-reverse gap-2 px-6 py-4 text-center text-xs font-black sm:flex-row sm:items-center sm:justify-between sm:text-start lg:px-10 xl:px-12">
             <p>{copyrightLabel}</p>
-            <a
-              href="https://sbc.om"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition hover:opacity-80"
-            >
-              Developed by SBC.OM
-            </a>
+            <p className="font-normal opacity-80">
+              {isArabic ? "تصميم وتطوير " : "Designed & built by "}
+              <a
+                href="https://sbc.om/?utm_source=noonomanarts.com&utm_medium=referral&utm_campaign=footer-credit"
+                target="_blank"
+                rel="noopener"
+                className="transition hover:opacity-80"
+              >
+                SBC
+              </a>
+            </p>
           </div>
         </div>
       </div>

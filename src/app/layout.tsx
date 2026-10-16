@@ -25,6 +25,7 @@ export const metadata: Metadata = {
   title: "Noon - نون",
   description: "Noon Arts & Design Studio",
   applicationName: "Noon",
+  generator: "SBC — sbc.om",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -115,8 +116,25 @@ export default async function RootLayout({
       className={`${tsSafaa.variable} scroll-smooth`}
       data-scroll-behavior="smooth"
       data-overlayscrollbars-initialize
+      data-sbc-site="noonomanarts"
     >
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "Noon",
+              url: getPublicSiteBaseUrl(),
+              creator: {
+                "@type": "Organization",
+                name: "SBC",
+                url: "https://sbc.om",
+              },
+            }).replace(/</g, "\\u003c"),
+          }}
+        />
         <ThemeInitScript />
         <script
           dangerouslySetInnerHTML={{
