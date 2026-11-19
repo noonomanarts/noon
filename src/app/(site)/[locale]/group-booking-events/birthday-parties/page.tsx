@@ -1,6 +1,7 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import Link from "next/link";
-import { FiArrowRight, FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
-import { MdCake } from "react-icons/md";
+import { FiArrowRight, FiCheckCircle, FiClock, FiUsers, FiXCircle } from "react-icons/fi";
 
 import BirthdayQuickPriceCalculator from "@/components/site/BirthdayQuickPriceCalculator";
 import { isLocale, type Locale } from "@/lib/locale";
@@ -106,17 +107,17 @@ export default async function BirthdayPartiesPage({
             </ul>
           </article>
 
-          <article className="rounded-2xl border border-coral/40 bg-[color:var(--surface)] p-6 shadow-sm">
+          <article className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-[color:var(--text)]">{t.excludesTitle}</h2>
             <ul className="mt-4 space-y-2.5">
               {excludes.map((item) => (
                 <li key={item} className="flex items-start gap-2 text-sm text-[color:var(--text-muted)]">
-                  <MdCake className="mt-0.5 size-4 shrink-0 text-coral" />
+                  <FiXCircle className="mt-0.5 size-4 shrink-0 text-coral" aria-hidden="true" />
                   {item}
                 </li>
               ))}
             </ul>
-            <p className="mt-5 rounded-xl bg-[color:var(--muted)] px-3 py-2 text-xs text-[color:var(--text-subtle)]">
+            <p className="mt-5 rounded-xl bg-[color:var(--muted)] px-4 py-3 text-sm text-[color:var(--text-muted)]">
               {isArabic
                 ? "يمكن إحضار الزينة والهدايا والكعكة بشكل مستقل."
                 : "You can bring your own decorations, gifts, and birthday cake."}
@@ -127,21 +128,21 @@ export default async function BirthdayPartiesPage({
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center shadow-sm">
-          <h3 className="text-2xl font-semibold text-[color:var(--text)]">{t.readyTitle}</h3>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-[color:var(--text-muted)]">{t.readySubtitle}</p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-[color:var(--text-subtle)]">
-            <span className="inline-flex items-center gap-1">
-              <FiUsers className="size-3.5" />
+          <h2 className="text-2xl font-semibold text-[color:var(--text)] sm:text-3xl">{t.readyTitle}</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-[color:var(--text-muted)]">{t.readySubtitle}</p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm font-medium text-[color:var(--text)] sm:gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full bg-[color:var(--muted)] px-4 py-2">
+              <FiUsers className="size-4 shrink-0 text-[color:var(--text-muted)]" aria-hidden="true" />
               {isArabic ? "حتى 16 مشاركة (+10 ر.ع لكل مشاركة إضافية)" : "Up to 16 participants (+10 OMR per additional person)"}
             </span>
-            <span className="inline-flex items-center gap-1">
-              <FiClock className="size-3.5" />
-              {isArabic ? "2 ساعات" : "2 hours"}
+            <span className="inline-flex items-center gap-2 rounded-full bg-[color:var(--muted)] px-4 py-2">
+              <FiClock className="size-4 shrink-0 text-[color:var(--text-muted)]" aria-hidden="true" />
+              {isArabic ? "ساعتان" : "2 hours"}
             </span>
           </div>
           <Link
             href={`/${locale}/group-booking-events/birthday-parties/book`}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+            className="mt-7 inline-flex min-h-12 items-center gap-2 rounded-xl bg-[color:var(--primary)] px-8 text-base font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
           >
             {t.cta}
             <FiArrowRight className="rtl:rotate-180 size-4" />
@@ -150,4 +151,20 @@ export default async function BirthdayPartiesPage({
       </section>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/group-booking-events/birthday-parties",
+    title: { ar: "حفلات أعياد الميلاد", en: "Birthday Parties" },
+    description: {
+      ar: "حفلة عيد ميلاد بطابع الطبخ للأطفال في نون بمسقط. باقات لمجموعات مختلفة مع تجربة ممتعة لا تُنسى.",
+      en: "A cooking-themed birthday party for kids at Noon in Muscat. Packages for different group sizes and a fun, memorable experience.",
+    },
+  });
 }

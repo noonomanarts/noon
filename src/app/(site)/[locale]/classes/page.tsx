@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { GiCookingPot } from "react-icons/gi";
 import { GiPalette } from "react-icons/gi";
@@ -108,4 +110,20 @@ export default async function ClassesPage({
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/classes",
+    title: { ar: "الورش", en: "Workshops" },
+    description: {
+      ar: "تصفّح ورش نون للطبخ والفنون والحرف في مسقط واحجز مقعدك.",
+      en: "Browse Noon's cooking and arts & crafts workshops in Muscat and book your seat.",
+    },
+  });
 }

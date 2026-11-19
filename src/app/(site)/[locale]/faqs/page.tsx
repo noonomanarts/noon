@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { isLocale, type Locale } from "@/lib/locale";
 import { markdownToSafeHtml } from "@/lib/markdown";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
@@ -66,4 +68,20 @@ export default async function FaqsPage({
       </section>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/faqs",
+    title: { ar: "الأسئلة الشائعة", en: "FAQs" },
+    description: {
+      ar: "إجابات عن الأسئلة الشائعة حول الحجز، الدفع، الإلغاء والورش في نون.",
+      en: "Answers to common questions about booking, payment, cancellation and workshops at Noon.",
+    },
+  });
 }

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { FiArrowRight, FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
 import { GiChefToque, GiPalette } from "react-icons/gi";
@@ -171,24 +173,27 @@ export default async function PrivateClassesPage({
       </section>
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
-        <h2 className="text-center text-2xl font-semibold text-[color:var(--text)]">{t.processTitle}</h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {steps.map((item) => (
-            <article
+        <h2 className="text-center text-2xl font-semibold text-[color:var(--text)] sm:text-3xl">{t.processTitle}</h2>
+        <ol className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+          {steps.map((item, index) => (
+            <li
               key={item.title}
-              className="rounded-2xl border p-5 shadow-sm"
-              style={{
-                backgroundColor: processCardBackgroundColor,
-                borderColor: processCardBorderColor,
-              }}
+              className="relative rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 text-center shadow-sm sm:p-6"
             >
-              <div className="mb-3 flex justify-center">
-                <item.icon className="h-10 w-10 text-white" />
-              </div>
-              <h3 className="text-center text-base font-semibold text-white">{item.title}</h3>
-            </article>
+              <span className="absolute start-3 top-3 text-xs font-bold tabular-nums text-[color:var(--text-subtle)] sm:start-4 sm:top-4 sm:text-sm">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span
+                className="mx-auto flex size-12 items-center justify-center rounded-2xl border sm:size-14"
+                style={{ backgroundColor: processCardBackgroundColor, borderColor: processCardBorderColor }}
+              >
+                <item.icon className="size-6 text-white sm:size-7" aria-hidden="true" />
+              </span>
+              <h3 className="mt-4 text-base font-semibold text-[color:var(--text)] sm:text-lg">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">{item.desc}</p>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
@@ -229,13 +234,13 @@ export default async function PrivateClassesPage({
                         key={`${pkg.key}-${detail.label}`}
                         className="flex items-start justify-between gap-3 border-b border-[color:var(--border)] pb-2 text-sm"
                       >
-                        <span className="font-semibold text-[color:var(--text)]">{detail.label}</span>
-                        <span className="text-right text-[color:var(--text-muted)]">{detail.value}</span>
+                        <span className="shrink-0 whitespace-nowrap font-semibold text-[color:var(--text)]">{detail.label}</span>
+                        <span className="text-end text-[color:var(--text-muted)]">{detail.value}</span>
                       </div>
                     ))}
                   </div>
 
-                  <details className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/35 px-3 py-2.5">
+                  <details open className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/35 px-4 py-3">
                     <summary className="cursor-pointer text-sm font-semibold text-[color:var(--text)]">
                       {isArabic ? "يشمل" : "Includes"}
                     </summary>
@@ -257,22 +262,22 @@ export default async function PrivateClassesPage({
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
         <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center shadow-sm">
-          <h3 className="text-2xl font-semibold text-[color:var(--text)]">{t.readyTitle}</h3>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-[color:var(--text-muted)]">{t.readySubtitle}</p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-[color:var(--text-subtle)]">
-            <span className="inline-flex items-center gap-1">
-              <FiUsers className="size-3.5" />
-              {isArabic ? "6+ مشارك" : "6+ participants"}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <FiClock className="size-3.5" />
+          <h2 className="text-2xl font-semibold text-[color:var(--text)] sm:text-3xl">{t.readyTitle}</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-[color:var(--text-muted)]">{t.readySubtitle}</p>
+          <ul className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm font-medium text-[color:var(--text)] sm:gap-3">
+            <li className="inline-flex items-center gap-2 rounded-full bg-[color:var(--muted)] px-4 py-2">
+              <FiUsers className="size-4 text-[color:var(--text-muted)]" aria-hidden="true" />
+              {isArabic ? "6 مشاركين فأكثر" : "6+ participants"}
+            </li>
+            <li className="inline-flex items-center gap-2 rounded-full bg-[color:var(--muted)] px-4 py-2">
+              <FiClock className="size-4 text-[color:var(--text-muted)]" aria-hidden="true" />
               {isArabic ? "2-3 ساعات" : "2-3 hours"}
-            </span>
-          </div>
-          <div className="mt-6">
+            </li>
+          </ul>
+          <div className="mt-7">
             <Link
               href={`/${locale}/group-booking-events/private-classes/book`}
-              className="inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+              className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-[color:var(--primary)] px-8 text-base font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
             >
               {isArabic ? "ابدأ الحجز" : "Start Booking"}
               <FiArrowRight className="rtl:rotate-180 size-4" />
@@ -282,4 +287,20 @@ export default async function PrivateClassesPage({
       </section>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/group-booking-events/private-classes",
+    title: { ar: "الورش الخاصة", en: "Private Workshops" },
+    description: {
+      ar: "ورشة خاصة لمجموعتك في الطبخ أو الفنون، مصممة حسب احتياجكم في نون بمسقط.",
+      en: "A private cooking or arts workshop for your group, tailored to your needs at Noon in Muscat.",
+    },
+  });
 }

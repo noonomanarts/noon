@@ -3015,7 +3015,7 @@ export default function AdminPageSettingsClient({
                     contactPage: { ...prev.contactPage, mapEmbedUrl: event.target.value },
                   }))
                 }
-                placeholder="https://www.google.com/maps/embed?..."
+                placeholder="https://maps.app.goo.gl/...  (any Google Maps link works)"
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               />
             </label>

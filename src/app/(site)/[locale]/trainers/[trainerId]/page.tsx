@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { isLocale, type Locale } from "@/lib/locale";
 import { notFound } from "next/navigation";
 import Image from "next/image";
@@ -616,4 +618,33 @@ export default async function TrainerProfilePage({
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; trainerId: string }>;
+}): Promise<Metadata> {
+  const { locale, trainerId } = await params;
+  const trainer = await findTrainerById(trainerId).catch(() => null);
+  if (!trainer) {
+    return buildPageMetadata(locale, {
+      path: `/trainers/${trainerId}`,
+      title: { ar: "المدرب غير موجود", en: "Trainer not found" },
+      description: { ar: "", en: "" },
+      noindex: true,
+    });
+  }
+
+  const nameAr = trainer.displayNameAr || trainer.fullName;
+  const nameEn = trainer.displayNameEn || trainer.fullName;
+  return buildPageMetadata(locale, {
+    path: `/trainers/${trainerId}`,
+    title: { ar: nameAr, en: nameEn },
+    description: {
+      ar: `تعرّف على ${nameAr}، أحد مدربي نون، وخبراته والورش التي يقدمها.`,
+      en: `Meet ${nameEn}, one of Noon's trainers: experience and the workshops they teach.`,
+    },
+    image: trainer.profileImage,
+  });
 }

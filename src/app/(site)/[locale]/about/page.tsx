@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 
@@ -349,4 +351,20 @@ export default async function AboutPage({
       </section>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/about",
+    title: { ar: "من نحن", en: "About Us" },
+    description: {
+      ar: "قصة نون: مساحة في مسقط للتعلّم والمرح عبر الطبخ والفنون والحرف، بقيادة مدربين خبراء.",
+      en: "The story of Noon: a space in Muscat for learning and fun through cooking, arts and crafts, led by expert trainers.",
+    },
+  });
 }

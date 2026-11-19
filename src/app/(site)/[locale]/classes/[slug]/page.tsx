@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -578,4 +580,33 @@ export default async function ClassDetailPage({
       ) : null}
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const classData = await findClassBySlug(slug).catch(() => null);
+  if (!classData) {
+    return buildPageMetadata(locale, {
+      path: `/classes/${slug}`,
+      title: { ar: "الورشة غير موجودة", en: "Workshop not found" },
+      description: { ar: "", en: "" },
+      noindex: true,
+    });
+  }
+
+  const fallbackAr = `احجز مقعدك في ورشة ${classData.titleAr || classData.title} في نون بمسقط.`;
+  const fallbackEn = `Book your seat in the ${classData.title} workshop at Noon in Muscat.`;
+  return buildPageMetadata(locale, {
+    path: `/classes/${classData.slug}`,
+    title: { ar: classData.titleAr || classData.title, en: classData.title },
+    description: {
+      ar: classData.descriptionAr || classData.description || fallbackAr,
+      en: classData.description || fallbackEn,
+    },
+    image: classData.image,
+  });
 }

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FiArrowLeft, FiBox, FiChevronRight, FiInfo } from "react-icons/fi";
@@ -186,4 +188,31 @@ export default async function ShopProductDetailsPage({
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const product = await getShopProductBySlugForPublic(slug).catch(() => null);
+  if (!product) {
+    return buildPageMetadata(locale, {
+      path: `/shop/product/${slug}`,
+      title: { ar: "المنتج غير موجود", en: "Product not found" },
+      description: { ar: "", en: "" },
+      noindex: true,
+    });
+  }
+
+  return buildPageMetadata(locale, {
+    path: `/shop/product/${product.slug}`,
+    title: { ar: product.name_ar || product.name_en, en: product.name_en || product.name_ar },
+    description: {
+      ar: product.description_ar || product.description_en || `${product.name_ar || product.name_en} من متجر نون، مع توصيل داخل مسقط.`,
+      en: product.description_en || `${product.name_en || product.name_ar} from the Noon shop, delivered within Muscat.`,
+    },
+    image: product.image,
+  });
 }

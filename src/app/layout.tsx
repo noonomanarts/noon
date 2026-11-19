@@ -23,7 +23,7 @@ const APPLE_SPLASH_SCREENS = appleSplash as AppleSplashEntry[];
 
 export const metadata: Metadata = {
   metadataBase: new URL(getPublicSiteBaseUrl()),
-  title: "Noon - نون",
+  title: { default: "Noon - نون", template: "%s | Noon نون" },
   description: "Noon Arts & Design Studio",
   applicationName: "Noon",
   generator: "SBC — sbc.om",
