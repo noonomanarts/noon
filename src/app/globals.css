@@ -190,12 +190,15 @@ html[lang="en"] body {
 
 /* Dashboard typography: Inter for Latin text and digits, IBM Plex Sans Arabic
    for Arabic. One stack serves both languages because the browser falls
-   through to the Arabic face for glyphs Inter does not have. `body:has()`
+   through to the Arabic face for glyphs Inter does not have. The *-face
+   variables hold the bare family names (see layout.tsx): the regular font
+   variables also carry an Arial-backed fallback face that would catch Arabic
+   text before the Arabic font is reached. `body:has()`
    covers dialogs and menus that are portalled outside `.admin-panel`. */
 .admin-panel,
 body:has(.admin-panel),
 html[lang="en"] body:has(.admin-panel) {
-  font-family: var(--font-admin-latin), var(--font-admin-arabic), "Segoe UI", Tahoma, system-ui, sans-serif;
+  font-family: var(--font-admin-latin-face, "Inter"), var(--font-admin-arabic-face, "IBM Plex Sans Arabic"), "Segoe UI", Tahoma, system-ui, sans-serif;
   font-feature-settings: "cv11", "ss01", "calt";
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
@@ -203,14 +206,14 @@ html[lang="en"] body:has(.admin-panel) {
 
 html[lang="ar"] .admin-panel,
 html[lang="ar"] body:has(.admin-panel) {
-  font-family: var(--font-admin-arabic), var(--font-admin-latin), Tahoma, system-ui, sans-serif;
+  font-family: var(--font-admin-arabic-face, "IBM Plex Sans Arabic"), var(--font-admin-latin-face, "Inter"), Tahoma, system-ui, sans-serif;
   line-height: 1.7;
 }
 
 /* Latin references, amounts and codes inside Arabic screens keep Inter. */
 html[lang="ar"] .admin-panel [dir="ltr"],
 .admin-panel .font-mono-ref {
-  font-family: var(--font-admin-latin), var(--font-admin-arabic), system-ui, sans-serif;
+  font-family: var(--font-admin-latin-face, "Inter"), var(--font-admin-arabic-face, "IBM Plex Sans Arabic"), system-ui, sans-serif;
 }
 
 .admin-panel h1,

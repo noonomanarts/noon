@@ -129,6 +129,18 @@ const adminArabic = IBM_Plex_Sans_Arabic({
   adjustFontFallback: false,
 });
 
+// next/font appends a synthetic "<Family> Fallback" face (local Arial with
+// adjusted metrics) to every font variable, and Turbopack does so even with
+// `adjustFontFallback: false`. Arial has Arabic glyphs, so in a stack like
+// `Inter, Inter Fallback, IBM Plex Sans Arabic` Arabic text is drawn in Arial
+// and never reaches the Arabic face. These variables expose the real family
+// name on its own, so the dashboard stack can go Inter -> IBM Plex Sans Arabic.
+const primaryFamily = (fontFamily: string) => fontFamily.split(",")[0].trim();
+const dashboardFontFaces = {
+  "--font-admin-latin-face": primaryFamily(adminLatin.style.fontFamily),
+  "--font-admin-arabic-face": primaryFamily(adminArabic.style.fontFamily),
+} as React.CSSProperties;
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -141,6 +153,7 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${tsSafaa.variable} ${adminLatin.variable} ${adminArabic.variable} scroll-smooth`}
       data-scroll-behavior="smooth"
+      style={dashboardFontFaces}
       data-overlayscrollbars-initialize
       data-sbc-site="noonomanarts"
     >
