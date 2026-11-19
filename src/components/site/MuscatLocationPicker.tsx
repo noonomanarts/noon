@@ -70,7 +70,7 @@ export function MuscatLocationPicker({ locale, value, onChange }: MuscatLocation
   const mapTexts = useMemo(() => {
     const isArabic = locale === 'ar';
     return {
-      title: isArabic ? 'لوكيشن التوصيل على الخريطة' : 'Delivery Location on Map',
+      title: isArabic ? 'موقع التوصيل على الخريطة' : 'Delivery Location on Map',
       hint: isArabic
         ? 'اختَر نقطة التوصيل بدقة داخل مسقط عبر النقر على الخريطة، ثم يمكنك سحب العلامة.'
         : 'Pick the exact delivery point inside Muscat by clicking the map, then drag the marker if needed.',

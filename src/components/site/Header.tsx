@@ -6,7 +6,8 @@ import type { CSSProperties } from "react";
 
 import { type Locale } from "@/lib/locale";
 import { getSessionUserById } from "@/lib/db/users";
-import { resolveHeaderBranding } from "@/lib/headerBranding";
+import { getReadableTextColor, resolveHeaderBranding } from "@/lib/headerBranding";
+import { defaultGeneralAdminSettings } from "@/lib/adminSettings";
 import { Dropdown } from "@/components/site/Dropdown";
 import SiteProfileMenu from "@/components/site/SiteProfileMenu";
 import CartLinkWithCount from '@/components/site/CartLinkWithCount';
@@ -53,8 +54,18 @@ export default async function Header({ locale }: { locale: Locale }) {
     0
   );
   const { headerColor, headerLogoUrl } = await resolveHeaderBranding();
-  const navTone: "dark" | "light" = "light";
-  const dropdownButtonClass = "whitespace-nowrap text-black hover:bg-black/10 hover:text-black focus-visible:outline-black/60";
+  // Pick the text colour from the configured header colour so the menu stays
+  // readable whatever the admin chooses ("dark" tone = dark bar, white text).
+  const headerIsDark = getReadableTextColor(headerColor) === "#ffffff";
+  const navTone: "dark" | "light" = headerIsDark ? "dark" : "light";
+  const actionTextClass = headerIsDark
+    ? "text-white/95 hover:bg-white/14 hover:text-white"
+    : "text-black hover:bg-black/10 hover:text-black";
+  const dropdownButtonClass = headerIsDark
+    ? "whitespace-nowrap text-white/95 hover:bg-white/14 hover:text-white focus-visible:outline-white/70"
+    : "whitespace-nowrap text-black hover:bg-black/10 hover:text-black focus-visible:outline-black/60";
+  // The stock logo is purple; on a dark bar it is shown in white instead.
+  const useLightLogo = headerIsDark && headerLogoUrl === defaultGeneralAdminSettings.headerLogoUrl;
   const dropdownPanelClass = "mt-0 border-0 shadow-none";
   const headerMenuStyle = {
     backgroundColor: headerColor,
@@ -95,6 +106,7 @@ export default async function Header({ locale }: { locale: Locale }) {
             height={52}
             priority
             className="h-10 w-auto shrink-0 sm:h-11"
+            style={useLightLogo ? { filter: "brightness(0) invert(1)" } : undefined}
           />
         </Link>
 
@@ -144,14 +156,14 @@ export default async function Header({ locale }: { locale: Locale }) {
         <div className="ms-auto flex min-w-0 items-center gap-0.5 sm:gap-2">
           <HeaderLocaleLink
             locale={locale}
-            className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-none px-1.5 text-sm font-extrabold text-black transition hover:bg-black/10 hover:text-black sm:h-11 sm:px-3 sm:text-base"
+            className={`inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-none px-1.5 text-sm font-extrabold transition sm:h-11 sm:px-3 sm:text-base ${actionTextClass}`}
           />
 
           <CartLinkWithCount
             locale={locale}
             label={t.cart}
             initialCount={initialCartCount}
-            className="inline-flex h-10 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-none px-1.5 text-sm font-extrabold text-black transition hover:bg-black/10 hover:text-black sm:h-11 sm:gap-1.5 sm:px-3 sm:text-base"
+            className={`inline-flex h-10 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-none px-1.5 text-sm font-extrabold transition sm:h-11 sm:gap-1.5 sm:px-3 sm:text-base ${actionTextClass}`}
           />
 
           {user ? (
@@ -164,17 +176,17 @@ export default async function Header({ locale }: { locale: Locale }) {
               menuClassName="border-0 bg-transparent shadow-none"
               menuStyle={{
                 backgroundColor: headerColor,
-                "--text": "#000000",
-                "--text-muted": "rgba(0,0,0,0.86)",
-                "--text-subtle": "rgba(0,0,0,0.72)",
-                "--muted": "rgba(0,0,0,0.10)",
+                "--text": headerIsDark ? "#ffffff" : "#000000",
+                "--text-muted": headerIsDark ? "rgba(255,255,255,0.88)" : "rgba(0,0,0,0.86)",
+                "--text-subtle": headerIsDark ? "rgba(255,255,255,0.74)" : "rgba(0,0,0,0.72)",
+                "--muted": headerIsDark ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.10)",
                 "--border": "transparent",
               } as CSSProperties}
             />
           ) : (
             <Link
               href={`/${locale}/login`}
-              className="hidden h-11 shrink-0 items-center justify-center whitespace-nowrap px-3 text-base font-extrabold text-black transition hover:bg-black/10 hover:text-black lg:inline-flex"
+              className={`hidden h-11 shrink-0 items-center justify-center whitespace-nowrap px-3 text-base font-extrabold transition lg:inline-flex ${actionTextClass}`}
             >
               {t.login}
             </Link>
@@ -205,10 +217,10 @@ export default async function Header({ locale }: { locale: Locale }) {
               <NavLink href={`/${locale}/suggest-workshop`} tone={navTone}>{t.suggestWorkshop}</NavLink>
               <NavLink href={`/${locale}/join-us`} tone={navTone}>{t.joinUs}</NavLink>
               {!user && (
-                <div className="mt-2 border-t border-black/10 pt-2">
+                <div className={`mt-2 border-t pt-2 ${headerIsDark ? "border-white/20" : "border-black/10"}`}>
                   <Link
                     href={`/${locale}/login`}
-                    className="flex h-11 items-center justify-center rounded-none bg-[#6d2e46] px-4 text-sm font-extrabold text-white transition hover:brightness-110"
+                    className={`flex h-11 items-center justify-center rounded-none px-4 text-sm font-extrabold transition hover:brightness-110 ${headerIsDark ? "bg-white text-[#23150f]" : "bg-[#6d2e46] text-white"}`}
                   >
                     {t.login}
                   </Link>

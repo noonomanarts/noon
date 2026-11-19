@@ -245,8 +245,8 @@ export default async function TrainerProfilePage({
     experience: locale === "ar" ? "الخبرة" : "Experience",
     years: locale === "ar" ? "سنة" : "years",
     scheduledAt: locale === "ar" ? "الموعد" : "Scheduled",
-    manualCourse: locale === "ar" ? "دورة مضافة يدوياً" : "Manual Course",
-    classCourse: locale === "ar" ? "دورة مباشرة" : "Live Class",
+    manualCourse: locale === "ar" ? "ورشة مضافة يدوياً" : "Manual Course",
+    classCourse: locale === "ar" ? "ورشة مباشرة" : "Live Class",
     noBio:
       locale === "ar" ? "سيتم تحديث نبذة المدرب قريباً." : "Trainer bio will be updated soon.",
     video: locale === "ar" ? "فيديو" : "Video",

@@ -83,7 +83,7 @@ export default async function SummerCampPage({
       : "A multi-day arts programme full of creativity and fun for kids.",
     bookNow: isArabic ? "عرض التفاصيل والحجز" : "View Details & Book",
     noClasses: isArabic
-      ? "لا توجد دورات مخيم صيفي منشورة حالياً."
+      ? "لا توجد ورش للمخيم الصيفي منشورة حالياً."
       : "No Summer Camp programmes published right now.",
     duration: isArabic ? "المدة" : "Duration",
     noSchedule: isArabic ? "الموعد سيُعلن قريباً" : "Schedule coming soon",

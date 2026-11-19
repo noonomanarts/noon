@@ -175,7 +175,7 @@ export default async function ShopProductDetailsPage({
                 <FiBox className="h-5 w-5 text-[color:var(--primary)]" />
                 {t.related}
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
                 {relatedProducts.map((related) => (
                   <ShopProductCard key={related.id} product={related} locale={locale} />
                 ))}

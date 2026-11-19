@@ -282,11 +282,11 @@ export default function ClassBookingClient({
   );
 
   const t = {
-    title: isArabic ? 'إتمام حجز الدورة' : 'Complete Class Booking',
+    title: isArabic ? 'إتمام حجز الورشة' : 'Complete Class Booking',
     subtitle: isArabic
       ? 'اختَر عدد المقاعد وأكمِل البيانات الأساسية فقط.'
       : 'Choose seats and complete only the essential details.',
-    classDate: isArabic ? 'موعد الدورة' : 'Class Date',
+    classDate: isArabic ? 'موعد الورشة' : 'Class Date',
     seats: isArabic ? 'عدد المقاعد' : 'Seats',
     attendeeOne: isArabic ? 'بياناتك' : 'Your seat',
     attendeeExtra: isArabic ? 'مشارك إضافي' : 'Additional attendee',
@@ -296,7 +296,7 @@ export default function ClassBookingClient({
     audienceMixed: isArabic ? 'مشترك' : 'Mixed',
     audienceWomen: isArabic ? 'للنساء فقط' : 'Women only',
     audienceMen: isArabic ? 'للرجال فقط' : 'Men only',
-    self: isArabic ? 'أنا أحضر هذه الدورة' : 'I am attending this class',
+    self: isArabic ? 'أنا من سيحضر هذه الورشة' : 'I am attending this class',
     other: isArabic ? 'أسجل نيابة عن شخص آخر' : 'I am registering on behalf of someone else',
     both: isArabic ? 'أنا أحضر وأسجل أيضاً نيابة عن شخص آخر' : 'I am attending this class and registering on behalf of someone else',
     momKidOther: isArabic ? 'أسجل أطفالي' : "I'm registering my kids",
@@ -338,10 +338,10 @@ export default function ClassBookingClient({
     successTitle: isArabic ? 'تم تأكيد الحجز' : 'Booking confirmed',
     bookingNumber: isArabic ? 'رقم الحجز' : 'Booking Number',
     goOrders: isArabic ? 'عرض حجوزاتي' : 'View My Bookings',
-    goClass: isArabic ? 'العودة للدورة' : 'Back to Class',
+    goClass: isArabic ? 'العودة للورشة' : 'Back to Class',
     required: isArabic ? 'يرجى إكمال بيانات كل مشارك.' : 'Please complete each participant entry.',
     genderRequired: isArabic ? 'يرجى تحديد الجنس لكل مشارك.' : 'Please select a gender for each participant.',
-    audienceMismatch: isArabic ? 'أحد المشاركين لا يطابق فئة الجنس المسموح بها لهذه الدورة.' : 'A participant does not match this class gender eligibility.',
+    audienceMismatch: isArabic ? 'أحد المشاركين لا يطابق فئة الجنس المسموح بها لهذه الورشة.' : 'A participant does not match this class gender eligibility.',
     invalidDob: isArabic ? 'تاريخ الميلاد غير صالح.' : 'Invalid date of birth.',
     termsRequired: isArabic ? 'يجب الموافقة على الشروط قبل الدفع.' : 'You must accept terms before payment.',
     seatsError: isArabic ? 'عدد المشاركين أكبر من المقاعد المتاحة.' : 'Participants exceed available seats.',

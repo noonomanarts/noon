@@ -203,7 +203,7 @@ export default async function AccountOrderDetailsPage({
     delivery: isArabic ? 'التوصيل' : 'Delivery',
     items: isArabic ? 'المنتجات' : 'Items',
     history: isArabic ? 'سجل الحالة' : 'Status history',
-    classBooking: isArabic ? 'تفاصيل حجز الدورة' : 'Class Booking Details',
+    classBooking: isArabic ? 'تفاصيل حجز الورشة' : 'Class Booking Details',
     eventBooking: isArabic ? 'تفاصيل حجز الفعالية' : 'Event Booking Details',
     shopOrder: isArabic ? 'تفاصيل طلب المتجر' : 'Shop Order Details',
     orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',

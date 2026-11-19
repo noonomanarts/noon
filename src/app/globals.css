@@ -1005,3 +1005,11 @@ body {
 .animate-float-gentle {
   animation: float-gentle 6s ease-in-out infinite;
 }
+
+/* Pages with a fixed bottom action bar on phones (e.g. a workshop page) leave
+   room under the footer so the bar never covers its last lines. */
+@media (max-width: 1023px) {
+  body:has([data-mobile-action-bar]) footer {
+    padding-bottom: 5.5rem;
+  }
+}

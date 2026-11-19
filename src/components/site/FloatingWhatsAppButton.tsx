@@ -34,9 +34,17 @@ function isPublicPath(pathname: string | null): boolean {
   const normalized = raw.replace(/^\/(en|ar)(?=\/|$)/, '');
   // Hidden where it would sit on top of the primary action: the account area
   // and the cart / checkout flow (their pay buttons are full-width on phones).
-  return !['/account', '/cart', '/checkout'].some(
+  if (['/account', '/cart', '/checkout'].some(
     (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`)
-  );
+  )) {
+    return false;
+  }
+  // A single workshop page and its booking form have their own bottom bar.
+  const classListings = new Set(['/classes/cooking', '/classes/arts-crafts', '/classes/summer-camp']);
+  if (normalized.startsWith('/classes/') && !classListings.has(normalized)) {
+    return false;
+  }
+  return true;
 }
 
 function Icon({

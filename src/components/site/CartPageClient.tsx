@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import type { Locale } from '@/lib/locale';
+import { formatBookingDate, formatBookingTime } from '@/lib/forms/bookingSummaryFormat';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 
 type ShopCartApiItem = {
@@ -133,7 +134,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
     empty: isArabic ? 'السلة فارغة حالياً.' : 'Your cart is currently empty.',
     backToShop: isArabic ? 'العودة للمتجر' : 'Back to shop',
     category: isArabic ? 'التصنيف' : 'Category',
-    classBooking: isArabic ? 'حجز دورة' : 'Class Booking',
+    classBooking: isArabic ? 'حجز ورشة' : 'Class Booking',
     eventRequest: isArabic ? 'طلب فعالية' : 'Event Request',
     participants: isArabic ? 'المشاركون' : 'Participants',
     eventDate: isArabic ? 'التاريخ' : 'Date',
@@ -148,7 +149,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
     decrease: isArabic ? 'تقليل' : 'Decrease',
     loading: isArabic ? 'جاري تحميل السلة...' : 'Loading cart...',
     noImage: isArabic ? 'بدون صورة' : 'No image',
-    items: isArabic ? 'منتجات' : 'items',
+    items: isArabic ? 'عنصر' : 'items',
     estimatedTotal: isArabic ? 'الإجمالي التقديري' : 'Estimated Total',
     payableNow: isArabic ? 'المطلوب الآن' : 'Payable Now',
     scheduleConflictTitle: isArabic ? 'تنبيه: تعارض في المواعيد' : 'Heads up: schedule conflict',
@@ -302,9 +303,9 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                 return (
                   <article
                     key={item.id}
-                    className="grid gap-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 shadow-sm md:grid-cols-[100px_1fr_auto] md:items-center"
+                    className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-3 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-3 text-start shadow-sm sm:p-4 md:grid-cols-[6rem_minmax(0,1fr)_auto] md:items-center md:gap-x-4"
                   >
-                    <div className="relative h-24 w-full overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] md:w-24">
+                    <div className="relative size-[4.5rem] overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] md:size-24">
                       {imageSrc ? (
                         <Image
                           src={imageSrc}
@@ -314,19 +315,19 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                           className="object-cover"
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center text-xs text-[color:var(--text-subtle)]">{t.noImage}</div>
+                        <div className="flex h-full items-center justify-center px-1 text-center text-[10px] leading-tight text-[color:var(--text-subtle)]">{t.noImage}</div>
                       )}
                     </div>
 
-                    <div className="space-y-1 text-center">
+                    <div className="min-w-0 space-y-1 text-start">
                       {isRenderableShopItem ? (
                         <>
                           {shopHref ? (
-                            <Link href={shopHref} className="line-clamp-1 text-sm font-semibold text-[color:var(--text)] hover:underline">
+                            <Link href={shopHref} className="line-clamp-2 text-sm font-semibold text-[color:var(--text)] hover:underline sm:text-base">
                               {itemTitle}
                             </Link>
                           ) : (
-                            <p className="line-clamp-1 text-sm font-semibold text-[color:var(--text)]">{itemTitle}</p>
+                            <p className="line-clamp-2 text-sm font-semibold text-[color:var(--text)] sm:text-base">{itemTitle}</p>
                           )}
                           {shopCategory ? (
                             <p className="text-xs text-[color:var(--text-subtle)]">
@@ -339,7 +340,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                         </>
                       ) : item.kind === 'CLASS_BOOKING' ? (
                         <>
-                          <Link href={`/${locale}/classes/${item.slug}`} className="line-clamp-1 text-sm font-semibold text-[color:var(--text)] hover:underline">
+                          <Link href={`/${locale}/classes/${item.slug}`} className="line-clamp-2 text-sm font-semibold text-[color:var(--text)] hover:underline sm:text-base">
                             {itemTitle}
                           </Link>
                           <p className="text-xs text-[color:var(--text-subtle)]">{t.classBooking}</p>
@@ -358,9 +359,9 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                         </>
                       ) : (
                         <>
-                          <p className="line-clamp-1 text-sm font-semibold text-[color:var(--text)]">{itemTitle}</p>
+                          <p className="line-clamp-2 text-sm font-semibold text-[color:var(--text)] sm:text-base">{itemTitle}</p>
                           <p className="text-xs text-[color:var(--text-subtle)]">{t.eventRequest}</p>
-                          <p className="text-xs text-[color:var(--text-subtle)]">{t.eventDate}: {item.selectedDate} • {item.selectedTime}</p>
+                          <p className="text-xs text-[color:var(--text-subtle)]">{t.eventDate}: {formatBookingDate(locale, item.selectedDate)} · {formatBookingTime(locale, item.selectedTime)}</p>
                           <p className="text-sm font-semibold text-[color:var(--text)]">
                             {item.lineTotal != null ? formatAmountWithCurrency(item.lineTotal, item.currency) : t.requestOnly}
                           </p>
@@ -368,7 +369,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                       )}
                     </div>
 
-                    <div className="flex flex-col items-center space-y-2 text-center">
+                    <div className="col-span-2 flex items-center justify-between gap-3 border-t border-[color:var(--border)] pt-3 md:col-span-1 md:flex-col md:items-end md:justify-center md:gap-2 md:border-0 md:pt-0">
                       {isRenderableShopItem ? (
                         <>
                           <div className="inline-flex items-center overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]">
@@ -393,7 +394,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                             </button>
                           </div>
                           {shopLineTotal ? (
-                            <p className="text-xs text-[color:var(--text-subtle)]">{t.total}: {shopLineTotal}</p>
+                            <p className="text-sm font-semibold text-[color:var(--text)]">{shopLineTotal}</p>
                           ) : null}
                         </>
                       ) : item.kind === 'CLASS_BOOKING' ? (
@@ -405,7 +406,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                         type="button"
                         disabled={savingItemId === item.id}
                         onClick={() => void removeItem(item.id)}
-                        className="-mx-2 inline-flex min-h-10 items-center px-2 text-xs font-medium text-rose-700 hover:underline disabled:opacity-50 dark:text-rose-300"
+                        className="inline-flex min-h-10 items-center rounded-lg px-3 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 dark:text-rose-300 dark:hover:bg-rose-900/20"
                       >
                         {t.remove}
                       </button>

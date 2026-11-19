@@ -1,5 +1,6 @@
 'use client';
 
+import { formatBookingDate, formatBookingTime } from '@/lib/forms/bookingSummaryFormat';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Locale } from '@/lib/locale';
@@ -183,7 +184,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     onlyMuscat: isArabic ? 'التوصيل داخل مسقط فقط.' : 'Delivery is available in Muscat only.',
     orderSummary: isArabic ? 'ملخص الطلب' : 'Order Summary',
     bookingsSummary: isArabic ? 'الحجوزات والطلبات' : 'Bookings & Requests',
-    classBooking: isArabic ? 'حجز دورة' : 'Class Booking',
+    classBooking: isArabic ? 'حجز ورشة' : 'Class Booking',
     eventRequest: isArabic ? 'طلب فعالية' : 'Event Request',
     participants: isArabic ? 'المشاركون' : 'Participants',
     payableNow: isArabic ? 'المطلوب الآن' : 'Payable Now',
@@ -209,7 +210,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     topupInAccount: isArabic ? 'شحن المحفظة من الحساب' : 'Top up in account',
     successTitle: isArabic ? 'تمت العملية بنجاح' : 'Checkout completed successfully',
     orderNumber: isArabic ? 'رقم الطلب' : 'Order Number',
-    classBookingsDone: isArabic ? 'حجوزات الدورات' : 'Class bookings',
+    classBookingsDone: isArabic ? 'حجوزات الورش' : 'Class bookings',
     eventRequestsDone: isArabic ? 'طلبات الفعاليات' : 'Event requests',
     continueShopping: isArabic ? 'متابعة التسوق' : 'Continue shopping',
     backToCart: isArabic ? 'العودة للسلة' : 'Back to cart',
@@ -220,7 +221,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
     locationRequired: isArabic
       ? 'يرجى تحديد موقع التوصيل على الخريطة قبل المتابعة.'
       : 'Please choose the delivery location on the map before continuing.',
-    items: isArabic ? 'منتجات' : 'items',
+    items: isArabic ? 'عنصر' : 'items',
     scheduleConflictTitle: isArabic ? 'تعارض في المواعيد' : 'Schedule conflict',
     scheduleConflictConfirmLabel: isArabic ? 'المتابعة رغم ذلك' : 'Continue anyway',
     scheduleConflictCancelLabel: isArabic ? 'إلغاء' : 'Cancel',
@@ -639,27 +640,27 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_340px]">
           <section className="space-y-6">
             {hasShopItems ? (
-            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm">
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-start shadow-sm">
               <h2 className="text-lg font-semibold text-[color:var(--text)]">{t.shippingInfo}</h2>
               <p className="mt-1 text-xs text-[color:var(--text-subtle)]">{t.onlyMuscat}</p>
 
               <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1 text-sm">
-                  <span className="text-[color:var(--text)]">{t.city}</span>
+                <div className="space-y-1.5 text-sm">
+                  <span className="block font-medium text-[color:var(--text)]">{t.city}</span>
                   <div className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-[color:var(--text)]">
                     {t.cityValue}
                   </div>
                 </div>
-                <label className="space-y-1 text-sm">
-                  <span className="text-[color:var(--text)]">{t.area}<span className="text-rose-600" aria-hidden="true"> *</span></span>
+                <label className="block space-y-1.5 text-sm">
+                  <span className="block font-medium text-[color:var(--text)]">{t.area}<span className="text-rose-600" aria-hidden="true"> *</span></span>
                   <input
                     value={form.area}
                     onChange={(event) => setForm((prev) => ({ ...prev, area: event.target.value }))}
                     className={checkoutTextBoxClassName}
                   />
                 </label>
-                <label className="space-y-1 text-sm sm:col-span-2">
-                  <span className="text-[color:var(--text)]">{t.streetAddress}<span className="text-rose-600" aria-hidden="true"> *</span></span>
+                <label className="block space-y-1.5 text-sm sm:col-span-2">
+                  <span className="block font-medium text-[color:var(--text)]">{t.streetAddress}<span className="text-rose-600" aria-hidden="true"> *</span></span>
                   <input
                     value={form.streetAddress}
                     onChange={(event) =>
@@ -673,16 +674,16 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                   value={selectedLocation}
                   onChange={setSelectedLocation}
                 />
-                <label className="space-y-1 text-sm">
-                  <span className="text-[color:var(--text)]">{t.postalCode}</span>
+                <label className="block space-y-1.5 text-sm">
+                  <span className="block font-medium text-[color:var(--text)]">{t.postalCode}</span>
                   <input
                     value={form.postalCode}
                     onChange={(event) => setForm((prev) => ({ ...prev, postalCode: event.target.value }))}
                     className={checkoutTextBoxClassName}
                   />
                 </label>
-                <label className="space-y-1 text-sm">
-                  <span className="text-[color:var(--text)]">{t.recipientFullName}<span className="text-rose-600" aria-hidden="true"> *</span></span>
+                <label className="block space-y-1.5 text-sm">
+                  <span className="block font-medium text-[color:var(--text)]">{t.recipientFullName}<span className="text-rose-600" aria-hidden="true"> *</span></span>
                   <input
                     value={form.recipientFullName}
                     onChange={(event) =>
@@ -691,8 +692,8 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     className={checkoutTextBoxClassName}
                   />
                 </label>
-                <label className="space-y-1 text-sm sm:col-span-2">
-                  <span className="text-[color:var(--text)]">{t.recipientPhone}<span className="text-rose-600" aria-hidden="true"> *</span></span>
+                <label className="block space-y-1.5 text-sm sm:col-span-2">
+                  <span className="block font-medium text-[color:var(--text)]">{t.recipientPhone}<span className="text-rose-600" aria-hidden="true"> *</span></span>
                   <input
                     type="tel"
                     inputMode="tel"
@@ -705,8 +706,8 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     className={checkoutTextBoxClassName}
                   />
                 </label>
-                <label className="space-y-1 text-sm sm:col-span-2">
-                  <span className="text-[color:var(--text)]">{t.notes}</span>
+                <label className="block space-y-1.5 text-sm sm:col-span-2">
+                  <span className="block font-medium text-[color:var(--text)]">{t.notes}</span>
                   <textarea
                     value={form.notes}
                     onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))}
@@ -718,7 +719,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             </div>
             ) : null}
 
-            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm">
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-start shadow-sm">
               <h3 className="text-base font-semibold text-[color:var(--text)]">{hasShopItems ? (isArabic ? 'محتويات الطلب' : 'Items in your order') : t.bookingsSummary}</h3>
               <div className="mt-3 space-y-2">
                 {(cart?.items ?? []).map((item) => {
@@ -731,7 +732,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                     : item.kind === 'CLASS_BOOKING'
                       ? `${isArabic && item.titleAr ? item.titleAr : item.title} • ${t.participants}: ${item.numberOfParticipants}`
                       : item.kind === 'EVENT_BOOKING'
-                        ? `${isArabic ? item.titleAr : item.title} • ${item.selectedDate} ${item.selectedTime}`
+                        ? `${isArabic ? item.titleAr : item.title} · ${formatBookingDate(locale, item.selectedDate)} ${formatBookingTime(locale, item.selectedTime)}`
                         : t.items;
                   const lineTotalLabel = item.lineTotal != null
                     ? formatAmountWithCurrency(item.lineTotal, product ? product.currency : item.kind === 'SHOP_PRODUCT' ? currency : item.currency)

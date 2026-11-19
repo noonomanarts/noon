@@ -56,13 +56,13 @@ export default async function AccountProfilePage({
 
         <div className="rounded-none border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
           <p className="text-xs text-[color:var(--text-subtle)]">{locale === 'ar' ? 'رقم الهاتف' : 'Phone Number'}</p>
-          <p className="mt-1 text-sm font-medium text-[color:var(--text)]">{user.phoneNumber || '-'}</p>
+          <p className="mt-1 text-sm font-medium text-[color:var(--text)]">{user.phoneNumber ? <bdi dir="ltr">{user.phoneNumber}</bdi> : '-'}</p>
         </div>
 
         <div className="rounded-none border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
           <p className="text-xs text-[color:var(--text-subtle)]">{locale === 'ar' ? 'اللغة المفضلة' : 'Preferred Language'}</p>
           <p className="mt-1 text-sm font-medium text-[color:var(--text)]">
-            {user.preferredLanguage === 'ARABIC' ? (locale === 'ar' ? 'العربية' : 'Arabic') : 'English'}
+            {user.preferredLanguage === 'ARABIC' ? (locale === 'ar' ? 'العربية' : 'Arabic') : (locale === 'ar' ? 'الإنجليزية' : 'English')}
           </p>
         </div>
       </div>

@@ -693,7 +693,7 @@ export default function TrainerDashboardPageClient({ locale, dashboard }: Traine
 
           <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
             <h4 className="mb-3 text-sm font-semibold text-zinc-800 dark:text-zinc-100">
-              {isArabic ? 'الدخل حسب كل دورة' : 'Earnings Per Workshop'}
+              {isArabic ? 'الدخل حسب كل ورشة' : 'Earnings Per Workshop'}
             </h4>
             {dashboard.earningsByWorkshop.length === 0 ? (
               <p className="text-sm text-zinc-500 dark:text-zinc-400">

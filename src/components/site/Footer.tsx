@@ -156,6 +156,11 @@ export default async function Footer({ locale }: { locale: Locale }) {
   ];
   const RowChevron = isArabic ? FiChevronLeft : FiChevronRight;
   const footerTextColor = getReadableTextColor(headerColor);
+  // The stock logo is purple; on the (dark) footer it is shown in white.
+  const footerLogoStyle =
+    footerTextColor === "#ffffff" && footerLogoUrl === defaultFooterAdminSettings.footerLogoUrl
+      ? { filter: "brightness(0) invert(1)" }
+      : undefined;
 
   return (
     <footer className="w-full bg-[color:var(--background)]">
@@ -253,11 +258,15 @@ export default async function Footer({ locale }: { locale: Locale }) {
                     <span className="footer-soft-row inline-flex size-10 shrink-0 items-center justify-center border border-[color:var(--footer-border)]">
                       <Icon className="size-5" aria-hidden="true" />
                     </span>
-                    <span className="whitespace-nowrap font-black text-[color:var(--footer-text)]">
-                      {item.icon === FiMapPin ? t.location : item.icon === FiPhone ? t.phone : t.email}
-                    </span>
-                    <span className={`min-w-0 flex-1 font-black [overflow-wrap:anywhere] ${item.icon === FiMapPin ? "text-end" : isArabic ? "text-left" : "text-right"}`} dir={item.icon === FiMapPin ? undefined : "ltr"}>
-                      {item.label}
+                    <span className="min-w-0 flex-1 leading-tight">
+                      <span className="block text-xs font-bold text-[color:var(--footer-muted)]">
+                        {item.icon === FiMapPin ? t.location : item.icon === FiPhone ? t.phone : t.email}
+                      </span>
+                      <span
+                        className="mt-0.5 block font-black text-[color:var(--footer-text)] [overflow-wrap:anywhere]"
+                      >
+                        {item.icon === FiMapPin ? item.label : <bdi dir="ltr">{item.label}</bdi>}
+                      </span>
                     </span>
                   </>
                 );
@@ -268,14 +277,14 @@ export default async function Footer({ locale }: { locale: Locale }) {
                     href={item.href}
                     target={item.external ? "_blank" : undefined}
                     rel={item.external ? "noopener noreferrer" : undefined}
-                    className="footer-soft-row flex min-h-12 items-center gap-3 bg-[color:var(--footer-panel-hover)] px-3 text-sm font-bold text-[color:var(--footer-muted)] transition hover:text-[color:var(--footer-text)]"
+                    className="footer-soft-row flex min-h-14 items-center gap-3 bg-[color:var(--footer-panel-hover)] px-3 py-2 text-sm font-bold text-[color:var(--footer-muted)] transition hover:text-[color:var(--footer-text)]"
                   >
                     {content}
                   </a>
                 ) : (
                   <p
                     key={item.label}
-                    className="footer-soft-row flex min-h-12 items-center gap-3 bg-[color:var(--footer-panel-hover)] px-3 text-sm font-bold text-[color:var(--footer-muted)]"
+                    className="footer-soft-row flex min-h-14 items-center gap-3 bg-[color:var(--footer-panel-hover)] px-3 py-2 text-sm font-bold text-[color:var(--footer-muted)]"
                   >
                     {content}
                   </p>
@@ -286,7 +295,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
 
           <div className="site-footer-logo flex self-center justify-center md:self-start md:justify-end">
             <Link href={homeHref} className="inline-flex items-center">
-              <Image src={footerLogoUrl} alt={footer.brandName} width={176} height={176} className="h-28 w-auto lg:h-32" />
+              <Image src={footerLogoUrl} alt={footer.brandName} width={176} height={176} className="h-28 w-auto lg:h-32" style={footerLogoStyle} />
             </Link>
           </div>
         </div>
@@ -294,7 +303,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
           <div className="site-footer-mobile mx-auto w-full max-w-[30rem] px-4 py-5">
           <div className="mb-6 flex justify-center">
             <Link href={homeHref} className="inline-flex items-center">
-              <Image src={footerLogoUrl} alt={footer.brandName} width={220} height={220} className="h-32 w-auto sm:h-36" />
+              <Image src={footerLogoUrl} alt={footer.brandName} width={220} height={220} className="h-32 w-auto sm:h-36" style={footerLogoStyle} />
             </Link>
           </div>
 
