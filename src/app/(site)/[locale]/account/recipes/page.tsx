@@ -34,7 +34,7 @@ export default async function AccountRecipesPage({
   const t = {
     title: isArabic ? 'وصفاتي' : 'My Recipes',
     subtitle: isArabic
-      ? 'جميع الوصفات النهائية المتاحة لك من الورش والدورات تظهر هنا مباشرة.'
+      ? 'جميع الوصفات النهائية المتاحة لك من الورش تظهر هنا مباشرة.'
       : 'All final class recipes available to you are collected here in one place.',
     empty: isArabic ? 'لا توجد وصفات متاحة في حسابك حتى الآن.' : 'No recipes are available in your account yet.',
     englishPdf: isArabic ? 'الوصفة الإنجليزية PDF' : 'English Recipe PDF',

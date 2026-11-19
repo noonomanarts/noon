@@ -251,10 +251,10 @@ function Section({
   return (
     <section className={`py-7 sm:py-12 ${sectionClassName ?? ""}`}>
       <div className="mx-auto w-full max-w-6xl px-3 sm:px-4">
-        <div className="mb-4 sm:mb-7 flex justify-center">
+        <div className="mb-5 sm:mb-9 flex justify-center">
           <div className="w-full max-w-3xl text-center">
             <h2
-              className="text-lg font-bold leading-tight text-[color:var(--text)] sm:text-2xl"
+              className="text-xl font-bold leading-tight text-[color:var(--text)] sm:text-3xl"
               style={{
                 fontFamily: isArabic
                   ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
@@ -302,8 +302,12 @@ export default async function HomePage({
   const heroImageFromSettings = homePageSettings?.homeHero.backgroundImageSrc;
   const heroVideoFromSettings = homePageSettings?.homeHero.backgroundVideoSrc;
 
+  // The page-settings heading defaults to the page's own name ("Home"); that
+  // is a label, not a headline, so fall through to the real tagline.
+  const genericHomeHeadings = new Set(["home", "home page", "homepage", "الصفحة الرئيسية", "الرئيسية"]);
+  const configuredHeroHeading = heroHeadingFromSettings?.trim() ?? "";
   const heroHeadline =
-    heroHeadingFromSettings?.trim() ||
+    (genericHomeHeadings.has(configuredHeroHeading.toLowerCase()) ? "" : configuredHeroHeading) ||
     content.hero.headline?.trim() ||
     (isArabic
       ? "حيث يتحول الطبخ إلى تجربة"
@@ -371,6 +375,9 @@ export default async function HomePage({
     homeWhyNoon?.sectionTitleColor ?? (whyNoonBackgroundImage ? "#ffffff" : "#23150f"),
     whyNoonBackgroundImage ? "#ffffff" : "#23150f"
   );
+  // A light title is only legible over the background photo.
+  const whyNoonTitleIsLight = getReadableTextColor(whyNoonSectionTitleColor) === "#23150f";
+  const whyNoonTitleColor = !whyNoonBackgroundImage && whyNoonTitleIsLight ? "#23150f" : whyNoonSectionTitleColor;
   const whyNoonCardTitleColor = normalizeHexColor(homeWhyNoon?.cardTitleColor ?? "#111827", "#111827");
   const partnersTitle =
     (isArabic ? homePartners?.titleAr : homePartners?.titleEn)?.trim() ||
@@ -395,7 +402,9 @@ export default async function HomePage({
         logoSrc: (logoFromSettings || "").trim(),
       };
     })
-    .filter((item) => item.name || item.logoSrc);
+    .filter((item) => item.name || item.logoSrc)
+    // "Partner 1 / شريك ١" entries without a logo are unfilled placeholders.
+    .filter((item) => item.logoSrc || !/^(partner|شريك)\s*[\d\u0660-\u0669]+$/i.test(item.name));
   const baseNumbersItems = Array.from({ length: 4 }, (_, index) => {
     const fallbackItem = content.numbers.items[index] ?? { value: "0+", label: isArabic ? "المؤشر" : "Metric" };
     const settingsItem = homeNumbers?.items[index];
@@ -518,33 +527,33 @@ export default async function HomePage({
                 >
                   <Image src={c.imageSrc} alt={c.title} fill sizes="(max-width:640px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-[1.03]" />
                   {c.isFullyBooked ? (
-                    <span className={`absolute top-2 inline-flex items-center bg-red-600 px-2 py-1 text-[9px] font-semibold text-white sm:top-3 sm:text-xs ${isArabic ? "left-2 sm:left-3" : "right-2 sm:right-3"}`}>
+                    <span className={`absolute top-2 inline-flex items-center bg-black/75 px-2 py-1 text-[10px] font-semibold text-white sm:top-3 sm:text-xs ${isArabic ? "left-2 sm:left-3" : "right-2 sm:right-3"}`}>
                       {isArabic ? "اكتمل الحجز" : "Fully Booked"}
                     </span>
                   ) : null}
                 </Link>
-                <div className="flex flex-1 flex-col gap-1 p-2 sm:gap-2 sm:p-3.5">
-                  <h3 className="line-clamp-2 text-[11px] font-bold leading-snug text-[color:var(--text)] sm:text-sm">
+                <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:gap-2 sm:p-4">
+                  <h3 className="line-clamp-2 text-[13px] font-bold leading-snug text-[color:var(--text)] sm:text-lg">
                     {c.title}
                   </h3>
-                  <p className="flex items-center gap-1 text-[10px] font-semibold text-[color:var(--text)] sm:text-xs">
-                    <FiCalendar className="size-2.5 shrink-0 text-teal-500 sm:size-3.5" />
+                  <p className="flex items-center gap-1.5 text-[11px] font-semibold text-[color:var(--text)] sm:text-sm">
+                    <FiCalendar className="size-3 shrink-0 text-teal-600 sm:size-4" />
                     {c.datetimeText}
                   </p>
-                  <p className="flex items-center gap-1 truncate text-[9px] text-[color:var(--text-muted)] sm:text-[11px]">
-                    <FiUser className="size-2.5 shrink-0 text-indigo-400 sm:size-3" />
+                  <p className="flex items-center gap-1.5 truncate text-[11px] text-[color:var(--text-muted)] sm:text-sm">
+                    <FiUser className="size-3 shrink-0 text-[color:var(--text-subtle)] sm:size-4" />
                     <span className="truncate">{c.trainerName}</span>
                   </p>
                   {!c.isFullyBooked && c.registrationClosesAt ? (
                     <RegistrationCountdown locale={locale} closesAt={c.registrationClosesAt} visibleWithinMs={Number.MAX_SAFE_INTEGER} />
                   ) : null}
                   <div className="mt-auto pt-1.5">
-                    <p className="mb-1.5 text-xs font-black leading-none text-[color:var(--text)] sm:text-base">
+                    <p className="mb-2 text-sm font-black leading-none text-[color:var(--text)] sm:text-xl">
                       {c.priceText}
                     </p>
                     <Link
                       href={c.isFullyBooked ? `/${locale}/classes/${c.slug}` : `/${locale}/classes/${c.slug}/book`}
-                      className={`flex min-h-10 w-full items-center justify-center gap-1 py-2 text-xs font-extrabold uppercase tracking-wide transition active:scale-95 sm:py-2.5 ${
+                      className={`flex min-h-10 w-full items-center justify-center gap-1.5 px-2 py-2 text-xs font-extrabold transition active:scale-95 sm:min-h-11 sm:py-2.5 sm:text-sm ${
                         c.isFullyBooked
                           ? "border border-[color:var(--border)] bg-[color:var(--muted)] text-[color:var(--text-muted)] hover:bg-[color:var(--surface)]"
                           : "hover:brightness-95"
@@ -581,7 +590,7 @@ export default async function HomePage({
                 return (
                   <div key={`home-number-${index}`} className="text-center">
                     <div
-                      className="text-2xl font-bold leading-none text-[color:var(--text)] sm:text-4xl"
+                      className="text-2xl font-bold leading-none text-[color:var(--text)] sm:text-5xl"
                       style={{
                         fontFamily: isArabic
                           ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
@@ -590,7 +599,7 @@ export default async function HomePage({
                     >
                       <AnimatedCounter value={numericValue} suffix={suffix} />
                     </div>
-                    <div className="mt-1.5 text-[10px] font-medium leading-tight text-[color:var(--text-muted)] sm:mt-2 sm:text-sm">
+                    <div className="mt-1.5 text-[11px] font-medium leading-tight text-[color:var(--text-muted)] sm:mt-3 sm:text-base">
                       {item.label}
                     </div>
                   </div>
@@ -617,9 +626,9 @@ export default async function HomePage({
             <div className="mb-4 sm:mb-7 flex justify-center">
               <div className="w-full max-w-3xl text-center">
                 <h2
-                  className="text-lg font-bold tracking-tight sm:text-2xl"
+                  className="text-xl font-bold tracking-tight sm:text-3xl"
                   style={{
-                    color: whyNoonSectionTitleColor,
+                    color: whyNoonTitleColor,
                     fontFamily: isArabic
                       ? "var(--font-hero-ar), var(--font-arabic), sans-serif"
                       : "var(--font-home-title-en), var(--font-hero-en), var(--font-english), sans-serif",
@@ -633,12 +642,17 @@ export default async function HomePage({
               {whyNoonItems.map((item, index) => (
                 <div
                   key={`why-noon-${index}`}
-                  className="border border-zinc-200 bg-white p-4 shadow-sm sm:p-5"
+                  className="flex items-start gap-3 border border-zinc-200 bg-white p-4 shadow-sm sm:flex-col sm:items-center sm:gap-4 sm:p-7 sm:text-center"
                 >
-                  <h3 className="text-sm font-bold sm:text-base" style={{ color: whyNoonCardTitleColor }}>
-                    {item.title}
-                  </h3>
-                  <p className="mt-1.5 text-xs leading-5 text-zinc-600 sm:mt-2 sm:text-sm sm:leading-6">{item.description}</p>
+                  <span className="inline-flex size-10 shrink-0 items-center justify-center bg-zinc-100 text-base font-black tabular-nums text-zinc-700 sm:size-12 sm:text-lg" aria-hidden="true">
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-base font-bold sm:text-xl" style={{ color: whyNoonCardTitleColor }}>
+                      {item.title}
+                    </h3>
+                    <p className="mt-1.5 text-sm leading-6 text-zinc-600 sm:mt-2 sm:text-base sm:leading-7">{item.description}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -646,7 +660,7 @@ export default async function HomePage({
         </section>
       )}
 
-      {showPartners && partnerItems.length > 0 && (
+      {showPartners && (homePartners?.items.length ?? 0) > 0 && partnerItems.length > 0 && (
         <Section isArabic={isArabic} title={partnersTitle} sectionClassName="pt-14 pb-2 sm:pt-16 sm:pb-3">
         <PartnersCarousel key={locale} items={partnerItems} isArabic={isArabic} />
         </Section>

@@ -45,7 +45,7 @@ export default async function ClassBookingPage({
           </h1>
           <p className="mt-2 text-sm text-[color:var(--text-muted)]">
             {locale === 'ar'
-              ? 'يرجى العودة لاحقاً أو اختيار دورة أخرى.'
+              ? 'يرجى العودة لاحقاً أو اختيار ورشة أخرى.'
               : 'Please check back later or pick another class.'}
           </p>
         </div>
@@ -62,7 +62,7 @@ export default async function ClassBookingPage({
           </h1>
           <p className="mt-2 text-sm text-[color:var(--text-muted)]">
             {locale === 'ar'
-              ? 'يرجى اختيار دورة أخرى أو المحاولة لاحقاً.'
+              ? 'يرجى اختيار ورشة أخرى أو المحاولة لاحقاً.'
               : 'Please choose another class or try again later.'}
           </p>
         </div>

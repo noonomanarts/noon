@@ -105,7 +105,7 @@ export default async function ClassDetailPage({
     classOverview: isArabic ? "نظرة عامة" : "Class Overview",
     bookingCardTitle: isArabic ? "الحجز" : "Booking",
     dateAndTime: isArabic ? "التاريخ والوقت" : "Date and time",
-    trainerSection: isArabic ? "يقود الدورة" : "Led by",
+    trainerSection: isArabic ? "يقدّم الورشة" : "Led by",
     secureSeatNow: isArabic ? "ثبّت حجزك الآن" : "Secure your seat now",
     repeatThisWorkshop: isArabic ? "اطلب إعادة هذه الورشة" : "Request This Workshop Again",
     viewProfile: isArabic ? "عرض الملف الشخصي" : "View Profile",
@@ -275,8 +275,8 @@ export default async function ClassDetailPage({
                 {title}
               </h1>
 
-              <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3">
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-3 sm:px-4">
                   <p className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--text-muted)]">
                     <HiClock className="h-4 w-4 text-[color:var(--primary)]" />
                     {t.duration}
@@ -285,18 +285,18 @@ export default async function ClassDetailPage({
                     {formatDurationClock(classData.durationMinutes)}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3">
+                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-3 sm:px-4">
                   <p className="text-xs font-medium text-[color:var(--text-muted)]">{t.subCategory}</p>
                   <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{subCategory}</p>
                 </div>
-                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3">
+                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-3 sm:px-4">
                   <p className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--text-muted)]">
                     <MdPerson className="h-4 w-4 text-[color:var(--primary)]" />
                     {t.audience}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{audienceLabel}</p>
                 </div>
-                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3">
+                <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-3 sm:px-4">
                   <p className="inline-flex items-center gap-1.5 text-xs font-medium text-[color:var(--text-muted)]">
                     <HiStar className="h-4 w-4 text-yellow" />
                     {t.averageRating}
@@ -306,7 +306,7 @@ export default async function ClassDetailPage({
                   </p>
                 </div>
                 {classData.showMinimumAge && (classData.minimumAge != null || classData.maximumAge != null) && (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20 sm:col-span-2">
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20 col-span-2">
                     <p className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
                       <HiShieldCheck className="h-4 w-4" />
                       {classData.minimumAge != null && classData.maximumAge != null ? t.ageRange : classData.minimumAge != null ? t.minimumAge : t.maximumAge}
@@ -321,7 +321,7 @@ export default async function ClassDetailPage({
                   </div>
                 )}
                 {!isEnded && topCardSessions.length > 0 ? (
-                  <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3 sm:col-span-2">
+                  <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-3 col-span-2">
                     <p className="text-xs font-medium uppercase tracking-[0.12em] text-[color:var(--text-muted)]">
                       {t.dateAndTime}
                     </p>
@@ -349,7 +349,7 @@ export default async function ClassDetailPage({
                   </div>
                 ) : null}
                 {isEnded ? (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20 sm:col-span-2">
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-900/20 col-span-2">
                     <p className="text-xs font-medium uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
                       {t.workshopStatus}
                     </p>
@@ -438,14 +438,6 @@ export default async function ClassDetailPage({
                           <span className="text-[color:var(--text-muted)]">{formatTime(session.startDateTime)} - {formatTime(session.endDateTime)}</span>
                         </div>
                       ))}
-                    </div>
-                  ) : null}
-                  {registrationCloseAt && !registrationClosed ? (
-                    <div className="mt-3">
-                      <RegistrationCountdown
-                        locale={locale}
-                        closesAt={registrationCloseAt.toISOString()}
-                      />
                     </div>
                   ) : null}
                   {registrationClosed ? (
@@ -563,6 +555,27 @@ export default async function ClassDetailPage({
           </div>
         </aside>
       </section>
+
+      {/* Phones: the booking card sits below the reviews, so keep the price and
+          the main action within reach while scrolling. */}
+      {canBook ? (
+        <div data-mobile-action-bar className="fixed inset-x-0 bottom-0 z-40 border-t border-[color:var(--border)] bg-[color:var(--surface)]/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-10px_30px_-18px_rgba(0,0,0,0.45)] backdrop-blur lg:hidden">
+          <div className="mx-auto flex w-full max-w-6xl items-center gap-3">
+            <div className="min-w-0 leading-tight">
+              <p className="text-lg font-bold text-[color:var(--text)]">
+                {formatAmountWithCurrency(classData.price, classData.currency, { locale })}
+              </p>
+              <p className="text-xs text-[color:var(--text-muted)]">{t.perPerson}</p>
+            </div>
+            <Link
+              href={`/${locale}/classes/${classData.slug}/book`}
+              className="ms-auto inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] sm:flex-none sm:px-10"
+            >
+              {t.secureSeatNow}
+            </Link>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -139,7 +139,7 @@ export default function ShopProductReviewsSection({
             <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">{t.subtitle}</p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:min-w-56">
             <div className="rounded-2xl border border-white/70 bg-white/80 px-5 py-4 shadow-sm backdrop-blur">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--text-subtle)]">
                 {t.average}
@@ -157,22 +157,6 @@ export default function ShopProductReviewsSection({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/70 bg-white/80 px-5 py-4 shadow-sm backdrop-blur">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--text-subtle)]">
-                {t.selectedRating}
-              </p>
-              <div className="mt-3 flex items-center gap-3">
-                <div className="flex gap-1">
-                  {Array.from({ length: 5 }).map((_, index) => (
-                    <HiStar
-                      key={`summary-star-${index}`}
-                      className={`h-5 w-5 ${index < rating ? "text-yellow" : "text-[color:var(--text-subtle)]/40"}`}
-                    />
-                  ))}
-                </div>
-                <span className="text-lg font-semibold text-[color:var(--text)]">{rating}/5</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -209,42 +193,27 @@ export default function ShopProductReviewsSection({
             </div>
           ) : (
             <form onSubmit={submitReview} className="mt-6 space-y-6">
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-                <div className="rounded-[1.5rem] border border-[color:var(--border)] bg-[color:var(--surface)] p-5">
-                  <p className="text-sm font-semibold text-[color:var(--text)]">{t.yourRating}</p>
-                  <div className="mt-4 flex flex-wrap gap-3">
+              <div className="rounded-[1.5rem] border border-[color:var(--border)] bg-[color:var(--surface)] p-5">
+                <p className="text-sm font-semibold text-[color:var(--text)]">{t.yourRating}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-1" role="radiogroup" aria-label={t.yourRating} dir="ltr">
                     {Array.from({ length: 5 }).map((_, index) => (
                       <button
                         key={index + 1}
                         type="button"
+                        role="radio"
+                        aria-checked={rating === index + 1}
+                        aria-label={`${index + 1} / 5`}
                         onClick={() => setRating(index + 1)}
-                        className={`group flex min-w-[84px] flex-1 items-center justify-center gap-2 rounded-2xl border px-4 py-4 text-sm font-semibold transition sm:flex-none ${
-                          index + 1 <= rating
-                            ? "border-[#f6c453] bg-[#fff7dc] text-[#b7791f] shadow-sm"
-                            : "border-[color:var(--border)] bg-[color:var(--muted)] text-[color:var(--text-subtle)] hover:border-[#f6c453] hover:bg-[#fffaf0]"
-                        }`}
-                        aria-label={`Rate ${index + 1}`}
+                        className="inline-flex size-11 items-center justify-center rounded-xl transition hover:bg-[#fff7dc] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f4b400]"
                       >
-                        <HiStar className={`h-5 w-5 ${index + 1 <= rating ? "text-[#f4b400]" : "text-[color:var(--text-subtle)]/60 group-hover:text-[#f4b400]"}`} />
-                        <span>{index + 1}</span>
+                        <HiStar className={`h-8 w-8 transition ${index + 1 <= rating ? "text-[#f4b400]" : "text-[color:var(--text-subtle)]/35"}`} />
                       </button>
                     ))}
                   </div>
-                  <p className="mt-4 text-sm text-[color:var(--text-muted)]">{t.reviewHint}</p>
+                  <span className="text-lg font-semibold tabular-nums text-[color:var(--text)]" dir="ltr">{rating}/5</span>
                 </div>
-
-                <div className="rounded-[1.5rem] border border-[color:var(--border)] bg-[color:var(--muted)] p-5">
-                  <div className="flex items-center gap-2">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <HiStar
-                        key={`active-rating-${index}`}
-                        className={`h-5 w-5 ${index < rating ? "text-yellow" : "text-[color:var(--text-subtle)]/40"}`}
-                      />
-                    ))}
-                  </div>
-                  <p className="mt-3 text-3xl font-semibold text-[color:var(--text)]">{rating}/5</p>
-                  <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">{t.writeReviewSubtitle}</p>
-                </div>
+                <p className="mt-3 text-sm text-[color:var(--text-muted)]">{t.reviewHint}</p>
               </div>
 
               <label className="block">
