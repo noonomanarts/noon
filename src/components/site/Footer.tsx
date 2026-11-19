@@ -256,7 +256,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
                     <span className="whitespace-nowrap font-black text-[color:var(--footer-text)]">
                       {item.icon === FiMapPin ? t.location : item.icon === FiPhone ? t.phone : t.email}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-end font-black" dir={item.icon === FiMapPin ? undefined : "ltr"}>
+                    <span className={`min-w-0 flex-1 font-black [overflow-wrap:anywhere] ${item.icon === FiMapPin ? "text-end" : isArabic ? "text-left" : "text-right"}`} dir={item.icon === FiMapPin ? undefined : "ltr"}>
                       {item.label}
                     </span>
                   </>
@@ -329,7 +329,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
               const content = (
                 <>
                   <Icon className="size-5 shrink-0" />
-                  <span className="min-w-0 flex-1 text-center">{item.label}</span>
+                  <span className="min-w-0 flex-1 text-center [overflow-wrap:anywhere]" dir={item.icon === FiMapPin ? undefined : "ltr"}>{item.label}</span>
                 </>
               );
 
@@ -340,7 +340,6 @@ export default async function Footer({ locale }: { locale: Locale }) {
                   target={item.external ? "_blank" : undefined}
                   rel={item.external ? "noopener noreferrer" : undefined}
                   className={className}
-                  dir={item.href === phoneHref ? "ltr" : undefined}
                 >
                   {content}
                 </a>

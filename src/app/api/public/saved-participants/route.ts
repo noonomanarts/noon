@@ -1,7 +1,8 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { pool } from '@/lib/db/pool';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import type { Gender } from '@/lib/db/types';
 
 let savedParticipantsGenderSchemaReady: Promise<void> | null = null;
@@ -26,10 +27,10 @@ export async function GET() {
   await ensureSavedParticipantsGenderSchema();
 
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { rows } = await pool.query(
@@ -57,10 +58,10 @@ export async function POST(request: NextRequest) {
   await ensureSavedParticipantsGenderSchema();
 
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   let body: Record<string, unknown>;

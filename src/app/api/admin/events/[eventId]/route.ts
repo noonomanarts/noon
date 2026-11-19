@@ -1,3 +1,4 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import {
@@ -26,18 +27,33 @@ import {
   shouldCreateCleaningBlock,
 } from '@/lib/calendar';
 import { isQuarterHourTimeValue } from '@/lib/dateTime';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 
 async function requireAdmin() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) return null;
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') return null;
 
   return user;
+}
+
+/**
+ * event_bookings.selected_date is a DATE column, which the pg driver returns
+ * as a Date at local midnight (not a string). Normalise both shapes to
+ * YYYY-MM-DD.
+ */
+function toDateKey(value: unknown): string {
+  if (typeof value === 'string') return value.slice(0, 10);
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${value.getFullYear()}-${month}-${day}`;
+  }
+  return '';
 }
 
 function getPrivateClassType(event: Record<string, unknown>): 'cooking' | 'arts-crafts' | undefined {
@@ -138,6 +154,58 @@ export async function PUT(request: NextRequest, props: Params) {
       delete updateData.status;
     }
 
+    // Validate a new slot BEFORE saving anything, so a conflicting change is
+    // rejected cleanly instead of being half-applied.
+    const existingDate = toDateKey(existingEvent.selectedDate);
+    const existingTime = typeof existingEvent.selectedTime === 'string' ? existingEvent.selectedTime : '';
+    if (updateData.selectedDate !== undefined) {
+      const requestedDate = toDateKey(updateData.selectedDate);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(requestedDate)) {
+        return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
+      }
+      updateData.selectedDate = requestedDate;
+    }
+    const requestedSlotDate = (updateData.selectedDate as string | undefined) ?? existingDate;
+    const requestedSlotTime = updateData.selectedTime !== undefined ? String(updateData.selectedTime) : existingTime;
+    const slotChanged = requestedSlotDate !== existingDate || requestedSlotTime !== existingTime;
+    const isConfirming = updateData.status === 'CLIENT_CONFIRMED' && existingEvent.status !== 'CLIENT_CONFIRMED';
+    const enforceSlot = slotChanged || isConfirming;
+
+    if (enforceSlot && requestedSlotDate && requestedSlotTime) {
+      const existingEventType = existingEvent.eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY';
+      const existingClassType = getPrivateClassType({ ...existingEvent, ...updateData });
+      const precheck = await isEventSlotAvailable({
+        eventType: existingEventType,
+        selectedDate: requestedSlotDate,
+        selectedTime: requestedSlotTime,
+        classType: existingClassType,
+        excludeEventBookingId: params.eventId,
+      });
+      if (!precheck.available) {
+        return NextResponse.json(
+          { error: 'Selected slot conflicts with another confirmed or held booking' },
+          { status: 409 }
+        );
+      }
+      if (shouldCreateCleaningBlock(existingEventType, existingClassType)) {
+        const cleaningStart = new Date(precheck.endDateTime);
+        const cleaningConflicts = await findCalendarOccupancy({
+          startDateTime: cleaningStart,
+          endDateTime: addMinutes(cleaningStart, 180),
+          excludeEventBookingId: params.eventId,
+        });
+        if (cleaningConflicts.length > 0) {
+          return NextResponse.json(
+            {
+              error: 'This event requires a 3-hour cleaning block, but the cleaning window conflicts with existing schedule items',
+              conflicts: cleaningConflicts,
+            },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
     const paymentStatusChanged =
       typeof updateData.paymentStatus === 'string' &&
       updateData.paymentStatus !== existingEvent.paymentStatus;
@@ -160,7 +228,7 @@ export async function PUT(request: NextRequest, props: Params) {
     const cleaningCalendarEvent = calendarResult.rows.find((row) => row.type === 'CLEANING') ?? null;
     const eventType = updatedEvent.eventType as 'COOKING_COMPETITION' | 'PRIVATE_CLASS' | 'BIRTHDAY_PARTY';
     const classType = getPrivateClassType(updatedEvent);
-    const selectedDate = typeof updatedEvent.selectedDate === 'string' ? updatedEvent.selectedDate.slice(0, 10) : '';
+    const selectedDate = toDateKey(updatedEvent.selectedDate);
     const selectedTime = typeof updatedEvent.selectedTime === 'string' ? updatedEvent.selectedTime : '';
     const title = buildEventCalendarTitle({
       eventType,
@@ -184,7 +252,9 @@ export async function PUT(request: NextRequest, props: Params) {
         excludeEventBookingId: params.eventId,
       });
 
-      if (!availability.available) {
+      // Conflicts were already rejected before saving; a plain rename or note
+      // edit must not be blocked by an overlap that existed beforehand.
+      if (enforceSlot && !availability.available) {
         return NextResponse.json(
           { error: 'Selected slot conflicts with another confirmed or held booking' },
           { status: 409 }
@@ -235,7 +305,7 @@ export async function PUT(request: NextRequest, props: Params) {
           excludeEventBookingId: params.eventId,
         });
 
-        if (cleaningConflicts.length > 0) {
+        if (enforceSlot && cleaningConflicts.length > 0) {
           return NextResponse.json(
             {
               error: 'This event requires a 3-hour cleaning block, but the cleaning window conflicts with existing schedule items',
@@ -348,14 +418,35 @@ export async function DELETE(request: NextRequest, props: Params) {
       await cleanupClosedEventSettlement({ eventId: params.eventId });
     }
 
-    // If paid, add to wallet for non-completed events only
+    // If paid, add to wallet for non-completed events only.
+    // The refund is "claimed" with a conditional update first, so two delete
+    // requests arriving together (double click, retry) credit the wallet once.
+    let refunded = false;
     if (event.status !== 'COMPLETED' && event.paymentStatus === 'PAID' && event.totalAmount && event.userId) {
-      const refundAmount = event.totalAmount as number;
-      await addWalletCredit(
-        event.userId as string,
-        refundAmount,
-        `Event cancellation refund - ${event.bookingNumber}`
+      const claim = await query(
+        `UPDATE event_bookings SET payment_status = 'REFUNDED', updated_at = NOW()
+         WHERE id = $1 AND payment_status = 'PAID'
+         RETURNING id`,
+        [params.eventId]
       );
+      if ((claim.rowCount ?? 0) > 0) {
+        const refundAmount = Number(event.totalAmount);
+        try {
+          await addWalletCredit(
+            event.userId as string,
+            refundAmount,
+            `Event cancellation refund - ${event.bookingNumber}`
+          );
+          refunded = true;
+        } catch (refundError) {
+          // Put the booking back so the refund can be retried.
+          await query(
+            `UPDATE event_bookings SET payment_status = 'PAID', updated_at = NOW() WHERE id = $1 AND payment_status = 'REFUNDED'`,
+            [params.eventId]
+          );
+          throw refundError;
+        }
+      }
     }
 
     // Delete calendar events first
@@ -369,7 +460,7 @@ export async function DELETE(request: NextRequest, props: Params) {
 
     return NextResponse.json({
       message: 'Event cancelled successfully',
-      refunded: event.paymentStatus === 'PAID',
+      refunded,
     });
   } catch (error) {
     console.error('Error deleting event:', error);

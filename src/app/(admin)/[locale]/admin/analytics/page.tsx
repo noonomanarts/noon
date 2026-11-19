@@ -1,10 +1,11 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { FiActivity, FiCreditCard, FiPackage, FiShoppingBag, FiTrendingUp, FiUsers } from 'react-icons/fi';
 import { isLocale, type Locale } from '@/lib/locale';
-import { getUserById, countUsersByRole } from '@/lib/db/users';
+import { getSessionUserById, countUsersByRole } from '@/lib/db/users';
 import { countEventBookings } from '@/lib/db/events';
 import { getShopOrdersAnalyticsSummary, listShopOrdersForAdmin } from '@/lib/db/shop';
 import { getWalletTopupAnalyticsSummary } from '@/lib/db/wallet';
@@ -19,13 +20,13 @@ export default async function AdminAnalyticsPage({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'en';
 
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     redirect(`/${locale}/login`);
   }
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') {
     redirect(`/${locale}/account`);
   }
@@ -187,7 +188,7 @@ export default async function AdminAnalyticsPage({
                 <div key={key} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-medium text-zinc-700 dark:text-zinc-300">{meta[locale]}</span>
-                    <span className="text-zinc-500 dark:text-zinc-400">{count} ({percentage.toFixed(1)}%)</span>
+                    <bdi dir="ltr" className="tabular-nums text-zinc-500 dark:text-zinc-400">{count} ({percentage.toFixed(1)}%)</bdi>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                     <div className={`h-full ${meta.color}`} style={{ width: `${Math.max(percentage, count > 0 ? 3 : 0)}%` }} />
@@ -283,7 +284,7 @@ export default async function AdminAnalyticsPage({
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
-                        {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
+                        {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Muscat' })}
                       </td>
                       <td className="px-4 py-3">
                         <Link href={`/${locale}/admin/shop/orders/${order.id}`} className="text-sm font-medium text-[color:var(--noon-teal)] hover:opacity-90">

@@ -1,9 +1,10 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { addMinutes, findCalendarOccupancy } from '@/lib/calendar';
 import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
 import { createCalendarEvent, findCalendarEvents } from '@/lib/db/events';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { notifyPhotographerDashboardUsers } from '@/lib/photographerNotifications';
 import type { CalendarEventType } from '@/lib/db/types';
 
@@ -33,7 +34,7 @@ type CalendarAccess = { ok: true; canManage: boolean } | { ok: false; response: 
 
 async function requireCalendarAccess(): Promise<CalendarAccess> {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     return {
@@ -42,7 +43,7 @@ async function requireCalendarAccess(): Promise<CalendarAccess> {
     };
   }
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || (user.role !== 'ADMIN' && user.role !== 'SOCIAL_MEDIA_ADMIN')) {
     return {
       ok: false,

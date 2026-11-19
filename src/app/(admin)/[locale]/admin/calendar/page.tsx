@@ -155,29 +155,8 @@ function toDateKey(value: string | Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function formatDateLabel(value: string): string {
-  return new Date(`${value}T00:00:00`).toLocaleDateString('en-OM', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'Asia/Muscat',
-  });
-}
-
-function formatTimeRange(start: string, end: string): string {
-  return `${new Date(start).toLocaleTimeString('en-OM', {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: 'Asia/Muscat',
-  })} - ${new Date(end).toLocaleTimeString('en-OM', {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone: 'Asia/Muscat',
-  })}`;
-}
-
-function defaultTitleForType(type: CreatableCalendarType): string {
+function defaultTitleForType(type: CreatableCalendarType, arabic = false): string {
+  if (arabic) return EVENT_LABEL_AR[type];
   if (type === 'BLOCKED') return 'Studio block';
   if (type === 'CLEANING') return 'Cleaning window';
   if (type === 'PRIVATE_SESSION') return 'Private session';
@@ -187,10 +166,10 @@ function defaultTitleForType(type: CreatableCalendarType): string {
   return 'Birthday party';
 }
 
-function createEmptyItemForm(date: string, type: CreatableCalendarType = 'BLOCKED'): CalendarItemForm {
+function createEmptyItemForm(date: string, type: CreatableCalendarType = 'BLOCKED', arabic = false): CalendarItemForm {
   return {
     type,
-    title: defaultTitleForType(type),
+    title: defaultTitleForType(type, arabic),
     description: '',
     startDate: date,
     startTime: '10:00',
@@ -359,7 +338,7 @@ export default function AdminCalendarPage() {
   const [isComposerOpen, setIsComposerOpen] = useState(true);
   const [creatingItem, setCreatingItem] = useState(false);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
-  const [itemForm, setItemForm] = useState<CalendarItemForm>(() => createEmptyItemForm(toDateKey(new Date())));
+  const [itemForm, setItemForm] = useState<CalendarItemForm>(() => createEmptyItemForm(toDateKey(new Date()), 'BLOCKED', isArabic));
 
   useEffect(() => {
     void fetchEvents();
@@ -558,7 +537,7 @@ export default function AdminCalendarPage() {
 
     setSelectedDate(dateKey);
     const nextType = presetType ?? 'BLOCKED';
-    const nextForm = createEmptyItemForm(dateKey, nextType);
+    const nextForm = createEmptyItemForm(dateKey, nextType, isArabic);
     if (options?.fullDay) {
       nextForm.isFullDay = true;
       nextForm.startTime = '00:00';
@@ -610,17 +589,17 @@ export default function AdminCalendarPage() {
     const end = new Date(endDateTime);
 
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) {
-      setError('Please choose a valid start/end time.');
+      setError(isArabic ? 'يرجى اختيار وقت بداية ونهاية صحيح.' : 'Please choose a valid start/end time.');
       return;
     }
 
     if (allowTrainerVisibility && itemForm.visibleToTrainers && !itemForm.visibleToAllTrainers && itemForm.visibleTrainerIds.length === 0) {
-      setError('Choose at least one trainer or enable "All trainers".');
+      setError(isArabic ? 'اختر مدرباً واحداً على الأقل أو فعّل «جميع المدربين».' : 'Choose at least one trainer or enable "All trainers".');
       return;
     }
 
     if (isPlannerType && itemForm.notificationsEnabled && !itemForm.notifyAtStart && itemForm.reminderMinutesBefore === 'NONE') {
-      setError('Enable at least one reminder (before start or at start).');
+      setError(isArabic ? 'فعّل تذكيراً واحداً على الأقل (قبل البداية أو عند البداية).' : 'Enable at least one reminder (before start or at start).');
       return;
     }
 
@@ -661,7 +640,7 @@ export default function AdminCalendarPage() {
         throw new Error(payload.error || 'Failed to create calendar item');
       }
 
-      setItemForm(createEmptyItemForm(selectedDate, itemForm.type));
+      setItemForm(createEmptyItemForm(selectedDate, itemForm.type, isArabic));
       await fetchEvents();
       setIsComposerOpen(false);
     } catch (requestError) {
@@ -742,6 +721,8 @@ export default function AdminCalendarPage() {
     allDay: isArabic ? 'طوال اليوم' : 'All day',
     addAt: (time: string) => (isArabic ? `إضافة عنصر عند ${time}` : `Add an item at ${time}`),
   };
+
+  const L = (en: string, ar: string) => (isArabic ? ar : en);
 
   const typeLabel = (type: CalendarEvent['type']) => (isArabic ? EVENT_LABEL_AR[type] : EVENT_THEME[type].label);
 
@@ -1289,26 +1270,26 @@ export default function AdminCalendarPage() {
             <div className="shrink-0 border-b border-zinc-200 px-5 py-4 dark:border-zinc-800 sm:px-6">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 sm:text-xl">{formatDateLabel(selectedDate)}</h2>
-                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{selectedDayEvents.length} scheduled items</p>
+                  <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 sm:text-xl">{formatLongDate(selectedDate)}</h2>
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t.scheduledItems(selectedDayEvents.length)}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsDayModalOpen(false)}
                   className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 >
-                  Close
+                  {L('Close', 'إغلاق')}
                 </button>
               </div>
             </div>
 
             <div className="grid flex-1 gap-0 overflow-y-auto md:grid-cols-[minmax(0,1fr)_minmax(330px,0.95fr)]">
-              <div className="border-b border-zinc-200 p-5 dark:border-zinc-800 md:border-b-0 md:border-r md:p-6">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Agenda</h3>
+              <div className="border-b border-zinc-200 p-5 dark:border-zinc-800 md:border-b-0 md:border-e md:p-6">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{L('Agenda', 'جدول اليوم')}</h3>
                 <div className="mt-4 space-y-4">
                   {selectedDayEvents.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-zinc-300 px-4 py-5 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                      No items for this day yet. Use the composer to add one.
+                      {L('No items for this day yet. Use the form to add one.', 'لا توجد عناصر لهذا اليوم بعد. استخدم النموذج لإضافة عنصر.')}
                     </div>
                   ) : (
                     selectedDayEvents.map((event) => {
@@ -1318,11 +1299,11 @@ export default function AdminCalendarPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${EVENT_THEME[event.type].badge}`}>
-                                {EVENT_THEME[event.type].label}
+                                {typeLabel(event.type)}
                               </span>
                               <h4 className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{event.title}</h4>
                               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                                {formatTimeRange(event.startDateTime, event.endDateTime)}
+                                <bdi dir="ltr">{formatTime(event.startDateTime)} – {formatTime(event.endDateTime)}</bdi>
                               </p>
                             </div>
                             {canManage && deletable ? (
@@ -1332,7 +1313,7 @@ export default function AdminCalendarPage() {
                                 disabled={deletingEventId === event.id}
                                 className="rounded-lg border border-rose-300 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/20"
                               >
-                                {deletingEventId === event.id ? 'Deleting...' : 'Delete'}
+                                {deletingEventId === event.id ? L('Deleting...', 'جاري الحذف...') : L('Delete', 'حذف')}
                               </button>
                             ) : null}
                           </div>
@@ -1346,41 +1327,41 @@ export default function AdminCalendarPage() {
 
                           {event.internalNotes ? (
                             <p className="mt-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-200">
-                              Internal note: {event.internalNotes}
+                              {L('Internal note', 'ملاحظة داخلية')}: {event.internalNotes}
                             </p>
                           ) : null}
 
                           {event.blockReason ? (
-                            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Reason: {event.blockReason}</p>
+                            <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">{L('Reason', 'السبب')}: {event.blockReason}</p>
                           ) : null}
 
                           {event.type === 'APPOINTMENT' && (event.appointmentContactName || event.appointmentContactPhone) ? (
                             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                              Contact: {event.appointmentContactName || '—'}
-                              {event.appointmentContactPhone ? ` • ${event.appointmentContactPhone}` : ''}
+                              {L('Contact', 'جهة الاتصال')}: {event.appointmentContactName || '—'}
+                              {event.appointmentContactPhone ? <> • <bdi dir="ltr">{event.appointmentContactPhone}</bdi></> : null}
                             </p>
                           ) : null}
 
                           {event.isBlocked || event.type === 'APPOINTMENT' || event.type === 'SCHEDULER' ? (
                             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                              Visibility:{' '}
+                              {L('Visibility', 'الظهور')}:{' '}
                               {event.visibleToTrainers
                                 ? event.visibleTrainerIds && event.visibleTrainerIds.length > 0
-                                  ? `Admins + ${event.visibleTrainerIds.length} trainer(s)`
-                                  : 'Admins + all trainers'
-                                : 'Admins only'}
+                                  ? L(`Admins + ${event.visibleTrainerIds.length} trainer(s)`, `المشرفون + ${event.visibleTrainerIds.length} مدرب`)
+                                  : L('Admins + all trainers', 'المشرفون + جميع المدربين')
+                                : L('Admins only', 'المشرفون فقط')}
                             </p>
                           ) : null}
 
                           {event.classSession?.class ? (
                             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                              Trainer: {event.classSession.class.trainer?.fullName || 'Unassigned'}
+                              {L('Trainer', 'المدرب')}: {event.classSession.class.trainer?.fullName || L('Unassigned', 'غير معيّن')}
                             </p>
                           ) : null}
 
                           {event.eventBooking ? (
                             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                              Booking: {event.eventBooking.bookingNumber} • {event.eventBooking.fullName}
+                              {L('Booking', 'الحجز')}: <bdi dir="ltr">{event.eventBooking.bookingNumber}</bdi> • {event.eventBooking.fullName}
                             </p>
                           ) : null}
                         </div>
@@ -1393,7 +1374,7 @@ export default function AdminCalendarPage() {
               <div className="p-5 sm:p-6">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                    {canManage ? 'Add calendar item' : 'Read-only access'}
+                    {canManage ? L('Add calendar item', 'إضافة عنصر للتقويم') : t.readOnly}
                   </h3>
                   {canManage ? (
                     <button
@@ -1401,32 +1382,35 @@ export default function AdminCalendarPage() {
                       onClick={() => setIsComposerOpen((prev) => !prev)}
                       className="rounded-lg border border-zinc-300 px-3 py-2 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                     >
-                      {isComposerOpen ? 'Hide' : 'Show'}
+                      {isComposerOpen ? L('Hide', 'إخفاء') : L('Show', 'إظهار')}
                     </button>
                   ) : null}
                 </div>
 
                 {canManage && isComposerOpen ? (
                   <div className="space-y-5">
-                    <label className="space-y-1.5 text-sm">
-                      <span className="font-medium text-zinc-700 dark:text-zinc-200">Type</span>
+                    <label className="block space-y-1.5 text-sm">
+                      <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('Type', 'النوع')}</span>
                       <select
                         value={itemForm.type}
                         onChange={(event) => {
                           const nextType = event.target.value as CreatableCalendarType;
                           setItemForm((prev) => ({
                             ...prev,
-                            ...createEmptyItemForm(prev.startDate, nextType),
+                            ...createEmptyItemForm(prev.startDate, nextType, isArabic),
                             startDate: prev.startDate,
                             endDate: prev.endDate,
-                            title: prev.title.trim() ? prev.title : defaultTitleForType(nextType),
+                            title:
+                              prev.title.trim() && prev.title !== defaultTitleForType(prev.type, isArabic)
+                                ? prev.title
+                                : defaultTitleForType(nextType, isArabic),
                           }));
                         }}
                         className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                       >
                         {(Object.keys(CREATABLE_TYPE_LABEL) as CreatableCalendarType[]).map((type) => (
                           <option key={type} value={type}>
-                            {CREATABLE_TYPE_LABEL[type]}
+                            {isArabic ? EVENT_LABEL_AR[type] : CREATABLE_TYPE_LABEL[type]}
                           </option>
                         ))}
                       </select>
@@ -1446,13 +1430,13 @@ export default function AdminCalendarPage() {
                             }))
                           }
                         />
-                        Block full day
+                        {t.fullDay}
                       </label>
                     ) : null}
 
                     {!itemForm.isFullDay ? (
                       <div className="space-y-2 text-sm">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-200">Quick time</span>
+                        <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('Quick time', 'وقت سريع')}</span>
                         <div className="flex flex-wrap gap-2">
                           {TIME_PRESETS.map((preset) => (
                             <button
@@ -1475,8 +1459,8 @@ export default function AdminCalendarPage() {
                     ) : null}
 
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="space-y-1.5 text-sm">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-200">Start date</span>
+                      <label className="block space-y-1.5 text-sm">
+                        <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('Start date', 'تاريخ البداية')}</span>
                         <input
                           type="date"
                           value={itemForm.startDate}
@@ -1485,9 +1469,11 @@ export default function AdminCalendarPage() {
                         />
                       </label>
 
-                      <label className="space-y-1.5 text-sm">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-200">Start time</span>
+                      <label className="block space-y-1.5 text-sm">
+                        <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('Start time', 'وقت البداية')}</span>
                         <QuarterHourTimeSelect
+                          hour24
+                          placeholder={L('Time', 'الوقت')}
                           value={itemForm.startTime}
                           onChange={(value) => setItemForm((prev) => ({ ...prev, startTime: value }))}
                           disabled={itemForm.isFullDay}
@@ -1495,8 +1481,8 @@ export default function AdminCalendarPage() {
                         />
                       </label>
 
-                      <label className="space-y-1.5 text-sm">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-200">End date</span>
+                      <label className="block space-y-1.5 text-sm">
+                        <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('End date', 'تاريخ النهاية')}</span>
                         <input
                           type="date"
                           value={itemForm.endDate}
@@ -1505,9 +1491,11 @@ export default function AdminCalendarPage() {
                         />
                       </label>
 
-                      <label className="space-y-1.5 text-sm">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-200">End time</span>
+                      <label className="block space-y-1.5 text-sm">
+                        <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('End time', 'وقت النهاية')}</span>
                         <QuarterHourTimeSelect
+                          hour24
+                          placeholder={L('Time', 'الوقت')}
                           value={itemForm.endTime}
                           onChange={(value) => setItemForm((prev) => ({ ...prev, endTime: value }))}
                           disabled={itemForm.isFullDay}
@@ -1516,8 +1504,8 @@ export default function AdminCalendarPage() {
                       </label>
                     </div>
 
-                    <label className="space-y-1.5 text-sm">
-                      <span className="font-medium text-zinc-700 dark:text-zinc-200">Title</span>
+                    <label className="block space-y-1.5 text-sm">
+                      <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('Title', 'العنوان')}</span>
                       <input
                         value={itemForm.title}
                         onChange={(event) => setItemForm((prev) => ({ ...prev, title: event.target.value }))}
@@ -1526,11 +1514,11 @@ export default function AdminCalendarPage() {
                     </label>
 
                     <MarkdownEditor
-                      label="Description (optional)"
+                      label={L('Description (optional)', 'الوصف (اختياري)')}
                       value={itemForm.description}
                       onChange={(value) => setItemForm((prev) => ({ ...prev, description: value }))}
                       rows={4}
-                      placeholder="Write a description... Markdown is supported."
+                      placeholder={L('Write a description... Markdown is supported.', 'اكتب وصفاً... يدعم تنسيق Markdown.')}
                     />
 
                     {itemForm.type === 'PRIVATE_SESSION' ? (
@@ -1540,7 +1528,7 @@ export default function AdminCalendarPage() {
                           checked={itemForm.autoCreateCleaningBlock}
                           onChange={(event) => setItemForm((prev) => ({ ...prev, autoCreateCleaningBlock: event.target.checked }))}
                         />
-                        Auto add 3-hour cleaning block after this private session
+                        {L('Auto add 3-hour cleaning block after this private session', 'إضافة فترة تنظيف لمدة 3 ساعات تلقائياً بعد هذه الجلسة الخاصة')}
                       </label>
                     ) : null}
 
@@ -1548,16 +1536,16 @@ export default function AdminCalendarPage() {
                       <>
                         {itemForm.type === 'APPOINTMENT' ? (
                           <div className="grid gap-3 sm:grid-cols-2">
-                            <label className="space-y-1.5 text-sm">
-                              <span className="font-medium text-zinc-700 dark:text-zinc-200">Contact name</span>
+                            <label className="block space-y-1.5 text-sm">
+                              <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('Contact name', 'اسم جهة الاتصال')}</span>
                               <input
                                 value={itemForm.appointmentContactName}
                                 onChange={(event) => setItemForm((prev) => ({ ...prev, appointmentContactName: event.target.value }))}
                                 className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                               />
                             </label>
-                            <label className="space-y-1.5 text-sm">
-                              <span className="font-medium text-zinc-700 dark:text-zinc-200">Contact phone</span>
+                            <label className="block space-y-1.5 text-sm">
+                              <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('Contact phone', 'هاتف جهة الاتصال')}</span>
                               <input
                                 value={itemForm.appointmentContactPhone}
                                 onChange={(event) => setItemForm((prev) => ({ ...prev, appointmentContactPhone: event.target.value }))}
@@ -1568,7 +1556,7 @@ export default function AdminCalendarPage() {
                         ) : null}
 
                         <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">
-                          Scheduler and appointment entries are non-blocking and do not lock booking slots.
+                          {L('Tasks and appointments are non-blocking and do not lock booking slots.', 'المهام والمواعيد لا تحجب الوقت ولا تغلق فترات الحجز.')}
                         </div>
 
                         <label className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-200">
@@ -1577,22 +1565,22 @@ export default function AdminCalendarPage() {
                             checked={itemForm.notificationsEnabled}
                             onChange={(event) => setItemForm((prev) => ({ ...prev, notificationsEnabled: event.target.checked }))}
                           />
-                          Enable notifications
+                          {L('Enable notifications', 'تفعيل الإشعارات')}
                         </label>
 
                         {itemForm.notificationsEnabled ? (
                           <div className="grid gap-3 sm:grid-cols-2">
-                            <label className="space-y-1.5 text-sm">
-                              <span className="font-medium text-zinc-700 dark:text-zinc-200">Reminder before start</span>
+                            <label className="block space-y-1.5 text-sm">
+                              <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('Reminder before start', 'تذكير قبل البداية')}</span>
                               <select
                                 value={itemForm.reminderMinutesBefore}
                                 onChange={(event) => setItemForm((prev) => ({ ...prev, reminderMinutesBefore: event.target.value }))}
                                 className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                               >
-                                <option value="NONE">No early reminder</option>
-                                <option value="15">15 minutes</option>
-                                <option value="30">30 minutes</option>
-                                <option value="60">60 minutes</option>
+                                <option value="NONE">{L('No early reminder', 'بدون تذكير مسبق')}</option>
+                                <option value="15">{L('15 minutes', '15 دقيقة')}</option>
+                                <option value="30">{L('30 minutes', '30 دقيقة')}</option>
+                                <option value="60">{L('60 minutes', '60 دقيقة')}</option>
                               </select>
                             </label>
                             <label className="flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2.5 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-200">
@@ -1601,7 +1589,7 @@ export default function AdminCalendarPage() {
                                 checked={itemForm.notifyAtStart}
                                 onChange={(event) => setItemForm((prev) => ({ ...prev, notifyAtStart: event.target.checked }))}
                               />
-                              Notify at start time
+                              {L('Notify at start time', 'إشعار عند وقت البداية')}
                             </label>
                           </div>
                         ) : null}
@@ -1609,8 +1597,8 @@ export default function AdminCalendarPage() {
                     ) : null}
 
                     {showBlockFields ? (
-                      <label className="space-y-1.5 text-sm">
-                        <span className="font-medium text-zinc-700 dark:text-zinc-200">Reason</span>
+                      <label className="block space-y-1.5 text-sm">
+                        <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('Reason', 'السبب')}</span>
                         <input
                           value={itemForm.blockReason}
                           onChange={(event) => setItemForm((prev) => ({ ...prev, blockReason: event.target.value }))}
@@ -1621,8 +1609,8 @@ export default function AdminCalendarPage() {
 
                     {showVisibilityFields ? (
                       <>
-                        <label className="space-y-1.5 text-sm">
-                          <span className="font-medium text-zinc-700 dark:text-zinc-200">Internal notes</span>
+                        <label className="block space-y-1.5 text-sm">
+                          <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('Internal notes', 'ملاحظات داخلية')}</span>
                           <textarea
                             rows={3}
                             value={itemForm.internalNotes}
@@ -1631,8 +1619,8 @@ export default function AdminCalendarPage() {
                           />
                         </label>
 
-                        <label className="space-y-1.5 text-sm">
-                          <span className="font-medium text-zinc-700 dark:text-zinc-200">Visibility</span>
+                        <label className="block space-y-1.5 text-sm">
+                          <span className="block font-medium text-zinc-700 dark:text-zinc-200">{L('Visibility', 'الظهور')}</span>
                           <select
                             value={itemForm.visibleToTrainers ? 'ADMINS_AND_TRAINERS' : 'ADMINS'}
                             onChange={(event) =>
@@ -1646,8 +1634,8 @@ export default function AdminCalendarPage() {
                             }
                             className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
                           >
-                            <option value="ADMINS">Admins only</option>
-                            <option value="ADMINS_AND_TRAINERS">Admins + Trainers</option>
+                            <option value="ADMINS">{L('Admins only', 'المشرفون فقط')}</option>
+                            <option value="ADMINS_AND_TRAINERS">{L('Admins + Trainers', 'المشرفون + المدربون')}</option>
                           </select>
                         </label>
 
@@ -1665,13 +1653,13 @@ export default function AdminCalendarPage() {
                                   }))
                                 }
                               />
-                              All trainers
+                              {L('All trainers', 'جميع المدربين')}
                             </label>
 
                             {!itemForm.visibleToAllTrainers ? (
                               <div className="max-h-44 space-y-1 overflow-y-auto rounded-md border border-zinc-200 p-2 dark:border-zinc-800">
                                 {trainers.length === 0 ? (
-                                  <p className="text-xs text-zinc-500 dark:text-zinc-400">No trainer list available.</p>
+                                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{L('No trainer list available.', 'قائمة المدربين غير متاحة.')}</p>
                                 ) : (
                                   trainers.map((trainer) => {
                                     const checked = itemForm.visibleTrainerIds.includes(trainer.id);
@@ -1704,9 +1692,9 @@ export default function AdminCalendarPage() {
                 ) : (
                   <div className="rounded-lg border border-dashed border-zinc-300 px-4 py-5 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
                     {canManage ? (
-                      <>Composer hidden. Click <span className="font-semibold">Show</span> to add a new item for this day.</>
+                      L('Form hidden. Click Show to add a new item for this day.', 'النموذج مخفي. اضغط «إظهار» لإضافة عنصر جديد لهذا اليوم.')
                     ) : (
-                      'This role can only view the timetable and existing items.'
+                      L('This role can only view the timetable and existing items.', 'هذا الدور يمكنه عرض الجدول والعناصر الحالية فقط.')
                     )}
                   </div>
                 )}
@@ -1720,16 +1708,16 @@ export default function AdminCalendarPage() {
                   onClick={() => setIsDayModalOpen(false)}
                   className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 >
-                  Close
+                  {L('Close', 'إغلاق')}
                 </button>
                 {canManage && isComposerOpen ? (
                   <>
                     <button
                       type="button"
-                      onClick={() => setItemForm(createEmptyItemForm(selectedDate, itemForm.type))}
+                      onClick={() => setItemForm(createEmptyItemForm(selectedDate, itemForm.type, isArabic))}
                       className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                     >
-                      Reset
+                      {L('Reset', 'إعادة تعيين')}
                     </button>
                     <button
                       type="button"
@@ -1737,7 +1725,7 @@ export default function AdminCalendarPage() {
                       disabled={creatingItem}
                       className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                     >
-                      {creatingItem ? 'Saving...' : 'Save item'}
+                      {creatingItem ? L('Saving...', 'جاري الحفظ...') : L('Save item', 'حفظ العنصر')}
                     </button>
                   </>
                 ) : null}

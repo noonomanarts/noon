@@ -32,7 +32,11 @@ function normalizePhoneForWhatsApp(value: string): string {
 function isPublicPath(pathname: string | null): boolean {
   const raw = pathname ?? '';
   const normalized = raw.replace(/^\/(en|ar)(?=\/|$)/, '');
-  return !normalized.startsWith('/account');
+  // Hidden where it would sit on top of the primary action: the account area
+  // and the cart / checkout flow (their pay buttons are full-width on phones).
+  return !['/account', '/cart', '/checkout'].some(
+    (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`)
+  );
 }
 
 function Icon({

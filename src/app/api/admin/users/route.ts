@@ -1,6 +1,7 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getUserById, getAllUsers, createUser, getUserByEmail, getUserByPhoneNormalized } from "@/lib/db/users";
+import { getSessionUserById, getAllUsers, createUser, getUserByEmail, getUserByPhoneNormalized } from "@/lib/db/users";
 import { upsertWorkerPermissions } from "@/lib/db/worker";
 import type { UserRole, UserStatus } from "@/lib/db/types";
 
@@ -31,13 +32,13 @@ export async function GET(request: NextRequest) {
   try {
     // Auth check
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get("noon_session")?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUser = await getUserById(sessionId);
+    const currentUser = await getSessionUserById(sessionId);
     if (!currentUser || currentUser.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -65,13 +66,13 @@ export async function POST(request: NextRequest) {
   try {
     // Auth check
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get("noon_session")?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUser = await getUserById(sessionId);
+    const currentUser = await getSessionUserById(sessionId);
     if (!currentUser || currentUser.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

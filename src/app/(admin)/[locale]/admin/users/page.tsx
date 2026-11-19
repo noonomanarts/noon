@@ -1,8 +1,9 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isLocale, type Locale } from "@/lib/locale";
-import { getUserById, getAllUsers } from "@/lib/db/users";
+import { getSessionUserById, getAllUsers } from "@/lib/db/users";
 import AdminUsersTableClient from "@/components/admin/AdminUsersTableClient";
 
 export default async function AdminUsersPage({
@@ -15,13 +16,13 @@ export default async function AdminUsersPage({
 
   // Auth check
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("noon_session")?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     redirect(`/${locale}/login`);
   }
 
-  const currentUser = await getUserById(sessionId);
+  const currentUser = await getSessionUserById(sessionId);
   if (!currentUser || currentUser.role !== "ADMIN") {
     redirect(`/${locale}/account`);
   }

@@ -1,6 +1,7 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { isLocale, type Locale } from "@/lib/locale";
 import { getAllWallets } from "@/lib/db/wallet";
-import { getUserById } from "@/lib/db/users";
+import { getSessionUserById } from "@/lib/db/users";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { WalletsTable } from "@/components/admin/WalletsTable";
@@ -23,13 +24,13 @@ export default async function WalletsPage({
 
   // Auth check
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("noon_session")?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     redirect(`/${locale}/login`);
   }
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== "ADMIN") {
     redirect(`/${locale}/account`);
   }

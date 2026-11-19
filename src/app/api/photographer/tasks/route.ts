@@ -1,15 +1,16 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { getPhotographerTask, isPhotographerDashboardRole, listPhotographerTasks, updatePhotographerTask } from '@/lib/db/photographer';
 import type { TaskStatus } from '@/lib/db/types';
 
 export async function GET(request: Request) {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || !isPhotographerDashboardRole(user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -30,10 +31,10 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || !isPhotographerDashboardRole(user.role)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

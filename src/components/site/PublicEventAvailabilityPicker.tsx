@@ -374,7 +374,7 @@ export default function PublicEventAvailabilityPicker({
                     return (
                       <div
                         key={`blank-${index}`}
-                        className="aspect-square border-b border-r border-[color:var(--border)] bg-[color:var(--muted)]/30"
+                        className="aspect-square border-b border-e border-[color:var(--border)] bg-[color:var(--muted)]/30"
                       />
                     );
                   }
@@ -387,9 +387,10 @@ export default function PublicEventAvailabilityPicker({
                     return (
                       <div
                         key={cell.dateKey}
-                        className="aspect-square border-b border-r border-[color:var(--border)] bg-[color:var(--surface)]/70 p-1.5 text-[color:var(--text-subtle)]"
+                        aria-disabled="true"
+                        className="flex aspect-square items-center justify-center border-b border-e border-[color:var(--border)] bg-[color:var(--muted)]/30 text-[color:var(--text-subtle)]"
                       >
-                        <div className="text-xs font-semibold opacity-60">{cell.dayNumber}</div>
+                        <span className="whitespace-nowrap text-xs font-medium tabular-nums opacity-50 sm:text-sm">{cell.dayNumber}</span>
                       </div>
                     );
                   }
@@ -405,23 +406,25 @@ export default function PublicEventAvailabilityPicker({
                           time: hasSelectedTime ? selectedTime : day.slots[0]?.time ?? '',
                         });
                       }}
-                      className={`aspect-square border-b border-r border-[color:var(--border)] p-1.5 text-left transition ${
+                      aria-pressed={isSelected}
+                      aria-current={isToday ? 'date' : undefined}
+                      className={`flex aspect-square items-center justify-center border-b border-e border-[color:var(--border)] transition ${
                         isSelected
-                          ? 'bg-[color:var(--primary)]/12'
+                          ? 'bg-[color:var(--primary)]/10'
                           : 'bg-[color:var(--surface)] hover:bg-[color:var(--muted)]/60'
                       }`}
                     >
-                      <div className="flex items-start">
-                        <span
-                          className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold ${
-                            isToday
-                              ? 'bg-[color:var(--primary)] text-[color:var(--primary-foreground)]'
-                              : 'bg-[color:var(--muted)] text-[color:var(--text)]'
-                          }`}
-                        >
-                          {cell.dayNumber}
-                        </span>
-                      </div>
+                      <span
+                        className={`inline-flex size-7 shrink-0 items-center justify-center whitespace-nowrap rounded-full text-xs font-bold tabular-nums sm:size-8 sm:text-sm ${
+                          isSelected
+                            ? 'bg-[color:var(--primary)] text-[color:var(--primary-foreground)]'
+                            : isToday
+                              ? 'text-[color:var(--text)] ring-2 ring-[color:var(--primary)]'
+                              : 'text-[color:var(--text)]'
+                        }`}
+                      >
+                        {cell.dayNumber}
+                      </span>
                     </button>
                   );
                 })}
@@ -439,8 +442,8 @@ export default function PublicEventAvailabilityPicker({
               <table className="w-full table-fixed text-sm">
                 <thead className="bg-[color:var(--muted)]/70">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.timeColumn}</th>
-                    <th className="px-4 py-3 text-left font-semibold text-[color:var(--text)]">{t.durationColumn}</th>
+                    <th className="px-4 py-3 text-start font-semibold text-[color:var(--text)]">{t.timeColumn}</th>
+                    <th className="px-4 py-3 text-start font-semibold text-[color:var(--text)]">{t.durationColumn}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -466,7 +469,7 @@ export default function PublicEventAvailabilityPicker({
                             <button
                               type="button"
                               onClick={() => onChange({ date: selectedDay.date, time: slot.time })}
-                              className="w-full text-left font-semibold"
+                              className="w-full text-start font-semibold"
                             >
                               {formatSlot(locale, slot.time)}
                             </button>
@@ -475,7 +478,7 @@ export default function PublicEventAvailabilityPicker({
                             <button
                               type="button"
                               onClick={() => onChange({ date: selectedDay.date, time: slot.time })}
-                              className="w-full text-left"
+                              className="w-full text-start"
                             >
                               {durationLabel}
                             </button>

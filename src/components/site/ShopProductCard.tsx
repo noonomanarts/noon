@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiBox, FiCheckCircle, FiPackage, FiTag } from "react-icons/fi";
+import { FiBox, FiCheckCircle, FiPackage, FiTag, FiXCircle } from "react-icons/fi";
 
 import type { Locale } from "@/lib/locale";
 import AddToCartButton from "@/components/site/AddToCartButton";
@@ -37,13 +37,12 @@ export default function ShopProductCard({
   const t = {
     noImage: isArabic ? "بدون صورة" : "No image",
     openProduct: isArabic ? "فتح المنتج" : "Open product",
-    inStock: isArabic ? "متوفر" : "In",
-    outOfStock: isArabic ? "نفد" : "Out",
+    inStock: isArabic ? "متوفر" : "In stock",
+    outOfStock: isArabic ? "نفدت الكمية" : "Sold out",
     featured: isArabic ? "مميز" : "Featured",
     stock: isArabic ? "الكمية" : "Qty",
-    addToCart: isArabic ? "أضف" : "Add",
-    adding: isArabic ? "جارٍ..." : "Adding...",
-    noDescription: isArabic ? "قريباً" : "Coming soon.",
+    addToCart: isArabic ? "أضف إلى السلة" : "Add to cart",
+    adding: isArabic ? "جارٍ الإضافة..." : "Adding...",
   };
 
   const name = isArabic ? product.name_ar : product.name_en;
@@ -78,54 +77,54 @@ export default function ShopProductCard({
         )}
 
         <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-2 sm:p-3">
-          <span className="inline-flex items-center gap-1 bg-black/65 px-1.5 py-1 text-[8px] font-medium tracking-[0.05em] text-white sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[10px] sm:tracking-[0.1em]">
+          <span className="inline-flex items-center gap-1 bg-black/65 px-1.5 py-1 text-[10px] font-medium text-white sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[11px]">
             <FiTag className="size-3 text-yellow-300" />
             {categoryName}
           </span>
           <div className="flex flex-col items-end gap-1.5">
             {product.is_featured ? (
-              <span className="inline-flex items-center gap-1 bg-yellow px-1.5 py-1 text-[8px] font-medium tracking-[0.05em] text-[#2f2a1f] sm:px-2.5 sm:text-[10px] sm:tracking-[0.1em]">
+              <span className="inline-flex items-center gap-1 bg-yellow px-1.5 py-1 text-[10px] font-medium text-[#2f2a1f] sm:px-2.5 sm:text-[11px]">
                 <FiBox className="size-3" />
                 {t.featured}
               </span>
             ) : null}
-            <span
-              className={`inline-flex items-center gap-1 px-1.5 py-1 text-[8px] font-medium tracking-[0.05em] sm:px-2.5 sm:text-[10px] sm:tracking-[0.1em] ${
-                inStock
-                  ? "bg-emerald-500/20 text-emerald-900 dark:text-emerald-200"
-                  : "bg-rose-500/20 text-rose-900 dark:text-rose-200"
-              }`}
-            >
-              <FiCheckCircle className="size-3" />
-              {inStock ? t.inStock : t.outOfStock}
-            </span>
+            {!inStock ? (
+              <span className="inline-flex items-center gap-1 bg-black/70 px-1.5 py-1 text-[10px] font-medium text-white sm:px-2.5 sm:text-[11px]">
+                <FiXCircle className="size-3" />
+                {t.outOfStock}
+              </span>
+            ) : null}
           </div>
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col gap-3 p-4 text-center sm:p-5">
+      <div className="flex flex-1 flex-col gap-2.5 p-3 text-center sm:gap-3 sm:p-5">
         <div className="space-y-1">
           <h3 className="line-clamp-2 text-base font-semibold leading-snug text-[color:var(--text)] sm:text-xl sm:leading-6">
             {name}
           </h3>
-          <p className="line-clamp-2 text-xs leading-5 text-[color:var(--text-muted)] sm:text-sm">
-            {description || t.noDescription}
-          </p>
+          {description ? (
+            <p className="line-clamp-2 text-xs leading-5 text-[color:var(--text-muted)] sm:text-sm">
+              {description}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
-          <span className="inline-flex items-center gap-1.5 rounded-none border border-teal/35 bg-teal/10 px-3 py-1.5 font-medium text-teal">
-            <FiPackage className="size-3.5" />
-            {t.stock}: {product.stock_quantity}
-          </span>
+          {inStock ? (
+            <span className="inline-flex items-center gap-1.5 rounded-none border border-teal/35 bg-teal/10 px-2 py-1 font-medium text-teal sm:px-3 sm:py-1.5">
+              <FiPackage className="size-3.5" />
+              {t.stock}: {product.stock_quantity}
+            </span>
+          ) : null}
           <span
-            className={`inline-flex items-center gap-1.5 rounded-none border px-3 py-1.5 font-medium ${
+            className={`inline-flex items-center gap-1.5 rounded-none border px-2 py-1 font-medium sm:px-3 sm:py-1.5 ${
               inStock
                 ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-800"
                 : "border-rose-500/35 bg-rose-500/10 text-rose-800"
             }`}
           >
-            <FiCheckCircle className="size-3.5" />
+            {inStock ? <FiCheckCircle className="size-3.5" /> : <FiXCircle className="size-3.5" />}
             {inStock ? t.inStock : t.outOfStock}
           </span>
         </div>
@@ -144,7 +143,7 @@ export default function ShopProductCard({
             showFeedback={false}
             idleLabel={t.addToCart}
             loadingLabel={t.adding}
-            buttonClassName="inline-flex w-full items-center justify-center rounded-none bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold leading-tight tracking-[0.01em] text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+            buttonClassName="inline-flex w-full items-center justify-center rounded-none bg-[color:var(--primary)] px-2 py-2.5 text-sm font-semibold leading-tight sm:px-4 text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           />
         </div>
       </div>

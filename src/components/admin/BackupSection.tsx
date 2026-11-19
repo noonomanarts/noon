@@ -222,7 +222,7 @@ export default function BackupSection({ locale }: BackupSectionProps) {
             <button
               onClick={handleDatabaseBackup}
               disabled={dbStatus === "loading"}
-              className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+              className="w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
             >
               {dbStatus === "loading" ? (
                 <span className="flex items-center justify-center gap-2">

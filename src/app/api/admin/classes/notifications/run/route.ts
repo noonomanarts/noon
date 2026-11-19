@@ -1,7 +1,8 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { dispatchDueClassWhatsAppNotifications } from '@/lib/classWhatsAppNotifications';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 
 async function canRun(request: NextRequest): Promise<boolean> {
   const cronSecret = process.env.CLASS_NOTIFICATION_SECRET;
@@ -14,10 +15,10 @@ async function canRun(request: NextRequest): Promise<boolean> {
   }
 
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return false;
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   return Boolean(user && user.role === 'ADMIN');
 }
 

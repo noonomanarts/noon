@@ -1,8 +1,9 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { deleteCalendarEvent } from '@/lib/db/events';
 import { query } from '@/lib/db/pool';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 
 type Params = {
   params: Promise<{ eventId: string }>;
@@ -10,7 +11,7 @@ type Params = {
 
 async function requireAdminUser(): Promise<{ ok: true } | { ok: false; response: NextResponse }> {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     return {
@@ -19,7 +20,7 @@ async function requireAdminUser(): Promise<{ ok: true } | { ok: false; response:
     };
   }
 
-  const currentUser = await getUserById(sessionId);
+  const currentUser = await getSessionUserById(sessionId);
   if (!currentUser || currentUser.role !== 'ADMIN') {
     return {
       ok: false,

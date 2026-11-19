@@ -1,4 +1,5 @@
 'use client';
+import { formatBookingDate, formatBookingTime } from '@/lib/forms/bookingSummaryFormat';
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -790,11 +791,11 @@ export default function CookingCompetitionBookingPage() {
               <div className="space-y-2 text-sm text-zinc-700 dark:text-zinc-300">
                 <div className="flex items-center gap-2">
                   <IoCalendar className="h-4 w-4 text-teal" />
-                  <strong>{t.summaryDate}:</strong> {bookingData.selectedDate}
+                  <strong>{t.summaryDate}:</strong> {formatBookingDate(locale, bookingData.selectedDate)}
                 </div>
                 <div className="flex items-center gap-2">
                   <MdSchedule className="h-4 w-4 text-purple" />
-                  <strong>{t.summaryTime}:</strong> {bookingData.selectedTime}
+                  <strong>{t.summaryTime}:</strong> {formatBookingTime(locale, bookingData.selectedTime)}
                 </div>
                 <div className="flex items-center gap-2">
                   <BiSolidGift className="h-4 w-4 text-yellow" />

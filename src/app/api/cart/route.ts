@@ -1,9 +1,10 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { CART_COOKIE_NAME, parseCartCookie } from '@/lib/cart';
 import { getShopProductsByIdsForPublic } from '@/lib/db/shop';
 import { findScheduleConflictsForClasses } from '@/lib/db/classes';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 
 export async function GET() {
   try {
@@ -11,8 +12,8 @@ export async function GET() {
     const cartCookie = cookieStore.get(CART_COOKIE_NAME)?.value;
     const cart = parseCartCookie(cartCookie);
 
-    const sessionId = cookieStore.get('noon_session')?.value;
-    const authenticatedUser = sessionId ? await getUserById(sessionId) : null;
+    const sessionId = readSessionUserId(cookieStore);
+    const authenticatedUser = sessionId ? await getSessionUserById(sessionId) : null;
 
     const shopItems = cart.items.filter((item) => item.kind === 'SHOP_PRODUCT');
     const classItems = cart.items.filter((item) => item.kind === 'CLASS_BOOKING');

@@ -506,6 +506,11 @@ export default function PrintLabelsClient({ locale, products }: Props) {
           height: settings.heightMm + "mm",
           padding: settings.paddingMm + "mm",
           fontFamily: labelFontFamily,
+          // Match the print stylesheet so the on-screen preview has the same
+          // proportions as the printed label (the dashboard's roomy Arabic
+          // line-height would otherwise push the footer out of the box).
+          lineHeight: settings.printProfile === "thermal" ? 1.12 : 1.18,
+          overflow: "hidden",
         }}
       >
         <div className="space-y-1 text-center">
@@ -517,7 +522,7 @@ export default function PrintLabelsClient({ locale, products }: Props) {
           </p>
           {settings.showSecondaryLanguage && !isArabic && item.product.name_ar && (
             <p
-              className="label-subtitle text-zinc-500"
+              className="label-subtitle leading-[inherit] text-zinc-500"
               style={{ fontSize: getScaledFontSize(10, settings.fontScale, settings.metaScale) }}
             >
               {item.product.name_ar}
@@ -525,7 +530,7 @@ export default function PrintLabelsClient({ locale, products }: Props) {
           )}
           {settings.showSecondaryLanguage && isArabic && item.product.name_en && (
             <p
-              className="label-subtitle text-zinc-500"
+              className="label-subtitle leading-[inherit] text-zinc-500"
               style={{ fontSize: getScaledFontSize(10, settings.fontScale, settings.metaScale) }}
             >
               {item.product.name_en}
@@ -552,7 +557,7 @@ export default function PrintLabelsClient({ locale, products }: Props) {
             <div className="label-footer flex items-end justify-between gap-2 border-t border-zinc-200 pt-1">
               {settings.showSku && item.product.sku ? (
                 <span
-                  className="label-sku text-zinc-400"
+                  className="label-sku min-w-0 truncate text-zinc-400"
                   style={{ fontSize: getScaledFontSize(8, settings.fontScale, settings.metaScale) }}
                 >
                   {item.product.sku}
@@ -562,7 +567,7 @@ export default function PrintLabelsClient({ locale, products }: Props) {
               )}
               {settings.showPrice && (
                 <span
-                  className="label-price font-bold"
+                  className="label-price shrink-0 whitespace-nowrap font-bold"
                   style={{ fontSize: getScaledFontSize(15, settings.fontScale, settings.priceScale) }}
                 >
                   {item.product.price.toFixed(3)} {item.product.currency}

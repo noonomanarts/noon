@@ -1,4 +1,5 @@
 'use client';
+import { formatBookingDate, formatBookingTime } from '@/lib/forms/bookingSummaryFormat';
 
 import { useState } from 'react';
 import { isLocale, type Locale } from '@/lib/locale';
@@ -397,8 +398,8 @@ export default function PrivateClassBookingPage() {
             
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--muted)] p-4">
               <div className="space-y-2 text-sm text-[color:var(--text)]">
-                <div><strong>{t.summaryDate}:</strong> {formData.selectedDate}</div>
-                <div><strong>{t.summaryTime}:</strong> {formData.selectedTime}</div>
+                <div><strong>{t.summaryDate}:</strong> {formatBookingDate(locale, formData.selectedDate)}</div>
+                <div><strong>{t.summaryTime}:</strong> {formatBookingTime(locale, formData.selectedTime)}</div>
                 <div><strong>{t.summaryParticipants}:</strong> {formData.numberOfParticipants}</div>
                 <div><strong>{t.estimatedPrice}:</strong> {privateTotal !== null ? `${privateTotal} OMR` : '--'}</div>
                 {classType === 'arts-crafts' && participantsCount > 12 ? (
@@ -408,8 +409,8 @@ export default function PrivateClassBookingPage() {
                   <div><strong>{t.summaryPreferredDish}:</strong> {formData.preferredDish}</div>
                 )}
                 <div><strong>{t.summaryName}:</strong> {formData.fullName}</div>
-                <div><strong>{t.email}:</strong> {formData.email}</div>
-                <div><strong>{t.summaryPhone}:</strong> {formData.phoneNumber}</div>
+                <div><strong>{t.email}:</strong> <bdi dir="ltr" className="[overflow-wrap:anywhere]">{formData.email}</bdi></div>
+                <div><strong>{t.summaryPhone}:</strong> <bdi dir="ltr">{formData.phoneNumber}</bdi></div>
               </div>
             </div>
           </div>

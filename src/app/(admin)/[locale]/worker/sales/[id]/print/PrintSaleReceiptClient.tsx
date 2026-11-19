@@ -52,6 +52,7 @@ export default function PrintSaleReceiptClient({ locale, sale }: Props) {
       month: "2-digit",
       day: "2-digit",
       hour: "2-digit",
+      hourCycle: "h23",
       minute: "2-digit",
       timeZone: 'Asia/Muscat',
     }).format(new Date(date));

@@ -1,3 +1,4 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -15,7 +16,7 @@ import ClassListingHeader from "@/components/site/ClassListingHeader";
 import RegistrationCountdown from "@/components/site/RegistrationCountdown";
 import RequestRepeatButton from "@/components/site/RequestRepeatButton";
 import { resolveRegistrationCloseAt } from "@/lib/classRegistration";
-import { getUserById } from "@/lib/db/users";
+import { getSessionUserById } from "@/lib/db/users";
 
 const DISPLAY_TIMEZONE = "Asia/Muscat";
 
@@ -194,8 +195,8 @@ export default async function CookingClassesPage({
   const isArabic = locale === "ar";
   const pageSettings = await getPublicSitePageSettings("classes_cooking");
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("noon_session")?.value;
-  const currentUser = sessionId ? await getUserById(sessionId) : null;
+  const sessionId = readSessionUserId(cookieStore);
+  const currentUser = sessionId ? await getSessionUserById(sessionId) : null;
 
   const classes = await findManyClasses({
     category: ClassCategory.COOKING,

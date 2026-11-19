@@ -1,7 +1,8 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { findManyEventBookings, createEventBooking } from '@/lib/db/events';
-import { getUserByEmail, getUserById } from '@/lib/db/users';
+import { getUserByEmail, getUserById, getSessionUserById } from '@/lib/db/users';
 import { isValidEmail, isValidPhone } from '@/lib/forms/eventBooking';
 import { resolveEventGiftSelections } from '@/lib/eventGiftAddOns';
 import {
@@ -29,11 +30,11 @@ const PRIVATE_CLASS_TYPES = new Set(['cooking', 'arts-crafts']);
 
 async function requireAdmin() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) return null;
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') return null;
 
   return user;

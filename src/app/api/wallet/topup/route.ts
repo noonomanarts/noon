@@ -1,19 +1,20 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { createWalletTopupPayment, updateWalletTopupPaymentGatewayData } from '@/lib/db/wallet';
 import { prepareAmwalPayment } from '@/lib/amwal';
 
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get('noon_session')?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await getUserById(sessionId);
+    const user = await getSessionUserById(sessionId);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

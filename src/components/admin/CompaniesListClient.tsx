@@ -63,7 +63,7 @@ export default function CompaniesListClient({ locale, initialOrders }: { locale:
     <div className="p-4 sm:p-6">
       <div className="mb-5 flex items-center justify-between">
         <h1 className="text-xl font-bold text-[color:var(--text)]">{t.title}</h1>
-        <button onClick={() => setShowForm((v) => !v)} className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-700">
+        <button onClick={() => setShowForm((v) => !v)} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">
           {t.add}
         </button>
       </div>
@@ -102,7 +102,7 @@ export default function CompaniesListClient({ locale, initialOrders }: { locale:
             </div>
           </div>
           {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-          <button onClick={submit} disabled={saving || !companyName.trim()} className="mt-4 rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{t.save}</button>
+          <button onClick={submit} disabled={saving || !companyName.trim()} className="mt-4 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">{t.save}</button>
         </div>
       )}
 

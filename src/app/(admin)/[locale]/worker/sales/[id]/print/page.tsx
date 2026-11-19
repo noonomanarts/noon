@@ -1,6 +1,7 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
-import { getUserById } from "@/lib/db/users";
+import { getSessionUserById } from "@/lib/db/users";
 import { getFullWorkerPermissions, getWorkerPermissions, getInShopSaleById } from "@/lib/db/worker";
 import PrintSaleReceiptClient from "./PrintSaleReceiptClient";
 
@@ -11,11 +12,11 @@ export default async function PrintSaleReceiptPage({
 }) {
   const { locale, id } = await params;
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("noon_session")?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) redirect(`/${locale}/login`);
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || (user.role !== "WORKER" && user.role !== "ADMIN")) redirect(`/${locale}`);
 
   const permissions = user.role === "ADMIN" ? getFullWorkerPermissions(user.id) : await getWorkerPermissions(user.id);

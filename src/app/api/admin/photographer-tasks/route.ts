@@ -1,6 +1,7 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import {
   createPhotographerTask,
   listPhotographerDashboardUsers,
@@ -12,10 +13,10 @@ import { createNotification } from '@/lib/db/notifications';
 
 export async function GET(request: Request) {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -41,10 +42,10 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -92,10 +93,10 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -125,10 +126,10 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

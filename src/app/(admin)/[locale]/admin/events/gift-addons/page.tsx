@@ -1,8 +1,9 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import AdminEventGiftAddOnsPageClient from '@/components/admin/AdminEventGiftAddOnsPageClient';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { isLocale } from '@/lib/locale';
 
 export default async function AdminEventGiftAddOnsPage({
@@ -17,13 +18,13 @@ export default async function AdminEventGiftAddOnsPage({
   }
 
   const cookieStore = await cookies();
-  const userId = cookieStore.get('noon_session')?.value;
+  const userId = readSessionUserId(cookieStore);
 
   if (!userId) {
     redirect(`/${locale}/login`);
   }
 
-  const user = await getUserById(userId);
+  const user = await getSessionUserById(userId);
   if (!user || user.role !== 'ADMIN') {
     redirect(`/${locale}/account`);
   }

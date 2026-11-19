@@ -1,7 +1,8 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { pool } from '@/lib/db/pool';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import {
   CART_COOKIE_NAME,
   emptyCart,
@@ -12,7 +13,7 @@ import {
   type EventCartItem,
   type ShopCartItem,
 } from '@/lib/cart';
-import { validatePromoCode, createPromoCode } from '@/lib/db/promoCodes';
+import { validatePromoCode, createPromoCode, consumePromoCode } from '@/lib/db/promoCodes';
 import { sendPaymentAdminNotifications } from '@/lib/paymentAdminNotifications';
 import { sendUserTransactionWhatsApp } from '@/lib/whatsapp/transactionNotifications';
 import { sendClassRegistrationMessage } from '@/lib/classCustomMessages';
@@ -108,8 +109,8 @@ export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
 
   try {
-    const sessionId = cookieStore.get('noon_session')?.value;
-    const user = sessionId ? await getUserById(sessionId) : null;
+    const sessionId = readSessionUserId(cookieStore);
+    const user = sessionId ? await getSessionUserById(sessionId) : null;
 
     const body = (await request.json()) as {
       area?: string;
@@ -344,6 +345,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: promoValidation.reason }, { status: 400 });
           }
           discountAmount = Number(promoValidation.discountAmount.toFixed(3));
+
+          // Take the use now, inside this transaction: a later failure rolls it
+          // back, and a limited code cannot be redeemed past its limit.
+          if (!(await consumePromoCode(client, promoValidation.promo.id))) {
+            await client.query('ROLLBACK');
+            return NextResponse.json({ error: 'Promo code usage limit reached' }, { status: 409 });
+          }
         }
       }
 

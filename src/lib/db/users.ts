@@ -136,6 +136,18 @@ export async function getUserById(id: string): Promise<UserPublic | null> {
 }
 
 /**
+ * Resolve the user behind a session. Unlike getUserById this only returns
+ * ACTIVE accounts, so suspending or deactivating a user ends their access on
+ * the very next request instead of when their cookie expires.
+ */
+export async function getSessionUserById(id: string | null | undefined): Promise<UserPublic | null> {
+  if (!id) return null;
+  const user = await getUserById(id);
+  if (!user || user.status !== 'ACTIVE') return null;
+  return user;
+}
+
+/**
  * Get user by email (includes password for auth)
  */
 export async function getUserByEmail(email: string): Promise<User | null> {

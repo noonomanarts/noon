@@ -868,7 +868,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                             </div>
                           )}
                           <div className="text-xs text-zinc-500 dark:text-zinc-500 mt-1">
-                            {new Date(transaction.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
+                            {new Date(transaction.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Muscat' })}
                           </div>
                         </div>
                         <span className={`font-bold text-sm ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>

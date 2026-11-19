@@ -1,8 +1,9 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import path from 'path';
 import { mkdir, writeFile } from 'fs/promises';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { getUploadRootDir } from '@/lib/uploadStorage';
 
 const sanitizeFilename = (value: string) => value.replace(/[^a-z0-9.-_]/gi, '-').toLowerCase();
@@ -10,13 +11,13 @@ const sanitizeFilename = (value: string) => value.replace(/[^a-z0-9.-_]/gi, '-')
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get('noon_session')?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const currentUser = await getUserById(sessionId);
+    const currentUser = await getSessionUserById(sessionId);
     if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

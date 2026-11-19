@@ -1,3 +1,4 @@
+import { createSessionToken } from '@/lib/sessionToken';
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -68,7 +69,7 @@ export default async function LoginPage({
     }
 
     const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE_NAME, user.id, getSessionCookieOptions());
+    cookieStore.set(SESSION_COOKIE_NAME, createSessionToken(user.id), getSessionCookieOptions());
 
     // Login must not depend on the WhatsApp gateway being reachable.
     void sendUserWhatsAppTemplate({

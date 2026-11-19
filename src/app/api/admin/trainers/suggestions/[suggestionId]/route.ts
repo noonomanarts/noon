@@ -1,3 +1,4 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import {
@@ -5,7 +6,7 @@ import {
   updateTrainerWorkshopSuggestionByAdmin,
   type TrainerWorkshopSuggestionStatus,
 } from '@/lib/db/trainers';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 
 const VALID_STATUSES = new Set(['PENDING_REVIEW', 'IN_REVIEW', 'APPROVED', 'REJECTED', 'PUBLISHED']);
 
@@ -15,13 +16,13 @@ export async function PATCH(
 ) {
   try {
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get('noon_session')?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const currentUser = await getUserById(sessionId);
+    const currentUser = await getSessionUserById(sessionId);
     if (!currentUser || currentUser.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

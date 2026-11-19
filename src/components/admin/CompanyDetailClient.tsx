@@ -92,7 +92,7 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <a href={`/api/admin/companies/${order.id}/invoice`} target="_blank" rel="noreferrer" className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white">{t.viewInvoice}</a>
+        <a href={`/api/admin/companies/${order.id}/invoice`} target="_blank" rel="noreferrer" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">{t.viewInvoice}</a>
         <button disabled={busy || !order.phone} onClick={() => api(`/api/admin/companies/${order.id}/whatsapp`, { method: 'POST' })} className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{t.sendWa}</button>
         {!closed && <button disabled={busy} onClick={() => confirmClose ? api(`/api/admin/companies/${order.id}/close`, { method: 'POST' }) : setConfirmClose(true)} className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{confirmClose ? (isAr ? 'تأكيد الإغلاق' : 'Confirm close') : t.close}</button>}
       </div>
@@ -146,7 +146,7 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ packages: pkgRows }),
                   })}
-                  className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   {t.savePkgs}
                 </button>
@@ -183,7 +183,7 @@ export default function CompanyDetailClient({ locale, order: initial, inventory 
               <input type="number" value={costAmount} onChange={(e) => setCostAmount(Number(e.target.value))} placeholder={t.amount} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2" />
             )}
             <input value={costNotes} onChange={(e) => setCostNotes(e.target.value)} placeholder={t.notes} className="rounded-lg border border-[color:var(--border)] bg-transparent px-3 py-2 sm:col-span-2" />
-            <button disabled={busy} onClick={() => api(`/api/admin/companies/${order.id}/costs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: costTitle, costType, amount: costAmount, inventoryItemId: costItem || null, notes: costNotes }) }).then((result) => { if (result) { setCostTitle(''); setCostAmount(0); setCostItem(''); setCostNotes(''); } })} className="rounded-lg bg-purple-600 px-4 py-2 font-semibold text-white sm:col-span-2">{t.addCost}</button>
+            <button disabled={busy} onClick={() => api(`/api/admin/companies/${order.id}/costs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: costTitle, costType, amount: costAmount, inventoryItemId: costItem || null, notes: costNotes }) }).then((result) => { if (result) { setCostTitle(''); setCostAmount(0); setCostItem(''); setCostNotes(''); } })} className="rounded-lg bg-zinc-900 px-4 py-2 font-semibold text-white sm:col-span-2 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">{t.addCost}</button>
           </div>
         )}
       </div>

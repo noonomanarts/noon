@@ -1,7 +1,8 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSettingsByKey, upsertAdminSettings } from '@/lib/db/adminSettings';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import {
   defaultInvoiceTemplateSettings,
   sanitizeInvoiceTemplateSettings,
@@ -10,9 +11,9 @@ import {
 
 async function requireAdmin() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return null;
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') return null;
   return user;
 }

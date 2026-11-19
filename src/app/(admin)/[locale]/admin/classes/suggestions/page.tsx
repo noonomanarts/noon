@@ -1,3 +1,4 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -5,7 +6,7 @@ import { FiMessageSquare, FiRefreshCw, FiThumbsUp, FiClock, FiCheckCircle } from
 
 import AdminWorkshopSuggestionActions from '@/components/admin/AdminWorkshopSuggestionActions';
 import { getAdminWorkshopSuggestions, type WorkshopSuggestionStatus } from '@/lib/db/workshopSuggestions';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { isLocale, type Locale } from '@/lib/locale';
 
 function formatDateTime(value: Date | null, locale: Locale): string {
@@ -32,10 +33,10 @@ export default async function AdminWorkshopSuggestionsPage({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'en';
 
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) redirect(`/${locale}/login`);
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') redirect(`/${locale}/account`);
 
   const q = await searchParams;

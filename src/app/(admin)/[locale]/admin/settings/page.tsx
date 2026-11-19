@@ -1,6 +1,7 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getUserById } from "@/lib/db/users";
+import { getSessionUserById } from "@/lib/db/users";
 import { isLocale } from "@/lib/locale";
 import AdminSettingsPageClient from "@/components/admin/AdminSettingsPageClient";
 import {
@@ -32,13 +33,13 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
   }
 
   const cookieStore = await cookies();
-  const userId = cookieStore.get("noon_session")?.value;
+  const userId = readSessionUserId(cookieStore);
 
   if (!userId) {
     redirect(`/${locale}/login`);
   }
 
-  const user = await getUserById(userId);
+  const user = await getSessionUserById(userId);
   if (!user || user.role !== "ADMIN") {
     redirect(`/${locale}/account`);
   }

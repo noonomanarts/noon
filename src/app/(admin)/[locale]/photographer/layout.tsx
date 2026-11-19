@@ -1,7 +1,8 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { getUserById } from "@/lib/db/users";
+import { getSessionUserById } from "@/lib/db/users";
 import { isLocale, type Locale } from "@/lib/locale";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
@@ -37,13 +38,13 @@ export default async function PhotographerLayout({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
 
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("noon_session")?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     redirect(`/${locale}/login`);
   }
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || !isPhotographerDashboardRole(user.role)) {
     redirect(`/${locale}/account`);
   }

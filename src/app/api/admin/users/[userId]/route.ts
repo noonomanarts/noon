@@ -1,6 +1,7 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getUserById, getUserByEmail, getUserByPhoneNormalized, updateUserWithPassword, deleteUser, UserMutationError } from "@/lib/db/users";
+import { getUserById, getSessionUserById, getUserByEmail, getUserByPhoneNormalized, updateUserWithPassword, deleteUser, UserMutationError } from "@/lib/db/users";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { getUploadRootDir } from "@/lib/uploadStorage";
@@ -25,13 +26,13 @@ export async function GET(
 
     // Auth check
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get("noon_session")?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUser = await getUserById(sessionId);
+    const currentUser = await getSessionUserById(sessionId);
     if (!currentUser || currentUser.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -57,13 +58,13 @@ export async function PUT(
 
     // Auth check
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get("noon_session")?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUser = await getUserById(sessionId);
+    const currentUser = await getSessionUserById(sessionId);
     if (!currentUser || currentUser.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -174,13 +175,13 @@ export async function DELETE(
 
     // Auth check
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get("noon_session")?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUser = await getUserById(sessionId);
+    const currentUser = await getSessionUserById(sessionId);
     if (!currentUser || currentUser.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

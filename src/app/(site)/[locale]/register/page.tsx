@@ -1,3 +1,4 @@
+import { createSessionToken } from '@/lib/sessionToken';
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -95,7 +96,7 @@ export default async function RegisterPage({
     }
 
     const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE_NAME, user.id, getSessionCookieOptions());
+    cookieStore.set(SESSION_COOKIE_NAME, createSessionToken(user.id), getSessionCookieOptions());
 
     if (nextTarget) {
       redirect(nextTarget);

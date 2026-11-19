@@ -15,7 +15,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { FiCalendar, FiRefreshCw, FiTrendingUp, FiUsers } from 'react-icons/fi';
+import { FiBarChart2, FiCalendar, FiRefreshCw, FiTrendingUp, FiUsers } from 'react-icons/fi';
 import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
 import type { WorkshopReportsData, AttendancePoint, TopWorkshopRow } from '@/lib/db/reports';
 
@@ -119,6 +119,7 @@ export default function AdminReportsPageClient({
   );
 
   const hasAttendanceData = attendanceSeries.some((point) => point.participants > 0 || point.bookings > 0);
+  const hasActivityData = hasAttendanceData || attendanceSeries.some((point) => point.workshops > 0);
 
   const topWorkshops: TopWorkshopRow[] = topMode === 'week' ? data.topWorkshopsWeek : data.topWorkshopsMonth;
 
@@ -221,7 +222,7 @@ export default function AdminReportsPageClient({
           {periodToggle}
         </div>
 
-        <div className="mt-4 h-[280px]" dir="ltr">
+        <div className={hasAttendanceData ? "mt-4 h-[280px]" : "mt-4"} dir="ltr">
           {hasAttendanceData ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
@@ -246,12 +247,24 @@ export default function AdminReportsPageClient({
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-zinc-400">{t.noData}</div>
+            <div
+              dir={isArabic ? 'rtl' : 'ltr'}
+              className="flex h-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-200 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400"
+            >
+              <FiBarChart2 className="size-6 text-zinc-300 dark:text-zinc-600" aria-hidden="true" />
+              {t.noData}
+            </div>
           )}
         </div>
 
         {/* Bookings per period bar chart */}
-        <div className="mt-4 h-[180px]" dir="ltr">
+        {hasActivityData ? (
+        <>
+        <div className="mt-5 flex flex-wrap items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+          <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-[#f59e0b]" />{t.bookings}</span>
+          <span className="inline-flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-[#8b5cf6]" />{t.workshops}</span>
+        </div>
+        <div className="mt-2 h-[180px]" dir="ltr">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
@@ -263,6 +276,8 @@ export default function AdminReportsPageClient({
             </BarChart>
           </ResponsiveContainer>
         </div>
+        </>
+        ) : null}
       </section>
 
       <div className="grid gap-6 xl:grid-cols-2">

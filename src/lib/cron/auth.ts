@@ -15,9 +15,10 @@
  * effectively unauthenticated and relied on admin cookie fallback).
  */
 
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 
 function pickSecretFromRequest(request: NextRequest): string | null {
   return (
@@ -43,8 +44,8 @@ export async function isAuthorizedCronRequest(request: NextRequest): Promise<boo
   // Fallback: interactive admin session (useful for manual triggering from
   // the admin panel).
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return false;
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   return Boolean(user && user.role === 'ADMIN');
 }

@@ -8,6 +8,7 @@ import { IoCalendar, IoCheckmarkCircle } from 'react-icons/io5';
 import { GiPartyPopper } from 'react-icons/gi';
 import { HiSparkles } from 'react-icons/hi2';
 import BookingFormError from '@/components/site/BookingFormError';
+import { formatBookingDate, formatBookingTime } from '@/lib/forms/bookingSummaryFormat';
 import PublicEventAvailabilityPicker from '@/components/site/PublicEventAvailabilityPicker';
 import { isDateInPast, isValidEmail, isValidPhone, parseIntegerInput } from '@/lib/forms/eventBooking';
 import {
@@ -473,7 +474,7 @@ export default function BirthdayPartyBookingPage() {
               <p className="noon-text-muted">{t.reviewHint}</p>
             </div>
 
-            <div className="rounded-2xl border-2 border-purple/20 bg-gradient-to-br from-purple/5 to-purple-dark/5 p-8">
+            <div className="rounded-2xl border-2 border-purple/20 bg-gradient-to-br from-purple/5 to-purple-dark/5 p-4 sm:p-8">
               <div className="mb-6 flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple/20">
                   <GiPartyPopper className="text-2xl text-purple" />
@@ -486,7 +487,8 @@ export default function BirthdayPartyBookingPage() {
                   <IoCalendar className="mt-1 text-xl text-coral" />
                   <div className="flex-1">
                     <span className="text-sm text-[color:var(--text-muted)]">{t.summaryDateTime}</span>
-                    <p className="font-semibold">{formData.selectedDate} {locale === 'ar' ? 'الساعة' : 'at'} {formData.selectedTime}</p>
+                    <p className="font-semibold">{formatBookingDate(locale, formData.selectedDate)}</p>
+                    <p className="font-semibold">{formatBookingTime(locale, formData.selectedTime)}</p>
                   </div>
                 </div>
 
@@ -517,8 +519,8 @@ export default function BirthdayPartyBookingPage() {
                   <MdEmail className="mt-1 text-xl text-purple" />
                   <div className="flex-1">
                     <span className="text-sm text-[color:var(--text-muted)]">{t.summaryContact}</span>
-                    <p className="font-semibold">{formData.email}</p>
-                    <p className="font-semibold">{formData.phoneNumber}</p>
+                    <p className="font-semibold [overflow-wrap:anywhere]" dir="ltr" style={{ textAlign: locale === 'ar' ? 'right' : 'left' }}>{formData.email}</p>
+                    <p className="font-semibold" dir="ltr" style={{ textAlign: locale === 'ar' ? 'right' : 'left' }}>{formData.phoneNumber}</p>
                   </div>
                 </div>
 
@@ -536,7 +538,7 @@ export default function BirthdayPartyBookingPage() {
 
             <div className="rounded-xl border-2 border-yellow/20 bg-yellow/5 p-6">
               <div className="flex items-start gap-3">
-                <HiSparkles className="mt-1 text-xl text-yellow" />
+                <HiSparkles className="mt-1 shrink-0 text-xl text-yellow" />
                 <div className="text-sm">
                   <p className="font-semibold text-yellow">{t.noteTitle}</p>
                   <p className="text-[color:var(--text-muted)]">{t.noteText}</p>
@@ -578,14 +580,14 @@ export default function BirthdayPartyBookingPage() {
         )}
 
         {step < 4 && (
-          <div className="mt-12 flex justify-between gap-4">
+          <div className="mt-10 flex flex-wrap justify-between gap-3">
             <button
               onClick={() => {
                 setError(null);
                 setStep(step - 1);
               }}
               disabled={step === 1 || loading}
-              className="rounded-xl border-2 border-coral px-8 py-3 font-semibold text-coral transition-all hover:bg-coral/5 disabled:opacity-30 disabled:hover:bg-transparent"
+              className="whitespace-nowrap rounded-xl border-2 border-coral px-5 py-3 font-semibold text-coral sm:px-8 transition-all hover:bg-coral/5 disabled:opacity-30 disabled:hover:bg-transparent"
             >
               {t.back}
             </button>
@@ -602,7 +604,7 @@ export default function BirthdayPartyBookingPage() {
                   (step === 1 && (!formData.selectedDate || !formData.selectedTime)) ||
                   (step === 2 && (!formData.fullName || !formData.email || !formData.phoneNumber))
                 }
-                className="rounded-xl bg-gradient-to-r from-coral to-coral-light px-8 py-3 font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:hover:scale-100"
+                className="whitespace-nowrap rounded-xl bg-gradient-to-r from-coral to-coral-light px-6 py-3 font-semibold sm:px-8 text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:hover:scale-100"
               >
                 {t.next}
               </button>
@@ -610,7 +612,7 @@ export default function BirthdayPartyBookingPage() {
               <button
                 onClick={handleSubmit}
                 disabled={loading || !formData.fullName || !formData.email || !formData.phoneNumber}
-                className="rounded-xl bg-gradient-to-r from-purple to-purple-dark px-8 py-3 font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:hover:scale-100"
+                className="whitespace-nowrap rounded-xl bg-gradient-to-r from-purple to-purple-dark px-6 py-3 font-semibold sm:px-8 text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:hover:scale-100"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">

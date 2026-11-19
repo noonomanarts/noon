@@ -1,3 +1,4 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import {
@@ -5,13 +6,13 @@ import {
   getShopProductReviewSummary,
   listShopProductReviewsForPublic,
 } from '@/lib/db/shop';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 
 async function getCurrentUser() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) return null;
-  return getUserById(sessionId);
+  return getSessionUserById(sessionId);
 }
 
 export async function GET(

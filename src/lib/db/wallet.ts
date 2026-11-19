@@ -318,16 +318,30 @@ export async function transferWalletFunds(
   amount: number,
   reason?: string
 ): Promise<void> {
+  if (fromUserId === toUserId) {
+    throw new Error('Cannot transfer to the same wallet');
+  }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Invalid transfer amount');
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    // Lock both wallets in a stable order first, so two opposite transfers
+    // running at the same time cannot deadlock each other.
+    await client.query(
+      'SELECT id FROM wallets WHERE user_id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
+      [[fromUserId, toUserId]]
+    );
 
     // Get sender wallet
     const senderWallet = await client.query(
       'SELECT * FROM wallets WHERE user_id = $1 FOR UPDATE',
       [fromUserId]
     );
-    if (!senderWallet.rows[0] || senderWallet.rows[0].balance < amount) {
+    if (!senderWallet.rows[0] || Number(senderWallet.rows[0].balance) < amount) {
       throw new Error('Insufficient balance');
     }
 
@@ -350,15 +364,19 @@ export async function transferWalletFunds(
     const receiverBalance = parseFloat(receiverWallet.rows[0].balance as string);
     const receiverAvailableBalance = parseFloat(receiverWallet.rows[0].available_balance as string);
 
-    const senderNewBalance = senderBalance - amount;
-    const senderNewAvailableBalance = Math.min(senderAvailableBalance, senderNewBalance);
+    const senderNewBalance = Number((senderBalance - amount).toFixed(3));
+    const senderNewAvailableBalance = Number(Math.min(senderAvailableBalance, senderNewBalance).toFixed(3));
+    // Only the withdrawable money that actually left the sender becomes
+    // withdrawable for the receiver. Non-withdrawable credit (bonuses, gifts)
+    // stays non-withdrawable, so a transfer cannot be used to cash it out.
+    const withdrawableMoved = Number(Math.max(0, senderAvailableBalance - senderNewAvailableBalance).toFixed(3));
     await client.query(
       'UPDATE wallets SET balance = $1, available_balance = $2, updated_at = NOW() WHERE user_id = $3',
       [senderNewBalance, senderNewAvailableBalance, fromUserId]
     );
     await client.query(
-      'UPDATE wallets SET balance = balance + $1, available_balance = available_balance + $1, updated_at = NOW() WHERE user_id = $2',
-      [amount, toUserId]
+      'UPDATE wallets SET balance = balance + $1, available_balance = available_balance + $2, updated_at = NOW() WHERE user_id = $3',
+      [amount, withdrawableMoved, toUserId]
     );
 
     // Add transactions
@@ -382,7 +400,7 @@ export async function transferWalletFunds(
     emitAdminEvent('wallet_updated', {
       user_id: toUserId,
       balance: receiverBalance + amount,
-      available_balance: receiverAvailableBalance + amount,
+      available_balance: receiverAvailableBalance + withdrawableMoved,
       currency: receiverWallet.rows[0].currency,
     });
 
@@ -393,7 +411,7 @@ export async function transferWalletFunds(
     });
     emitUserEvent(toUserId, 'wallet_updated', {
       balance: receiverBalance + amount,
-      available_balance: receiverAvailableBalance + amount,
+      available_balance: receiverAvailableBalance + withdrawableMoved,
       currency: receiverWallet.rows[0].currency,
     });
 

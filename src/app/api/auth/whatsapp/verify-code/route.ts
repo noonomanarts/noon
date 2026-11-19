@@ -1,3 +1,4 @@
+import { createSessionToken } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import {
@@ -236,7 +237,7 @@ export async function POST(request: Request) {
     }
 
     const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE_NAME, userId, getSessionCookieOptions());
+    cookieStore.set(SESSION_COOKIE_NAME, createSessionToken(userId), getSessionCookieOptions());
 
     if (purpose === 'LOGIN') {
       // Authentication should succeed even when the WhatsApp gateway is slow or unavailable.

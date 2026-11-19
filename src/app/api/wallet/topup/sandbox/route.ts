@@ -1,7 +1,8 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { pool } from '@/lib/db/pool';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { updateWalletTopupPaymentStatus } from '@/lib/db/wallet';
 import type { WalletTopupPaymentStatus } from '@/lib/db/types';
 import { isPaymentSandboxEnabled } from '@/lib/amwal';
@@ -10,13 +11,13 @@ const allowedStatuses = new Set<WalletTopupPaymentStatus>(['PAID', 'FAILED', 'CA
 
 async function getCurrentUser() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     return null;
   }
 
-  return getUserById(sessionId);
+  return getSessionUserById(sessionId);
 }
 
 export async function GET(request: NextRequest) {

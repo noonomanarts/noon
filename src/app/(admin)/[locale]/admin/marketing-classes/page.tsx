@@ -1,10 +1,11 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import Image from 'next/image';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { FiUsers, FiCalendar, FiAlertTriangle } from 'react-icons/fi';
 
 import { getMarketingClassesOverview } from '@/lib/db/classes';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { isLocale, type Locale } from '@/lib/locale';
 
 function formatDateTime(value: Date | null, locale: Locale): string {
@@ -26,10 +27,10 @@ export default async function MarketingClassesPage({
   const isArabic = locale === 'ar';
 
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   if (!sessionId) redirect(`/${locale}/login`);
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || (user.role !== 'ADMIN' && user.role !== 'SOCIAL_MEDIA_ADMIN')) {
     redirect(`/${locale}/account`);
   }

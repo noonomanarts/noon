@@ -614,7 +614,7 @@ export default function EditTrainerPage() {
               <button
                 type="button"
                 onClick={handleAddExpertise}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 Add
               </button>
@@ -752,7 +752,7 @@ export default function EditTrainerPage() {
               />
               {featuredMediaType !== 'YOUTUBE' ? (
                 <div className="mt-3 flex items-center gap-3">
-                  <label className="inline-flex cursor-pointer items-center rounded-lg border border-blue-900 bg-blue-700 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-800 dark:border-blue-800 dark:bg-blue-700 dark:text-white dark:hover:bg-blue-600">
+                  <label className="inline-flex cursor-pointer items-center rounded-lg border border-blue-900 bg-zinc-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:border-blue-800 dark:text-white dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200">
                     {uploadingFeaturedMedia ? 'Uploading...' : featuredMediaType === 'VIDEO' ? 'Upload Video' : 'Upload Image'}
                     <input
                       type="file"
@@ -1016,7 +1016,7 @@ export default function EditTrainerPage() {
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 rounded-lg border border-blue-900 bg-blue-700 px-6 py-3 font-semibold text-white shadow-md shadow-blue-900/20 transition-all hover:bg-blue-800 hover:shadow-lg hover:shadow-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-initial"
+            className="flex-1 rounded-lg border border-blue-900 bg-zinc-900 px-6 py-3 font-semibold text-white shadow-md shadow-blue-900/20 transition-all hover:bg-zinc-800 hover:shadow-lg hover:shadow-blue-900/30 focus:outline-none focus:ring-2 focus:ring-zinc-400/30 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-initial dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             {saving ? 'Saving...' : 'Save Profile'}
           </button>

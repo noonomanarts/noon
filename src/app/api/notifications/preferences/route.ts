@@ -1,7 +1,8 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { getUserPreferenceByKey, upsertUserPreference } from '@/lib/db/userPreferences';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 
 const PREF_KEY = 'notifications.ui.v1';
 
@@ -54,10 +55,10 @@ function sanitizePreferences(input: unknown): NotificationPreferences {
 
 async function requireAuthenticatedUser() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) return null;
-  return getUserById(sessionId);
+  return getSessionUserById(sessionId);
 }
 
 export async function GET() {

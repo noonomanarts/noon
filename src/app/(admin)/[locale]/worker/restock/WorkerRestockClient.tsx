@@ -135,6 +135,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
       month: "short",
       day: "numeric",
       hour: "2-digit",
+      hourCycle: "h23",
       minute: "2-digit",
       timeZone: 'Asia/Muscat',
     }).format(new Date(date));

@@ -1,6 +1,7 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { getWorkerPermissions } from '@/lib/db/worker';
 import { updateShopOrderForAdmin } from '@/lib/db/shop';
 import type { ShopOrderStatus } from '@/lib/db/types';
@@ -10,13 +11,13 @@ const ALLOWED_STATUSES: ShopOrderStatus[] = ['PROCESSING', 'READY_TO_SHIP', 'SHI
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get('noon_session')?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await getUserById(sessionId);
+    const user = await getSessionUserById(sessionId);
     if (!user || (user.role !== 'WORKER' && user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

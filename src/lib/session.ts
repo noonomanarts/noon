@@ -1,8 +1,9 @@
 /**
  * Session management utilities
  */
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from "next/headers";
-import { getUserById } from "@/lib/db/users";
+import { getSessionUserById } from "@/lib/db/users";
 import type { UserPublic } from "@/lib/db/users";
 import type { UserRole } from "@/lib/db/types";
 import { getExpiredSessionCookieOptions, SESSION_COOKIE_NAME } from "@/lib/sessionCookie";
@@ -12,13 +13,13 @@ import { getExpiredSessionCookieOptions, SESSION_COOKIE_NAME } from "@/lib/sessi
  */
 export async function getCurrentUser(): Promise<UserPublic | null> {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     return null;
   }
 
-  return getUserById(sessionId);
+  return getSessionUserById(sessionId);
 }
 
 /**

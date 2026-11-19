@@ -216,6 +216,29 @@ export async function validatePromoCode(
   return { valid: true, promo, discountAmount };
 }
 
+/**
+ * Atomically take one use of a promo code inside the caller's transaction.
+ * Returns false when the code was exhausted, expired or disabled in the
+ * meantime (two checkouts racing for the last use) - the caller must roll back.
+ */
+export async function consumePromoCode(
+  client: { query: (text: string, params?: unknown[]) => Promise<{ rowCount: number | null }> },
+  id: string
+): Promise<boolean> {
+  const result = await client.query(
+    `UPDATE promo_codes
+     SET times_used = times_used + 1,
+         updated_at = NOW()
+     WHERE id = $1
+       AND is_active = TRUE
+       AND (starts_at IS NULL OR starts_at <= NOW())
+       AND (expires_at IS NULL OR expires_at >= NOW())
+       AND (max_uses IS NULL OR times_used < max_uses)`,
+    [id]
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
 export async function incrementPromoCodeUsage(id: string): Promise<void> {
   await ensurePromoCodesTable();
   await pool.query(

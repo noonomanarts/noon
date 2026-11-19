@@ -203,10 +203,10 @@ export default function ContactPageClient({
               </p>
               {phoneHref ? (
                 <a href={phoneHref} className="mt-2 block text-sm font-medium text-[color:var(--primary)] hover:underline">
-                  {phone}
+                  <bdi dir="ltr">{phone}</bdi>
                 </a>
               ) : (
-                <p className="mt-2 text-sm font-medium text-[color:var(--text-muted)]">{phone}</p>
+                <p className="mt-2 text-sm font-medium text-[color:var(--text-muted)]"><bdi dir="ltr">{phone}</bdi></p>
               )}
             </div>
           ) : null}
@@ -264,20 +264,24 @@ export default function ContactPageClient({
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid gap-5 md:grid-cols-2">
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.name}</span>
+                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.name} <span aria-hidden="true" className="text-coral">*</span></span>
                 <input
                   type="text"
                   name="name"
+                  autoComplete="name"
                   required
                   className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] transition focus:border-[color:var(--primary)] focus:outline-none focus:ring-4 focus:ring-[color:var(--focus)]"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.email}</span>
+                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.email} <span aria-hidden="true" className="text-coral">*</span></span>
                 <input
                   type="email"
                   name="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  dir="ltr"
                   required
                   className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] transition focus:border-[color:var(--primary)] focus:outline-none focus:ring-4 focus:ring-[color:var(--focus)]"
                 />
@@ -286,16 +290,20 @@ export default function ContactPageClient({
 
             <div className="grid gap-5 md:grid-cols-2">
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.phone}</span>
+                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.phone} <span className="font-normal text-[color:var(--text-muted)]">({isArabic ? "اختياري" : "optional"})</span></span>
                 <input
                   type="tel"
                   name="phone"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  dir="ltr"
+                  placeholder="+968"
                   className="w-full rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm text-[color:var(--text)] transition focus:border-[color:var(--primary)] focus:outline-none focus:ring-4 focus:ring-[color:var(--focus)]"
                 />
               </label>
 
               <label className="block">
-                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.subject}</span>
+                <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.subject} <span aria-hidden="true" className="text-coral">*</span></span>
                 <input
                   type="text"
                   name="subject"
@@ -306,7 +314,7 @@ export default function ContactPageClient({
             </div>
 
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.message}</span>
+              <span className="mb-2 block text-sm font-semibold text-[color:var(--text)]">{t.message} <span aria-hidden="true" className="text-coral">*</span></span>
               <textarea
                 name="message"
                 rows={6}

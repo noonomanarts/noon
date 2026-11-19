@@ -1,6 +1,7 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getUserById } from "@/lib/db/users";
+import { getSessionUserById } from "@/lib/db/users";
 import { exec } from "child_process";
 import { promisify } from "util";
 import path from "path";
@@ -13,13 +14,13 @@ export async function POST(request: NextRequest) {
   try {
     // Auth check
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get("noon_session")?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const currentUser = await getUserById(sessionId);
+    const currentUser = await getSessionUserById(sessionId);
     if (!currentUser || currentUser.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

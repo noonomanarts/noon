@@ -381,6 +381,10 @@ export async function updateEventBooking(
   id: string,
   data: Partial<{
     status: EventStatus;
+    /** YYYY-MM-DD (Muscat calendar day) */
+    selectedDate: string;
+    /** HH:MM */
+    selectedTime: string;
     packageType: PackageType;
     numberOfParticipants: number;
     numberOfGroups: number;
@@ -417,6 +421,8 @@ export async function updateEventBooking(
 
   const fieldMap: Record<string, string> = {
     status: 'status',
+    selectedDate: 'selected_date',
+    selectedTime: 'selected_time',
     packageType: 'package_type',
     numberOfParticipants: 'number_of_participants',
     numberOfGroups: 'number_of_groups',

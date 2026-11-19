@@ -14,20 +14,20 @@ type FilterType = "ALL" | "CLASS" | "EVENT" | "MEETING";
 
 const typeColors: Record<string, { bg: string; border: string; dot: string; badge: string }> = {
   CLASS: {
-    bg: "bg-sky-50 dark:bg-sky-950/20",
-    border: "border-sky-200 dark:border-sky-800",
+    bg: "bg-white dark:bg-zinc-900",
+    border: "border-zinc-200 dark:border-zinc-800",
     dot: "bg-sky-500",
     badge: "bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-400",
   },
   EVENT: {
-    bg: "bg-rose-50 dark:bg-rose-950/20",
-    border: "border-rose-200 dark:border-rose-800",
+    bg: "bg-white dark:bg-zinc-900",
+    border: "border-zinc-200 dark:border-zinc-800",
     dot: "bg-rose-500",
     badge: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400",
   },
   MEETING: {
-    bg: "bg-violet-50 dark:bg-violet-950/20",
-    border: "border-violet-200 dark:border-violet-800",
+    bg: "bg-white dark:bg-zinc-900",
+    border: "border-zinc-200 dark:border-zinc-800",
     dot: "bg-violet-500",
     badge: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
   },
@@ -57,7 +57,7 @@ export default function PhotographerScheduleClient({ locale, schedule }: Props) 
     participants: isRTL ? "المشاركون" : "Participants",
     contact: isRTL ? "جهة الاتصال" : "Contact",
     booked: isRTL ? "محجوز" : "Booked",
-    CLASS: isRTL ? "دورة" : "Class",
+    CLASS: isRTL ? "ورشة" : "Class",
     EVENT: isRTL ? "فعالية" : "Event",
     MEETING: isRTL ? "اجتماع" : "Meeting",
     COOKING_COMPETITION: isRTL ? "مسابقة طبخ" : "Cooking Competition",
@@ -91,7 +91,7 @@ export default function PhotographerScheduleClient({ locale, schedule }: Props) 
     if (d.getTime() === today.getTime()) return t.today;
     if (d.getTime() === tomorrow.getTime()) return t.tomorrow;
 
-    return d.toLocaleDateString(isRTL ? "ar-SA" : "en-US", {
+    return d.toLocaleDateString(isRTL ? "ar-OM-u-nu-latn" : "en-GB", {
       weekday: "long",
       month: "long",
       day: "numeric",
@@ -100,9 +100,9 @@ export default function PhotographerScheduleClient({ locale, schedule }: Props) 
   }
 
   function formatTime(iso: string) {
-    return new Date(iso).toLocaleTimeString(isRTL ? "ar-SA" : "en-US", {
+    return new Date(iso).toLocaleTimeString(isRTL ? "ar-OM-u-nu-latn" : "en-GB", {
       hour: "2-digit",
-      minute: "2-digit",
+      minute: "2-digit", hourCycle: "h23",
       timeZone: 'Asia/Muscat',
     });
   }
@@ -111,9 +111,11 @@ export default function PhotographerScheduleClient({ locale, schedule }: Props) 
     const ms = new Date(end).getTime() - new Date(start).getTime();
     const hrs = Math.floor(ms / 3600000);
     const mins = Math.floor((ms % 3600000) / 60000);
-    if (hrs === 0) return `${mins}m`;
-    if (mins === 0) return `${hrs}h`;
-    return `${hrs}h ${mins}m`;
+    const h = isRTL ? "س" : "h";
+    const m = isRTL ? "د" : "m";
+    if (hrs === 0) return `${mins}${isRTL ? " " : ""}${m}`;
+    if (mins === 0) return `${hrs}${isRTL ? " " : ""}${h}`;
+    return `${hrs}${isRTL ? " " : ""}${h} ${mins}${isRTL ? " " : ""}${m}`;
   }
 
   const filterButtons: { key: FilterType; label: string; count: number }[] = [

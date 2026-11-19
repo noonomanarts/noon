@@ -1,6 +1,7 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getAllUsers, getUserById } from '@/lib/db/users';
+import { getAllUsers, getSessionUserById } from '@/lib/db/users';
 import { getAdminSettingsByKey } from '@/lib/db/adminSettings';
 import { isLocale, type Locale } from '@/lib/locale';
 import AdminPaymentAlertsPageClient from '@/components/admin/AdminPaymentAlertsPageClient';
@@ -21,13 +22,13 @@ export default async function AdminPaymentAlertsPage({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'en';
 
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     redirect(`/${locale}/login`);
   }
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') {
     redirect(`/${locale}/account`);
   }

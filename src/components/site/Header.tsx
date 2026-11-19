@@ -1,10 +1,11 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import type { CSSProperties } from "react";
 
 import { type Locale } from "@/lib/locale";
-import { getUserById } from "@/lib/db/users";
+import { getSessionUserById } from "@/lib/db/users";
 import { resolveHeaderBranding } from "@/lib/headerBranding";
 import { Dropdown } from "@/components/site/Dropdown";
 import SiteProfileMenu from "@/components/site/SiteProfileMenu";
@@ -43,8 +44,8 @@ function NavLink({
 export default async function Header({ locale }: { locale: Locale }) {
   // Check if user is logged in
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("noon_session")?.value;
-  const user = sessionId ? await getUserById(sessionId) : null;
+  const sessionId = readSessionUserId(cookieStore);
+  const user = sessionId ? await getSessionUserById(sessionId) : null;
   const cartCookie = cookieStore.get(CART_COOKIE_NAME)?.value;
   const initialCart = parseCartCookie(cartCookie);
   const initialCartCount = initialCart.items.reduce(

@@ -1,6 +1,7 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextRequest, NextResponse } from 'next/server';
 import { createEventBooking } from '@/lib/db/events';
-import { getUserByEmail, getUserById } from '@/lib/db/users';
+import { getUserByEmail, getSessionUserById } from '@/lib/db/users';
 import { cookies } from 'next/headers';
 import { isDateInPast, isValidEmail, isValidPhone } from '@/lib/forms/eventBooking';
 import {
@@ -192,12 +193,12 @@ export async function POST(request: NextRequest) {
 
     // Check if user is logged in
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get('noon_session')?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     let userId: string | undefined;
 
     if (sessionId) {
-      const sessionUser = await getUserById(sessionId);
+      const sessionUser = await getSessionUserById(sessionId);
       if (sessionUser) {
         userId = sessionUser.id;
       }

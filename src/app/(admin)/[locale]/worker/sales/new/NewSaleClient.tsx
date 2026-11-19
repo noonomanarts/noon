@@ -209,7 +209,7 @@ export default function NewSaleClient({ locale, products, canPrintBills }: Props
           <button
             type="button"
             onClick={handleNewSale}
-            className="flex items-center gap-2 rounded-lg bg-amber-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-amber-600"
+            className="flex items-center gap-2 rounded-lg bg-zinc-900 px-6 py-3 font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             <FiPlus className="h-5 w-5" />
             {t.newSale}
@@ -228,7 +228,7 @@ export default function NewSaleClient({ locale, products, canPrintBills }: Props
           onClick={() => router.push(`/${locale}/worker/sales`)}
           className="flex items-center gap-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
         >
-          <FiArrowLeft className="h-5 w-5" />
+          <FiArrowLeft className="h-5 w-5 rtl:rotate-180" />
           {t.back}
         </button>
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>

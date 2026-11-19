@@ -1,18 +1,19 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { getWorkerPermissions, createInShopSale, getInShopSales } from '@/lib/db/worker';
 
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get('noon_session')?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await getUserById(sessionId);
+    const user = await getSessionUserById(sessionId);
     if (!user || (user.role !== 'WORKER' && user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -66,13 +67,13 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const cookieStore = await cookies();
-    const sessionId = cookieStore.get('noon_session')?.value;
+    const sessionId = readSessionUserId(cookieStore);
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await getUserById(sessionId);
+    const user = await getSessionUserById(sessionId);
     if (!user || (user.role !== 'WORKER' && user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

@@ -31,32 +31,28 @@ type StatusKey = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 
 const priorityConfig: Record<
   PriorityKey,
-  { chip: string; accent: string; label: string; labelAr: string; order: number }
+  { chip: string; label: string; labelAr: string; order: number }
 > = {
   URGENT: {
     chip: "bg-red-100 text-red-700 ring-1 ring-inset ring-red-200 dark:bg-red-500/15 dark:text-red-300 dark:ring-red-500/25",
-    accent: "bg-red-500",
     label: "Urgent",
     labelAr: "عاجل",
     order: 0,
   },
   HIGH: {
     chip: "bg-orange-100 text-orange-700 ring-1 ring-inset ring-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:ring-orange-500/25",
-    accent: "bg-orange-500",
     label: "High",
     labelAr: "مرتفع",
     order: 1,
   },
   MEDIUM: {
     chip: "bg-blue-100 text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:ring-blue-500/25",
-    accent: "bg-blue-500",
     label: "Medium",
     labelAr: "متوسط",
     order: 2,
   },
   LOW: {
     chip: "bg-zinc-100 text-zinc-600 ring-1 ring-inset ring-zinc-200 dark:bg-zinc-700/50 dark:text-zinc-300 dark:ring-zinc-600",
-    accent: "bg-zinc-400 dark:bg-zinc-500",
     label: "Low",
     labelAr: "منخفض",
     order: 3,
@@ -260,7 +256,7 @@ export default function PhotographerTasksClient({ locale, initialTasks, initialT
   }
 
   function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString(isRTL ? "ar-u-nu-latn" : "en-US", {
+    return new Date(iso).toLocaleDateString(isRTL ? "ar-OM-u-nu-latn" : "en-GB", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -439,9 +435,12 @@ export default function PhotographerTasksClient({ locale, initialTasks, initialT
             const StatusIcon = statusConf.icon;
             const isUpdating = updatingId === task.id;
             const isCompleted = statusKey === "COMPLETED";
+            const isClosed = isCompleted || statusKey === "CANCELLED";
             const due = task.dueDate ? formatRelativeDue(task.dueDate) : null;
             const dueToneClass =
-              due?.tone === "overdue"
+              isClosed
+                ? "text-zinc-500 dark:text-zinc-400"
+                : due?.tone === "overdue"
                 ? "text-red-600 dark:text-red-400"
                 : due?.tone === "today"
                 ? "text-amber-600 dark:text-amber-400"
@@ -464,13 +463,7 @@ export default function PhotographerTasksClient({ locale, initialTasks, initialT
                     : "border-zinc-200 dark:border-zinc-800"
                 } ${isCompleted ? "opacity-80" : ""}`}
               >
-                {/* Priority left accent bar */}
-                <span
-                  aria-hidden
-                  className={`absolute inset-y-0 w-1 ${priorityConf.accent} ${isRTL ? "right-0" : "left-0"}`}
-                />
-
-                <div className={`flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:gap-4 sm:p-5 ${isRTL ? "pr-5" : "pl-5"}`}>
+                <div className={`flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:gap-4 sm:p-5`}>
                   {/* Status toggle */}
                   <button
                     type="button"
@@ -572,16 +565,18 @@ export default function PhotographerTasksClient({ locale, initialTasks, initialT
                       </span>
                       {task.dueDate && due && (
                         <span className={`inline-flex items-center gap-1.5 font-medium ${dueToneClass}`}>
-                          {due.tone === "overdue" ? (
+                          {due.tone === "overdue" && !isClosed ? (
                             <FiAlertTriangle className="size-3.5" />
                           ) : (
                             <FiCalendar className="size-3.5" />
                           )}
                           <span className="text-zinc-500 dark:text-zinc-400">{t.due}:</span>
                           <span>{formatDate(task.dueDate)}</span>
-                          <span className="rounded-full bg-current/10 px-1.5 py-0.5 text-[10px]">
-                            {due.label}
-                          </span>
+                          {!isClosed ? (
+                            <span className="rounded-full bg-current/10 px-1.5 py-0.5 text-[10px]">
+                              {due.label}
+                            </span>
+                          ) : null}
                         </span>
                       )}
                       {task.completedAt && (
@@ -600,7 +595,7 @@ export default function PhotographerTasksClient({ locale, initialTasks, initialT
                           type="button"
                           onClick={() => updateTaskStatus(task.id, "IN_PROGRESS")}
                           disabled={isUpdating}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/40 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
                         >
                           <FiLoader className="size-3.5" />
                           {t.markInProgress}

@@ -1,3 +1,4 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import Image from 'next/image';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
@@ -8,7 +9,7 @@ import { HiPaintBrush } from 'react-icons/hi2';
 
 import AdminRepeatRequestActions from '@/components/admin/AdminRepeatRequestActions';
 import { getAdminClassRepeatRequests } from '@/lib/db/classRepeatRequests';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { isLocale, type Locale } from '@/lib/locale';
 
 function normalizeSubCategory(value: string | null, locale: Locale): string {
@@ -51,13 +52,13 @@ export default async function AdminClassRepeatRequestsPage({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'en';
 
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     redirect(`/${locale}/login`);
   }
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') {
     redirect(`/${locale}/account`);
   }

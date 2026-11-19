@@ -1,4 +1,5 @@
 import { pool } from './pool';
+import { emitAdminEvent, emitUserEvent } from '@/lib/realtime/adminEvents';
 import { createShopSaleCostExpenseEntry, createShopSaleFinanceEntry } from './finance';
 import type {
   ShopCategory,
@@ -1570,6 +1571,13 @@ export async function updateShopOrderForAdmin(input: {
       [nextStatus, nextTracking, nextAdminNotes, nextCancellationReason, input.orderId]
     );
 
+    // Cancelling an order has to undo what placing it did. The row is locked
+    // and CANCELLED has no outgoing transitions, so this runs at most once.
+    let walletRefund: { userId: string; balance: number; availableBalance: number; currency: string; amount: number } | null = null;
+    if (nextStatus === 'CANCELLED' && currentOrder.status !== 'CANCELLED') {
+      walletRefund = await reverseCancelledShopOrder(client, currentResult.rows[0] as Record<string, unknown>);
+    }
+
     if (nextStatus !== currentOrder.status || input.adminNotes !== undefined || input.trackingNumber !== undefined || input.cancellationReason !== undefined) {
       await client.query(
         `INSERT INTO shop_order_status_history
@@ -1602,6 +1610,21 @@ export async function updateShopOrderForAdmin(input: {
 
     await client.query('COMMIT');
 
+    if (walletRefund) {
+      const payload = {
+        balance: walletRefund.balance,
+        available_balance: walletRefund.availableBalance,
+        currency: walletRefund.currency,
+      };
+      emitAdminEvent('wallet_updated', { user_id: walletRefund.userId, ...payload });
+      emitUserEvent(walletRefund.userId, 'wallet_updated', payload);
+      emitUserEvent(walletRefund.userId, 'wallet_notification', {
+        type: 'shop_refund',
+        messageEn: `Your cancelled order was refunded to your wallet (${walletRefund.amount.toFixed(3)} ${walletRefund.currency}).`,
+        messageAr: `تم استرداد مبلغ طلبك الملغى إلى محفظتك (${walletRefund.amount.toFixed(3)} ${walletRefund.currency}).`,
+      });
+    }
+
     return {
       ...mapShopOrder(updatedOrderResult.rows[0]),
       items: itemsResult.rows.map((row) => mapShopOrderItem(row)),
@@ -1613,6 +1636,99 @@ export async function updateShopOrderForAdmin(input: {
   } finally {
     client.release();
   }
+}
+
+type ShopOrderDbClient = {
+  query: (text: string, params?: unknown[]) => Promise<{ rows: Record<string, unknown>[]; rowCount: number | null }>;
+};
+
+/**
+ * Undo the side effects of a paid shop order that is being cancelled:
+ * return the items to stock, refund a wallet payment, release the promo use
+ * and archive the automatic finance entries. Must run inside the caller's
+ * transaction with the order row locked.
+ *
+ * The refund is added to the wallet balance as store credit; the withdrawable
+ * part is left unchanged so a refund can never turn promotional credit into
+ * cash. An admin can adjust the withdrawable amount manually if needed.
+ */
+async function reverseCancelledShopOrder(
+  client: ShopOrderDbClient,
+  order: Record<string, unknown>
+): Promise<{ userId: string; balance: number; availableBalance: number; currency: string; amount: number } | null> {
+  const orderId = String(order.id);
+  const orderNumber = String(order.order_number ?? '');
+
+  // 1. Stock
+  const items = await client.query(
+    `SELECT product_id, quantity FROM shop_order_items WHERE order_id = $1 AND product_id IS NOT NULL`,
+    [orderId]
+  );
+  for (const item of items.rows) {
+    const quantity = Number(item.quantity);
+    if (!Number.isFinite(quantity) || quantity <= 0) continue;
+    await client.query(
+      `UPDATE shop_products SET stock_quantity = stock_quantity + $1, updated_at = NOW() WHERE id = $2`,
+      [quantity, item.product_id]
+    );
+  }
+
+  // 2. Promo code use
+  if (order.promo_code_id) {
+    await client.query(
+      `UPDATE promo_codes SET times_used = GREATEST(times_used - 1, 0), updated_at = NOW() WHERE id = $1`,
+      [order.promo_code_id]
+    );
+  }
+
+  // 3. Automatic finance entries (sale revenue and cost of goods)
+  const financeTable = await client.query(`SELECT to_regclass('public.admin_finance_entries') AS name`);
+  if (financeTable.rows[0]?.name) {
+    await client.query(
+      `UPDATE admin_finance_entries
+       SET is_archived = TRUE,
+           notes = CONCAT_WS(' ', notes, '[Archived: order cancelled]'),
+           updated_at = NOW()
+       WHERE is_archived = FALSE
+         AND metadata->>'source' = 'SHOP_ORDER'
+         AND metadata->>'referenceId' = $1`,
+      [orderId]
+    );
+  }
+
+  // 4. Wallet refund (only orders that were actually paid from a wallet)
+  const amount = Number(order.total_amount);
+  const paidByWallet = String(order.payment_method ?? '') === 'WALLET' && Boolean(order.wallet_transaction_id);
+  if (!paidByWallet || !order.user_id || !Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+
+  const walletResult = await client.query(
+    `SELECT id, balance, available_balance, currency FROM wallets WHERE user_id = $1 FOR UPDATE`,
+    [order.user_id]
+  );
+  const wallet = walletResult.rows[0];
+  if (!wallet) {
+    throw new Error('Cannot cancel: the customer wallet for the refund was not found');
+  }
+
+  const newBalance = Number((Number(wallet.balance ?? 0) + amount).toFixed(3));
+  const availableBalance = Number(Number(wallet.available_balance ?? 0).toFixed(3));
+
+  await client.query(
+    `INSERT INTO wallet_transactions (wallet_id, amount, type, reason, status)
+     VALUES ($1, $2, 'SHOP_REFUND', $3, 'COMPLETED')`,
+    [wallet.id, amount, `Refund for cancelled order ${orderNumber}`.trim()]
+  );
+  await client.query(`UPDATE wallets SET balance = $1, updated_at = NOW() WHERE id = $2`, [newBalance, wallet.id]);
+
+  return {
+    userId: String(order.user_id),
+    balance: newBalance,
+    availableBalance,
+    currency: String(wallet.currency ?? order.currency ?? 'OMR'),
+    amount,
+  };
 }
 
 function generateShopOrderNumber(): string {

@@ -1,7 +1,8 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getUserPreferenceByKey, upsertUserPreference } from "@/lib/db/userPreferences";
-import { getUserById } from "@/lib/db/users";
+import { getSessionUserById } from "@/lib/db/users";
 import { getWorkerPermissions } from "@/lib/db/worker";
 
 const PREF_KEY = "worker.print.labels.v1";
@@ -128,11 +129,11 @@ function sanitizePreferences(input: unknown): WorkerPrintPreferences {
 
 async function requireAuthorizedWorker() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get("noon_session")?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) return null;
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || (user.role !== "WORKER" && user.role !== "ADMIN")) return null;
 
   const permissions = user.role === "ADMIN" ? { can_print_labels: true } : await getWorkerPermissions(user.id);

@@ -61,7 +61,7 @@ export default function WorkerOrdersClient({ locale, orders: initialOrders }: Pr
       customer: isArabic ? "العميل" : "Customer",
       address: isArabic ? "العنوان" : "Address",
       total: isArabic ? "الإجمالي" : "Total",
-      markAs: isArabic ? "تحديد كـ" : "Mark as",
+      markAs: isArabic ? "تحويل إلى:" : "Mark as",
       trackingNumberTitle: isArabic ? "رقم التتبع" : "Tracking Number",
       trackingNumberDesc: isArabic ? "أدخل رقم التتبع للطلب" : "Enter the tracking number for this order",
       trackingPlaceholder: isArabic ? "أدخل رقم التتبع" : "Enter tracking number",
@@ -151,6 +151,7 @@ export default function WorkerOrdersClient({ locale, orders: initialOrders }: Pr
       month: "short",
       day: "numeric",
       hour: "2-digit",
+      hourCycle: "h23",
       minute: "2-digit",
       timeZone: 'Asia/Muscat',
     }).format(new Date(date));
@@ -247,7 +248,7 @@ export default function WorkerOrdersClient({ locale, orders: initialOrders }: Pr
 
                     {order.notes && (
                       <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        <span className="font-medium">Notes:</span> {order.notes}
+                        <span className="font-medium">{isArabic ? "ملاحظات" : "Notes"}:</span> {order.notes}
                       </p>
                     )}
                   </div>
@@ -334,7 +335,7 @@ export default function WorkerOrdersClient({ locale, orders: initialOrders }: Pr
                 type="button"
                 onClick={handleShippedConfirm}
                 disabled={!trackingNumber.trim() || updatingOrderId === trackingModal.orderId}
-                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {updatingOrderId === trackingModal.orderId ? (
                   <>

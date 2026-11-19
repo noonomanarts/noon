@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
@@ -30,6 +30,8 @@ type Props = {
   storageKey?: string;
 };
 
+const subscribeNever = () => () => {};
+
 export default function MobileSidebar({
   menuItems,
   user,
@@ -38,20 +40,18 @@ export default function MobileSidebar({
   onLogoutAction,
   storageKey = "noon_nav",
 }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
+  // The drawer remembers which route it was opened on, so navigating (including
+  // browser back) closes it without an effect.
+  const [openedOnPath, setOpenedOnPath] = useState<string | null>(null);
+  const isOpen = openedOnPath !== null && openedOnPath === pathname;
+  const setIsOpen = (next: boolean) => setOpenedOnPath(next ? pathname : null);
+  // True only in the browser, so the portal is skipped during server render.
+  const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const isArabic = locale === "ar";
   const dir = isArabic ? "rtl" : "ltr";
-
-  useEffect(() => setMounted(true), []);
-
-  // Navigating (including browser back) always closes the drawer.
-  useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     if (!isOpen) return undefined;

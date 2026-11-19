@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FiChevronsLeft, FiExternalLink } from "react-icons/fi";
@@ -27,6 +27,8 @@ type Props = {
  * It can be collapsed to an icon rail; the choice is remembered per panel.
  * Renders its own in-flow spacer so the page content never sits underneath it.
  */
+const COLLAPSE_EVENT = "noon:sidebar-collapse";
+
 export default function DashboardSidebar({
   locale,
   menuItems,
@@ -41,31 +43,49 @@ export default function DashboardSidebar({
   const isArabic = locale === "ar";
   const dir = isArabic ? "rtl" : "ltr";
   const collapseKey = `${storageKey}_collapsed`;
-  const [collapsed, setCollapsed] = useState(false);
   const [ready, setReady] = useState(false);
+  // Used when storage is unavailable (private mode): the toggle still works for
+  // the current page, it is just not remembered.
+  const [fallbackCollapsed, setFallbackCollapsed] = useState<boolean | null>(null);
+
+  // The collapsed flag lives in localStorage; reading it through an external
+  // store keeps server and first client render in agreement (expanded).
+  const subscribe = useCallback((onChange: () => void) => {
+    window.addEventListener("storage", onChange);
+    window.addEventListener(COLLAPSE_EVENT, onChange);
+    return () => {
+      window.removeEventListener("storage", onChange);
+      window.removeEventListener(COLLAPSE_EVENT, onChange);
+    };
+  }, []);
+  const storedCollapsed = useSyncExternalStore(
+    subscribe,
+    () => {
+      try {
+        return window.localStorage.getItem(collapseKey) === "1";
+      } catch {
+        return false;
+      }
+    },
+    () => false,
+  );
+  const collapsed = fallbackCollapsed ?? storedCollapsed;
 
   useEffect(() => {
-    try {
-      setCollapsed(window.localStorage.getItem(collapseKey) === "1");
-    } catch {
-      // storage unavailable: stay expanded
-    }
     // Enable the width transition only after the stored state is applied, so a
     // collapsed sidebar does not animate shut on every page load.
     const frame = window.requestAnimationFrame(() => setReady(true));
     return () => window.cancelAnimationFrame(frame);
-  }, [collapseKey]);
+  }, []);
 
   const toggle = () => {
-    setCollapsed((current) => {
-      const next = !current;
-      try {
-        window.localStorage.setItem(collapseKey, next ? "1" : "0");
-      } catch {
-        // not remembered
-      }
-      return next;
-    });
+    const next = !collapsed;
+    try {
+      window.localStorage.setItem(collapseKey, next ? "1" : "0");
+      window.dispatchEvent(new Event(COLLAPSE_EVENT));
+    } catch {
+      setFallbackCollapsed(next);
+    }
   };
 
   const width = collapsed ? "w-[4.75rem]" : "w-64";

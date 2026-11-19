@@ -1,6 +1,7 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import {
   createWorkshopSuggestion,
   getPublishedWorkshopSuggestions,
@@ -8,10 +9,10 @@ import {
 
 export async function GET() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
   let userId: string | null = null;
   if (sessionId) {
-    const user = await getUserById(sessionId);
+    const user = await getSessionUserById(sessionId);
     userId = user?.id ?? null;
   }
 

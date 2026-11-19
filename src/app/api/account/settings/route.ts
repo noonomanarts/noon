@@ -1,7 +1,8 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import * as bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { changePassword, getUserByEmail, getUserById, getUserByPhone, updateUser } from '@/lib/db/users';
+import { changePassword, getUserByEmail, getSessionUserById, getUserByPhone, updateUser } from '@/lib/db/users';
 import type { Gender, PreferredLanguage } from '@/lib/db/types';
 
 type SettingsPayload = {
@@ -17,13 +18,13 @@ type SettingsPayload = {
 
 async function requireAuthenticatedUser() {
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     return null;
   }
 
-  return getUserById(sessionId);
+  return getSessionUserById(sessionId);
 }
 
 function sanitizePreferredLanguage(value: unknown): PreferredLanguage {

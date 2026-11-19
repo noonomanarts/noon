@@ -322,6 +322,13 @@ export async function closeCompanyOrder(orderId: string, adminUserId: string): P
   try {
     await client.query('BEGIN');
 
+    // Lock the order and re-check inside the transaction: a second "close"
+    // request waits here, then sees CLOSED and stops before touching stock
+    // or finance again.
+    const locked = await client.query(`SELECT status FROM company_orders WHERE id = $1 FOR UPDATE`, [orderId]);
+    if (!locked.rows[0]) throw new Error('Company order not found.');
+    if (locked.rows[0].status === 'CLOSED') throw new Error('This order is already closed.');
+
     for (const cost of detail.costs) {
       if (cost.costType === 'INVENTORY_CUT' && cost.inventoryItemId) {
         const itemResult = await client.query(

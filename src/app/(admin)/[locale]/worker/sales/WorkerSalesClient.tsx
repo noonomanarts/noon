@@ -53,6 +53,7 @@ export default function WorkerSalesClient({ locale, sales, canPrintBills }: Prop
       month: "short",
       day: "numeric",
       hour: "2-digit",
+      hourCycle: "h23",
       minute: "2-digit",
       timeZone: 'Asia/Muscat',
     }).format(new Date(date));
@@ -69,7 +70,7 @@ export default function WorkerSalesClient({ locale, sales, canPrintBills }: Prop
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
         <Link
           href={`/${locale}/worker/sales/new`}
-          className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-amber-600"
+          className="flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           <FiPlus className="h-5 w-5" />
           {t.newSale}

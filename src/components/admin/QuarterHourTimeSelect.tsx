@@ -23,9 +23,12 @@ type Props = {
   className: string;
   required?: boolean;
   disabled?: boolean;
+  /** Show 24-hour labels (dashboard calendar) instead of AM/PM. */
+  hour24?: boolean;
+  placeholder?: string;
 };
 
-export default function QuarterHourTimeSelect({ value, onChange, className, required, disabled }: Props) {
+export default function QuarterHourTimeSelect({ value, onChange, className, required, disabled, hour24 = false, placeholder = 'Time' }: Props) {
   const timeOptions = useMemo(() => QUARTER_HOUR_OPTIONS, []);
 
   return (
@@ -36,10 +39,10 @@ export default function QuarterHourTimeSelect({ value, onChange, className, requ
       onChange={(event) => onChange(event.target.value)}
       className={className}
     >
-      <option value="">Time</option>
+      <option value="">{placeholder}</option>
       {timeOptions.map((option) => (
         <option key={option} value={option}>
-          {formatTimeLabel(option)}
+          {hour24 ? option : formatTimeLabel(option)}
         </option>
       ))}
     </select>

@@ -22,11 +22,10 @@ export default async function ShopPage({
   const t = {
     defaultTitle: isArabic ? "المتجر" : "Shop",
     noCategories: isArabic ? "لا توجد تصنيفات نشطة حالياً." : "No active categories available right now.",
-    noProductsInCategory: isArabic ? "لا توجد منتجات منشورة في هذا التصنيف حالياً." : "No published products in this category right now.",
     noProducts: isArabic ? "لا توجد منتجات منشورة حالياً." : "No published products yet.",
     moreProducts: isArabic ? "المزيد من المنتجات" : "More products",
     viewAllProducts: isArabic ? "عرض كل المنتجات في هذا التصنيف" : "View all products in this category",
-    discoverMore: isArabic ? "Discover more" : "Discover more",
+    discoverMore: isArabic ? "اكتشف المزيد" : "Discover more",
     visitWebsite: isArabic ? "زيارة الموقع" : "Visit website",
   };
 
@@ -68,7 +67,10 @@ export default async function ShopPage({
       products,
       previewProducts: products.slice(0, 3),
     };
-  });
+  })
+    // Customers should not see empty shelves: a category with nothing
+    // published is skipped (the page-level empty state covers "no products").
+    .filter((entry) => entry.products.length > 0);
 
   const discoverLinks = shopPageContent.discoverLinks
     .filter((item) => item.isActive && item.url)
@@ -94,7 +96,7 @@ export default async function ShopPage({
       <div className="mx-auto w-full max-w-6xl space-y-10 px-4 text-center sm:space-y-12">
         {categoriesWithProducts.length === 0 ? (
           <div className="border border-[color:var(--border)] bg-[color:var(--surface)] p-10 text-center shadow-sm">
-            <p className="text-sm text-[color:var(--text-muted)]">{t.noCategories}</p>
+            <p className="text-sm text-[color:var(--text-muted)]">{categories.length === 0 ? t.noCategories : t.noProducts}</p>
           </div>
         ) : (
           categoriesWithProducts.map(({ category, products, previewProducts }) => {
@@ -109,20 +111,22 @@ export default async function ShopPage({
 
             return (
               <section key={category.id} className="space-y-4">
-                <h2 className="inline-flex items-center justify-center gap-2 text-2xl font-extrabold leading-tight text-[color:var(--text)] sm:text-4xl">
-                  <FiBox className="size-6 shrink-0 text-coral sm:size-7" />
-                  {categoryTitle}
+                <h2 className="text-2xl font-extrabold leading-tight text-[color:var(--text)] sm:text-4xl">
+                  <Link
+                    href={`/${locale}/shop/${category.slug}`}
+                    className="inline-flex items-center justify-center gap-2 transition hover:opacity-80"
+                  >
+                    <FiBox className="size-6 shrink-0 text-coral sm:size-7" />
+                    {categoryTitle}
+                  </Link>
                 </h2>
 
-                {products.length === 0 ? (
-                  <div className="border border-[color:var(--border)] bg-[color:var(--surface)] p-6 text-sm text-[color:var(--text-muted)]">
-                    {t.noProductsInCategory}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2 lg:grid-cols-4">
+                {(
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                     {previewProducts.map((product) => (
                       <ShopProductCard key={product.id} product={product} locale={locale} />
                     ))}
+                    {products.length > previewProducts.length ? (
                     <Link
                       href={`/${locale}/shop/${category.slug}`}
                       className="group flex min-h-64 flex-col items-center justify-center gap-3 border border-white/35 p-5 text-center shadow-sm transition hover:-translate-y-0.5 hover:brightness-95 hover:shadow-lg sm:p-6"
@@ -134,6 +138,7 @@ export default async function ShopPage({
                       <p className="text-xl font-extrabold leading-tight sm:text-2xl">{t.moreProducts}</p>
                       <p className="w-full max-w-[24ch] text-center text-sm opacity-90">{t.viewAllProducts}</p>
                     </Link>
+                    ) : null}
                   </div>
                 )}
               </section>
@@ -187,11 +192,6 @@ export default async function ShopPage({
           </section>
         ) : null}
 
-        {allProducts.length === 0 ? (
-          <div className="border border-[color:var(--border)] bg-[color:var(--surface)] p-6 text-center text-sm text-[color:var(--text-muted)]">
-            {t.noProducts}
-          </div>
-        ) : null}
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
+import { readSessionUserId } from '@/lib/sessionToken';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import ShopDiscoverMorePageClient from '@/components/admin/ShopDiscoverMorePageClient';
-import { getUserById } from '@/lib/db/users';
+import { getSessionUserById } from '@/lib/db/users';
 import { isLocale, type Locale } from '@/lib/locale';
 
 export default async function AdminShopDiscoverMorePage({
@@ -14,13 +15,13 @@ export default async function AdminShopDiscoverMorePage({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'en';
 
   const cookieStore = await cookies();
-  const sessionId = cookieStore.get('noon_session')?.value;
+  const sessionId = readSessionUserId(cookieStore);
 
   if (!sessionId) {
     redirect(`/${locale}/login`);
   }
 
-  const user = await getUserById(sessionId);
+  const user = await getSessionUserById(sessionId);
   if (!user || user.role !== 'ADMIN') {
     redirect(`/${locale}/account`);
   }

@@ -376,7 +376,7 @@ export default function AdminTrainersPage() {
               <button
                 disabled={promotingUserId === selectedUser}
                 onClick={() => handlePromoteToTrainer(selectedUser)}
-                className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex-1 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
               >
                 {promotingUserId === selectedUser ? 'Promoting...' : 'Promote'}
               </button>
