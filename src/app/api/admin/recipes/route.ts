@@ -63,44 +63,46 @@ export async function GET(request: NextRequest) {
     }
 
     if (status === 'submitted') {
-      conditions.push('cs.recipe_submitted = true');
+      conditions.push('c.recipe_submitted = true');
     } else if (status === 'missing') {
-      conditions.push('cs.recipe_submitted = false');
+      conditions.push('COALESCE(c.recipe_submitted, false) = false');
     } else if (status === 'finalized') {
-      conditions.push('cs.final_recipe_visible_to_customers = true');
+      conditions.push('c.final_recipe_visible_to_customers = true');
     }
 
     if (timeline === 'upcoming') {
-      conditions.push('cs.start_date_time >= NOW()');
+      conditions.push('c.start_date_time >= NOW()');
     } else if (timeline === 'past') {
-      conditions.push('cs.start_date_time < NOW()');
+      conditions.push('c.start_date_time < NOW()');
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const result = await query(
+      // Recipes live on the workshop (classes) itself. The old per-session
+      // table is no longer written to, so reading it hid every new workshop.
       `SELECT
-        cs.id,
-        cs.class_id,
-        cs.start_date_time,
-        cs.end_date_time,
-        cs.recipe_submitted,
-        cs.recipe_pdf,
-        cs.grocery_list,
-        cs.workshop_brief,
-        cs.photos,
-        cs.trainer_photos,
-        cs.highlighted_ingredients,
-        cs.final_recipe_title,
-        cs.final_recipe_pdf,
-        cs.final_recipe_brief,
-        cs.final_recipe_visible_to_customers,
-        cs.final_recipe_published_at,
-        cs.admin_workshop_notes,
-        cs.admin_workshop_notes_photo,
-        cs.updated_at,
-        COALESCE(cs.seats_total, c.seats_total) AS seats_total_effective,
-        COALESCE(cs.seats_booked, 0) AS seats_booked,
+        c.id,
+        c.id AS class_id,
+        c.start_date_time,
+        c.end_date_time,
+        COALESCE(c.recipe_submitted, false) AS recipe_submitted,
+        c.recipe_pdf,
+        c.grocery_list,
+        c.workshop_brief,
+        c.trainer_photos AS photos,
+        c.trainer_photos,
+        c.highlighted_ingredients,
+        c.final_recipe_title,
+        c.final_recipe_pdf,
+        c.final_recipe_brief,
+        c.final_recipe_visible_to_customers,
+        c.final_recipe_published_at,
+        c.admin_workshop_notes,
+        c.admin_workshop_notes_photo,
+        c.updated_at,
+        c.seats_total AS seats_total_effective,
+        COALESCE(booking_stats.participants_count, 0) AS seats_booked,
         COALESCE(booking_stats.bookings_count, 0) AS bookings_count,
         COALESCE(booking_stats.participants_count, 0) AS participants_count,
         COALESCE(review_stats.feedback_count, 0) AS feedback_count,
@@ -111,15 +113,14 @@ export async function GET(request: NextRequest) {
         c.image AS class_image,
         u.full_name AS trainer_name,
         u.profile_image AS trainer_image
-      FROM class_sessions cs
-      INNER JOIN classes c ON c.id = cs.class_id
+      FROM classes c
       LEFT JOIN users u ON u.id = c.trainer_id
       LEFT JOIN LATERAL (
         SELECT
           COUNT(*)::int AS bookings_count,
           COALESCE(SUM(b.number_of_participants), 0)::int AS participants_count
         FROM bookings b
-        WHERE b.session_id = cs.id
+        WHERE b.class_id = c.id
           AND b.status <> 'CANCELLED'
       ) AS booking_stats ON TRUE
       LEFT JOIN LATERAL (
@@ -127,11 +128,11 @@ export async function GET(request: NextRequest) {
           COUNT(*)::int AS feedback_count,
           ROUND(AVG(r.rating)::numeric, 2)::float8 AS average_rating
         FROM reviews r
-        WHERE r.session_id = cs.id
+        WHERE r.class_id = c.id
           AND r.is_visible = true
       ) AS review_stats ON TRUE
       ${whereClause}
-      ORDER BY cs.start_date_time DESC
+      ORDER BY c.start_date_time DESC NULLS LAST, c.created_at DESC
       LIMIT 200`,
       values
     );
