@@ -214,7 +214,7 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
   const [info, setInfo] = useState<string | null>(null);
 
   const t = {
-    title: isArabic ? 'إدارة الوصفات (احترافي)' : 'Recipes Management (Professional)',
+    title: isArabic ? 'إدارة الوصفات' : 'Recipes Management',
     subtitle: isArabic
       ? 'إدارة شاملة لوصفات الورش: إرسال المدربة، الوصفة النهائية للعملاء، الملاحظات الداخلية، والتحليلات.'
       : 'Complete workshop recipe operations: trainer submissions, final customer recipe, internal notes, and feedback analytics.',
@@ -226,8 +226,8 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
     timelineAll: isArabic ? 'كل الأوقات' : 'All Time',
     timelineUpcoming: isArabic ? 'ورش قادمة' : 'Upcoming',
     timelinePast: isArabic ? 'ورش سابقة' : 'Past Workshops',
-    noData: isArabic ? 'لا توجد جلسات مطابقة.' : 'No matching sessions found.',
-    selectSession: isArabic ? 'اختر جلسة لبدء الإدارة' : 'Select a session to start management',
+    noData: isArabic ? 'لا توجد ورش مطابقة.' : 'No matching workshops found.',
+    selectSession: isArabic ? 'اختر ورشة لبدء الإدارة' : 'Select a workshop to start',
     save: isArabic ? 'حفظ شامل' : 'Save All Changes',
     saving: isArabic ? 'جارٍ الحفظ...' : 'Saving...',
     updated: isArabic ? 'تم حفظ بيانات الوصفة بنجاح.' : 'Recipe management data saved successfully.',
@@ -240,7 +240,7 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
       notes: isArabic ? 'ملاحظات وفيدباك' : 'Notes & Feedback',
     },
     metrics: {
-      totalSessions: isArabic ? 'إجمالي الجلسات' : 'Total Sessions',
+      totalSessions: isArabic ? 'إجمالي الورش' : 'Total Workshops',
       submitted: isArabic ? 'مرسل من المدربة' : 'Trainer Submitted',
       published: isArabic ? 'منشور للعملاء' : 'Published to Customers',
       participants: isArabic ? 'إجمالي المشاركين' : 'Total Participants',
@@ -284,7 +284,7 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
       adminPhoto: isArabic ? 'صورة للملاحظات (URL)' : 'Admin Notes Photo URL',
       bookings: isArabic ? 'تفاصيل الحجوزات' : 'Booking Details',
       feedback: isArabic ? 'ملاحظات العملاء' : 'Customer Feedback',
-      noBookings: isArabic ? 'لا توجد حجوزات لهذه الجلسة.' : 'No bookings found for this session.',
+      noBookings: isArabic ? 'لا توجد حجوزات لهذه الورشة.' : 'No bookings found for this workshop.',
       noFeedback: isArabic ? 'لا توجد تقييمات مرئية بعد.' : 'No visible feedback yet.',
     },
     notAvailable: isArabic ? 'غير متاح' : 'Not available',
@@ -660,7 +660,7 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
                   >
                     <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{className}</p>
                     <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                      {new Date(session.start_date_time).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Muscat' })}
+                      {!session.start_date_time ? '—' : new Date(session.start_date_time).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Muscat' })}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                       <span className={`inline-flex rounded-full px-2 py-0.5 font-semibold ${workflow?.classes}`}>{workflow?.label}</span>
@@ -707,7 +707,7 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
                       </p>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">{selectedSession.trainer_name || t.notAvailable}</p>
                       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                        {new Date(selectedSession.start_date_time).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Muscat' })}
+                        {!selectedSession.start_date_time ? '—' : new Date(selectedSession.start_date_time).toLocaleString(isArabic ? 'ar-OM-u-nu-latn' : 'en-OM', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Muscat' })}
                       </p>
                     </div>
                   </div>
