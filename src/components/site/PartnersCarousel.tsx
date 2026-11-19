@@ -95,7 +95,7 @@ export default function PartnersCarousel({
               className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-300/60 bg-white/90 text-[color:var(--text)] shadow-sm backdrop-blur transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700/70 dark:bg-zinc-900/85 dark:hover:bg-zinc-900"
               aria-label={isArabic ? "السابق" : "Previous"}
             >
-              <FiChevronLeft className="size-5" />
+              <FiChevronLeft className="rtl:rotate-180 size-5" />
             </button>
             <button
               type="button"
@@ -104,7 +104,7 @@ export default function PartnersCarousel({
               className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-300/60 bg-white/90 text-[color:var(--text)] shadow-sm backdrop-blur transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700/70 dark:bg-zinc-900/85 dark:hover:bg-zinc-900"
               aria-label={isArabic ? "التالي" : "Next"}
             >
-              <FiChevronRight className="size-5" />
+              <FiChevronRight className="rtl:rotate-180 size-5" />
             </button>
           </div>
         ) : null}

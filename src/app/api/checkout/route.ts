@@ -168,6 +168,9 @@ export async function POST(request: NextRequest) {
 
         try {
           const created = await createEventBooking({
+            // Without the owner the request never appears in the customer's
+            // account and cannot be paid from "My orders".
+            userId: user?.id,
             eventType: item.eventType,
             selectedDate: new Date(`${item.selectedDate}T00:00:00`),
             selectedTime: item.selectedTime,
@@ -191,6 +194,15 @@ export async function POST(request: NextRequest) {
         } catch (error) {
           console.error('Failed to create guest event booking from cart item:', error);
         }
+      }
+
+      // Nothing was saved: say so and keep the cart, instead of reporting
+      // success and silently dropping the customer's request.
+      if (createdEventBookings.length === 0) {
+        return NextResponse.json(
+          { error: 'We could not submit your request. Please try again.' },
+          { status: 500 }
+        );
       }
 
       const response = NextResponse.json({

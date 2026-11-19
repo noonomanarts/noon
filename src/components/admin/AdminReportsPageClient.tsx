@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -173,22 +174,15 @@ export default function AdminReportsPageClient({
   ];
 
   const periodToggle = (
-    <div className="inline-flex rounded-xl border border-zinc-200 p-1 dark:border-zinc-700">
-      {(['weekly', 'monthly'] as PeriodMode[]).map((mode) => (
-        <button
-          key={mode}
-          type="button"
-          onClick={() => setAttendanceMode(mode)}
-          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-            attendanceMode === mode
-              ? 'bg-[color:var(--noon-teal)] text-white'
-              : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
-          }`}
-        >
-          {mode === 'weekly' ? t.weekly : t.monthly}
-        </button>
-      ))}
-    </div>
+    <AnimatedTabs
+      size="sm"
+      value={attendanceMode}
+      onValueChange={setAttendanceMode}
+      items={[
+        { value: 'weekly', label: t.weekly },
+        { value: 'monthly', label: t.monthly },
+      ]}
+    />
   );
 
   return (
@@ -279,22 +273,15 @@ export default function AdminReportsPageClient({
               <h2 className="text-base font-semibold text-zinc-900 dark:text-white">{t.topWorkshops}</h2>
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{t.topWorkshopsHint}</p>
             </div>
-            <div className="inline-flex rounded-xl border border-zinc-200 p-1 dark:border-zinc-700">
-              {(['week', 'month'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setTopMode(mode)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                    topMode === mode
-                      ? 'bg-[color:var(--noon-teal)] text-white'
-                      : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                  }`}
-                >
-                  {mode === 'week' ? t.last7 : t.last30}
-                </button>
-              ))}
-            </div>
+            <AnimatedTabs
+              size="sm"
+              value={topMode}
+              onValueChange={setTopMode}
+              items={[
+                { value: 'week', label: t.last7 },
+                { value: 'month', label: t.last30 },
+              ]}
+            />
           </div>
 
           <div className="mt-4 space-y-2.5">

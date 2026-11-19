@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Wallet, WalletTransaction } from '@/lib/db/types';
 import { formatNotificationContent } from '@/lib/notifications/formatNotification';
 import { formatAmountWithCurrency, formatPlainNumber } from '@/lib/formatNumber';
@@ -10,6 +11,7 @@ import {
   getAmwalCheckoutErrorPayload,
   isGenericAmwalCheckoutFailure,
   startAmwalCheckout,
+  confirmAmwalPayment,
 } from '@/lib/amwalClient';
 
 type WalletTopupCheckoutPayload = {
@@ -45,6 +47,7 @@ interface WalletSectionProps {
 }
 
 export function WalletSection({ wallet, transactions, locale, returnUrl }: WalletSectionProps) {
+  const router = useRouter();
   const [walletData, setWalletData] = useState(wallet);
   const [transactionsData, setTransactionsData] = useState(transactions);
   const [transactionsPage, setTransactionsPage] = useState(1);
@@ -351,13 +354,28 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
     };
   }, [isArabic, locale, refreshWalletBalance]);
 
+  // Escape closes whichever wallet dialog is open.
+  useEffect(() => {
+    if (!showDepositModal && !showWithdrawModal) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowDepositModal(false);
+        setShowWithdrawModal(false);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [showDepositModal, showWithdrawModal]);
+
   const handleDeposit = () => {
+    setMessage('');
     setDepositAmount('');
     setDepositDescription('');
     setShowDepositModal(true);
   };
 
   const handleWithdraw = () => {
+    setMessage('');
     setWithdrawAmount('');
     setWithdrawDescription('');
     setShowWithdrawModal(true);
@@ -403,17 +421,12 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
         await startAmwalCheckout({
           checkout,
           onComplete: async (gatewayPayload) => {
-            const callbackResponse = await fetch('/api/wallet/topup/callback', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ reference, gatewayPayload }),
-            });
-            const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as {
+            const { ok, payload: callbackPayload } = await confirmAmwalPayment<{
               error?: string;
               topupStatus?: string;
-            };
+            }>('/api/wallet/topup/callback', { reference, gatewayPayload });
 
-            if (!callbackResponse.ok) {
+            if (!ok) {
               throw new Error(callbackPayload.error || 'Failed to confirm payment');
             }
 
@@ -426,6 +439,11 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
                   : 'pending';
 
             redirectWithTopupStatus(topupStatus, reference, targetReturnUrl);
+          },
+          onConfirmError: () => {
+            // The gateway finished but we could not record it. Do not report a
+            // failure: show "being updated" and let the saved result be re-sent.
+            redirectWithTopupStatus('pending', reference, targetReturnUrl);
           },
           onCancel: () => {
             redirectWithTopupStatus('cancelled', reference, targetReturnUrl);
@@ -544,6 +562,7 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
         setTransferTo('');
         setTransferReason('');
         void refreshWalletBalance();
+        router.refresh();
       } else {
         const data = await response.json();
         setMessage(data.error || (isArabic ? 'فشل في التحويل' : 'Transfer failed'));
@@ -612,6 +631,7 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
             : `Successfully converted ${data.pointsUsed ?? pts} points to ${(data.amountCredited ?? 0).toFixed(3)} OMR`
         );
         void refreshWalletBalance();
+        router.refresh();
       } else {
         const data = await response.json() as { error?: string };
         setMessage(data.error || (isArabic ? 'فشل في تحويل النقاط' : 'Failed to convert points'));
@@ -627,7 +647,7 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
     <>
       {/* Deposit Modal */}
       {showDepositModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-[color:var(--surface)]/30 p-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl bg-[color:var(--surface)] shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
             <div className="border-b border-[color:var(--border)]/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
@@ -635,6 +655,8 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
                   {isArabic ? "شحن المحفظة" : "Wallet Top-up"}
                 </h3>
                 <button
+                  type="button"
+                  aria-label={isArabic ? 'إغلاق' : 'Close'}
                   onClick={() => setShowDepositModal(false)}
                   className="text-zinc-400 hover:text-[color:var(--text-muted)] dark:hover:text-zinc-300 rounded-full p-1 hover:bg-[color:var(--muted)] dark:hover:bg-zinc-700 transition-colors duration-200"
                 >
@@ -646,6 +668,11 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
             </div>
 
             <div className="p-6 space-y-5">
+              {message ? (
+                <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                  {message}
+                </p>
+              ) : null}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
                   {isArabic ? "المبلغ" : "Amount"} ({walletData.currency})
@@ -717,7 +744,7 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
 
       {/* Withdraw Modal */}
       {showWithdrawModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-[color:var(--surface)]/30 p-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl bg-[color:var(--surface)] shadow-2xl border border-white/20 dark:bg-zinc-800 dark:border-zinc-700/50 transform transition-all duration-300 scale-100">
             <div className="border-b border-[color:var(--border)]/60 px-6 py-5 dark:border-zinc-700/60">
               <div className="flex items-center justify-between">
@@ -725,6 +752,8 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
                   {isArabic ? "طلب سحب رصيد" : "Request Withdrawal"}
                 </h3>
                 <button
+                  type="button"
+                  aria-label={isArabic ? 'إغلاق' : 'Close'}
                   onClick={() => setShowWithdrawModal(false)}
                   className="text-zinc-400 hover:text-[color:var(--text-muted)] dark:hover:text-zinc-300 rounded-full p-1 hover:bg-[color:var(--muted)] dark:hover:bg-zinc-700 transition-colors duration-200"
                 >
@@ -736,6 +765,11 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
             </div>
 
             <div className="p-6 space-y-5">
+              {message ? (
+                <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                  {message}
+                </p>
+              ) : null}
               <div>
                 <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-3">
                   {isArabic ? "المبلغ" : "Amount"} ({walletData.currency})
@@ -820,7 +854,8 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
             href={returnUrl}
             className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700"
           >
-            {isArabic ? 'العودة للحجز' : 'Return to Booking'} →
+            {isArabic ? 'العودة للحجز' : 'Return to Booking'}{' '}
+            <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
           </a>
         </div>
       )}
@@ -840,7 +875,7 @@ export function WalletSection({ wallet, transactions, locale, returnUrl }: Walle
             </div>
             <div className="text-2xl font-bold text-purple-800 dark:text-purple-200">
               {bonusPoints.toLocaleString()}
-              <span className="ml-1 text-sm font-normal text-purple-600 dark:text-purple-400">
+              <span className="ms-1 text-sm font-normal text-purple-600 dark:text-purple-400">
                 {isArabic ? 'نقطة' : 'pts'}
               </span>
             </div>

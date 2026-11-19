@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useState, useMemo } from "react";
 import type { ShopOrder, ShopOrderItem, ShopOrderStatus, ShopOrderStatusHistory } from "@/lib/db/types";
 import { FiPackage, FiTruck, FiCheck, FiClock, FiMapPin, FiPhone, FiUser, FiRefreshCw, FiX } from "react-icons/fi";
@@ -146,7 +147,7 @@ export default function WorkerOrdersClient({ locale, orders: initialOrders }: Pr
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat(isArabic ? "ar" : "en", {
+    return new Intl.DateTimeFormat(isArabic ? "ar-u-nu-latn" : "en", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -162,33 +163,16 @@ export default function WorkerOrdersClient({ locale, orders: initialOrders }: Pr
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
 
         {/* Status Filter */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setFilterStatus("ALL")}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              filterStatus === "ALL"
-                ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-            }`}
-          >
-            {t.filterAll}
-          </button>
-          {STATUS_ORDER.map((status) => (
-            <button
-              key={status}
-              type="button"
-              onClick={() => setFilterStatus(status)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                filterStatus === status
-                  ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                  : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-              }`}
-            >
-              {statusLabel(status)}
-            </button>
-          ))}
-        </div>
+        <AnimatedTabs
+          variant="solid"
+          size="sm"
+          value={filterStatus}
+          onValueChange={setFilterStatus}
+          items={[
+            { value: "ALL" as typeof filterStatus, label: t.filterAll },
+            ...STATUS_ORDER.map((status) => ({ value: status as typeof filterStatus, label: statusLabel(status) })),
+          ]}
+        />
       </div>
 
       {/* Orders List */}
@@ -230,7 +214,7 @@ export default function WorkerOrdersClient({ locale, orders: initialOrders }: Pr
                       <span className="font-medium">{order.recipient_full_name}</span>
                       <FiPhone className="ms-2 h-4 w-4" />
                       <a href={`tel:${order.recipient_phone}`} className="hover:underline">
-                        {order.recipient_phone}
+                        <bdi dir="ltr">{order.recipient_phone}</bdi>
                       </a>
                     </div>
 

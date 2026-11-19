@@ -43,12 +43,13 @@ export function Dropdown({
     }
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
+      // pointerdown also fires for touch, so the menu closes on an outside tap on iOS.
+      document.addEventListener("pointerdown", handleClickOutside);
       document.addEventListener("keydown", handleEscape);
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("pointerdown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [isOpen]);
@@ -56,6 +57,9 @@ export function Dropdown({
   return (
     <div ref={detailsRef} className="relative">
       <button
+        type="button"
+        aria-haspopup="true"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
         className={[
           baseButtonClass,

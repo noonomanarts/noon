@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FiBell, FiCheck, FiSettings } from 'react-icons/fi';
 import Link from 'next/link';
@@ -690,87 +691,29 @@ export default function AdminNotificationCenter({ locale, userRole }: AdminNotif
 
           <div className="max-h-[420px] overflow-y-auto overscroll-contain">
             <div className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 px-3 py-2 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/95">
-              <div className="mb-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFilter('all')}
-                  className={`rounded px-2 py-1 text-xs font-medium ${
-                    filter === 'all'
-                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-                  }`}
-                >
-                  {t.filterAll} ({allCount})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilter('newOrder')}
-                  className={`rounded px-2 py-1 text-xs font-medium ${
-                    filter === 'newOrder'
-                      ? 'bg-rose-600 text-white'
-                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-                  }`}
-                >
-                  {t.filterNewOrders} ({newOrderCount})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFilter('important')}
-                  className={`rounded px-2 py-1 text-xs font-medium ${
-                    filter === 'important'
-                      ? 'bg-amber-600 text-white'
-                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-                  }`}
-                >
-                  {t.filterImportant} ({importantCount})
-                </button>
-              </div>
-              <div className="mb-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTimeFilter('all')}
-                  className={`rounded px-2 py-1 text-xs font-medium ${
-                    timeFilter === 'all'
-                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-                  }`}
-                >
-                  {t.timeAll}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTimeFilter('today')}
-                  className={`rounded px-2 py-1 text-xs font-medium ${
-                    timeFilter === 'today'
-                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-                  }`}
-                >
-                  {t.timeToday}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTimeFilter('24h')}
-                  className={`rounded px-2 py-1 text-xs font-medium ${
-                    timeFilter === '24h'
-                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-                  }`}
-                >
-                  {t.time24h}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTimeFilter('7d')}
-                  className={`rounded px-2 py-1 text-xs font-medium ${
-                    timeFilter === '7d'
-                      ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                      : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
-                  }`}
-                >
-                  {t.time7d}
-                </button>
-              </div>
+              <AnimatedTabs
+                className="mb-2"
+                size="sm"
+                value={filter}
+                onValueChange={setFilter}
+                items={[
+                  { value: 'all', label: t.filterAll, badge: allCount },
+                  { value: 'newOrder', label: t.filterNewOrders, badge: newOrderCount },
+                  { value: 'important', label: t.filterImportant, badge: importantCount },
+                ]}
+              />
+              <AnimatedTabs
+                className="mb-2"
+                size="sm"
+                value={timeFilter}
+                onValueChange={setTimeFilter}
+                items={[
+                  { value: 'all', label: t.timeAll },
+                  { value: 'today', label: t.timeToday },
+                  { value: '24h', label: t.time24h },
+                  { value: '7d', label: t.time7d },
+                ]}
+              />
               <div className="flex items-center justify-between gap-2">
                 <label className="inline-flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300">
                   <input

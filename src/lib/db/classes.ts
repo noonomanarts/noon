@@ -1355,6 +1355,9 @@ export async function getBookingsByUserId(userId: string) {
      FROM bookings b
      LEFT JOIN classes c ON b.class_id = c.id
      WHERE b.user_id = $1
+       -- Failed online payment attempts are kept for the admin payments ledger
+       -- but are noise in the customer's own order history.
+       AND NOT (b.status = 'CANCELLED' AND b.payment_status = 'FAILED')
      ORDER BY b.created_at DESC`,
     [userId]
   );

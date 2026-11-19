@@ -7,6 +7,24 @@ import { getShopOrdersAnalyticsSummary, listShopOrdersForAdmin } from '@/lib/db/
 import { getWalletTopupAnalyticsSummary } from '@/lib/db/wallet';
 import AdminPieChartCard, { type AdminPieSlice } from '@/components/admin/AdminPieChartCard';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
+import { getDashboardOverview } from '@/lib/db/dashboard';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
+import {
+  FiAlertCircle,
+  FiArrowRight,
+  FiAward,
+  FiBookOpen,
+  FiCalendar,
+  FiCreditCard,
+  FiInbox,
+  FiPackage,
+  FiPlus,
+  FiPocket,
+  FiSettings,
+  FiShoppingBag,
+  FiShoppingCart,
+  FiUsers,
+} from 'react-icons/fi';
 
 export default async function AdminDashboard({
   params,
@@ -17,22 +35,19 @@ export default async function AdminDashboard({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'en';
   const isAr = locale === 'ar';
 
-  const [roles, shopSummary, topupSummary, eventBookingsCount, recentOrdersPayload] = await Promise.all([
+  const [roles, shopSummary, topupSummary, eventBookingsCount, recentOrdersPayload, overview] = await Promise.all([
     countUsersByRole(),
     getShopOrdersAnalyticsSummary(),
     getWalletTopupAnalyticsSummary(),
     countEventBookings(),
     listShopOrdersForAdmin({ page: 1, limit: 5 }),
+    getDashboardOverview(),
   ]);
 
   const customersCount  = Number(roles.CUSTOMER ?? 0);
   const trainersCount   = Number(roles.TRAINER ?? 0);
   const adminsCount     = Number(roles.ADMIN ?? 0);
   const totalUsers      = customersCount + trainersCount + adminsCount;
-
-  const totalOrders     = Math.max(1, shopSummary.totalOrders);
-  const deliveredOrShipped = shopSummary.statusCounts.DELIVERED + shopSummary.statusCounts.SHIPPED;
-  const fulfillmentRate = (deliveredOrShipped / totalOrders) * 100;
 
   const formatMoney = (v: number) => formatAmountWithCurrency(v, 'OMR');
 
@@ -42,74 +57,114 @@ export default async function AdminDashboard({
   });
 
   /* ── KPI cards ── */
+  const money = (value: number) => ({ value, decimals: Number.isInteger(value) ? 0 : 3, suffix: isAr ? 'ريال' : 'OMR' });
+  const count = (value: number) => ({ value, decimals: 0, suffix: '' });
+
   const kpis = [
     {
-      label: isAr ? 'إيراد المتجر' : 'Shop Revenue',
-      value: formatMoney(shopSummary.grossRevenue),
-      sub: `${formatMoney(shopSummary.monthRevenue)} ${isAr ? 'هذا الشهر' : 'this month'}`,
-      icon: '💰',
-      accent: 'from-teal-500 to-teal-600',
-      bg: 'bg-teal-50 dark:bg-teal-950/30',
-      border: 'border-teal-100 dark:border-teal-900/40',
+      label: isAr ? 'إيراد الورش هذا الشهر' : 'Class revenue this month',
+      ...money(overview.classRevenueThisMonth),
+      sub: `${overview.classBookingsThisMonth} ${isAr ? 'حجز مدفوع' : 'paid bookings'}`,
+      Icon: FiBookOpen,
+      tone: 'bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300',
+      href: `/${locale}/admin/classes`,
     },
     {
-      label: isAr ? 'طلبات المتجر' : 'Shop Orders',
-      value: shopSummary.totalOrders.toLocaleString(),
-      sub: `${shopSummary.monthOrders} ${isAr ? 'هذا الشهر' : 'this month'}`,
-      icon: '🛍️',
-      accent: 'from-purple-500 to-purple-600',
-      bg: 'bg-purple-50 dark:bg-purple-950/30',
-      border: 'border-purple-100 dark:border-purple-900/40',
+      label: isAr ? 'إيراد المتجر هذا الشهر' : 'Shop revenue this month',
+      ...money(shopSummary.monthRevenue),
+      sub: `${shopSummary.monthOrders} ${isAr ? 'طلب' : 'orders'} · ${formatMoney(shopSummary.grossRevenue)} ${isAr ? 'إجمالي' : 'all time'}`,
+      Icon: FiShoppingBag,
+      tone: 'bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300',
+      href: `/${locale}/admin/shop/orders`,
     },
     {
-      label: isAr ? 'شحن المحافظ' : 'Wallet Topups',
-      value: formatMoney(topupSummary.paidAmount),
-      sub: `${formatMoney(topupSummary.monthPaidAmount)} ${isAr ? 'هذا الشهر' : 'this month'}`,
-      icon: '👛',
-      accent: 'from-amber-500 to-amber-600',
-      bg: 'bg-amber-50 dark:bg-amber-950/30',
-      border: 'border-amber-100 dark:border-amber-900/40',
+      label: isAr ? 'شحن المحافظ هذا الشهر' : 'Wallet top-ups this month',
+      ...money(topupSummary.monthPaidAmount),
+      sub: `${formatMoney(topupSummary.paidAmount)} ${isAr ? 'إجمالي' : 'all time'}`,
+      Icon: FiCreditCard,
+      tone: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
+      href: `/${locale}/admin/payments?source=WALLET_TOPUP`,
     },
     {
-      label: isAr ? 'المستخدمون' : 'Total Users',
-      value: totalUsers.toLocaleString(),
+      label: isAr ? 'ورش قادمة' : 'Upcoming classes',
+      ...count(overview.upcomingClassesCount),
+      sub: isAr ? 'منشورة ولم تبدأ بعد' : 'published and not started',
+      Icon: FiCalendar,
+      tone: 'bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300',
+      href: `/${locale}/admin/calendar`,
+    },
+    {
+      label: isAr ? 'المستخدمون' : 'Users',
+      ...count(totalUsers),
       sub: `${customersCount} ${isAr ? 'عميل' : 'customers'} · ${trainersCount} ${isAr ? 'مدرب' : 'trainers'}`,
-      icon: '👥',
-      accent: 'from-rose-500 to-rose-600',
-      bg: 'bg-rose-50 dark:bg-rose-950/30',
-      border: 'border-rose-100 dark:border-rose-900/40',
+      Icon: FiUsers,
+      tone: 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300',
+      href: `/${locale}/admin/users`,
     },
     {
-      label: isAr ? 'معدل الإنجاز' : 'Fulfillment Rate',
-      value: `${fulfillmentRate.toFixed(1)}%`,
-      sub: `${deliveredOrShipped} ${isAr ? 'شحنة أو تسليم' : 'shipped or delivered'}`,
-      icon: '✅',
-      accent: 'from-emerald-500 to-emerald-600',
-      bg: 'bg-emerald-50 dark:bg-emerald-950/30',
-      border: 'border-emerald-100 dark:border-emerald-900/40',
-    },
-    {
-      label: isAr ? 'حجوزات الفعاليات' : 'Event Bookings',
-      value: eventBookingsCount.toLocaleString(),
-      sub: isAr ? 'إجمالي الحجوزات' : 'total bookings',
-      icon: '🎟️',
-      accent: 'from-sky-500 to-sky-600',
-      bg: 'bg-sky-50 dark:bg-sky-950/30',
-      border: 'border-sky-100 dark:border-sky-900/40',
+      label: isAr ? 'حجوزات الفعاليات' : 'Event bookings',
+      ...count(eventBookingsCount),
+      sub: `${overview.newEventRequests} ${isAr ? 'طلب جديد بانتظار الرد' : 'new requests waiting for a reply'}`,
+      Icon: FiAward,
+      tone: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300',
+      href: `/${locale}/admin/events`,
     },
   ];
 
+  /* ── Needs attention: only the items that actually have something waiting ── */
+  const attention = [
+    {
+      count: overview.awaitingReviewBookings,
+      label: isAr ? 'حجوزات مدفوعة بانتظار التأكيد' : 'Paid bookings awaiting confirmation',
+      href: `/${locale}/admin/payments?source=CLASS_BOOKING`,
+      Icon: FiAlertCircle,
+      urgent: true,
+    },
+    {
+      count: overview.newEventRequests,
+      label: isAr ? 'طلبات فعاليات جديدة' : 'New event requests',
+      href: `/${locale}/admin/events`,
+      Icon: FiAward,
+      urgent: false,
+    },
+    {
+      count: overview.pendingWithdrawals,
+      label: isAr ? 'طلبات سحب بانتظار المراجعة' : 'Withdrawal requests to review',
+      href: `/${locale}/admin/wallets`,
+      Icon: FiPocket,
+      urgent: false,
+    },
+    {
+      count: overview.pendingTopups,
+      label: isAr ? 'عمليات شحن معلّقة' : 'Pending wallet top-ups',
+      href: `/${locale}/admin/payments?source=WALLET_TOPUP`,
+      Icon: FiCreditCard,
+      urgent: false,
+    },
+    {
+      count: overview.unreadMessages,
+      label: isAr ? 'رسائل جديدة' : 'New contact messages',
+      href: `/${locale}/admin/contact-messages`,
+      Icon: FiInbox,
+      urgent: false,
+    },
+  ].filter((item) => item.count > 0);
+
   /* ── Quick links ── */
   const quickLinks = [
-    { label: isAr ? 'الورشات' : 'Classes',    href: `/${locale}/admin/classes`,          emoji: '📚' },
-    { label: isAr ? 'التقويم' : 'Calendar',  href: `/${locale}/admin/calendar`,         emoji: '📅' },
-    { label: isAr ? 'المستخدمون' : 'Users',  href: `/${locale}/admin/users`,            emoji: '👤' },
-    { label: isAr ? 'الطلبات' : 'Orders',    href: `/${locale}/admin/shop/orders`,      emoji: '📦' },
-    { label: isAr ? 'الفعاليات' : 'Events',  href: `/${locale}/admin/events`,           emoji: '🎉' },
-    { label: isAr ? 'المحافظ' : 'Wallets',   href: `/${locale}/admin/wallets`,          emoji: '💳' },
-    { label: isAr ? 'المخزون' : 'Inventory', href: `/${locale}/admin/finance/inventory`, emoji: '📦' },
-    { label: isAr ? 'الإعدادات' : 'Settings',href: `/${locale}/admin/settings`,         emoji: '⚙️' },
+    { label: isAr ? 'الورشات' : 'Classes', href: `/${locale}/admin/classes`, Icon: FiBookOpen },
+    { label: isAr ? 'التقويم' : 'Calendar', href: `/${locale}/admin/calendar`, Icon: FiCalendar },
+    { label: isAr ? 'الفعاليات' : 'Events', href: `/${locale}/admin/events`, Icon: FiAward },
+    { label: isAr ? 'الطلبات' : 'Orders', href: `/${locale}/admin/shop/orders`, Icon: FiShoppingCart },
+    { label: isAr ? 'المدفوعات' : 'Payments', href: `/${locale}/admin/payments`, Icon: FiCreditCard },
+    { label: isAr ? 'المحافظ' : 'Wallets', href: `/${locale}/admin/wallets`, Icon: FiPocket },
+    { label: isAr ? 'المخزون' : 'Inventory', href: `/${locale}/admin/finance/inventory`, Icon: FiPackage },
+    { label: isAr ? 'الإعدادات' : 'Settings', href: `/${locale}/admin/settings`, Icon: FiSettings },
   ];
+
+  const classDateFormatter = new Intl.DateTimeFormat(isAr ? 'ar-OM-u-nu-latn' : 'en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Muscat',
+  });
 
   /* ── Charts ── */
   const userSlices: AdminPieSlice[] = [
@@ -143,60 +198,154 @@ export default async function AdminDashboard({
     <div className="space-y-6 pb-8">
 
       {/* ── Header ── */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 sm:text-2xl">
-            {isAr ? 'لوحة الإدارة' : 'Admin Dashboard'}
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{dateLabel}</p>
+          <h1 className="mt-1 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+            {isAr ? 'لوحة الإدارة' : 'Dashboard'}
           </h1>
-          <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">{dateLabel}</p>
         </div>
-        <Link
-          href={`/${locale}/admin/classes/new`}
-          className="mt-3 inline-flex h-9 items-center gap-2 self-start rounded-lg bg-[color:var(--noon-teal)] px-4 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)] sm:mt-0 sm:self-auto"
-        >
-          <span>+</span>
-          {isAr ? 'ورشة جديدة' : 'New Class'}
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/${locale}/admin/shop/orders/new`}
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+          >
+            <FiPlus className="size-4" aria-hidden="true" />
+            {isAr ? 'طلب جديد' : 'New order'}
+          </Link>
+          <Link
+            href={`/${locale}/admin/classes/new`}
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)]"
+          >
+            <FiPlus className="size-4" aria-hidden="true" />
+            {isAr ? 'ورشة جديدة' : 'New class'}
+          </Link>
+        </div>
       </div>
 
+      {/* ── Needs attention ── */}
+      {attention.length > 0 ? (
+        <section aria-label={isAr ? 'يحتاج إلى متابعة' : 'Needs attention'} className="rounded-xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
+          <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+            {isAr ? 'يحتاج إلى متابعة' : 'Needs attention'}
+          </h2>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {attention.map((item) => (
+              <li key={item.href + item.label}>
+                <Link
+                  href={item.href}
+                  className="flex items-center gap-3 rounded-lg border border-amber-200/80 bg-white px-3 py-2.5 text-sm transition hover:border-amber-400 dark:border-amber-900/50 dark:bg-zinc-900 dark:hover:border-amber-700"
+                >
+                  <item.Icon className={`size-4 shrink-0 ${item.urgent ? 'text-rose-600' : 'text-amber-600'}`} aria-hidden="true" />
+                  <span className="min-w-0 flex-1 font-medium leading-snug text-zinc-800 dark:text-zinc-200">{item.label}</span>
+                  <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-bold text-white ${item.urgent ? 'bg-rose-600' : 'bg-amber-600'}`}>
+                    {item.count}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {/* ── KPI grid ── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {kpis.map((kpi) => (
-          <div
+          <Link
             key={kpi.label}
-            className={`rounded-xl border p-3 shadow-sm ${kpi.bg} ${kpi.border}`}
+            href={kpi.href}
+            className="group rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
           >
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400 leading-tight">
-                {kpi.label}
-              </p>
-              <span className="text-base leading-none">{kpi.icon}</span>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{kpi.label}</p>
+              <span className={`inline-flex size-9 shrink-0 items-center justify-center rounded-lg ${kpi.tone}`}>
+                <kpi.Icon className="size-[18px]" aria-hidden="true" />
+              </span>
             </div>
-            <p className="mt-2 text-lg font-black text-zinc-900 dark:text-zinc-100 leading-tight sm:text-xl">
-              {kpi.value}
+            <p className="mt-3 text-3xl font-bold leading-none text-zinc-950 dark:text-white" dir="ltr">
+              <AnimatedNumber value={kpi.value} decimalPlaces={kpi.decimals} />
+              {kpi.suffix ? <span className="ms-1.5 text-base font-semibold text-zinc-500">{kpi.suffix}</span> : null}
             </p>
-            <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400 leading-tight">{kpi.sub}</p>
-          </div>
+            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{kpi.sub}</p>
+          </Link>
         ))}
       </div>
 
-      {/* ── Quick links ── */}
-      <div>
-        <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">
-          {isAr ? 'روابط سريعة' : 'Quick links'}
-        </p>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
-          {quickLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="flex flex-col items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-2 py-3 text-center transition hover:border-[color:var(--noon-teal)] hover:bg-[color:var(--noon-teal-soft)] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-[color:var(--noon-teal)] dark:hover:bg-[color:var(--noon-teal)]/10"
-            >
-              <span className="text-xl leading-none">{link.emoji}</span>
-              <span className="text-[10px] font-semibold text-zinc-600 dark:text-zinc-400 leading-tight">{link.label}</span>
+      {/* ── Upcoming classes + quick links ── */}
+      <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
+        <section className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+            <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              {isAr ? 'الورش القادمة' : 'Upcoming classes'}
+            </h2>
+            <Link href={`/${locale}/admin/classes`} className="inline-flex items-center gap-1 text-xs font-semibold text-[color:var(--noon-teal)] hover:text-[color:var(--noon-teal-strong)]">
+              {isAr ? 'عرض الكل' : 'View all'}
+              <FiArrowRight className="size-3.5 rtl:rotate-180" aria-hidden="true" />
             </Link>
-          ))}
-        </div>
+          </div>
+
+          {overview.upcomingClasses.length === 0 ? (
+            <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+              <FiCalendar className="size-8 text-zinc-300 dark:text-zinc-700" aria-hidden="true" />
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                {isAr ? 'لا توجد ورش قادمة منشورة.' : 'No published classes are coming up.'}
+              </p>
+              <Link href={`/${locale}/admin/classes/new`} className="text-sm font-semibold text-[color:var(--noon-teal)] hover:underline">
+                {isAr ? 'أضف ورشة' : 'Add a class'}
+              </Link>
+            </div>
+          ) : (
+            <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              {overview.upcomingClasses.map((item) => {
+                const fill = item.seatsTotal > 0 ? Math.min(100, Math.round((item.seatsBooked / item.seatsTotal) * 100)) : 0;
+                const full = item.seatsTotal > 0 && item.seatsBooked >= item.seatsTotal;
+                return (
+                  <li key={item.id}>
+                    <Link href={`/${locale}/admin/classes/${item.id}`} className="flex items-center gap-4 px-4 py-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-800/40">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                          {(isAr ? item.titleAr : null) || item.title}
+                        </p>
+                        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                          {classDateFormatter.format(new Date(item.startDateTime))}
+                        </p>
+                      </div>
+                      <div className="w-32 shrink-0">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className={`font-semibold ${full ? 'text-rose-600' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                            {full ? (isAr ? 'مكتملة' : 'Full') : `${fill}%`}
+                          </span>
+                          <span className="text-zinc-500" dir="ltr">{item.seatsBooked}/{item.seatsTotal}</span>
+                        </div>
+                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800" role="progressbar" aria-valuenow={fill} aria-valuemin={0} aria-valuemax={100}>
+                          <div className={`h-full rounded-full ${full ? 'bg-rose-500' : 'bg-[color:var(--noon-teal)]'}`} style={{ width: `${fill}%` }} />
+                        </div>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        <section className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            {isAr ? 'روابط سريعة' : 'Quick links'}
+          </h2>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {quickLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex min-h-11 items-center gap-2.5 rounded-lg border border-zinc-200 px-3 text-sm font-medium text-zinc-700 transition hover:border-[color:var(--noon-teal)] hover:text-[color:var(--noon-teal-strong)] dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-[color:var(--noon-teal)] dark:hover:text-[color:var(--noon-teal)]"
+              >
+                <link.Icon className="size-4 shrink-0 text-zinc-500" aria-hidden="true" />
+                <span className="truncate">{link.label}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
       </div>
 
       {/* ── Charts ── */}
@@ -208,19 +357,23 @@ export default async function AdminDashboard({
       {/* ── Recent orders ── */}
       <div className="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
-          <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-            {isAr ? 'أحدث الطلبات' : 'Recent Orders'}
+          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            {isAr ? 'أحدث طلبات المتجر' : 'Recent shop orders'}
           </h2>
           <Link
             href={`/${locale}/admin/shop/orders`}
             className="text-xs font-semibold text-[color:var(--noon-teal)] hover:text-[color:var(--noon-teal-strong)]"
           >
-            {isAr ? 'عرض الكل' : 'View all'} →
+            {isAr ? 'عرض الكل' : 'View all'}
+            <FiArrowRight className="ms-1 inline size-3.5 rtl:rotate-180" aria-hidden="true" />
           </Link>
         </div>
 
         {recentOrders.length === 0 ? (
-          <p className="p-6 text-sm text-zinc-400">{isAr ? 'لا توجد طلبات حديثة.' : 'No recent orders yet.'}</p>
+          <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
+            <FiShoppingCart className="size-8 text-zinc-300 dark:text-zinc-700" aria-hidden="true" />
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{isAr ? 'لا توجد طلبات حديثة.' : 'No recent orders yet.'}</p>
+          </div>
         ) : (
           <>
             {/* Mobile: card list */}
@@ -278,7 +431,7 @@ export default async function AdminDashboard({
                       isAr ? 'التاريخ' : 'Date',
                       '',
                     ].map((h) => (
-                      <th key={h} className="px-4 py-2.5 text-left text-[10px] font-bold uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">
+                      <th key={h} className="px-4 py-2.5 text-start text-xs font-semibold text-zinc-500 dark:text-zinc-400">
                         {h}
                       </th>
                     ))}
@@ -333,7 +486,7 @@ export default async function AdminDashboard({
                             href={`/${locale}/admin/shop/orders/${order.id}`}
                             className="text-xs font-semibold text-[color:var(--noon-teal)] hover:text-[color:var(--noon-teal-strong)]"
                           >
-                            {isAr ? 'فتح' : 'Open'} →
+                            {isAr ? 'فتح' : 'Open'}
                           </Link>
                         </td>
                       </tr>

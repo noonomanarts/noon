@@ -464,6 +464,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t.search}
+              aria-label={t.search}
               className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
             />
             <select
@@ -590,18 +591,21 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                 value={editor.nameEn}
                 onChange={(event) => setEditor((prev) => ({ ...prev, nameEn: event.target.value }))}
                 placeholder={t.nameEn}
+                aria-label={t.nameEn}
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
               />
               <input
                 value={editor.nameAr}
                 onChange={(event) => setEditor((prev) => ({ ...prev, nameAr: event.target.value }))}
                 placeholder={t.nameAr}
+                aria-label={t.nameAr}
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
               />
               <input
                 value={editor.slug}
                 onChange={(event) => setEditor((prev) => ({ ...prev, slug: event.target.value }))}
                 placeholder={t.slug}
+                aria-label={t.slug}
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
               />
 
@@ -610,6 +614,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                 value={editor.descriptionEn}
                 onChange={(event) => setEditor((prev) => ({ ...prev, descriptionEn: event.target.value }))}
                 placeholder={t.descriptionEn}
+                aria-label={t.descriptionEn}
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
               />
               <textarea
@@ -617,6 +622,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                 value={editor.descriptionAr}
                 onChange={(event) => setEditor((prev) => ({ ...prev, descriptionAr: event.target.value }))}
                 placeholder={t.descriptionAr}
+                aria-label={t.descriptionAr}
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
               />
 
@@ -630,6 +636,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                     min="0"
                     step="0.001"
                     placeholder={t.price}
+                    aria-label={t.price}
                     className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
                   />
                 </label>
@@ -642,6 +649,7 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                     min="0"
                     step="0.001"
                     placeholder={t.cost}
+                    aria-label={t.cost}
                     className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
                   />
                 </label>
@@ -651,32 +659,42 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                     value={editor.currency}
                     onChange={(event) => setEditor((prev) => ({ ...prev, currency: event.target.value.toUpperCase() }))}
                     placeholder={t.currency}
+                    aria-label={t.currency}
                     className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
                   />
                 </label>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <input
-                  value={editor.sku}
-                  onChange={(event) => setEditor((prev) => ({ ...prev, sku: event.target.value }))}
-                  placeholder={t.sku}
-                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
-                />
-                <input
-                  value={editor.stockQuantity}
-                  onChange={(event) => setEditor((prev) => ({ ...prev, stockQuantity: event.target.value }))}
-                  type="number"
-                  min="0"
-                  placeholder={t.stock}
-                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
-                />
+                <label className="space-y-1">
+                  <span className="block text-xs font-medium text-zinc-600 dark:text-zinc-300">{t.sku}</span>
+                  <input
+                    value={editor.sku}
+                    onChange={(event) => setEditor((prev) => ({ ...prev, sku: event.target.value }))}
+                    placeholder={t.sku}
+                    aria-label={t.sku}
+                    className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="block text-xs font-medium text-zinc-600 dark:text-zinc-300">{t.stock}</span>
+                  <input
+                    value={editor.stockQuantity}
+                    onChange={(event) => setEditor((prev) => ({ ...prev, stockQuantity: event.target.value }))}
+                    type="number"
+                    min="0"
+                    placeholder={t.stock}
+                    aria-label={t.stock}
+                    className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                  />
+                </label>
               </div>
 
               <input
                 value={editor.image}
                 onChange={(event) => setEditor((prev) => ({ ...prev, image: event.target.value }))}
                 placeholder={t.mainImage}
+                aria-label={t.mainImage}
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
               />
               <div className="flex flex-wrap gap-2">
@@ -707,17 +725,22 @@ export default function ShopProductsPageClient({ locale }: { locale: Locale }) {
                 value={editor.galleryInput}
                 onChange={(event) => setEditor((prev) => ({ ...prev, galleryInput: event.target.value }))}
                 placeholder={t.gallery}
+                aria-label={t.gallery}
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
               />
 
               <div className="grid grid-cols-2 gap-2">
-                <input
-                  value={editor.sortOrder}
-                  onChange={(event) => setEditor((prev) => ({ ...prev, sortOrder: event.target.value }))}
-                  type="number"
-                  placeholder={t.sortOrder}
-                  className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
-                />
+                <label className="space-y-1">
+                  <span className="block text-xs font-medium text-zinc-600 dark:text-zinc-300">{t.sortOrder}</span>
+                  <input
+                    value={editor.sortOrder}
+                    onChange={(event) => setEditor((prev) => ({ ...prev, sortOrder: event.target.value }))}
+                    type="number"
+                    placeholder={t.sortOrder}
+                    aria-label={t.sortOrder}
+                    className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                  />
+                </label>
                 <div className="flex items-center gap-4 px-1 text-xs text-zinc-600 dark:text-zinc-300">
                   <label className="flex items-center gap-1.5">
                     <input

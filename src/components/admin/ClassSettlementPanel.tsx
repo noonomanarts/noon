@@ -1545,7 +1545,7 @@ export default function ClassSettlementPanel({
                 <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.contactInfo}</h4>
                 <dl className="mt-3 space-y-2">
                   <div className="flex items-center justify-between gap-3">
-                    <dt className="text-zinc-500 dark:text-zinc-400">{t.phoneNumber}</dt>
+                    <dt className="text-zinc-500 dark:text-zinc-400"><bdi dir="ltr">{t.phoneNumber}</bdi></dt>
                     <dd className="font-medium text-zinc-900 dark:text-zinc-100" dir="ltr">
                       {selectedParticipant.customerPhone ? (
                         <a href={`tel:${selectedParticipant.customerPhone}`} className="underline decoration-dotted underline-offset-4">

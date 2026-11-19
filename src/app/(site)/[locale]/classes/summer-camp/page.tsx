@@ -195,7 +195,7 @@ export default async function SummerCampPage({
                       className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--primary)] px-3 py-2 text-xs font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] sm:px-4 sm:py-2.5 sm:text-sm"
                     >
                       {t.bookNow}
-                      <FiArrowRight className="size-4" />
+                      <FiArrowRight className="rtl:rotate-180 size-4" />
                     </Link>
                   </div>
                 </article>

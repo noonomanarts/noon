@@ -74,7 +74,7 @@ export default function ShopProductReviewsSection({
 
   const upsertReview = (review: ProductReview) => {
     setReviews((current) => {
-      const existingIndex = current.findIndex((item) => item.id === review.id || item.user_id === review.user_id);
+      const existingIndex = current.findIndex((item) => item.id === review.id || (Boolean(review.user_id) && item.user_id === review.user_id));
       if (existingIndex === -1) {
         return [review, ...current];
       }

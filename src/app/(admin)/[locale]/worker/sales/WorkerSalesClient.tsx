@@ -49,7 +49,7 @@ export default function WorkerSalesClient({ locale, sales, canPrintBills }: Prop
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat(isArabic ? "ar" : "en", {
+    return new Intl.DateTimeFormat(isArabic ? "ar-u-nu-latn" : "en", {
       month: "short",
       day: "numeric",
       hour: "2-digit",

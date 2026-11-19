@@ -100,7 +100,7 @@ export default async function ShopProductDetailsPage({
               href={`/${locale}/shop/${product.category_slug}`}
               className="inline-flex items-center gap-2 border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:shadow-sm"
             >
-              <FiArrowLeft className="h-4 w-4" />
+              <FiArrowLeft className="rtl:rotate-180 h-4 w-4" />
               {t.backToCategory}
             </Link>
           </div>
@@ -110,7 +110,7 @@ export default async function ShopProductDetailsPage({
               <Link href={`/${locale}/shop`} className="hover:text-[color:var(--text)]">
                 {t.allProducts}
               </Link>
-              <FiChevronRight className="size-3.5" />
+              <FiChevronRight className="rtl:rotate-180 size-3.5" />
               <Link href={`/${locale}/shop/${product.category_slug}`} className="hover:text-[color:var(--text)]">
                 {isArabic ? product.category_name_ar : product.category_name_en}
               </Link>
@@ -127,7 +127,7 @@ export default async function ShopProductDetailsPage({
                 />
               </div>
 
-              <div dir={isArabic ? "rtl" : "ltr"} className={`space-y-5 lg:order-2 ${isArabic ? "text-right" : "text-left"}`}>
+              <div dir={isArabic ? "rtl" : "ltr"} className="space-y-5 text-start lg:order-2">
                 <div className="space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-[color:var(--text-subtle)]">
                     {isArabic ? product.category_name_ar : product.category_name_en}

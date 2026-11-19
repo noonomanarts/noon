@@ -16,7 +16,7 @@ CREATE INDEX IF NOT EXISTS idx_classes_categories ON classes USING GIN(categorie
 ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS blocks_venue BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- 3) Class settlements: manual per-trainer fee overrides and co-trainer payout tracking
-ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS co_trainer_fee_amount DECIMAL(10, 3) NOT NULL DEFAULT 0;
-ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS manual_trainer_fee_amount DECIMAL(10, 3);
-ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS manual_co_trainer_fee_amount DECIMAL(10, 3);
-ALTER TABLE class_settlements ADD COLUMN IF NOT EXISTS co_trainer_wallet_transaction_id UUID REFERENCES wallet_transactions(id) ON DELETE SET NULL;
+ALTER TABLE IF EXISTS class_settlements ADD COLUMN IF NOT EXISTS co_trainer_fee_amount DECIMAL(10, 3) NOT NULL DEFAULT 0;
+ALTER TABLE IF EXISTS class_settlements ADD COLUMN IF NOT EXISTS manual_trainer_fee_amount DECIMAL(10, 3);
+ALTER TABLE IF EXISTS class_settlements ADD COLUMN IF NOT EXISTS manual_co_trainer_fee_amount DECIMAL(10, 3);
+ALTER TABLE IF EXISTS class_settlements ADD COLUMN IF NOT EXISTS co_trainer_wallet_transaction_id UUID REFERENCES wallet_transactions(id) ON DELETE SET NULL;

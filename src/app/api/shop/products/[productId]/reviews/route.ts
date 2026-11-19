@@ -25,7 +25,15 @@ export async function GET(
       getShopProductReviewSummary(productId),
     ]);
 
-    return NextResponse.json({ reviews, summary });
+    // Reviewer account ids must not be published: the id is a credential in
+    // the current session scheme.
+    const publicReviews = reviews.map((review) => {
+      const { user_id: _userId, ...rest } = review as typeof review & { user_id?: string };
+      void _userId;
+      return rest;
+    });
+
+    return NextResponse.json({ reviews: publicReviews, summary });
   } catch (error) {
     console.error('Failed to load product reviews:', error);
     return NextResponse.json({ error: 'Failed to load product reviews' }, { status: 500 });

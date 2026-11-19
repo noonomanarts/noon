@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "motion/react";
 import { FiMenu, FiX } from "react-icons/fi";
 import OverlayScrollArea from "@/components/site/OverlayScrollArea";
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
@@ -25,6 +27,7 @@ type Props = {
     logoUrl?: string;
   };
   onLogoutAction: () => void;
+  storageKey?: string;
 };
 
 export default function MobileSidebar({
@@ -33,9 +36,22 @@ export default function MobileSidebar({
   locale,
   translations,
   onLogoutAction,
+  storageKey = "noon_nav",
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
-  const dir = locale === "ar" ? "rtl" : "ltr";
+  const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const isArabic = locale === "ar";
+  const dir = isArabic ? "rtl" : "ltr";
+
+  useEffect(() => setMounted(true), []);
+
+  // Navigating (including browser back) always closes the drawer.
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -46,91 +62,106 @@ export default function MobileSidebar({
       }
     };
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", handleKeyDown);
+    closeRef.current?.focus();
+    const trigger = triggerRef.current;
 
     return () => {
+      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
+      // Hand focus back to the button that opened the drawer.
+      trigger?.focus();
     };
   }, [isOpen]);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+  const navigationId = "dashboard-mobile-navigation";
+  const closeMenuLabel = isArabic ? "إغلاق القائمة" : "Close menu";
+  const openMenuLabel = isArabic ? "فتح القائمة" : "Open menu";
+  const offscreen = isArabic ? "100%" : "-100%";
 
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
-
-  const navigationId = "admin-mobile-navigation";
-  const closeMenuLabel = locale === "ar" ? "إغلاق القائمة" : "Close menu";
-  const openMenuLabel = locale === "ar" ? "فتح القائمة" : "Open menu";
-
-  const drawer = isOpen
+  const drawer = mounted
     ? createPortal(
-        <>
-          <div
-            className="fixed inset-0 z-[190] bg-zinc-950/45 backdrop-blur-sm lg:hidden"
-            onClick={() => setIsOpen(false)}
-          />
+        <AnimatePresence>
+          {isOpen ? (
+            <div className="admin-panel lg:hidden" key="drawer">
+              <motion.div
+                className="fixed inset-0 z-[190] bg-zinc-950/50 backdrop-blur-[2px]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setIsOpen(false)}
+                aria-hidden="true"
+              />
 
-          <aside
-            id={navigationId}
-            className={`fixed inset-y-0 z-[200] h-dvh w-[min(20rem,calc(100vw-1rem))] transform border-zinc-200 bg-white shadow-2xl transition-transform duration-300 dark:border-zinc-800 dark:bg-zinc-950 lg:hidden ${
-              locale === "ar" ? "right-0 border-l" : "left-0 border-r"
-            } ${isOpen ? "translate-x-0" : locale === "ar" ? "translate-x-full" : "-translate-x-full"}`}
-          >
-            <div className="flex h-full min-h-0 flex-col bg-white pt-[env(safe-area-inset-top)] dark:bg-zinc-950">
-              <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200 px-4 ps-[max(1rem,env(safe-area-inset-left))] pe-[max(1rem,env(safe-area-inset-right))] dark:border-zinc-800 sm:h-16 sm:px-6" dir={dir}>
-                <div className="flex min-w-0 items-center gap-3">
-                  <Image
-                    src={translations.logoUrl || "/images/logo-noon.png"}
-                    alt="Noon"
-                    width={44}
-                    height={44}
-                    priority
-                    className="h-9 w-auto shrink-0"
-                  />
-                  <div className={locale === "ar" ? "min-w-0 text-right" : "min-w-0 text-left"}>
-                    <h2 className="truncate text-sm font-semibold text-zinc-900 dark:text-white">
+              <motion.aside
+                id={navigationId}
+                role="dialog"
+                aria-modal="true"
+                aria-label={translations.adminPanel}
+                dir={dir}
+                initial={{ x: offscreen }}
+                animate={{ x: 0 }}
+                exit={{ x: offscreen }}
+                transition={{ type: "spring", stiffness: 380, damping: 38 }}
+                className="fixed inset-y-0 start-0 z-[200] flex h-dvh w-[min(20rem,calc(100vw-2.5rem))] flex-col border-e border-zinc-200 bg-white pt-[env(safe-area-inset-top)] shadow-2xl dark:border-zinc-800 dark:bg-zinc-950"
+              >
+                <div className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-zinc-200 px-4 dark:border-zinc-800">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Image
+                      src={translations.logoUrl || "/images/logo-noon.png"}
+                      alt=""
+                      width={44}
+                      height={44}
+                      priority
+                      className="h-9 w-auto shrink-0"
+                    />
+                    <p className="truncate text-sm font-semibold text-zinc-950 dark:text-white">
                       {translations.adminPanel}
-                    </h2>
+                    </p>
                   </div>
+                  <button
+                    ref={closeRef}
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="inline-flex size-10 items-center justify-center rounded-lg text-zinc-600 outline-none transition hover:bg-zinc-100 focus-visible:ring-2 focus-visible:ring-[color:var(--noon-teal)] dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    aria-label={closeMenuLabel}
+                  >
+                    <FiX className="size-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-lg p-2 text-zinc-600 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                  aria-label={closeMenuLabel}
-                >
-                  <FiX className="size-5" />
-                </button>
-              </div>
 
-              <OverlayScrollArea className="min-h-0 flex-1 bg-white dark:bg-zinc-950" options={{ overflow: { x: "hidden", y: "scroll" } }}>
-                <nav className="p-3 sm:p-4" dir={dir}>
-                  <AdminSidebarNav menuItems={menuItems} onNavigate={() => setIsOpen(false)} variant="mobile" />
-                </nav>
-              </OverlayScrollArea>
+                <OverlayScrollArea className="min-h-0 flex-1" options={{ overflow: { x: "hidden", y: "scroll" } }}>
+                  <nav className="p-3" aria-label={translations.adminPanel}>
+                    <AdminSidebarNav
+                      menuItems={menuItems}
+                      onNavigate={() => setIsOpen(false)}
+                      variant="mobile"
+                      locale={locale}
+                      storageKey={`${storageKey}_sections`}
+                    />
+                  </nav>
+                </OverlayScrollArea>
 
-              <div className="shrink-0 border-t border-zinc-200 bg-white px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-zinc-800 dark:bg-zinc-950 sm:px-4 sm:pt-4">
-                <AdminProfileMenu
-                  userName={user.fullName}
-                  userEmail={user.email}
-                  userInitial={user.fullName.charAt(0)}
-                  profileImage={user.profileImage}
-                  logoutLabel={translations.logout}
-                  profileLabel={translations.profile}
-                  settingsLabel={translations.accountSettings}
-                  onLogout={onLogoutAction}
-                  locale={locale}
-                />
-              </div>
+                <div className="shrink-0 border-t border-zinc-200 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] dark:border-zinc-800">
+                  <AdminProfileMenu
+                    userName={user.fullName}
+                    userEmail={user.email}
+                    userInitial={user.fullName.charAt(0)}
+                    profileImage={user.profileImage}
+                    logoutLabel={translations.logout}
+                    profileLabel={translations.profile}
+                    settingsLabel={translations.accountSettings}
+                    onLogout={onLogoutAction}
+                    locale={locale}
+                  />
+                </div>
+              </motion.aside>
             </div>
-          </aside>
-        </>,
+          ) : null}
+        </AnimatePresence>,
         document.body
       )
     : null;
@@ -138,8 +169,10 @@ export default function MobileSidebar({
   return (
     <>
       <button
+        ref={triggerRef}
+        type="button"
         onClick={() => setIsOpen(true)}
-        className="rounded-lg p-2 text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800 lg:hidden"
+        className="inline-flex size-10 items-center justify-center rounded-lg text-zinc-700 outline-none transition hover:bg-zinc-100 focus-visible:ring-2 focus-visible:ring-[color:var(--noon-teal)] dark:text-zinc-300 dark:hover:bg-zinc-800 lg:hidden"
         aria-label={openMenuLabel}
         aria-expanded={isOpen}
         aria-controls={navigationId}

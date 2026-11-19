@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { IBM_Plex_Sans_Arabic, Inter } from "next/font/google";
 import ThemeInitScript from "@/components/site/ThemeInitScript";
 import LocaleSync from "@/components/site/LocaleSync";
 import OverlayScrollbarsProvider from "@/components/site/OverlayScrollbarsProvider";
@@ -103,6 +104,31 @@ const tsSafaa = localFont({
   fallback: ["Tahoma", "Arial", "sans-serif"],
 });
 
+// Dashboard typography (admin, worker and photographer panels). Not preloaded,
+// so public pages never download these files; the browser only fetches a
+// font-face once an element actually uses it.
+const adminLatin = Inter({
+  subsets: ["latin"],
+  variable: "--font-admin-latin",
+  display: "swap",
+  preload: false,
+  // No synthetic "Inter Fallback" face: it is backed by a local system font
+  // that also has Arabic glyphs, so it would swallow Arabic text before the
+  // stack ever reaches IBM Plex Sans Arabic.
+  adjustFontFallback: false,
+});
+
+const adminArabic = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-admin-arabic",
+  display: "swap",
+  preload: false,
+  // Same reason in the other direction: Latin text and digits on Arabic
+  // screens must fall through to Inter, not to a system fallback.
+  adjustFontFallback: false,
+});
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -113,7 +139,7 @@ export default async function RootLayout({
       lang="ar"
       dir="rtl"
       suppressHydrationWarning
-      className={`${tsSafaa.variable} scroll-smooth`}
+      className={`${tsSafaa.variable} ${adminLatin.variable} ${adminArabic.variable} scroll-smooth`}
       data-scroll-behavior="smooth"
       data-overlayscrollbars-initialize
       data-sbc-site="noonomanarts"

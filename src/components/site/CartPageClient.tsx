@@ -128,7 +128,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
 
   const t = {
     title: isArabic ? 'السلة' : 'Shopping Cart',
-    subtitle: isArabic ? 'محصولات انتخاب‌شده را بررسی و برای پرداخت آماده کنید.' : 'Review your selected products and continue to checkout.',
+    subtitle: isArabic ? 'راجع المنتجات المختارة ثم تابع إلى الدفع.' : 'Review your selected products and continue to checkout.',
     subtitleMixed: isArabic ? 'راجع المنتجات والحجوزات قبل المتابعة.' : 'Review your products and bookings before checkout.',
     empty: isArabic ? 'السلة فارغة حالياً.' : 'Your cart is currently empty.',
     backToShop: isArabic ? 'العودة للمتجر' : 'Back to shop',
@@ -155,7 +155,8 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
   };
 
   const loadCart = useCallback(async () => {
-    setLoading(true);
+    // `loading` starts true and is only cleared, so the placeholder shows on the
+    // first load alone; later reloads keep the list on screen.
     setError(null);
 
     try {
@@ -263,7 +264,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
           </div>
         )}
 
-        {loading ? (
+        {loading && !payload ? (
           <div className="mt-6 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-5 py-4 text-center text-sm text-[color:var(--text-muted)]">
             {t.loading}
           </div>
@@ -375,7 +376,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                               type="button"
                               disabled={savingItemId === item.id || item.quantity <= 1}
                               onClick={() => void updateQuantity(item.id, item.quantity - 1)}
-                              className="px-2 py-1 text-sm text-[color:var(--text)] hover:bg-[color:var(--surface)] disabled:opacity-40"
+                              className="inline-flex h-10 w-10 items-center justify-center text-base text-[color:var(--text)] hover:bg-[color:var(--surface)] disabled:opacity-40"
                               aria-label={t.decrease}
                             >
                               −
@@ -385,7 +386,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                               type="button"
                               disabled={savingItemId === item.id || item.quantity >= shopMaxQuantity}
                               onClick={() => void updateQuantity(item.id, item.quantity + 1)}
-                              className="px-2 py-1 text-sm text-[color:var(--text)] hover:bg-[color:var(--surface)] disabled:opacity-40"
+                              className="inline-flex h-10 w-10 items-center justify-center text-base text-[color:var(--text)] hover:bg-[color:var(--surface)] disabled:opacity-40"
                               aria-label={t.increase}
                             >
                               +
@@ -404,7 +405,7 @@ export default function CartPageClient({ locale }: { locale: Locale }) {
                         type="button"
                         disabled={savingItemId === item.id}
                         onClick={() => void removeItem(item.id)}
-                        className="text-xs font-medium text-rose-700 hover:underline disabled:opacity-50 dark:text-rose-300"
+                        className="-mx-2 inline-flex min-h-10 items-center px-2 text-xs font-medium text-rose-700 hover:underline disabled:opacity-50 dark:text-rose-300"
                       >
                         {t.remove}
                       </button>

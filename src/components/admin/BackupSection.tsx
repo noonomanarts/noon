@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useState } from "react";
 import { FiDatabase, FiFolder, FiDownload, FiUpload, FiAlertCircle, FiCheckCircle, FiLoader } from "react-icons/fi";
 
@@ -175,38 +176,16 @@ export default function BackupSection({ locale }: BackupSectionProps) {
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="border-b border-zinc-200 dark:border-zinc-800">
-        <div className="flex gap-4">
-          <button
-            onClick={() => setActiveTab("database")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === "database"
-                ? "text-indigo-600 dark:text-indigo-400"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-            }`}
-          >
-            <FiDatabase className="size-4" />
-            {t.database}
-            {activeTab === "database" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("files")}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors relative ${
-              activeTab === "files"
-                ? "text-indigo-600 dark:text-indigo-400"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-            }`}
-          >
-            <FiFolder className="size-4" />
-            {t.files}
-            {activeTab === "files" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
-            )}
-          </button>
-        </div>
-      </div>
+      <AnimatedTabs
+        variant="underline"
+        fullWidth
+        value={activeTab}
+        onValueChange={setActiveTab}
+        items={[
+          { value: 'database', label: t.database, icon: <FiDatabase className="size-4" /> },
+          { value: 'files', label: t.files, icon: <FiFolder className="size-4" /> },
+        ]}
+      />
 
       {/* Status Message */}
       {message && (

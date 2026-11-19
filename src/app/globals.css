@@ -188,6 +188,44 @@ html[lang="en"] body {
   font-family: var(--font-english), system-ui, sans-serif;
 }
 
+/* Dashboard typography: Inter for Latin text and digits, IBM Plex Sans Arabic
+   for Arabic. One stack serves both languages because the browser falls
+   through to the Arabic face for glyphs Inter does not have. `body:has()`
+   covers dialogs and menus that are portalled outside `.admin-panel`. */
+.admin-panel,
+body:has(.admin-panel),
+html[lang="en"] body:has(.admin-panel) {
+  font-family: var(--font-admin-latin), var(--font-admin-arabic), "Segoe UI", Tahoma, system-ui, sans-serif;
+  font-feature-settings: "cv11", "ss01", "calt";
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+html[lang="ar"] .admin-panel,
+html[lang="ar"] body:has(.admin-panel) {
+  font-family: var(--font-admin-arabic), var(--font-admin-latin), Tahoma, system-ui, sans-serif;
+  line-height: 1.7;
+}
+
+/* Latin references, amounts and codes inside Arabic screens keep Inter. */
+html[lang="ar"] .admin-panel [dir="ltr"],
+.admin-panel .font-mono-ref {
+  font-family: var(--font-admin-latin), var(--font-admin-arabic), system-ui, sans-serif;
+}
+
+.admin-panel h1,
+.admin-panel h2,
+.admin-panel h3 {
+  letter-spacing: -0.011em;
+}
+
+html[lang="ar"] .admin-panel h1,
+html[lang="ar"] .admin-panel h2,
+html[lang="ar"] .admin-panel h3,
+html[lang="ar"] .admin-panel .uppercase {
+  letter-spacing: 0;
+}
+
 html,
 body {
   scrollbar-gutter: stable;
@@ -521,9 +559,9 @@ body {
     -webkit-tap-highlight-color: transparent;
   }
 
-  .admin-panel button,
-  .admin-panel a[role="button"],
-  .admin-panel a[class*="bg-"],
+  .admin-panel button:not(.rounded-full),
+  .admin-panel a[role="button"]:not(.rounded-full),
+  .admin-panel a[class*="bg-"]:not(.rounded-full),
   .admin-panel .noon-btn-teal,
   .admin-panel .noon-btn-coral,
   .admin-panel .noon-btn-purple,
@@ -541,11 +579,112 @@ body {
     box-shadow: none !important;
   }
 
-  .admin-panel :is(input, select, textarea) {
+  /* Text-like fields only: checkboxes, radios, ranges, colour and file pickers
+     keep their natural size instead of being stretched to field height. */
+  .admin-panel :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="hidden"]), select, textarea) {
     min-height: 2.5rem;
     border-color: var(--admin-border) !important;
     background-color: var(--admin-surface) !important;
     color: var(--admin-text) !important;
+  }
+
+  .admin-panel :is(input[type="checkbox"], input[type="radio"]) {
+    width: 1rem;
+    height: 1rem;
+    min-height: 0;
+    padding: 0;
+    flex-shrink: 0;
+    cursor: pointer;
+    accent-color: var(--admin-accent);
+  }
+
+  .admin-panel input[type="range"] {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    accent-color: var(--admin-accent);
+  }
+
+  .admin-panel input[type="file"] {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.8125rem;
+  }
+
+  .admin-panel input[type="file"]::file-selector-button {
+    margin-inline-end: 0.75rem;
+    border: 0;
+    border-radius: 6px;
+    background: var(--admin-surface-muted);
+    padding: 0.4rem 0.75rem;
+    font-weight: 600;
+    color: var(--admin-text);
+    cursor: pointer;
+  }
+
+  .admin-panel :is(input, select, textarea):disabled {
+    cursor: not-allowed;
+    background-color: var(--admin-surface-muted) !important;
+    color: var(--admin-muted) !important;
+  }
+
+  .admin-panel textarea {
+    line-height: 1.6;
+  }
+
+  /* One consistent chevron for every select, on the correct side in RTL. */
+  .admin-panel select {
+    appearance: none;
+    padding-inline-end: 2.25rem !important;
+    text-overflow: ellipsis;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    cursor: pointer;
+  }
+
+  .admin-panel[dir="rtl"] select,
+  [dir="rtl"] .admin-panel select,
+  .admin-panel [dir="rtl"] select {
+    background-position: left 0.75rem center;
+  }
+
+  /* Grid cells that happen to be buttons (calendar days, hour slots) stay
+     square so the grid lines meet. */
+  .admin-panel button.grid-cell {
+    border-radius: 0 !important;
+  }
+
+  /* Pills and badges are single tokens: never break them mid-word, even when
+     a table column is squeezed. */
+  .admin-panel :is(span, a, button, p):is(.rounded-full, [class*="rounded-full"]) {
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+
+  /* Legibility floor: body text in the panels is never smaller than 12px.
+     (Counters inside round badges keep their compact size.) */
+  .admin-panel :is([class*="text-[9px]"], [class*="text-[10px]"], [class*="text-[11px]"]):not(.rounded-full, [class*="rounded-full"]) {
+    font-size: 0.75rem;
+    line-height: 1.35;
+  }
+
+  /* Keyboard focus is always visible, on every interactive element. */
+  .admin-panel :is(a, button, [role="button"], [role="tab"], [role="menuitem"], summary):focus-visible {
+    outline: 2px solid var(--admin-accent);
+    outline-offset: 2px;
+  }
+
+  .admin-panel :is(button, [role="button"]):disabled {
+    cursor: not-allowed;
+  }
+
+  .admin-panel :is(button, a[class*="bg-"]) {
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, opacity 160ms ease, box-shadow 160ms ease;
+  }
+
+  .admin-panel :is(button, a[class*="bg-"]):active:not(:disabled) {
+    opacity: 0.85;
   }
 
   .admin-panel :is(input, select, textarea)::placeholder {
@@ -576,8 +715,18 @@ body {
     white-space: nowrap;
   }
 
+  .admin-panel th {
+    border-bottom: 1px solid var(--admin-border);
+    text-align: start;
+  }
+
   .admin-panel td {
     vertical-align: middle;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .admin-panel tbody tr:not(:last-child) td {
+    border-bottom: 1px solid color-mix(in oklab, var(--admin-border) 70%, transparent);
   }
 
   .admin-panel tbody tr {
@@ -593,16 +742,55 @@ body {
     scrollbar-gutter: auto;
   }
 
-  .admin-panel :is(.shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl, [class*="shadow-"]) {
+  /* Elevation: in-flow cards stay flat; anything floating above the page
+     (menus, popovers, dialogs, drawers, toasts) gets a real shadow so it reads
+     as a separate layer. */
+  .admin-panel :is(.shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl, [class*="shadow-"]):not(.absolute, .fixed, [role="menu"], [role="dialog"], [role="listbox"], [role="tooltip"], dialog) {
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
   }
 
-  .dark .admin-panel :is(.shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl, [class*="shadow-"]) {
+  .admin-panel :is(.shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl, [class*="shadow-"]):is(.absolute, .fixed, [role="menu"], [role="dialog"], [role="listbox"], [role="tooltip"], dialog) {
+    box-shadow: 0 16px 40px -12px rgba(15, 23, 42, 0.22), 0 2px 6px rgba(15, 23, 42, 0.06) !important;
+  }
+
+  .dark .admin-panel :is(.shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl, [class*="shadow-"]):not(.absolute, .fixed, [role="menu"], [role="dialog"], [role="listbox"], [role="tooltip"], dialog) {
     box-shadow: none !important;
+  }
+
+  .dark .admin-panel :is(.shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl, [class*="shadow-"]):is(.absolute, .fixed, [role="menu"], [role="dialog"], [role="listbox"], [role="tooltip"], dialog) {
+    box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
   }
 
   .admin-panel .admin-content-shell > :is(div, section, form) {
     max-width: 100%;
+  }
+
+  .admin-panel :is(.overflow-x-auto, .overflow-y-auto, .overflow-auto) {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--admin-muted) 45%, transparent) transparent;
+  }
+
+  /* Each page fades in instead of popping.
+     Opacity only, and no forwards fill: an animated or retained `transform`
+     turns the element into the containing block for `position: fixed`
+     descendants, which made row action menus open away from their button. */
+  .admin-panel .admin-content-shell > * {
+    animation: admin-page-in 220ms ease-out backwards;
+  }
+
+  @keyframes admin-page-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .admin-panel .admin-content-shell > * {
+      animation: none;
+    }
   }
 
   @media (max-width: 640px) {

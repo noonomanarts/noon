@@ -424,13 +424,30 @@ export function parseAmwalTransactionPayload(payload: Record<string, unknown>): 
   };
 }
 
+const AMWAL_SUCCESS_CODES = new Set(['00', '0', '000']);
+
+// Words that turn a "positive" word into a failure ("unsuccessful", "not paid",
+// "incomplete"). They must be checked before the positive words, otherwise a
+// declined transaction whose message contains "success"/"paid"/"completed"
+// would be treated as paid.
+const NEGATIVE_TEXT_PATTERN =
+  /unsuccess|unpaid|incomplete|unauthor|\b(?:not|non|no)[\s-]*(?:success|approved|authori[sz]ed|paid|completed?)|fail|(?<!no )(?<!without )error|declin|reject|invalid|denied|expired|insufficient/;
+
+const POSITIVE_TEXT_PATTERN = /success|approved|authori[sz]ed|paid|completed/;
+
+function hasExplicitFailureFlag(levels: Record<string, unknown>[]): boolean {
+  return levels.some((level) =>
+    ['success', 'Success', 'isSuccess', 'IsSuccess'].some((key) => level[key] === false || level[key] === 'false')
+  );
+}
+
 export function mapAmwalTransactionToPaymentStatus(snapshot: AmwalTransactionSnapshot): 'PAID' | 'CANCELLED' | 'FAILED' | 'PENDING' {
   const responseCode = snapshot.responseCode?.toUpperCase() ?? null;
   const statusText = snapshot.statusText?.toLowerCase() ?? '';
   const message = snapshot.message?.toLowerCase() ?? '';
   const combinedText = `${statusText} ${message}`.trim();
 
-  if (responseCode === '00' || responseCode === '0' || responseCode === '000') {
+  if (responseCode && AMWAL_SUCCESS_CODES.has(responseCode)) {
     return 'PAID';
   }
 
@@ -442,45 +459,131 @@ export function mapAmwalTransactionToPaymentStatus(snapshot: AmwalTransactionSna
     return 'CANCELLED';
   }
 
-  if (
-    combinedText.includes('success') ||
-    combinedText.includes('approved') ||
-    combinedText.includes('authorised') ||
-    combinedText.includes('authorized') ||
-    combinedText.includes('paid') ||
-    combinedText.includes('completed')
-  ) {
+  const explicitFailure = hasExplicitFailureFlag(getPayloadLevels(snapshot.raw ?? {}));
+  const negativeText = NEGATIVE_TEXT_PATTERN.test(combinedText);
+
+  if (!explicitFailure && !negativeText && POSITIVE_TEXT_PATTERN.test(combinedText)) {
     return 'PAID';
   }
 
   if (
-    responseCode === 'PENDING' ||
-    responseCode === 'PROCESSING' ||
-    responseCode === 'IN_PROGRESS' ||
-    combinedText.includes('pending') ||
-    combinedText.includes('processing') ||
-    combinedText.includes('in progress')
+    !negativeText &&
+    !explicitFailure &&
+    (responseCode === 'PENDING' ||
+      responseCode === 'PROCESSING' ||
+      responseCode === 'IN_PROGRESS' ||
+      combinedText.includes('pending') ||
+      combinedText.includes('processing') ||
+      combinedText.includes('in progress'))
   ) {
     return 'PENDING';
   }
 
-  if (responseCode && responseCode !== '00') {
-    return 'FAILED';
-  }
-
-  if (
-    combinedText.includes('fail') ||
-    combinedText.includes('error') ||
-    combinedText.includes('unauthor') ||
-    combinedText.includes('declin') ||
-    combinedText.includes('reject') ||
-    combinedText.includes('invalid') ||
-    combinedText.includes('denied')
-  ) {
+  if (responseCode || negativeText || explicitFailure) {
     return 'FAILED';
   }
 
   return 'PENDING';
+}
+
+export type AmwalResponseHashCheck = 'valid' | 'invalid' | 'unavailable';
+
+function getRawValueFromLevels(levels: Record<string, unknown>[], ...keys: string[]): string {
+  for (const level of levels) {
+    for (const key of keys) {
+      const value = level[key];
+      if (typeof value === 'string') return value;
+      if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    }
+  }
+
+  return '';
+}
+
+/**
+ * Checks the integrity hash Amwal attaches to a completed transaction
+ * (HMAC-SHA256 over the alphabetically sorted response fields).
+ *
+ * Returns 'unavailable' when the secret or the hash is missing, so callers can
+ * decide whether that is acceptable. Enforcement is opt-in through
+ * AMWAL_ENFORCE_RESPONSE_HASH because the exact field formatting has to be
+ * confirmed against live gateway responses first.
+ */
+export function verifyAmwalResponseHash(payload: Record<string, unknown>): AmwalResponseHashCheck {
+  const secret = getOptionalEnv('AMWAL_SECURE_HASH_SECRET');
+  const levels = getPayloadLevels(payload);
+  const received = getStringFromLevels(levels, 'secureHashValue', 'SecureHashValue', 'secureHash', 'SecureHash');
+
+  if (!secret || !received) {
+    return 'unavailable';
+  }
+
+  const fields: Record<string, string> = {
+    amount: getRawValueFromLevels(levels, 'amount', 'Amount'),
+    currencyId: getRawValueFromLevels(levels, 'currencyId', 'CurrencyId'),
+    customerId: getRawValueFromLevels(levels, 'customerId', 'CustomerId'),
+    customerTokenId: getRawValueFromLevels(levels, 'customerTokenId', 'CustomerTokenId'),
+    merchantId: getOptionalEnv('AMWAL_MERCHANT_ID') ?? '',
+    merchantReference: getRawValueFromLevels(levels, 'merchantReference', 'MerchantReference'),
+    responseCode: getRawValueFromLevels(levels, 'responseCode', 'ResponseCode'),
+    terminalId: getOptionalEnv('AMWAL_TERMINAL_ID') ?? '',
+    transactionId: getRawValueFromLevels(levels, 'transactionId', 'TransactionId'),
+    transactionTime: getRawValueFromLevels(levels, 'transactionTime', 'TransactionTime'),
+  };
+
+  try {
+    const expected = buildHmacSha256Hex(buildSortedHashDataString(fields), secret);
+    return expected === normalizeHash(received) ? 'valid' : 'invalid';
+  } catch {
+    return 'unavailable';
+  }
+}
+
+export function isAmwalResponseHashEnforced(): boolean {
+  return (process.env.AMWAL_ENFORCE_RESPONSE_HASH || '').trim().toLowerCase() === 'true';
+}
+
+export type AmwalCallbackVerification = {
+  ok: boolean;
+  reason: 'ok' | 'reference_mismatch' | 'hash_invalid' | 'hash_missing';
+  hashCheck: AmwalResponseHashCheck;
+};
+
+/**
+ * Guards applied before a browser-reported gateway result is allowed to mark a
+ * payment as PAID.
+ *  - The gateway's own merchant reference, when present, must be the reference
+ *    being confirmed (stops a successful payload being replayed onto another,
+ *    larger payment).
+ *  - With AMWAL_ENFORCE_RESPONSE_HASH=true the integrity hash must be valid.
+ */
+export function verifyAmwalPaidCallback(
+  payload: Record<string, unknown>,
+  expectedReference: string
+): AmwalCallbackVerification {
+  const hashCheck = verifyAmwalResponseHash(payload);
+  const gatewayReference = getStringFromLevels(getPayloadLevels(payload), 'MerchantReference', 'merchantReference');
+
+  if (gatewayReference && gatewayReference !== sanitizeReference(expectedReference)) {
+    return { ok: false, reason: 'reference_mismatch', hashCheck };
+  }
+
+  if (isAmwalResponseHashEnforced() && hashCheck !== 'valid') {
+    return { ok: false, reason: hashCheck === 'invalid' ? 'hash_invalid' : 'hash_missing', hashCheck };
+  }
+
+  return { ok: true, reason: 'ok', hashCheck };
+}
+
+/**
+ * Sandbox shortcuts let a payment be marked paid without the gateway. They must
+ * never be reachable by customers on a live site.
+ */
+export function isPaymentSandboxEnabled(): boolean {
+  const flag = (process.env.PAYMENT_SANDBOX_ENABLED || '').trim().toLowerCase();
+  if (flag === 'true') return true;
+  if (flag === 'false') return false;
+  return process.env.NODE_ENV !== 'production';
 }
 
 export function isExpectedAmwalMerchant(payload: Record<string, unknown>): boolean {

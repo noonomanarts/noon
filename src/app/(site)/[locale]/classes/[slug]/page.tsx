@@ -159,8 +159,20 @@ export default async function ClassDetailPage({
     (isArabic ? "لا يوجد وصف متاح حالياً." : "No description available.");
   const descriptionHtml = markdownToSafeHtml(description);
 
+  const subCategoryLabels: Record<string, [string, string]> = {
+    APPETIZERS_SNACKS: ["Appetizers & Snacks", "مقبلات ووجبات خفيفة"],
+    MAIN_DISHES: ["Main Dishes", "أطباق رئيسية"],
+    DESSERTS_BAKING: ["Desserts & Baking", "حلويات ومخبوزات"],
+    MOM_AND_KID: ["Mom & Kid", "الأم والطفل"],
+    SUMMER_CAMP: ["Summer Camp", "المخيم الصيفي"],
+    PAINTING: ["Painting", "رسم"],
+    POTTERY: ["Pottery", "فخار"],
+    CRAFTS: ["Crafts", "حرف يدوية"],
+    MIXED: ["Mixed", "متنوع"],
+  };
   const subCategory = classData.subCategory
-    ? classData.subCategory
+    ? subCategoryLabels[classData.subCategory]?.[isArabic ? 1 : 0] ??
+      classData.subCategory
         .split("_")
         .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
         .join(" ")

@@ -42,7 +42,7 @@ export default function ClassListingHeader({
             className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/12 px-4 py-2 text-sm font-semibold shadow-sm backdrop-blur-sm transition hover:bg-white/20"
             style={{ color: textColor }}
           >
-            <FiArrowLeft className="size-4" />
+            <FiArrowLeft className="rtl:rotate-180 size-4" />
             {backLabel}
           </Link>
         </div>

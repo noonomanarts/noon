@@ -89,7 +89,7 @@ export default function PrintShopOrderReceiptClient({
   );
 
   const formatDate = (value: string) => {
-    return new Intl.DateTimeFormat(isArabic ? 'ar' : 'en', {
+    return new Intl.DateTimeFormat(isArabic ? 'ar-u-nu-latn' : 'en', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -184,8 +184,8 @@ export default function PrintShopOrderReceiptClient({
               <span className="text-end">{order.recipient_full_name}</span>
             </div>
             <div className="flex justify-between gap-4">
-              <span>{t.phone}</span>
-              <span>{order.recipient_phone}</span>
+              <span><bdi dir="ltr">{t.phone}</bdi></span>
+              <span><bdi dir="ltr">{order.recipient_phone}</bdi></span>
             </div>
           </div>
           <div className="mt-2 border-t border-dashed border-zinc-200 pt-2">

@@ -151,7 +151,7 @@ export default function PWARegister() {
         <button
           type="button"
           onClick={() => setUpdateAvailable(false)}
-          className="hidden rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 sm:inline-flex"
+          className="inline-flex shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
         >
           {isAr ? "لاحقاً" : "Later"}
         </button>

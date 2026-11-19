@@ -144,7 +144,7 @@ export default async function BirthdayPartiesPage({
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
           >
             {t.cta}
-            <FiArrowRight className="size-4" />
+            <FiArrowRight className="rtl:rotate-180 size-4" />
           </Link>
         </div>
       </section>

@@ -8,6 +8,7 @@ import {
   isExpectedAmwalMerchant,
   mapAmwalTransactionToPaymentStatus,
   parseAmwalTransactionPayload,
+  verifyAmwalPaidCallback,
 } from '@/lib/amwal';
 
 type CallbackLookup = {
@@ -75,6 +76,31 @@ async function syncPaymentFromAmwal(lookup: CallbackLookup) {
 
   const snapshot = parseAmwalTransactionPayload(lookup.payload);
   const nextStatus = mapAmwalTransactionToPaymentStatus(snapshot);
+  const verification = verifyAmwalPaidCallback(lookup.payload, payment.reference);
+
+  if (nextStatus === 'PAID' && !verification.ok) {
+    console.error('Rejected Amwal top-up confirmation:', {
+      reference: payment.reference,
+      reason: verification.reason,
+    });
+    throw new Error('AMWAL payment confirmation could not be verified');
+  }
+
+  // A paid top-up is final. A late "error"/"cancel" callback for the same
+  // reference must not be stored over the successful gateway response.
+  if (payment.status === 'PAID' && nextStatus !== 'PAID') {
+    return payment;
+  }
+
+  const amountMismatch =
+    snapshot.amount !== null && Math.abs(snapshot.amount - Number(payment.amount)) > 0.0005;
+  if (nextStatus === 'PAID' && amountMismatch) {
+    console.warn('Amwal top-up amount differs from the requested amount:', {
+      reference: payment.reference,
+      requested: payment.amount,
+      reported: snapshot.amount,
+    });
+  }
 
   const diagnosticMetadata = {
     amwal: {
@@ -90,6 +116,8 @@ async function syncPaymentFromAmwal(lookup: CallbackLookup) {
       amount: snapshot.amount,
       currencyId: snapshot.currencyId,
       rawPayload: lookup.payload,
+      hashCheck: verification.hashCheck,
+      amountMismatch,
       syncedAt: new Date().toISOString(),
     },
   };

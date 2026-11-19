@@ -127,7 +127,7 @@ export default async function TrainersPage({
                       </p>
                     )}
                     <div className="mt-4 text-sm font-semibold text-coral">
-                      {t.viewProfile} →
+                      {t.viewProfile} <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
                     </div>
                   </div>
                 </Link>

@@ -27,6 +27,12 @@ type AmwalErrorUiMessageOptions = {
 type StartAmwalCheckoutOptions = {
   checkout: AmwalClientCheckout;
   onComplete?: (payload: Record<string, unknown>) => void | Promise<void>;
+  /**
+   * Called when the gateway reported completion but recording it on our side
+   * failed (network drop, server error). The customer may already have been
+   * charged, so this must never be reported to the server as a failed payment.
+   */
+  onConfirmError?: (error: Error) => void | Promise<void>;
   onCancel?: () => void | Promise<void>;
   onError?: (payload: Record<string, unknown> | Error) => void | Promise<void>;
 };
@@ -196,9 +202,144 @@ async function loadSmartBoxScript(scriptUrl: string): Promise<void> {
   }
 }
 
+type ConfirmPaymentResult<T> = { ok: boolean; status: number; payload: T };
+
+const CONFIRM_RETRY_DELAYS_MS = [0, 1200, 3000, 6000];
+
+/**
+ * Reports a finished gateway payment to our server, retrying on network errors
+ * and 5xx responses. Mobile browsers often drop the first request right after
+ * returning from the bank's 3-D Secure page; without a retry the customer is
+ * charged but the payment is never recorded.
+ */
+export async function confirmAmwalPayment<T extends Record<string, unknown>>(
+  url: string,
+  body: Record<string, unknown>
+): Promise<ConfirmPaymentResult<T>> {
+  let lastError: unknown = null;
+
+  for (const delay of CONFIRM_RETRY_DELAYS_MS) {
+    if (delay > 0) {
+      await new Promise((resolve) => window.setTimeout(resolve, delay));
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        cache: 'no-store',
+        keepalive: true,
+      });
+
+      if (response.status >= 500) {
+        lastError = new Error(`Server error ${response.status}`);
+        continue;
+      }
+
+      const payload = (await response.json().catch(() => ({}))) as T;
+      return { ok: response.ok, status: response.status, payload };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  stashUnconfirmedPayment(url, body);
+  throw lastError instanceof Error ? lastError : new Error('Failed to confirm payment');
+}
+
+const UNCONFIRMED_STORAGE_KEY = 'noon_unconfirmed_payments';
+const UNCONFIRMED_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 3;
+
+type UnconfirmedPayment = { url: string; body: Record<string, unknown>; savedAt: number };
+
+function readUnconfirmedPayments(): UnconfirmedPayment[] {
+  try {
+    const raw = window.localStorage.getItem(UNCONFIRMED_STORAGE_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is UnconfirmedPayment =>
+        isRecord(item) && typeof item.url === 'string' && isRecord(item.body) && typeof item.savedAt === 'number'
+    );
+  } catch {
+    return [];
+  }
+}
+
+function writeUnconfirmedPayments(items: UnconfirmedPayment[]): void {
+  try {
+    if (items.length === 0) {
+      window.localStorage.removeItem(UNCONFIRMED_STORAGE_KEY);
+    } else {
+      window.localStorage.setItem(UNCONFIRMED_STORAGE_KEY, JSON.stringify(items.slice(-10)));
+    }
+  } catch {
+    // storage unavailable (private mode): nothing else we can do here
+  }
+}
+
+function stashUnconfirmedPayment(url: string, body: Record<string, unknown>): void {
+  if (typeof window === 'undefined') return;
+  const reference = typeof body.reference === 'string' ? body.reference : '';
+  const others = readUnconfirmedPayments().filter(
+    (item) => !(item.url === url && item.body.reference === reference)
+  );
+  writeUnconfirmedPayments([...others, { url, body, savedAt: Date.now() }]);
+}
+
+/**
+ * Re-sends gateway results that could not be delivered earlier (see
+ * confirmAmwalPayment). Returns how many were recorded as paid.
+ */
+export async function retryUnconfirmedAmwalPayments(): Promise<number> {
+  if (typeof window === 'undefined') return 0;
+
+  const pending = readUnconfirmedPayments().filter((item) => Date.now() - item.savedAt < UNCONFIRMED_MAX_AGE_MS);
+  if (pending.length === 0) {
+    writeUnconfirmedPayments([]);
+    return 0;
+  }
+
+  const remaining: UnconfirmedPayment[] = [];
+  let recovered = 0;
+
+  for (const item of pending) {
+    // Only ever post back to our own payment callbacks.
+    if (!item.url.startsWith('/api/')) continue;
+
+    try {
+      const response = await fetch(item.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item.body),
+        cache: 'no-store',
+      });
+
+      if (response.status >= 500) {
+        remaining.push(item);
+        continue;
+      }
+
+      // Any definitive answer (recorded, already recorded, rejected, not found)
+      // means there is nothing left to retry.
+      const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+      if (payload.topupStatus === 'PAID' || payload.paymentStatus === 'PAID') {
+        recovered += 1;
+      }
+    } catch {
+      remaining.push(item);
+    }
+  }
+
+  writeUnconfirmedPayments(remaining);
+  return recovered;
+}
+
 export async function startAmwalCheckout({
   checkout,
   onComplete,
+  onConfirmError,
   onCancel,
   onError,
 }: StartAmwalCheckoutOptions): Promise<void> {
@@ -212,13 +353,32 @@ export async function startAmwalCheckout({
   smartBoxCheckout.configure = {
     ...checkout.config,
     completeCallback: (payload: unknown) => {
-      void onComplete?.(isRecord(payload) ? payload : {});
+      // Rejections here used to vanish as unhandled promise rejections, leaving
+      // the customer on a page that showed nothing after paying.
+      Promise.resolve()
+        .then(() => onComplete?.(isRecord(payload) ? payload : {}))
+        .catch((error: unknown) => {
+          console.error('Failed to record completed Amwal payment:', error);
+          const normalized = error instanceof Error ? error : new Error('Failed to confirm payment');
+          return onConfirmError?.(normalized);
+        })
+        .catch((error: unknown) => {
+          console.error('Amwal confirm-error handler failed:', error);
+        });
     },
     errorCallback: (payload: unknown) => {
-      void onError?.(isRecord(payload) ? payload : new Error('Amwal checkout failed'));
+      Promise.resolve()
+        .then(() => onError?.(isRecord(payload) ? payload : new Error('Amwal checkout failed')))
+        .catch((error: unknown) => {
+          console.error('Amwal error handler failed:', error);
+        });
     },
     cancelCallback: () => {
-      void onCancel?.();
+      Promise.resolve()
+        .then(() => onCancel?.())
+        .catch((error: unknown) => {
+          console.error('Amwal cancel handler failed:', error);
+        });
     },
   };
 

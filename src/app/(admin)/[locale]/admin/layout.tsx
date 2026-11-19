@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -8,9 +7,8 @@ import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
 import AdminNotificationCenter from "@/components/admin/AdminNotificationCenter";
 import { AdminWalletDisplay } from "@/components/admin/AdminWalletDisplay";
-import AdminSidebarNav, {
-  type AdminSidebarMenuSection,
-} from "@/components/admin/AdminSidebarNav";
+import { type AdminSidebarMenuSection } from "@/components/admin/AdminSidebarNav";
+import DashboardSidebar from "@/components/admin/DashboardSidebar";
 import MobileSidebar from "@/components/admin/MobileSidebar";
 import OverlayScrollArea from "@/components/site/OverlayScrollArea";
 import { resolveHeaderBranding } from "@/lib/headerBranding";
@@ -131,7 +129,7 @@ export default async function AdminLayout({
         {
           section: t.finance,
           items: [
-            { iconName: "FiCreditCard" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.financeReports, href: `/${locale}/admin/finance` },
+            { iconName: "FiDollarSign" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.financeReports, href: `/${locale}/admin/finance` },
             { iconName: "FiPackage" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.inventory, href: `/${locale}/admin/finance/inventory` },
           ],
         },
@@ -156,7 +154,7 @@ export default async function AdminLayout({
             { iconName: "FiCalendar" as const, iconColor: "text-sky-600 dark:text-sky-400", label: t.timetable, href: `/${locale}/admin/calendar` },
             { iconName: "FiAward" as const, iconColor: "text-rose-600 dark:text-rose-400", label: t.events, href: `/${locale}/admin/events` },
             { iconName: "FiBriefcase" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.companies, href: `/${locale}/admin/companies` },
-            { iconName: "FiTag" as const, iconColor: "text-fuchsia-600 dark:text-fuchsia-400", label: locale === "ar" ? "الهدايا" : "Add-ons", href: `/${locale}/admin/events/gift-addons` },
+            { iconName: "FiGift" as const, iconColor: "text-fuchsia-600 dark:text-fuchsia-400", label: locale === "ar" ? "الهدايا" : "Add-ons", href: `/${locale}/admin/events/gift-addons` },
           ],
         },
         {
@@ -165,25 +163,25 @@ export default async function AdminLayout({
             { iconName: "FiUsers" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.users, href: `/${locale}/admin/users` },
             { iconName: "FiUserCheck" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.trainers, href: `/${locale}/admin/trainers` },
             {
-              iconName: "FiMessageSquare" as const,
+              iconName: "FiEdit3" as const,
               iconColor: "text-amber-600 dark:text-amber-400",
               label: t.suggestedWorkshops,
               href: `/${locale}/admin/trainers/suggestions`,
               badgeCount: pendingSuggestedWorkshops,
             },
             { iconName: "FiCreditCard" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.payments, href: `/${locale}/admin/payments` },
-            { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: locale === "ar" ? "المحافظ" : "Wallets", href: `/${locale}/admin/wallets` },
-            { iconName: "FiFileText" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.photographerTasks, href: `/${locale}/admin/photographer-tasks` },
+            { iconName: "FiPocket" as const, iconColor: "text-green-600 dark:text-green-400", label: locale === "ar" ? "المحافظ" : "Wallets", href: `/${locale}/admin/wallets` },
+            { iconName: "FiCamera" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.photographerTasks, href: `/${locale}/admin/photographer-tasks` },
           ],
         },
         {
           section: t.shop,
           items: [
-            { iconName: "FiPackage" as const, iconColor: "text-blue-600 dark:text-blue-400", label: t.shopCategories, href: `/${locale}/admin/shop/categories` },
+            { iconName: "FiLayers" as const, iconColor: "text-blue-600 dark:text-blue-400", label: t.shopCategories, href: `/${locale}/admin/shop/categories` },
             { iconName: "FiShoppingBag" as const, iconColor: "text-purple-600 dark:text-purple-400", label: t.shopProducts, href: `/${locale}/admin/shop/products` },
             { iconName: "FiPrinter" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.shopPrintLabels, href: `/${locale}/admin/shop/products/print` },
-            { iconName: "FiFileText" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.shopDiscoverMore, href: `/${locale}/admin/shop/discover-more` },
-            { iconName: "FiCreditCard" as const, iconColor: "text-green-600 dark:text-green-400", label: t.shopOrders, href: `/${locale}/admin/shop/orders` },
+            { iconName: "FiLink" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.shopDiscoverMore, href: `/${locale}/admin/shop/discover-more` },
+            { iconName: "FiShoppingCart" as const, iconColor: "text-green-600 dark:text-green-400", label: t.shopOrders, href: `/${locale}/admin/shop/orders` },
             { iconName: "FiTruck" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.workerTools, href: `/${locale}/worker` },
             { iconName: "FiTag" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.promoCodes, href: `/${locale}/admin/promo-codes` },
           ],
@@ -192,20 +190,20 @@ export default async function AdminLayout({
           section: t.content,
           items: [
             { iconName: "FiThumbsUp" as const, iconColor: "text-lime-600 dark:text-lime-400", label: t.recommendations, href: `/${locale}/admin/recommendations` },
-            { iconName: "FiFileText" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.recipes, href: `/${locale}/admin/recipes` },
-            { iconName: "FiFileText" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.pages, href: `/${locale}/admin/pages` },
-            { iconName: "FiFileText" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.contactMessages, href: `/${locale}/admin/contact-messages` },
-            { iconName: "FiFileText" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.joinUsApplications, href: `/${locale}/admin/join-us-applications` },
+            { iconName: "FiClipboard" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.recipes, href: `/${locale}/admin/recipes` },
+            { iconName: "FiLayout" as const, iconColor: "text-indigo-600 dark:text-indigo-400", label: t.pages, href: `/${locale}/admin/pages` },
+            { iconName: "FiInbox" as const, iconColor: "text-amber-600 dark:text-amber-400", label: t.contactMessages, href: `/${locale}/admin/contact-messages` },
+            { iconName: "FiUserPlus" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.joinUsApplications, href: `/${locale}/admin/join-us-applications` },
           ],
         },
         {
           section: t.settings,
           items: [
             { iconName: "FiSettings" as const, iconColor: "text-slate-600 dark:text-slate-300", label: t.settings, href: `/${locale}/admin/settings` },
-            { iconName: "FiCreditCard" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.paymentAlerts, href: `/${locale}/admin/payment-alerts` },
-            { iconName: "FiMessageSquare" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.whatsapp, href: `/${locale}/admin/whatsapp` },
-            { iconName: "FiMessageSquare" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.whatsappSessions, href: `/${locale}/admin/whatsapp/sessions` },
-            { iconName: "FiMessageSquare" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.whatsappTemplates, href: `/${locale}/admin/whatsapp/templates` },
+            { iconName: "FiAlertCircle" as const, iconColor: "text-cyan-600 dark:text-cyan-400", label: t.paymentAlerts, href: `/${locale}/admin/payment-alerts` },
+            { iconName: "FiMessageCircle" as const, iconColor: "text-emerald-600 dark:text-emerald-400", label: t.whatsapp, href: `/${locale}/admin/whatsapp` },
+            { iconName: "FiSmartphone" as const, iconColor: "text-teal-600 dark:text-teal-400", label: t.whatsappSessions, href: `/${locale}/admin/whatsapp/sessions` },
+            { iconName: "FiFileText" as const, iconColor: "text-violet-600 dark:text-violet-400", label: t.whatsappTemplates, href: `/${locale}/admin/whatsapp/templates` },
             { iconName: "FiMail" as const, iconColor: "text-blue-600 dark:text-blue-400", label: t.email, href: `/${locale}/admin/email` },
             { iconName: "FiBell" as const, iconColor: "text-pink-600 dark:text-pink-400", label: t.notifications, href: `/${locale}/admin/notifications` },
           ],
@@ -216,54 +214,28 @@ export default async function AdminLayout({
 
   return (
     <div className="admin-panel flex min-h-dvh overflow-hidden bg-zinc-100 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100" lang={locale} dir={dir}>
-      {/* Sidebar */}
-      <div className="hidden w-56 shrink-0 lg:block xl:w-60" aria-hidden="true" />
-      <aside
-        className={`fixed inset-y-0 z-20 hidden w-56 overflow-hidden border-zinc-200/80 bg-[linear-gradient(180deg,rgba(255,248,242,0.98),rgba(255,255,255,0.94))] shadow-[0_0_0_1px_rgba(228,228,231,0.7),0_24px_60px_-36px_rgba(24,24,27,0.45)] backdrop-blur dark:border-zinc-800/80 dark:bg-[linear-gradient(180deg,rgba(23,23,34,0.98),rgba(10,10,15,0.96))] dark:shadow-[0_0_0_1px_rgba(39,39,42,0.85),0_24px_60px_-36px_rgba(0,0,0,0.7)] lg:block xl:w-60 ${locale === "ar" ? "right-0 border-l" : "left-0 border-r"}`}
-      >
-            <div className="flex h-full min-h-0 flex-col">
-              {/* Logo */}
-              <div className="border-b border-zinc-200/80 bg-white px-5 py-4 dark:border-zinc-800 dark:bg-zinc-950" dir={dir}>
-                <div className="flex items-center gap-3">
-                  <Link href={`/${locale}`} className="shrink-0" aria-label="Noon">
-                    <Image
-                      src={headerLogoUrl}
-                      alt="Noon"
-                      width={56}
-                      height={56}
-                      priority
-                      className="h-11 w-auto"
-                    />
-                  </Link>
-                  <div className="min-w-0">
-                    <h2 className="truncate text-sm font-semibold text-zinc-950 dark:text-white">{t.adminPanel}</h2>
-                  </div>
-                </div>
-              </div>
-
-              {/* Navigation */}
-              <OverlayScrollArea className="min-h-0 flex-1" options={{ overflow: { x: "hidden", y: "scroll" } }}>
-                <nav className="px-3 py-4" dir={dir}>
-                  <AdminSidebarNav menuItems={menuItems} />
-                </nav>
-              </OverlayScrollArea>
-
-              {/* User Profile Menu */}
-              <div className="border-t border-zinc-200/80 bg-white/50 px-3 pb-3 pt-2.5 dark:border-zinc-800/80 dark:bg-white/[0.03]">
-                <AdminProfileMenu
-                  userName={user.fullName}
-                  userEmail={user.email}
-                  userInitial={user.fullName.charAt(0)}
-                  profileImage={user.profileImage ?? undefined}
-                  logoutLabel={t.logout}
-                  profileLabel={t.profile}
-                  settingsLabel={t.accountSettings}
-                  onLogout={handleLogout}
-                  locale={locale}
-                />
-              </div>
-            </div>
-          </aside>
+      <DashboardSidebar
+        locale={locale}
+        menuItems={menuItems}
+        title={t.adminPanel}
+        logoUrl={headerLogoUrl}
+        homeHref={`/${locale}/admin`}
+        viewSiteLabel={t.viewSite}
+        storageKey="noon_admin_nav"
+        footer={
+          <AdminProfileMenu
+            userName={user.fullName}
+            userEmail={user.email}
+            userInitial={user.fullName.charAt(0)}
+            profileImage={user.profileImage ?? undefined}
+            logoutLabel={t.logout}
+            profileLabel={t.profile}
+            settingsLabel={t.accountSettings}
+            onLogout={handleLogout}
+            locale={locale}
+          />
+        }
+      />
 
           {/* Main Content */}
           <main className="flex flex-1 flex-col overflow-hidden">
@@ -288,6 +260,7 @@ export default async function AdminLayout({
                       logoUrl: headerLogoUrl,
                     }}
                     onLogoutAction={handleLogout}
+                    storageKey="noon_admin_nav"
                   />
                 </div>
 

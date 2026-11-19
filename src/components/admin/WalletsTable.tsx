@@ -35,7 +35,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<'all' | 'has-balance' | 'has-available' | 'pending-withdrawals'>('all');
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top?: number; bottom?: number; left: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
@@ -330,11 +330,24 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
 
     const rect = triggerElement.getBoundingClientRect();
     const menuWidth = 224;
-    const left = Math.max(12, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 12));
-    const top = rect.bottom + 8;
+    const estimatedMenuHeight = 300;
+    const gap = 4;
+    // Anchor the menu to the button's own edge: its end edge in LTR, its start
+    // edge in RTL, so it always opens directly under the button.
+    const preferredLeft = locale === "ar" ? rect.left : rect.right - menuWidth;
+    const left = Math.max(12, Math.min(preferredLeft, window.innerWidth - menuWidth - 12));
+    // Open upwards when there is no room below (last rows of the table).
+    const fitsBelow = rect.bottom + gap + estimatedMenuHeight <= window.innerHeight - 12;
+    const openBelow = fitsBelow || rect.top < estimatedMenuHeight;
 
     setOpenDropdown(userId);
-    setDropdownPosition({ top, left });
+    // Upwards menus are pinned by their bottom edge, so they touch the button
+    // whatever their real height is.
+    setDropdownPosition(
+      openBelow
+        ? { top: rect.bottom + gap, left }
+        : { bottom: window.innerHeight - rect.top + gap, left }
+    );
   };
 
   const submitAddCredit = async () => {
@@ -686,13 +699,13 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
                           {wallet.user_full_name}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-zinc-400 sm:hidden">
-                          {wallet.user_phone_number}
+                          <bdi dir="ltr">{wallet.user_phone_number}</bdi>
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="hidden sm:table-cell px-3 py-3 whitespace-nowrap text-xs text-gray-900 dark:text-white">
-                    {wallet.user_phone_number}
+                    <bdi dir="ltr">{wallet.user_phone_number}</bdi>
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap text-xs font-semibold text-gray-900 dark:text-white">
                     {formatPlainNumber(wallet.balance)}
@@ -727,7 +740,7 @@ export function WalletsTable({ wallets: initialWallets, locale }: WalletsTablePr
       {openDropdown && dropdownPosition && openWallet && (
         <div
           className="wallet-actions-menu fixed z-[160] w-56 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-gray-200/50 dark:border-zinc-700/50 backdrop-blur-sm focus:outline-none overflow-hidden"
-          style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+          style={{ top: dropdownPosition.top, bottom: dropdownPosition.bottom, left: dropdownPosition.left }}
         >
           <div className="py-2">
             <button

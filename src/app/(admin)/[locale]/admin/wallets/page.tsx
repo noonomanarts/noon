@@ -48,48 +48,49 @@ export default async function WalletsPage({
   ];
 
   return (
-    <div className="space-y-4 p-4 sm:p-6">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
           {locale === "ar" ? "المحافظ" : "Wallets"}
         </h1>
-        <p className="mt-1 hidden text-sm text-gray-600 dark:text-zinc-400 sm:block">
+        <p className="mt-1 text-sm text-gray-600 dark:text-zinc-400">
           {locale === "ar"
             ? "رصيد المحفظة للإنفاق داخل الموقع. المقدار القابل للسحب للسحب النقدي فقط."
             : "Wallet balance for spending on the site. Withdrawable amount is for cash-out only."}
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
-        <aside className="rounded-xl border border-gray-200/70 bg-white p-3 shadow-sm dark:border-zinc-700/70 dark:bg-zinc-900">
-          <nav className="space-y-1" aria-label={locale === "ar" ? "قائمة إدارة المحافظ" : "Wallet admin menu"}>
-            {navItems.map((item) => {
-              const isActive = view === item.key;
-              return (
-                <Link
-                  key={item.key}
-                  href={`/${locale}/admin/wallets?view=${item.key}`}
-                  className={`block rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors ${
-                    isActive
-                      ? "bg-[color:var(--noon-teal-soft)] text-[color:var(--noon-teal)]"
-                      : "text-gray-700 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </aside>
+      {/* The two views sit above the table so it can use the full page width. */}
+      <nav
+        className="flex gap-1 border-b border-gray-200 dark:border-zinc-700"
+        aria-label={locale === "ar" ? "قائمة إدارة المحافظ" : "Wallet admin menu"}
+      >
+        {navItems.map((item) => {
+          const isActive = view === item.key;
+          return (
+            <Link
+              key={item.key}
+              href={`/${locale}/admin/wallets?view=${item.key}`}
+              aria-current={isActive ? "page" : undefined}
+              className={`-mb-px inline-flex min-h-10 items-center border-b-2 px-4 text-sm font-semibold transition-colors ${
+                isActive
+                  ? "border-[color:var(--noon-teal)] text-[color:var(--noon-teal-strong)]"
+                  : "border-transparent text-gray-600 hover:text-gray-900 dark:text-zinc-400 dark:hover:text-white"
+              }`}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
 
-        <section className="min-w-0">
-          {view === "wallets" ? (
-            <WalletsTable wallets={wallets} locale={locale} />
-          ) : (
-            <WithdrawalRequestsTable locale={locale} />
-          )}
-        </section>
-      </div>
+      <section className="min-w-0">
+        {view === "wallets" ? (
+          <WalletsTable wallets={wallets} locale={locale} />
+        ) : (
+          <WithdrawalRequestsTable locale={locale} />
+        )}
+      </section>
     </div>
   );
 }

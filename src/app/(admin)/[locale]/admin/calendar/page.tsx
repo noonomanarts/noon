@@ -1,6 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
+import { FiChevronLeft, FiChevronRight, FiClock, FiPlus, FiSlash, FiUserCheck } from 'react-icons/fi';
 import { createPortal } from 'react-dom';
 import QuarterHourTimeSelect from '@/components/admin/QuarterHourTimeSelect';
 import MarkdownEditor, { markdownToHtml } from '@/components/admin/MarkdownEditor';
@@ -247,7 +251,101 @@ function startOfWeek(date: Date): Date {
   return value;
 }
 
+const EVENT_LABEL_AR: Record<CalendarEvent['type'], string> = {
+  CLASS: 'ورشة',
+  PRIVATE_SESSION: 'جلسة خاصة',
+  COMPETITION: 'مسابقة',
+  BIRTHDAY_PARTY: 'عيد ميلاد',
+  BLOCKED: 'محجوب',
+  CLEANING: 'تنظيف',
+  APPOINTMENT: 'موعد',
+  SCHEDULER: 'مهمة',
+};
+
+// Time grid (week and day views): 06:00 to midnight.
+const GRID_START_MIN = 6 * 60;
+const GRID_END_MIN = 24 * 60;
+const HOUR_HEIGHT = 52;
+
+const MUSCAT_TIME = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Muscat',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+const MUSCAT_DATE = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Muscat',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+function muscatMinutes(value: string | Date): number {
+  const [hours, minutes] = MUSCAT_TIME.format(typeof value === 'string' ? new Date(value) : value)
+    .split(':')
+    .map(Number);
+  return (hours % 24) * 60 + minutes;
+}
+
+function muscatDateKey(value: string | Date): string {
+  return MUSCAT_DATE.format(typeof value === 'string' ? new Date(value) : value);
+}
+
+type PositionedEvent = {
+  event: CalendarEvent;
+  start: number;
+  end: number;
+  column: number;
+  columns: number;
+};
+
+/**
+ * Places a day's events on the time grid. Events that overlap in time share
+ * the column width side by side instead of covering each other.
+ */
+function layoutDayEvents(dayEvents: CalendarEvent[], dateKey: string): PositionedEvent[] {
+  const items: PositionedEvent[] = dayEvents
+    .map((event) => {
+      // Multi-day items are clipped to the part that falls on this day.
+      const start = muscatDateKey(event.startDateTime) === dateKey ? muscatMinutes(event.startDateTime) : 0;
+      let end = muscatDateKey(event.endDateTime) === dateKey ? muscatMinutes(event.endDateTime) : 24 * 60;
+      if (end <= start) end = Math.min(24 * 60, start + 30);
+      return { event, start, end, column: 0, columns: 1 };
+    })
+    .sort((left, right) => left.start - right.start || right.end - left.end);
+
+  let cluster: PositionedEvent[] = [];
+  let clusterEnd = -1;
+  const closeCluster = () => {
+    const columns = cluster.reduce((max, item) => Math.max(max, item.column + 1), 1);
+    cluster.forEach((item) => {
+      item.columns = columns;
+    });
+    cluster = [];
+  };
+
+  for (const item of items) {
+    if (cluster.length > 0 && item.start >= clusterEnd) {
+      closeCluster();
+      clusterEnd = -1;
+    }
+    const taken = new Set(cluster.filter((other) => other.end > item.start).map((other) => other.column));
+    let column = 0;
+    while (taken.has(column)) column += 1;
+    item.column = column;
+    cluster.push(item);
+    clusterEnd = Math.max(clusterEnd, item.end);
+  }
+  if (cluster.length > 0) closeCluster();
+
+  return items;
+}
+
 export default function AdminCalendarPage() {
+  const params = useParams<{ locale?: string }>();
+  const isArabic = params?.locale === 'ar';
+  const dateLocale = isArabic ? 'ar-OM-u-nu-latn' : 'en-GB';
+  const { confirm } = useAppFeedback();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [trainers, setTrainers] = useState<TrainerOption[]>([]);
   const [canManage, setCanManage] = useState(true);
@@ -352,34 +450,6 @@ export default function AdminCalendarPage() {
     }
   };
 
-  const monthGrid = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const startWeekday = firstDay.getDay();
-    const lastDate = new Date(year, month + 1, 0).getDate();
-    const cells: Array<{ dateKey: string; dayNumber: number } | null> = [];
-
-    for (let index = 0; index < startWeekday; index += 1) {
-      cells.push(null);
-    }
-
-    for (let day = 1; day <= lastDate; day += 1) {
-      const cellDate = new Date(year, month, day);
-      cells.push({
-        dateKey: toDateKey(cellDate),
-        dayNumber: day,
-      });
-    }
-
-    const totalCells = Math.ceil(cells.length / 7) * 7;
-    while (cells.length < totalCells) {
-      cells.push(null);
-    }
-
-    return cells;
-  }, [currentMonth]);
-
   const weekDays = useMemo(() => {
     const base = new Date(`${selectedDate}T00:00:00`);
     const weekStart = startOfWeek(base);
@@ -407,6 +477,29 @@ export default function AdminCalendarPage() {
   }, [events]);
 
   const selectedDayEvents = eventsByDate[selectedDate] ?? [];
+
+  useEffect(() => {
+    if (!isDayModalOpen) return undefined;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsDayModalOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [isDayModalOpen]);
+
+  // Current time (Muscat) for the "now" line; refreshed every minute.
+  const [nowMinutes, setNowMinutes] = useState(() => muscatMinutes(new Date()));
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowMinutes(muscatMinutes(new Date())), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  // Open the time grid at the start of the working day instead of 06:00.
+  const timeGridRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (viewMode === 'month' || !timeGridRef.current) return;
+    timeGridRef.current.scrollTop = ((8 * 60 - GRID_START_MIN) / 60) * HOUR_HEIGHT;
+  }, [viewMode]);
   const selectedDayDate = useMemo(() => new Date(`${selectedDate}T00:00:00`), [selectedDate]);
 
   const totalClasses = events.filter((event) => event.type === 'CLASS').length;
@@ -424,10 +517,9 @@ export default function AdminCalendarPage() {
 
   const currentViewLabel = useMemo(() => {
     if (viewMode === 'month') {
-      return currentMonth.toLocaleDateString('en-OM', {
+      return currentMonth.toLocaleDateString(dateLocale, {
         month: 'long',
         year: 'numeric',
-        timeZone: 'Asia/Muscat',
       });
     }
 
@@ -435,29 +527,26 @@ export default function AdminCalendarPage() {
       const start = weekDays[0]?.dateKey;
       const end = weekDays[6]?.dateKey;
       if (start && end) {
-        const startLabel = new Date(`${start}T00:00:00`).toLocaleDateString('en-OM', {
+        const startLabel = new Date(`${start}T00:00:00`).toLocaleDateString(dateLocale, {
           day: 'numeric',
           month: 'short',
-          timeZone: 'Asia/Muscat',
         });
-        const endLabel = new Date(`${end}T00:00:00`).toLocaleDateString('en-OM', {
+        const endLabel = new Date(`${end}T00:00:00`).toLocaleDateString(dateLocale, {
           day: 'numeric',
           month: 'short',
           year: 'numeric',
-          timeZone: 'Asia/Muscat',
         });
         return `${startLabel} - ${endLabel}`;
       }
     }
 
-    return selectedDayDate.toLocaleDateString('en-OM', {
+    return selectedDayDate.toLocaleDateString(dateLocale, {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
-      timeZone: 'Asia/Muscat',
     });
-  }, [viewMode, currentMonth, weekDays, selectedDayDate]);
+  }, [viewMode, currentMonth, weekDays, selectedDayDate, dateLocale]);
 
   const openDayPlanner = (dateKey: string, presetType?: CreatableCalendarType, options?: { fullDay?: boolean }) => {
     if (!canManage) {
@@ -583,6 +672,17 @@ export default function AdminCalendarPage() {
   };
 
   const handleDeleteItem = async (eventId: string) => {
+    const confirmed = await confirm({
+      title: isArabic ? 'حذف هذا العنصر؟' : 'Delete this item?',
+      message: isArabic
+        ? 'سيُحذف العنصر من التقويم ولا يمكن التراجع.'
+        : 'The item will be removed from the calendar. This cannot be undone.',
+      confirmLabel: isArabic ? 'حذف' : 'Delete',
+      cancelLabel: isArabic ? 'إلغاء' : 'Cancel',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
     setDeletingEventId(eventId);
     setError(null);
 
@@ -608,332 +708,467 @@ export default function AdminCalendarPage() {
   const showBlockFields = itemForm.type === 'BLOCKED' || itemForm.type === 'CLEANING';
   const showVisibilityFields = showBlockFields || itemForm.type === 'APPOINTMENT' || itemForm.type === 'SCHEDULER';
 
+  /* ── Presentation helpers ── */
+  const t = {
+    title: isArabic ? 'التقويم' : 'Calendar',
+    subtitle: isArabic
+      ? 'الورش والفعاليات والمواعيد وأوقات الحجب في مكان واحد.'
+      : 'Classes, events, appointments and blocked time in one place.',
+    today: isArabic ? 'اليوم' : 'Today',
+    previous: isArabic ? 'السابق' : 'Previous',
+    next: isArabic ? 'التالي' : 'Next',
+    month: isArabic ? 'شهر' : 'Month',
+    week: isArabic ? 'أسبوع' : 'Week',
+    day: isArabic ? 'يوم' : 'Day',
+    block: isArabic ? 'حجب وقت' : 'Block time',
+    fullDay: isArabic ? 'حجب يوم كامل' : 'Block full day',
+    scheduler: isArabic ? 'مهمة' : 'Task',
+    appointment: isArabic ? 'موعد' : 'Appointment',
+    readOnly: isArabic ? 'صلاحية عرض فقط' : 'Read-only access',
+    classes: isArabic ? 'ورش' : 'classes',
+    eventsLabel: isArabic ? 'فعاليات' : 'events',
+    blocks: isArabic ? 'أوقات محجوبة' : 'blocks',
+    loading: isArabic ? 'جاري تحميل التقويم...' : 'Loading calendar...',
+    more: (count: number) => (isArabic ? `+${count} أخرى` : `+${count} more`),
+    noItems: isArabic ? 'لا توجد عناصر' : 'No items',
+    planDay: isArabic ? 'تخطيط اليوم' : 'Plan day',
+    freeDay: isArabic ? 'هذا اليوم فارغ حالياً.' : 'This day is currently free.',
+    scheduledItems: (count: number) =>
+      count > 0
+        ? (isArabic ? `${count} عنصر مجدول` : `${count} scheduled ${count === 1 ? 'item' : 'items'}`)
+        : (isArabic ? 'لا توجد عناصر مجدولة.' : 'Nothing scheduled.'),
+    upcoming: isArabic ? 'القادم' : 'Upcoming',
+    noUpcoming: isArabic ? 'لا توجد عناصر قادمة في هذه الفترة.' : 'Nothing coming up in this period.',
+    allDay: isArabic ? 'طوال اليوم' : 'All day',
+    addAt: (time: string) => (isArabic ? `إضافة عنصر عند ${time}` : `Add an item at ${time}`),
+  };
+
+  const typeLabel = (type: CalendarEvent['type']) => (isArabic ? EVENT_LABEL_AR[type] : EVENT_THEME[type].label);
+
+  const formatTime = (value: string) =>
+    new Date(value).toLocaleTimeString(dateLocale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Muscat' });
+
+  const formatLongDate = (dateKey: string) =>
+    new Date(`${dateKey}T00:00:00`).toLocaleDateString(dateLocale, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+
+  const todayKey = toDateKey(new Date());
+
+  const weekdayNames = Array.from({ length: 7 }).map((_, index) =>
+    // 2023-01-01 was a Sunday; the grid starts its weeks on Sunday.
+    new Date(2023, 0, 1 + index).toLocaleDateString(dateLocale, { weekday: 'short' })
+  );
+
+  // Month grid including the trailing/leading days of the neighbouring months,
+  // so every week row is complete.
+  const fullMonthGrid = (() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const first = new Date(year, month, 1);
+    const gridStart = addDays(first, -first.getDay());
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const rows = Math.ceil((first.getDay() + daysInMonth) / 7);
+    return Array.from({ length: rows * 7 }).map((_, index) => {
+      const date = addDays(gridStart, index);
+      return {
+        dateKey: toDateKey(date),
+        dayNumber: date.getDate(),
+        inMonth: date.getMonth() === month,
+        // Friday and Saturday are the weekend in Oman.
+        isWeekend: date.getDay() === 5 || date.getDay() === 6,
+      };
+    });
+  })();
+
+  const gridDays =
+    viewMode === 'week'
+      ? weekDays.map((day) => ({ dateKey: day.dateKey, dayNumber: day.dayNumber }))
+      : [{ dateKey: selectedDate, dayNumber: selectedDayDate.getDate() }];
+
+  const hourMarks = Array.from({ length: (GRID_END_MIN - GRID_START_MIN) / 60 }).map(
+    (_, index) => GRID_START_MIN / 60 + index
+  );
+
+  const openPlannerAt = (dateKey: string, hour: number) => {
+    openDayPlanner(dateKey);
+    if (!canManage) return;
+    const startHour = Math.min(22, Math.max(0, hour));
+    const pad = (value: number) => String(value).padStart(2, '0');
+    setItemForm((prev) => ({
+      ...prev,
+      startDate: dateKey,
+      endDate: dateKey,
+      isFullDay: false,
+      startTime: `${pad(startHour)}:00`,
+      endTime: `${pad(Math.min(23, startHour + 2))}:00`,
+    }));
+  };
+
+  const secondaryButton =
+    'inline-flex h-10 items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800';
+  const iconButton =
+    'inline-flex size-9 items-center justify-center rounded-lg border border-zinc-300 bg-white text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800';
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Calendar</h1>
+    <div className="space-y-5">
+      {/* ── Page header ── */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">{t.title}</h1>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t.subtitle}</p>
+        </div>
 
         {canManage ? (
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={() => openDayPlanner(selectedDate, 'BLOCKED')}
-            className="inline-flex items-center rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            + Block
-          </button>
-          <button
-            type="button"
-            onClick={() => openDayPlanner(selectedDate, 'BLOCKED', { fullDay: true })}
-            className="inline-flex items-center rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            Full Day
-          </button>
-          <button
-            type="button"
-            onClick={() => openDayPlanner(selectedDate, 'SCHEDULER')}
-            className="inline-flex items-center rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            + Scheduler
-          </button>
-          <button
-            type="button"
-            onClick={() => openDayPlanner(selectedDate, 'APPOINTMENT')}
-            className="inline-flex items-center rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            + Appt
-          </button>
-        </div>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => openDayPlanner(selectedDate, 'APPOINTMENT')} className={secondaryButton}>
+              <FiUserCheck className="size-4" aria-hidden="true" />
+              {t.appointment}
+            </button>
+            <button type="button" onClick={() => openDayPlanner(selectedDate, 'SCHEDULER')} className={secondaryButton}>
+              <FiClock className="size-4" aria-hidden="true" />
+              {t.scheduler}
+            </button>
+            <button
+              type="button"
+              onClick={() => openDayPlanner(selectedDate, 'BLOCKED', { fullDay: true })}
+              className={secondaryButton}
+            >
+              <FiSlash className="size-4" aria-hidden="true" />
+              {t.fullDay}
+            </button>
+            <button
+              type="button"
+              onClick={() => openDayPlanner(selectedDate, 'BLOCKED')}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 text-sm font-semibold text-white transition hover:bg-[color:var(--noon-teal-strong)]"
+            >
+              <FiPlus className="size-4" aria-hidden="true" />
+              {t.block}
+            </button>
+          </div>
         ) : (
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs font-medium text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-            Read-only access
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+            {t.readOnly}
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">Classes</p>
-          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100">{totalClasses}</p>
-        </div>
-        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">Events</p>
-          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100">{totalEvents}</p>
-        </div>
-        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">Blocks</p>
-          <p className="mt-1 text-xl font-bold text-zinc-900 dark:text-zinc-100">{totalBlocks}</p>
-        </div>
-      </div>
-
       {error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
+        <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
           {error}
         </div>
       ) : null}
 
-      <div className={`grid gap-6 ${viewMode === 'month' ? 'xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.65fr)]' : ''}`}>
-        <section className="rounded-3xl border border-zinc-200 bg-white p-3 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
-          <div className="flex flex-col gap-4 border-b border-zinc-200 pb-4 dark:border-zinc-800">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <button
-                  type="button"
-                  onClick={goToPreviousMonth}
-                  className="rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                >
-                  Prev
+      <div className={`grid gap-5 ${viewMode === 'month' ? 'xl:grid-cols-[minmax(0,1fr)_320px]' : ''}`}>
+        <section className="min-w-0 rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+          {/* ── Toolbar ── */}
+          <div className="flex flex-col gap-3 border-b border-zinc-200 p-4 dark:border-zinc-800 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={goToPreviousMonth} aria-label={t.previous} title={t.previous} className={iconButton}>
+                  <FiChevronLeft className="size-4 rtl:rotate-180" aria-hidden="true" />
                 </button>
-                <button
-                  type="button"
-                  onClick={goToToday}
-                  className="rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                >
-                  Today
-                </button>
-                <button
-                  type="button"
-                  onClick={goToNextMonth}
-                  className="rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                >
-                  Next
+                <button type="button" onClick={goToNextMonth} aria-label={t.next} title={t.next} className={iconButton}>
+                  <FiChevronRight className="size-4 rtl:rotate-180" aria-hidden="true" />
                 </button>
               </div>
-
-              <div className="inline-flex rounded-xl border border-zinc-200 p-1 dark:border-zinc-700">
-                {(['month', 'week', 'day'] as CalendarViewMode[]).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setViewMode(mode)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition sm:text-sm ${
-                      viewMode === mode
-                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                        : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
+              <button type="button" onClick={goToToday} className={`${secondaryButton} h-9`}>
+                {t.today}
+              </button>
+              <h2 className="ms-1 text-lg font-semibold text-zinc-900 dark:text-zinc-100" aria-live="polite">
+                {currentViewLabel}
+              </h2>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 sm:text-2xl">{currentViewLabel}</h2>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200">{totalClasses}</span> {t.classes}
+                <span className="mx-1.5">·</span>
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200">{totalEvents}</span> {t.eventsLabel}
+                <span className="mx-1.5">·</span>
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200">{totalBlocks}</span> {t.blocks}
+              </p>
+              <AnimatedTabs
+                className="shrink-0"
+                size="sm"
+                value={viewMode}
+                onValueChange={setViewMode}
+                items={[
+                  { value: 'month' as CalendarViewMode, label: t.month },
+                  { value: 'week' as CalendarViewMode, label: t.week },
+                  { value: 'day' as CalendarViewMode, label: t.day },
+                ]}
+              />
             </div>
           </div>
 
-          {loading ? (
-            <div className="flex min-h-[300px] items-center justify-center sm:min-h-[420px]">
-              <div className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400">
-                <div className="size-5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
-                Loading calendar
-              </div>
+          {loading && events.length === 0 ? (
+            <div role="status" className="flex min-h-[420px] items-center justify-center gap-3 text-sm text-zinc-500 dark:text-zinc-400">
+              <span className="size-5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
+              {t.loading}
             </div>
           ) : viewMode === 'month' ? (
-            <div className="mt-4 overflow-hidden rounded-3xl border border-zinc-200 dark:border-zinc-800">
-              <div className="grid grid-cols-7 border-b border-zinc-200 bg-zinc-50 text-center text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400 sm:text-xs">
-                {WEEK_DAYS.map((dayName) => (
-                  <div key={dayName} className="px-1 py-2 sm:px-2 sm:py-3">
-                    {dayName}
+            /* ── Month view ── */
+            <div className={`transition-opacity ${loading ? 'opacity-60' : ''}`}>
+              <div className="grid grid-cols-7 border-b border-zinc-200 bg-zinc-50 text-center text-xs font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950/40 dark:text-zinc-400">
+                {weekdayNames.map((name) => (
+                  <div key={name} className="px-1 py-2.5">
+                    {name}
                   </div>
                 ))}
               </div>
 
               <div className="grid grid-cols-7">
-                {monthGrid.map((cell, index) => {
-                  if (!cell) {
-                    return (
-                      <div
-                        key={`blank-${index}`}
-                        className="min-h-[74px] border-b border-r border-zinc-200 bg-zinc-50/60 dark:border-zinc-800 dark:bg-zinc-950/20 sm:min-h-[120px]"
-                      />
-                    );
-                  }
-
-                  const dayEvents = eventsByDate[cell.dateKey] ?? [];
+                {fullMonthGrid.map((cell, index) => {
+                  const dayEvents = cell.inMonth ? eventsByDate[cell.dateKey] ?? [] : [];
                   const isSelected = selectedDate === cell.dateKey;
-                  const isToday = cell.dateKey === toDateKey(new Date());
+                  const isToday = cell.dateKey === todayKey;
+                  const lastColumn = index % 7 === 6;
+                  const lastRow = index >= fullMonthGrid.length - 7;
 
                   return (
                     <button
                       key={cell.dateKey}
                       type="button"
                       onClick={() => openDayPlanner(cell.dateKey)}
-                      className={`relative min-h-[74px] border-b border-r p-1 text-left align-top transition sm:min-h-[120px] sm:p-2.5 ${
+                      aria-label={`${formatLongDate(cell.dateKey)} — ${t.scheduledItems(dayEvents.length)}`}
+                      aria-current={isToday ? 'date' : undefined}
+                      className={[
+                        'grid-cell group relative flex min-h-[76px] flex-col items-stretch justify-start gap-1 p-1.5 text-start outline-none transition-colors sm:min-h-[124px] sm:p-2',
+                        'focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--noon-teal)]',
+                        lastColumn ? '' : 'border-e',
+                        lastRow ? '' : 'border-b',
+                        'border-zinc-200 dark:border-zinc-800',
                         isSelected
-                          ? 'bg-[color:var(--noon-teal)]/8 dark:bg-[color:var(--noon-teal)]/10'
-                          : 'bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800/60'
-                      } border-zinc-200 dark:border-zinc-800`}
+                          ? 'bg-[color:var(--noon-teal)]/[0.07] dark:bg-[color:var(--noon-teal)]/10'
+                          : cell.inMonth
+                            ? cell.isWeekend
+                              ? 'bg-zinc-50/70 hover:bg-zinc-100/70 dark:bg-zinc-950/30 dark:hover:bg-zinc-800/50'
+                              : 'bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-800/50'
+                            : 'bg-zinc-50/40 hover:bg-zinc-50 dark:bg-zinc-950/20',
+                      ].join(' ')}
                     >
-                      <div className="flex items-start justify-between gap-1">
+                      <span className="flex items-center justify-between">
                         <span
-                          className={`inline-flex size-6 items-center justify-center rounded-full text-xs font-semibold sm:size-8 sm:text-sm ${
+                          className={[
+                            'inline-flex size-7 items-center justify-center rounded-full text-sm font-semibold',
                             isToday
-                              ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                              : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
-                          }`}
+                              ? 'bg-[color:var(--noon-teal)] text-white'
+                              : cell.inMonth
+                                ? 'text-zinc-800 dark:text-zinc-100'
+                                : 'text-zinc-400 dark:text-zinc-600',
+                          ].join(' ')}
                         >
                           {cell.dayNumber}
                         </span>
-                        {dayEvents.length > 0 ? (
-                          <span className="rounded-full bg-zinc-100 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 sm:px-2 sm:py-1 sm:text-[11px]">
-                            {dayEvents.length}
+                        {canManage ? (
+                          <FiPlus
+                            className="hidden size-4 text-zinc-400 group-hover:block group-focus-visible:block"
+                            aria-hidden="true"
+                          />
+                        ) : null}
+                      </span>
+
+                      {/* Phones: dots only. Larger screens: time + title chips. */}
+                      <span className="flex flex-wrap gap-1 sm:hidden">
+                        {dayEvents.slice(0, 4).map((event) => (
+                          <span key={`${event.id}-dot`} className={`size-1.5 rounded-full ${EVENT_THEME[event.type].dot}`} />
+                        ))}
+                      </span>
+
+                      <span className="hidden flex-col gap-1 sm:flex">
+                        {dayEvents.slice(0, 3).map((event) => (
+                          <span
+                            key={event.id}
+                            title={`${formatTime(event.startDateTime)} ${event.title}`}
+                            className={`flex items-center gap-1.5 rounded px-1.5 py-0.5 text-xs font-medium ${EVENT_THEME[event.type].badge}`}
+                          >
+                            <span className={`size-1.5 shrink-0 rounded-full ${EVENT_THEME[event.type].dot}`} aria-hidden="true" />
+                            <span className="shrink-0 opacity-80" dir="ltr">{formatTime(event.startDateTime)}</span>
+                            <span className="truncate">{event.title}</span>
+                          </span>
+                        ))}
+                        {dayEvents.length > 3 ? (
+                          <span className="px-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            {t.more(dayEvents.length - 3)}
                           </span>
                         ) : null}
-                      </div>
-
-                      <div className="mt-2 space-y-1.5">
-                        <div className="flex flex-wrap gap-1 sm:hidden">
-                          {dayEvents.slice(0, 3).map((event) => (
-                            <span key={`${event.id}-dot`} className={`size-1.5 rounded-full ${EVENT_THEME[event.type].dot}`} />
-                          ))}
-                        </div>
-
-                        <div className="hidden space-y-1.5 sm:block">
-                          {dayEvents.slice(0, 2).map((event) => (
-                            <div key={event.id} className={`rounded-xl px-2 py-1 text-[11px] font-medium ${EVENT_THEME[event.type].badge}`}>
-                              <p>{new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Muscat' })}</p>
-                              <p className="truncate">{event.title}</p>
-                            </div>
-                          ))}
-                          {dayEvents.length > 2 ? (
-                            <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">+{dayEvents.length - 2} more</p>
-                          ) : null}
-                        </div>
-                      </div>
+                      </span>
                     </button>
                   );
                 })}
               </div>
             </div>
-          ) : viewMode === 'week' ? (
-            <div className="mt-4 space-y-4">
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50/70 p-3 dark:border-zinc-800 dark:bg-zinc-950/30">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">Weekly planner</p>
-                  {canManage ? (
-                    <button
-                      type="button"
-                      onClick={() => openDayPlanner(selectedDate)}
-                      className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                    >
-                      Open selected day
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="space-y-3 md:hidden">
-                {weekDays.map((day) => {
-                  const dayEvents = eventsByDate[day.dateKey] ?? [];
-                  const isToday = day.dateKey === toDateKey(new Date());
-                  const isSelected = day.dateKey === selectedDate;
-                  return (
-                    <div
-                      key={`mobile-${day.dateKey}`}
-                      className={`rounded-2xl border p-4 ${
-                        isSelected
-                          ? 'border-[color:var(--noon-teal)] bg-[color:var(--noon-teal)]/5 dark:bg-[color:var(--noon-teal)]/10'
-                          : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <button type="button" onClick={() => setSelectedDate(day.dateKey)} className="flex items-center gap-2 text-left">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{day.dayLabel}</span>
-                          <span
-                            className={`inline-flex size-8 items-center justify-center rounded-full text-xs font-bold ${
-                              isToday
-                                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                                : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
-                            }`}
-                          >
-                            {day.dayNumber}
-                          </span>
-                        </button>
-                        {canManage ? (
-                          <button
-                            type="button"
-                            onClick={() => openDayPlanner(day.dateKey)}
-                            className="rounded-lg border border-zinc-300 px-2.5 py-1 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                          >
-                            Plan
-                          </button>
-                        ) : null}
-                      </div>
-
-                      <div className="mt-3 space-y-2">
-                        {dayEvents.length === 0 ? (
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400">No items</p>
-                        ) : (
-                          dayEvents.slice(0, 3).map((event) => (
-                            <div key={`mobile-${event.id}`} className={`rounded-lg px-2.5 py-2 text-xs font-medium ${EVENT_THEME[event.type].badge}`}>
-                              <p>{new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Muscat' })}</p>
-                              <p className="truncate">{event.title}</p>
-                            </div>
-                          ))
-                        )}
-                        {dayEvents.length > 3 ? <p className="text-xs text-zinc-500 dark:text-zinc-400">+{dayEvents.length - 3} more</p> : null}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="hidden md:block">
-                <div className="overflow-x-auto pb-2">
-                  <div className="grid min-w-[980px] grid-cols-7 gap-3">
-                    {weekDays.map((day) => {
-                      const dayEvents = eventsByDate[day.dateKey] ?? [];
-                      const isToday = day.dateKey === toDateKey(new Date());
-                      const isSelected = day.dateKey === selectedDate;
-                      return (
-                        <div
-                          key={day.dateKey}
-                          className={`min-h-[280px] rounded-2xl border p-3 transition ${
-                            isSelected
-                              ? 'border-[color:var(--noon-teal)] bg-[color:var(--noon-teal)]/5 dark:bg-[color:var(--noon-teal)]/10'
-                              : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900'
-                          }`}
-                        >
-                          <button type="button" onClick={() => setSelectedDate(day.dateKey)} className="w-full text-left">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{day.dayLabel}</span>
-                              <span
-                                className={`inline-flex size-8 items-center justify-center rounded-full text-xs font-bold ${
-                                  isToday
-                                    ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                                    : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200'
-                                }`}
-                              >
-                                {day.dayNumber}
-                              </span>
-                            </div>
-                          </button>
-
-                          <div className="mt-3 space-y-2">
-                            {dayEvents.length === 0 ? (
-                              <p className="text-xs text-zinc-500 dark:text-zinc-400">No items</p>
-                            ) : (
-                              dayEvents.slice(0, 4).map((event) => (
-                                <div key={event.id} className={`rounded-lg px-2.5 py-2 text-xs font-medium ${EVENT_THEME[event.type].badge}`}>
-                                  <p>{new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Muscat' })}</p>
-                                  <p className="truncate">{event.title}</p>
-                                </div>
-                              ))
-                            )}
-                            {dayEvents.length > 4 ? <p className="text-xs text-zinc-500 dark:text-zinc-400">+{dayEvents.length - 4} more</p> : null}
-                          </div>
-
+          ) : (
+            /* ── Week / day view: hourly time grid ── */
+            <div className={`transition-opacity ${loading ? 'opacity-60' : ''}`}>
+              {/* Phones get an agenda list for the week; the grid needs more width. */}
+              {viewMode === 'week' ? (
+                <div className="space-y-3 p-3 md:hidden">
+                  {weekDays.map((day) => {
+                    const dayEvents = eventsByDate[day.dateKey] ?? [];
+                    const isToday = day.dateKey === todayKey;
+                    return (
+                      <div key={`agenda-${day.dateKey}`} className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={`text-sm font-semibold ${isToday ? 'text-[color:var(--noon-teal-strong)]' : 'text-zinc-900 dark:text-zinc-100'}`}>
+                            {formatLongDate(day.dateKey)}
+                          </p>
                           {canManage ? (
-                            <div className="mt-4">
+                            <button
+                              type="button"
+                              onClick={() => openDayPlanner(day.dateKey)}
+                              aria-label={`${t.planDay}: ${formatLongDate(day.dateKey)}`}
+                              className={iconButton}
+                            >
+                              <FiPlus className="size-4" aria-hidden="true" />
+                            </button>
+                          ) : null}
+                        </div>
+                        <div className="mt-2 space-y-1.5">
+                          {dayEvents.length === 0 ? (
+                            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t.noItems}</p>
+                          ) : (
+                            dayEvents.map((event) => (
                               <button
+                                key={`agenda-${event.id}`}
                                 type="button"
                                 onClick={() => openDayPlanner(day.dateKey)}
-                                className="w-full rounded-lg border border-zinc-300 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-start text-xs font-medium ${EVENT_THEME[event.type].badge}`}
                               >
-                                Plan day
+                                <span className="shrink-0 opacity-80" dir="ltr">{formatTime(event.startDateTime)}</span>
+                                <span className="truncate">{event.title}</span>
                               </button>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              <div className={viewMode === 'week' ? 'hidden md:block' : ''}>
+                {/* Day headers */}
+                <div
+                  className="grid border-b border-zinc-200 dark:border-zinc-800"
+                  style={{ gridTemplateColumns: `3.5rem repeat(${gridDays.length}, minmax(0, 1fr))` }}
+                >
+                  <div />
+                  {gridDays.map((day) => {
+                    const isToday = day.dateKey === todayKey;
+                    const date = new Date(`${day.dateKey}T00:00:00`);
+                    return (
+                      <button
+                        key={`head-${day.dateKey}`}
+                        type="button"
+                        onClick={() => {
+                          setSelectedDate(day.dateKey);
+                          if (viewMode === 'week') setViewMode('day');
+                        }}
+                        className="grid-cell flex flex-col items-center gap-0.5 border-s border-zinc-200 px-1 py-2 outline-none transition-colors hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[color:var(--noon-teal)] dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                      >
+                        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                          {date.toLocaleDateString(dateLocale, { weekday: 'short' })}
+                        </span>
+                        <span
+                          className={`inline-flex size-8 items-center justify-center rounded-full text-sm font-semibold ${
+                            isToday ? 'bg-[color:var(--noon-teal)] text-white' : 'text-zinc-900 dark:text-zinc-100'
+                          }`}
+                        >
+                          {day.dayNumber}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Scrollable hours */}
+                <div ref={timeGridRef} className="max-h-[640px] overflow-y-auto">
+                  <div
+                    className="relative grid"
+                    style={{
+                      gridTemplateColumns: `3.5rem repeat(${gridDays.length}, minmax(0, 1fr))`,
+                      height: hourMarks.length * HOUR_HEIGHT,
+                    }}
+                  >
+                    {/* Hour labels */}
+                    <div className="relative">
+                      {hourMarks.map((hour, index) => (
+                        <span
+                          key={`label-${hour}`}
+                          className="absolute end-2 -translate-y-1/2 text-xs text-zinc-500 dark:text-zinc-400"
+                          style={{ top: index * HOUR_HEIGHT }}
+                          dir="ltr"
+                        >
+                          {index === 0 ? '' : `${String(hour).padStart(2, '0')}:00`}
+                        </span>
+                      ))}
+                    </div>
+
+                    {gridDays.map((day) => {
+                      const positioned = layoutDayEvents(eventsByDate[day.dateKey] ?? [], day.dateKey);
+                      const isToday = day.dateKey === todayKey;
+                      const showNow = isToday && nowMinutes >= GRID_START_MIN && nowMinutes <= GRID_END_MIN;
+
+                      return (
+                        <div key={`col-${day.dateKey}`} className="relative border-s border-zinc-200 dark:border-zinc-800">
+                          {/* Hour slots: click an empty hour to plan from that time. */}
+                          {hourMarks.map((hour) => (
+                            <button
+                              key={`slot-${day.dateKey}-${hour}`}
+                              type="button"
+                              onClick={() => openPlannerAt(day.dateKey, hour)}
+                              aria-label={t.addAt(`${String(hour).padStart(2, '0')}:00`)}
+                              className="grid-cell block w-full border-b border-zinc-100 outline-none transition-colors hover:bg-zinc-50 focus-visible:bg-[color:var(--noon-teal)]/10 dark:border-zinc-800/70 dark:hover:bg-zinc-800/40"
+                              style={{ height: HOUR_HEIGHT }}
+                            />
+                          ))}
+
+                          {positioned.map((item) => {
+                            const visibleStart = Math.max(item.start, GRID_START_MIN);
+                            const visibleEnd = Math.min(Math.max(item.end, visibleStart + 15), GRID_END_MIN);
+                            if (visibleEnd <= GRID_START_MIN) return null;
+                            const top = ((visibleStart - GRID_START_MIN) / 60) * HOUR_HEIGHT;
+                            const height = Math.max(24, ((visibleEnd - visibleStart) / 60) * HOUR_HEIGHT - 2);
+                            const width = 100 / item.columns;
+
+                            return (
+                              <button
+                                key={`block-${day.dateKey}-${item.event.id}`}
+                                type="button"
+                                onClick={() => openDayPlanner(day.dateKey)}
+                                title={`${formatTime(item.event.startDateTime)} – ${formatTime(item.event.endDateTime)} · ${item.event.title}`}
+                                className={`absolute flex flex-col items-stretch justify-start overflow-hidden rounded px-1.5 py-1 text-start text-xs outline-none ring-1 ring-white transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-[color:var(--noon-teal)] dark:ring-zinc-900 ${EVENT_THEME[item.event.type].badge}`}
+                                style={{
+                                  top,
+                                  height,
+                                  insetInlineStart: `calc(${item.column * width}% + 2px)`,
+                                  width: `calc(${width}% - 4px)`,
+                                }}
+                              >
+                                <span className="block truncate font-semibold">{item.event.title}</span>
+                                {height >= 40 ? (
+                                  <span className="block truncate opacity-80">
+                                    <bdi dir="ltr">{formatTime(item.event.startDateTime)} – {formatTime(item.event.endDateTime)}</bdi>
+                                  </span>
+                                ) : null}
+                                {height >= 60 ? <span className="block truncate opacity-70">{typeLabel(item.event.type)}</span> : null}
+                              </button>
+                            );
+                          })}
+
+                          {showNow ? (
+                            <div
+                              className="pointer-events-none absolute inset-x-0 z-10 flex items-center"
+                              style={{ top: ((nowMinutes - GRID_START_MIN) / 60) * HOUR_HEIGHT }}
+                              aria-hidden="true"
+                            >
+                              <span className="-ms-1 size-2 rounded-full bg-rose-500" />
+                              <span className="h-px flex-1 bg-rose-500" />
                             </div>
                           ) : null}
                         </div>
@@ -943,137 +1178,98 @@ export default function AdminCalendarPage() {
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="mt-4 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900 sm:p-5">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 pb-3 dark:border-zinc-800">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Day view</p>
-                  <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">{formatDateLabel(selectedDate)}</h3>
-                </div>
-                {canManage ? (
-                  <button
-                    type="button"
-                    onClick={() => openDayPlanner(selectedDate)}
-                    className="rounded-xl border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                  >
-                    Open planner
-                  </button>
-                ) : null}
-              </div>
-              <div className="space-y-3">
-                {selectedDayEvents.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-zinc-300 px-4 py-5 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                    No items scheduled for this day.
-                  </div>
-                ) : (
-                  selectedDayEvents.map((event) => (
-                    <div key={event.id} className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${EVENT_THEME[event.type].badge}`}>
-                          {EVENT_THEME[event.type].label}
-                        </span>
-                        <span className="text-xs text-zinc-500 dark:text-zinc-400">{formatTimeRange(event.startDateTime, event.endDateTime)}</span>
-                      </div>
-                      <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{event.title}</p>
-                      {event.description ? (
-                        <article
-                          className="mt-1 text-sm text-zinc-600 dark:text-zinc-300 [&_strong]:font-semibold [&_em]:italic [&_p]:leading-6 [&_ul]:list-disc [&_ul]:ps-5 [&_ol]:list-decimal [&_ol]:ps-5"
-                          dangerouslySetInnerHTML={{ __html: markdownToHtml(event.description) }}
-                        />
-                      ) : null}
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
           )}
 
-          <div className="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-            <div className="flex flex-wrap items-center gap-2">
-              {Object.values(EVENT_THEME).map((theme) => (
-                <span
-                  key={theme.label}
-                  className="inline-flex shrink-0 items-center gap-2 rounded-full border border-zinc-200 px-3 py-1.5 text-[11px] font-semibold text-zinc-700 dark:border-zinc-700 dark:text-zinc-200"
-                >
-                  <span className={`size-2.5 rounded-full ${theme.dot}`} />
-                  {theme.label}
-                </span>
-              ))}
-            </div>
+          {/* ── Legend ── */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+            {(Object.keys(EVENT_THEME) as CalendarEvent['type'][]).map((type) => (
+              <span key={type} className="inline-flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
+                <span className={`size-2.5 rounded-sm ${EVENT_THEME[type].dot}`} aria-hidden="true" />
+                {typeLabel(type)}
+              </span>
+            ))}
           </div>
         </section>
 
         {viewMode === 'month' ? (
-        <aside className="space-y-6">
-          <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 sm:text-xl">{formatDateLabel(selectedDate)}</h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {selectedDayEvents.length > 0 ? `${selectedDayEvents.length} scheduled items` : 'No scheduled items yet.'}
-                </p>
-              </div>
-              {canManage ? (
-                <button
-                  type="button"
-                  onClick={() => openDayPlanner(selectedDate, 'BLOCKED')}
-                  className="rounded-xl border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                >
-                  Plan day
-                </button>
-              ) : null}
-            </div>
-
-            <div className="mt-4 space-y-2.5">
-              {selectedDayEvents.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-zinc-300 px-4 py-5 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                  This day is currently free.
+          <aside className="space-y-5">
+            {/* ── Selected day ── */}
+            <section className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{formatLongDate(selectedDate)}</h2>
+                  <p className="mt-0.5 text-sm text-zinc-500 dark:text-zinc-400">{t.scheduledItems(selectedDayEvents.length)}</p>
                 </div>
-              ) : (
-                selectedDayEvents.slice(0, 4).map((event) => (
-                  <div key={event.id} className="rounded-2xl border border-zinc-200 p-3 dark:border-zinc-800">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${EVENT_THEME[event.type].badge}`}>
-                        {EVENT_THEME[event.type].label}
-                      </span>
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                        {new Date(event.startDateTime).toLocaleTimeString('en-OM', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Muscat' })}
-                      </span>
-                    </div>
-                    <p className="mt-2 truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{event.title}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
+                {canManage ? (
+                  <button type="button" onClick={() => openDayPlanner(selectedDate, 'BLOCKED')} className={`${secondaryButton} h-9 shrink-0`}>
+                    {t.planDay}
+                  </button>
+                ) : null}
+              </div>
 
-          <section className="rounded-3xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 sm:text-xl">Upcoming timeline</h2>
-            <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-2">
+                {selectedDayEvents.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-zinc-300 px-4 py-5 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                    {t.freeDay}
+                  </p>
+                ) : (
+                  selectedDayEvents.map((event) => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      onClick={() => openDayPlanner(selectedDate)}
+                      className={`block w-full rounded-lg px-3 py-2 text-start transition hover:brightness-95 ${EVENT_THEME[event.type].badge}`}
+                    >
+                      <span className="block truncate text-sm font-semibold">{event.title}</span>
+                      <span className="mt-0.5 flex items-center justify-between gap-2 text-xs opacity-80">
+                        <span dir="ltr">{formatTime(event.startDateTime)} – {formatTime(event.endDateTime)}</span>
+                        <span>{typeLabel(event.type)}</span>
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </section>
+
+            {/* ── Upcoming ── */}
+            <section className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+              <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t.upcoming}</h2>
               {upcoming.length === 0 ? (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">No upcoming entries in the current month.</p>
+                <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">{t.noUpcoming}</p>
               ) : (
-                upcoming.map((event) => (
-                  <div key={event.id} className="flex gap-3 rounded-2xl border border-zinc-200 p-3 dark:border-zinc-800 sm:p-4">
-                    <div className={`mt-1 size-3 rounded-full ${EVENT_THEME[event.type].dot}`} />
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-zinc-900 dark:text-zinc-100">{event.title}</p>
-                      <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                        {new Date(event.startDateTime).toLocaleString('en-OM', {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          timeZone: 'Asia/Muscat',
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                ))
+                <ol className="mt-3 space-y-1">
+                  {upcoming.map((event) => {
+                    const eventDateKey = toDateKey(event.startDateTime);
+                    return (
+                      <li key={event.id}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDate(eventDateKey)}
+                          className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-start transition hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+                        >
+                          <span className={`size-2.5 shrink-0 rounded-sm ${EVENT_THEME[event.type].dot}`} aria-hidden="true" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">{event.title}</span>
+                            <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                              {new Date(event.startDateTime).toLocaleString(dateLocale, {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hourCycle: 'h23',
+                                timeZone: 'Asia/Muscat',
+                              })}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ol>
               )}
-            </div>
-          </section>
-        </aside>
+            </section>
+          </aside>
         ) : null}
       </div>
 
@@ -1083,7 +1279,11 @@ export default function AdminCalendarPage() {
           onClick={() => setIsDayModalOpen(false)}
         >
           <div
-            className="flex h-[92dvh] max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900 md:h-[88dvh] md:max-w-5xl md:rounded-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label={formatLongDate(selectedDate)}
+            dir={isArabic ? 'rtl' : 'ltr'}
+            className="admin-panel flex h-[92dvh] max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900 md:h-[88dvh] md:max-w-5xl md:rounded-xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="shrink-0 border-b border-zinc-200 px-5 py-4 dark:border-zinc-800 sm:px-6">

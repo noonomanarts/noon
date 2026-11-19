@@ -376,7 +376,7 @@ export default function EditUserPage({
             </div>
             <div>
               <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                {t.phone}
+                <bdi dir="ltr">{t.phone}</bdi>
               </label>
               <input
                 type="tel"

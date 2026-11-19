@@ -74,7 +74,7 @@ export default async function GroupBookingEventsPage({
                 <h2 className="text-xl font-bold text-[color:var(--text)] dark:text-white">{card.title}</h2>
                 <p className="text-sm text-[color:var(--text-muted)] dark:text-zinc-400">{card.description}</p>
                 <p className="text-sm font-semibold text-[color:var(--text)] dark:text-zinc-100">
-                  {isArabic ? "عرض التفاصيل" : "View details"} →
+                  {isArabic ? "عرض التفاصيل" : "View details"} <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
                 </p>
               </div>
             </Link>

@@ -288,7 +288,7 @@ export async function createEventBooking(data: {
   const count = countResult.rows[0]?.count ?? 0;
   const bookingNumber = `EVT-${dateStr}-${String(count + 1).padStart(4, '0')}`;
 
-  const result = await query(
+  const insertBooking = (number: string) => query(
     `INSERT INTO event_bookings (
       id, booking_number, user_id, event_type, selected_date, selected_time,
       package_type, number_of_participants, number_of_groups, gifts,
@@ -299,7 +299,7 @@ export async function createEventBooking(data: {
     RETURNING *`,
     [
       id,
-      bookingNumber,
+      number,
       data.userId || null,
       data.eventType,
       data.selectedDate,
@@ -323,6 +323,28 @@ export async function createEventBooking(data: {
       now,
     ]
   );
+
+  // The counter-based number collides after a booking is removed or when two
+  // requests arrive together. Retry with a random suffix instead of losing the
+  // customer's request to a unique-constraint error.
+  let result: Awaited<ReturnType<typeof insertBooking>> | null = null;
+  for (let attempt = 0; attempt < 5 && !result; attempt += 1) {
+    const candidate = attempt === 0
+      ? bookingNumber
+      : `${bookingNumber}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    try {
+      result = await insertBooking(candidate);
+    } catch (error) {
+      const isDuplicate = typeof error === 'object' && error !== null && (error as { code?: string }).code === '23505';
+      if (!isDuplicate || attempt === 4) {
+        throw error;
+      }
+    }
+  }
+
+  if (!result) {
+    throw new Error('Failed to create event booking');
+  }
 
   const row = result.rows[0];
 

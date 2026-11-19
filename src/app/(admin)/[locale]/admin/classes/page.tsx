@@ -46,7 +46,7 @@ interface Stats {
 const ITEMS_PER_PAGE = 10;
 const MENU_W = 176;
 const MENU_H = 200;
-const MENU_GAP = 8;
+const MENU_GAP = 4;
 const VP_PAD = 12;
 
 export default function AdminClassesPage() {
@@ -136,15 +136,32 @@ export default function AdminClassesPage() {
     if (status === 'DRAFT') return t.statusDraft;
     if (status === 'ARCHIVED') return t.statusArchived;
     if (status === 'CANCELLED') return t.statusCancelled;
+    if (status === 'COMPLETED') return isRTL ? 'مكتملة' : 'Completed';
     return status;
   }
 
   function categoryLabel(value: string) {
-    if (isRTL) {
-      if (value === 'COOKING') return 'طبخ';
-      if (value === 'ARTS_CRAFTS') return 'فنون وحرف';
-    }
-    return value.replaceAll('_', ' ');
+    const labels: Record<string, [string, string]> = {
+      COOKING: ['Cooking', 'طبخ'],
+      ARTS_CRAFTS: ['Arts & Crafts', 'فنون وحرف'],
+      APPETIZERS_SNACKS: ['Appetizers & Snacks', 'مقبلات ووجبات خفيفة'],
+      MAIN_DISHES: ['Main Dishes', 'أطباق رئيسية'],
+      DESSERTS_BAKING: ['Desserts & Baking', 'حلويات ومخبوزات'],
+      MOM_AND_KID: ['Mom & Kid', 'الأم والطفل'],
+      SUMMER_CAMP: ['Summer Camp', 'المخيم الصيفي'],
+      PAINTING: ['Painting', 'رسم'],
+      POTTERY: ['Pottery', 'فخار'],
+      CRAFTS: ['Crafts', 'حرف يدوية'],
+      MIXED: ['Mixed', 'متنوع'],
+    };
+    const match = labels[value];
+    if (match) return match[isRTL ? 1 : 0];
+    // Unknown value: show it readable rather than as a raw enum.
+    return value
+      .toLowerCase()
+      .split('_')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
 
   function formatDateTime(item: ClassItem) {
@@ -154,8 +171,8 @@ export default function AdminClassesPage() {
     const start = new Date(startValue);
     if (Number.isNaN(start.getTime())) return { date: isRTL ? 'تاريخ غير صالح' : 'Invalid date', time: '—' };
     const end = endValue ? new Date(endValue) : null;
-    const dateFmt = new Intl.DateTimeFormat(isRTL ? 'ar-OM' : 'en-OM', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Muscat' });
-    const timeFmt = new Intl.DateTimeFormat(isRTL ? 'ar-OM' : 'en-OM', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Muscat' });
+    const dateFmt = new Intl.DateTimeFormat(isRTL ? 'ar-OM-u-nu-latn' : 'en-OM', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Muscat' });
+    const timeFmt = new Intl.DateTimeFormat(isRTL ? 'ar-OM-u-nu-latn' : 'en-OM', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Muscat' });
     const date = dateFmt.format(start);
     const time = end && !Number.isNaN(end.getTime())
       ? `${timeFmt.format(start)} - ${timeFmt.format(end)}`
@@ -282,6 +299,7 @@ export default function AdminClassesPage() {
       DRAFT: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
       ARCHIVED: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400',
       CANCELLED: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+      COMPLETED: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300',
     };
     const cls = `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${cfg[status] ?? cfg['ARCHIVED']} ${clickable ? 'cursor-pointer transition hover:opacity-80' : ''}`;
     return clickable
@@ -306,9 +324,8 @@ export default function AdminClassesPage() {
           href={`/${locale}/admin/classes/new`}
           className="inline-flex items-center gap-2 rounded-xl bg-[color:var(--noon-teal)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 active:scale-[0.98]"
         >
-          <FiPlus className="size-4 shrink-0" />
-          <span className="hidden sm:inline">{t.addClass}</span>
-          <span className="sm:hidden"><FiPlus className="size-4" /></span>
+          <FiPlus className="size-4 shrink-0" aria-hidden="true" />
+          <span>{t.addClass}</span>
         </Link>
       </div>
 
@@ -488,7 +505,7 @@ export default function AdminClassesPage() {
                     {[t.workshopCol, t.categoryCol, t.trainerCol, t.dateCol, t.priceCol, t.occupancyCol, t.statusCol, t.actionsCol].map((h, i) => (
                       <th
                         key={h}
-                        className={`whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ${i === 7 ? 'text-end' : 'text-start'}`}
+                        className={`whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 ${i === 7 ? 'sticky end-0 bg-zinc-50 text-end dark:bg-zinc-900' : 'text-start'}`}
                       >
                         {h}
                       </th>
@@ -564,12 +581,12 @@ export default function AdminClassesPage() {
                         </td>
 
                         {/* Actions */}
-                        <td className="px-4 py-3.5">
+                        <td className="sticky end-0 bg-white px-4 py-3.5 group-hover:bg-zinc-50 dark:bg-zinc-900 dark:group-hover:bg-zinc-800">
                           <div className="class-actions-menu flex justify-end">
                             <button
                               type="button"
                               onClick={(e) => toggleMenu(item.id, e.currentTarget)}
-                              className="flex size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 opacity-0 transition group-hover:opacity-100 hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-white"
+                              className="flex size-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 transition hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-white"
                               aria-label="Actions"
                             >
                               <FiMoreVertical className="size-4" />

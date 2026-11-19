@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -489,13 +490,6 @@ export default function AdminWhatsAppPageClient({
   const inputClass =
     'w-full rounded-xl border border-zinc-300 bg-white px-3 py-2 text-zinc-900 focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100';
 
-  const tabClass = (active: boolean) =>
-    `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-      active
-        ? 'bg-[color:var(--noon-teal)] text-white'
-        : 'border border-zinc-200 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800'
-    }`;
-
   const existsBadge = (userId: string) => {
     const row = existsMap[userId];
     if (!row) return null;
@@ -960,42 +954,31 @@ export default function AdminWhatsAppPageClient({
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => setRecipientTab('users')}
-              className={tabClass(recipientTab === 'users')}
-            >
-              <FiUsers className="size-4" />
-              {t.tabUsers}
-              <span className="rounded-full bg-white/20 px-1.5 text-[11px]">
-                {selectedUserIds.length}/{users.length}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setRecipientTab('contacts')}
-              className={tabClass(recipientTab === 'contacts')}
-            >
-              <FiUser className="size-4" />
-              {t.tabContacts}
-              <span className="rounded-full bg-white/20 px-1.5 text-[11px]">
-                {selectedContactIds.length}
-                {contactsLoaded ? `/${contacts.length}` : ''}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setRecipientTab('custom')}
-              className={tabClass(recipientTab === 'custom')}
-            >
-              <FiFile className="size-4" />
-              {t.tabCustom}
-              <span className="rounded-full bg-white/20 px-1.5 text-[11px]">
-                {parsedCustomPhones.length}
-              </span>
-            </button>
-          </div>
+          <AnimatedTabs
+            className="mb-3"
+            value={recipientTab}
+            onValueChange={setRecipientTab}
+            items={[
+              {
+                value: 'users',
+                label: t.tabUsers,
+                icon: <FiUsers className="size-4" />,
+                badge: `${selectedUserIds.length}/${users.length}`,
+              },
+              {
+                value: 'contacts',
+                label: t.tabContacts,
+                icon: <FiUser className="size-4" />,
+                badge: `${selectedContactIds.length}${contactsLoaded ? `/${contacts.length}` : ''}`,
+              },
+              {
+                value: 'custom',
+                label: t.tabCustom,
+                icon: <FiFile className="size-4" />,
+                badge: parsedCustomPhones.length,
+              },
+            ]}
+          />
 
           {recipientTab === 'users' ? renderUsersPanel() : null}
           {recipientTab === 'contacts' ? renderContactsPanel() : null}
@@ -1009,19 +992,12 @@ export default function AdminWhatsAppPageClient({
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
           <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.composer}</h2>
 
-          <div className="mb-4 flex flex-wrap gap-1.5">
-            {messageTabs.map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setMessageType(tab.key)}
-                className={tabClass(messageType === tab.key)}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <AnimatedTabs
+            className="mb-4"
+            value={messageType}
+            onValueChange={setMessageType}
+            items={messageTabs.map((tab) => ({ value: tab.key, label: tab.label, icon: tab.icon }))}
+          />
 
           <div className="space-y-4">
             {renderComposerBody()}

@@ -543,12 +543,21 @@ export default async function HomePage({
                       {c.priceText}
                     </p>
                     <Link
-                      href={`/${locale}/classes/${c.slug}/book`}
-                      className="flex w-full items-center justify-center gap-0.5 py-2 text-[10px] font-extrabold uppercase tracking-wide transition active:scale-95 hover:brightness-95 sm:py-2.5 sm:text-xs"
-                      style={{ backgroundColor: headerColor, color: headerButtonTextColor }}
+                      href={c.isFullyBooked ? `/${locale}/classes/${c.slug}` : `/${locale}/classes/${c.slug}/book`}
+                      className={`flex min-h-10 w-full items-center justify-center gap-1 py-2 text-xs font-extrabold uppercase tracking-wide transition active:scale-95 sm:py-2.5 ${
+                        c.isFullyBooked
+                          ? "border border-[color:var(--border)] bg-[color:var(--muted)] text-[color:var(--text-muted)] hover:bg-[color:var(--surface)]"
+                          : "hover:brightness-95"
+                      }`}
+                      style={c.isFullyBooked ? undefined : { backgroundColor: headerColor, color: headerButtonTextColor }}
                     >
-                      {c.isFullyBooked ? (isArabic ? "اكتمل الحجز" : "Fully Booked") : upcomingBookNowLabel}
-                      <FiArrowRight className="size-2.5 sm:size-3" />
+                      {c.isFullyBooked ? (
+                        <>
+                          {isArabic ? "اكتمل الحجز" : "Fully booked"}
+                          <span className="hidden sm:inline">{isArabic ? " · عرض التفاصيل" : " · View details"}</span>
+                        </>
+                      ) : upcomingBookNowLabel}
+                      <FiArrowRight className="size-3 rtl:rotate-180" aria-hidden="true" />
                     </Link>
                   </div>
                 </div>

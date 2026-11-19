@@ -275,7 +275,7 @@ export default async function PrivateClassesPage({
               className="inline-flex items-center gap-2 rounded-xl bg-[color:var(--primary)] px-6 py-3 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
             >
               {isArabic ? "ابدأ الحجز" : "Start Booking"}
-              <FiArrowRight className="size-4" />
+              <FiArrowRight className="rtl:rotate-180 size-4" />
             </Link>
           </div>
         </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import Image from 'next/image';
 import { useMemo, useRef, useState } from 'react';
 import { FiLock, FiSave, FiShield, FiUser } from 'react-icons/fi';
@@ -231,33 +232,16 @@ export default function AccountSettingsPageClient({
         <h2 className="text-xl font-semibold text-[color:var(--text)]">{t.title}</h2>
         <p className="mt-2 text-sm text-[color:var(--text-muted)]">{t.subtitle}</p>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab('profile')}
-            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-              activeTab === 'profile'
-                ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal-strong)]'
-                : 'bg-[color:var(--muted)] text-[color:var(--text-muted)] hover:bg-[color:var(--border)]'
-            }`}
-          >
-            <FiUser className="size-4" />
-            {t.tabProfile}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('security')}
-            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
-              activeTab === 'security'
-                ? 'bg-[color:var(--noon-teal)]/15 text-[color:var(--noon-teal-strong)]'
-                : 'bg-[color:var(--muted)] text-[color:var(--text-muted)] hover:bg-[color:var(--border)]'
-            }`}
-          >
-            <FiShield className="size-4" />
-            {t.tabSecurity}
-          </button>
-        </div>
+        <AnimatedTabs
+          className="mt-5"
+          ariaLabel={t.title}
+          value={activeTab}
+          onValueChange={setActiveTab}
+          items={[
+            { value: 'profile', label: t.tabProfile, icon: <FiUser className="size-4" /> },
+            { value: 'security', label: t.tabSecurity, icon: <FiShield className="size-4" /> },
+          ]}
+        />
       </div>
 
       {error ? (

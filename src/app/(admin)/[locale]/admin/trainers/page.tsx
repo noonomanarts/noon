@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -176,28 +177,15 @@ export default function AdminTrainersPage() {
       )}
 
       {/* View Toggle */}
-      <div className="flex gap-2 rounded-xl border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900">
-        <button
-          onClick={() => setView('trainers')}
-          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            view === 'trainers'
-              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-              : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
-          }`}
-        >
-          Trainers ({trainers.length})
-        </button>
-        <button
-          onClick={() => setView('all-users')}
-          className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-            view === 'all-users'
-              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-              : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800'
-          }`}
-        >
-          All Users
-        </button>
-      </div>
+      <AnimatedTabs
+        fullWidth
+        value={view}
+        onValueChange={setView}
+        items={[
+          { value: 'trainers', label: 'Trainers', badge: trainers.length },
+          { value: 'all-users', label: 'All Users' },
+        ]}
+      />
 
       {/* Search */}
       <div className="relative">

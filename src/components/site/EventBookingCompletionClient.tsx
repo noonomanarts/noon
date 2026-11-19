@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Locale } from '@/lib/locale';
-import { startAmwalCheckout } from '@/lib/amwalClient';
+import { confirmAmwalPayment, startAmwalCheckout } from '@/lib/amwalClient';
 
 type CompletionResponse = {
   booking: {
@@ -227,17 +227,12 @@ export default function EventBookingCompletionClient({ locale, token }: { locale
         await startAmwalCheckout({
           checkout: payload.checkout,
           onComplete: async (gatewayPayload) => {
-            const callbackResponse = await fetch('/api/public/event-bookings/payment/callback', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ reference, token, gatewayPayload }),
-            });
-            const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as {
+            const { ok, payload: callbackPayload } = await confirmAmwalPayment<{
               error?: string;
               paymentStatus?: string;
-            };
+            }>('/api/public/event-bookings/payment/callback', { reference, token, gatewayPayload });
 
-            if (!callbackResponse.ok) {
+            if (!ok) {
               throw new Error(callbackPayload.error || 'Failed to confirm payment');
             }
 
@@ -248,6 +243,10 @@ export default function EventBookingCompletionClient({ locale, token }: { locale
                 : 'pending';
 
             redirectWithPaymentState(nextState, reference);
+          },
+          onConfirmError: () => {
+            // Completed at the gateway but not recorded yet: never show "failed".
+            redirectWithPaymentState('pending', reference);
           },
           onCancel: () => {
             redirectWithPaymentState('failed', reference);

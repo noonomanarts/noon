@@ -39,8 +39,10 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPool.pool = pool;
 }
 
-// Logging in development
-if (process.env.NODE_ENV === 'development') {
+// Without an 'error' listener, a dropped idle connection (database restart,
+// network blip) is an unhandled EventEmitter error and takes the whole server
+// down. Register it exactly once, in every environment.
+if (pool.listenerCount('error') === 0) {
   pool.on('error', (err) => {
     console.error('Unexpected error on idle PostgreSQL client', err);
   });

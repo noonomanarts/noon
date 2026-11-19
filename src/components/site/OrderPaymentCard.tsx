@@ -7,7 +7,7 @@ import { formatNoonDateTime } from '@/lib/dateTime';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import { getPaymentMethodLabel } from '@/lib/paymentMethod';
-import { getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
+import { confirmAmwalPayment, getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
 
 type WalletPayload = {
   balance: number;
@@ -238,18 +238,21 @@ export function OrderPaymentCard({
         await startAmwalCheckout({
           checkout: payload.checkout,
           onComplete: async (gatewayPayload) => {
-            const callbackResponse = await fetch('/api/public/event-bookings/payment/callback', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ reference, gatewayPayload }),
-            });
-            const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as {
+            const { ok, payload: callbackPayload } = await confirmAmwalPayment<{
               error?: string;
               paymentStatus?: string;
-            };
+            }>('/api/public/event-bookings/payment/callback', { reference, gatewayPayload });
 
-            if (!callbackResponse.ok || callbackPayload.paymentStatus !== 'PAID') {
-              throw new Error(callbackPayload.error || (isArabic ? 'فشل تأكيد الدفع.' : 'Failed to confirm payment.'));
+            if (!ok || callbackPayload.paymentStatus !== 'PAID') {
+              setError(
+                callbackPayload.paymentStatus === 'PENDING'
+                  ? (isArabic
+                      ? 'الدفع قيد المعالجة. سيتم تحديث الحالة فور تأكيد البنك.'
+                      : 'Your payment is still being processed. The status will update once the bank confirms it.')
+                  : (isArabic ? 'فشل تأكيد الدفع.' : 'Payment was not completed.')
+              );
+              router.refresh();
+              return;
             }
 
             setCurrentPaymentStatus('PAID');
@@ -257,6 +260,13 @@ export function OrderPaymentCard({
             setCurrentPaidAt(new Date().toISOString());
             setMessage(t.paymentSuccess);
             router.refresh();
+          },
+          onConfirmError: () => {
+            setError(
+              isArabic
+                ? `تعذّر تسجيل الدفع بسبب مشكلة في الاتصال. إذا تم الخصم من بطاقتك فلا تدفع مرة أخرى؛ حدّث الصفحة بعد قليل أو تواصل معنا واذكر المرجع ${reference}.`
+                : `We could not record your payment because of a connection problem. If your card was charged, do not pay again — refresh this page in a moment or contact us with reference ${reference}.`
+            );
           },
           onCancel: () => {
             setError(isArabic ? 'تم إلغاء الدفع.' : 'Payment was cancelled.');

@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -735,33 +736,17 @@ export default function AdminRecipesPageClient({ locale }: { locale: Locale }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {([
-                  { key: 'overview', label: t.tabs.overview, icon: FiLayers },
-                  { key: 'trainer', label: t.tabs.trainer, icon: FiList },
-                  { key: 'final', label: t.tabs.final, icon: FiEye },
-                  { key: 'notes', label: t.tabs.notes, icon: FiMessageSquare },
-                ] as const).map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.key;
-
-                  return (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition ${
-                        isActive
-                          ? 'border-[color:var(--noon-teal)] bg-[color:var(--noon-teal)] text-white'
-                          : 'border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800'
-                      }`}
-                    >
-                      <Icon className="size-4" />
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <AnimatedTabs
+                fullWidth
+                value={activeTab}
+                onValueChange={setActiveTab}
+                items={[
+                  { value: 'overview', label: t.tabs.overview, icon: <FiLayers className="size-4" /> },
+                  { value: 'trainer', label: t.tabs.trainer, icon: <FiList className="size-4" /> },
+                  { value: 'final', label: t.tabs.final, icon: <FiEye className="size-4" /> },
+                  { value: 'notes', label: t.tabs.notes, icon: <FiMessageSquare className="size-4" /> },
+                ]}
+              />
 
               {detailLoading ? (
                 <div className="rounded-xl border border-dashed border-zinc-300 p-6 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">

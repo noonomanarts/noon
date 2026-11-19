@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
@@ -862,41 +863,17 @@ export default function AdminFinancePageClient({ locale }: { locale: Locale }) {
       <section className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
         <h1 className="text-xl font-bold text-zinc-900 dark:text-white sm:text-2xl">{t.title}</h1>
 
-        <div className="mt-3 inline-flex rounded-xl border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-700 dark:bg-zinc-800/60">
-          <button
-            type="button"
-            onClick={() => setActiveTab('ledger')}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-              activeTab === 'ledger'
-                ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-white'
-                : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white'
-            }`}
-          >
-            {t.tabLedger}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('reports')}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-              activeTab === 'reports'
-                ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-white'
-                : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white'
-            }`}
-          >
-            {t.tabReports}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('settings')}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-              activeTab === 'settings'
-                ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-white'
-                : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white'
-            }`}
-          >
-            {t.tabSettings}
-          </button>
-        </div>
+        <AnimatedTabs
+          className="mt-3"
+          ariaLabel={t.title}
+          value={activeTab}
+          onValueChange={setActiveTab}
+          items={[
+            { value: 'ledger', label: t.tabLedger },
+            { value: 'reports', label: t.tabReports },
+            { value: 'settings', label: t.tabSettings },
+          ]}
+        />
       </section>
 
       {info && (

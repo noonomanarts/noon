@@ -86,7 +86,7 @@ export default function AdminUsersTableClient({
               <tr>
                 <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.name}</th>
                 <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 sm:table-cell">{t.email}</th>
-                <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 md:table-cell">{t.phone}</th>
+                <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 md:table-cell"><bdi dir="ltr">{t.phone}</bdi></th>
                 <th className="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.role}</th>
                 <th className="hidden px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 sm:table-cell">{t.status}</th>
                 <th className="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.actions}</th>

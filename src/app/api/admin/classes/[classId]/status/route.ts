@@ -1,5 +1,6 @@
 import { NextResponse, after } from 'next/server';
 import { updateClass } from '@/lib/db/classes';
+import { requireAdminApi } from '@/lib/adminAuth';
 import { notifyPhotographerDashboardUsers } from '@/lib/photographerNotifications';
 import { notifyRepeatRequestersForPublishedClass } from '@/lib/db/classRepeatRequests';
 
@@ -11,6 +12,9 @@ export async function PATCH(
   context: { params: Promise<{ classId: string }> }
 ) {
   try {
+    const auth = await requireAdminApi();
+    if (auth.response) return auth.response;
+
     const { classId } = await context.params;
     const body = await request.json();
     const { status } = body;

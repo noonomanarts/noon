@@ -51,6 +51,7 @@ export default function ProductPurchasePanel({
             <button
               type="button"
               onClick={decrement}
+              aria-label={isArabic ? "تقليل الكمية" : "Decrease quantity"}
               disabled={!inStock || quantity <= 1}
               className="inline-flex h-10 w-10 items-center justify-center text-[color:var(--text)] transition hover:bg-[color:var(--surface)] disabled:cursor-not-allowed disabled:opacity-40"
             >
@@ -62,6 +63,7 @@ export default function ProductPurchasePanel({
             <button
               type="button"
               onClick={increment}
+              aria-label={isArabic ? "زيادة الكمية" : "Increase quantity"}
               disabled={!inStock || quantity >= Math.max(1, stockQuantity)}
               className="inline-flex h-10 w-10 items-center justify-center text-[color:var(--text)] transition hover:bg-[color:var(--surface)] disabled:cursor-not-allowed disabled:opacity-40"
             >

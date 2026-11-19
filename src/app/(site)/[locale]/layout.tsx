@@ -5,6 +5,7 @@ import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
 import FloatingWhatsAppButton from "@/components/site/FloatingWhatsAppButton";
 import FloatingInstallButton from "@/components/pwa/FloatingInstallButton";
+import PaymentRecovery from "@/components/site/PaymentRecovery";
 import {
   defaultWhatsAppFloatingButtonSettings,
   getAdminSettingsByKey,
@@ -35,6 +36,7 @@ export default async function SiteLocaleLayout({
       <Footer locale={locale} />
       <FloatingWhatsAppButton locale={locale} settings={whatsappFloatingButton} />
       <FloatingInstallButton locale={locale} whatsapp={whatsappFloatingButton} />
+      <PaymentRecovery />
     </div>
   );
 }

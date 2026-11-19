@@ -47,14 +47,13 @@ export default function WorkerDashboardClient({ locale, stats, permissions, user
   );
 
   const quickActions = useMemo(() => {
-    const actions: { label: string; href: string; icon: React.ReactNode; color: string; enabled: boolean }[] = [];
+    const actions: { label: string; href: string; icon: React.ReactNode; enabled: boolean }[] = [];
     
     if (permissions?.can_restock) {
       actions.push({
         label: t.addRestock,
         href: `/${locale}/worker/restock`,
         icon: <FiPackage className="h-6 w-6" />,
-        color: "bg-emerald-500 hover:bg-emerald-600",
         enabled: true,
       });
     }
@@ -64,7 +63,6 @@ export default function WorkerDashboardClient({ locale, stats, permissions, user
         label: t.newSale,
         href: `/${locale}/worker/sales/new`,
         icon: <FiShoppingCart className="h-6 w-6" />,
-        color: "bg-amber-500 hover:bg-amber-600",
         enabled: true,
       });
     }
@@ -74,7 +72,6 @@ export default function WorkerDashboardClient({ locale, stats, permissions, user
         label: t.viewOrders,
         href: `/${locale}/worker/orders`,
         icon: <FiTruck className="h-6 w-6" />,
-        color: "bg-blue-500 hover:bg-blue-600",
         enabled: true,
       });
     }
@@ -84,7 +81,6 @@ export default function WorkerDashboardClient({ locale, stats, permissions, user
         label: t.printLabels,
         href: `/${locale}/worker/print`,
         icon: <FiPrinter className="h-6 w-6" />,
-        color: "bg-purple-500 hover:bg-purple-600",
         enabled: true,
       });
     }
@@ -198,9 +194,11 @@ export default function WorkerDashboardClient({ locale, stats, permissions, user
                   <Link
                     key={action.href}
                     href={action.href}
-                    className={`flex items-center gap-4 rounded-xl p-5 text-white transition-colors ${action.color}`}
+                    className="group flex min-h-16 items-center gap-3 rounded-xl border border-zinc-200 bg-white p-4 text-zinc-800 transition-colors hover:border-[color:var(--noon-teal)] hover:text-[color:var(--noon-teal-strong)] dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
                   >
-                    {action.icon}
+                    <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-zinc-100 text-zinc-700 transition-colors group-hover:bg-[color:var(--noon-teal-soft)] group-hover:text-[color:var(--noon-teal-strong)] dark:bg-zinc-800 dark:text-zinc-200">
+                      {action.icon}
+                    </span>
                     <span className="font-semibold">{action.label}</span>
                   </Link>
                 ))}

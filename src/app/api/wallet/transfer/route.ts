@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/session';
 import { transferWalletFunds } from '@/lib/db/wallet';
-import { getUserByPhone } from '@/lib/db/users';
+import { getUserByPhoneNormalized } from '@/lib/db/users';
+import { parseMoneyAmount } from '@/lib/adminAuth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,17 +11,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { toPhone, amount, reason } = await request.json();
+    const body = (await request.json().catch(() => ({}))) as {
+      toPhone?: unknown;
+      amount?: unknown;
+      reason?: string;
+    };
+    const toPhone = typeof body.toPhone === 'string' ? body.toPhone.trim().replace(/^00/, '') : '';
+    const amount = parseMoneyAmount(body.amount);
+    const reason = typeof body.reason === 'string' ? body.reason : undefined;
 
-    // Normalize phone number (remove + and 00 prefixes)
-    const normalizedPhone = toPhone.replace(/^\+|^00/, '');
-
-    if (!normalizedPhone || !amount || amount <= 0) {
+    if (!toPhone || amount === null) {
       return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
     }
 
-    // Find recipient by phone
-    const recipient = await getUserByPhone(normalizedPhone);
+    // Registered numbers are stored with a leading "+", so compare digits only.
+    const recipient = await getUserByPhoneNormalized(toPhone);
     if (!recipient) {
       return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
     }

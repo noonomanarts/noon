@@ -285,7 +285,7 @@ export default function AdminEditEventPage({
           </label>
 
           <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            {t.phone}
+            <bdi dir="ltr">{t.phone}</bdi>
             <input
               required
               value={form.phoneNumber}

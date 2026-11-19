@@ -6,6 +6,7 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { ensureDefaultAdmin, verifyLogin } from "@/lib/authStore";
 import { sendUserWhatsAppTemplate } from "@/lib/whatsapp/transactionNotifications";
 import { getSessionCookieOptions, SESSION_COOKIE_NAME } from "@/lib/sessionCookie";
+import { getCurrentUser } from "@/lib/session";
 import WhatsAppAuthCard from "@/components/site/WhatsAppAuthCard";
 import PasswordInput from "@/components/site/PasswordInput";
 
@@ -30,6 +31,15 @@ export default async function LoginPage({
     !nextPathRaw.includes("://");
   const nextPath = isValidNextPath ? nextPathRaw : "";
 
+  // Already signed in: showing the sign-in form again is confusing. Continue to
+  // where the visitor was heading, or to their account.
+  if (!logoutSuccess) {
+    const currentUser = await getCurrentUser();
+    if (currentUser) {
+      redirect(nextPath || `/${locale}/account`);
+    }
+  }
+
   await ensureDefaultAdmin();
 
   async function handleLogin(formData: FormData) {
@@ -38,17 +48,23 @@ export default async function LoginPage({
     const identifier = formData.get("identifier");
     const password = formData.get("password");
     const nextValue = formData.get("nextPath");
+    // Keep the return path on a failed attempt so the visitor still lands
+    // where they were heading (checkout, a booking page) after retrying.
+    const failureSuffix =
+      typeof nextValue === "string" && nextValue.startsWith("/") && !nextValue.startsWith("//") && !nextValue.includes("://")
+        ? `&method=password&next=${encodeURIComponent(nextValue)}`
+        : "";
 
     if (
       typeof identifier !== "string" ||
       typeof password !== "string"
     ) {
-      redirect(`/${localeValue ?? "en"}/login?error=invalid`);
+      redirect(`/${localeValue ?? "en"}/login?error=invalid${failureSuffix}`);
     }
 
     const user = await verifyLogin(identifier.trim(), password);
     if (!user) {
-      redirect(`/${localeValue ?? "en"}/login?error=invalid`);
+      redirect(`/${localeValue ?? "en"}/login?error=invalid${failureSuffix}`);
     }
 
     const cookieStore = await cookies();

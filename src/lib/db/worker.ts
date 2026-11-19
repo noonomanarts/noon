@@ -382,7 +382,11 @@ export async function createInShopSale(input: CreateInShopSaleInput): Promise<In
       );
     }
 
-    const discountAmount = input.discountAmount ?? 0;
+    const discountAmount = toMoney(Number(input.discountAmount ?? 0));
+    // A discount above the subtotal used to store a negative sale total.
+    if (!Number.isFinite(discountAmount) || discountAmount < 0 || discountAmount > subtotal) {
+      throw new Error('Discount must be between 0 and the sale subtotal');
+    }
     const totalAmount = toMoney(subtotal - discountAmount);
 
     // Create sale

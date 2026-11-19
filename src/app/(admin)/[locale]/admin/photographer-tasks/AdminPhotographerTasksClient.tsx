@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useState, useMemo, useCallback } from "react";
 import {
   FiPlus,
@@ -7,7 +8,6 @@ import {
   FiClock,
   FiCheckCircle,
   FiCircle,
-  FiFilter,
   FiLoader,
   FiTrash2,
   FiEdit2,
@@ -285,22 +285,12 @@ export default function AdminPhotographerTasksClient({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-700 dark:bg-zinc-800 w-fit">
-        <FiFilter className="mx-1.5 size-4 text-zinc-400" />
-        {filterButtons.map((btn) => (
-          <button
-            key={btn.key}
-            onClick={() => setFilter(btn.key)}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-              filter === btn.key
-                ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white"
-                : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-            }`}
-          >
-            {btn.label}
-          </button>
-        ))}
-      </div>
+      <AnimatedTabs
+        size="sm"
+        value={filter}
+        onValueChange={setFilter}
+        items={filterButtons.map((btn) => ({ value: btn.key, label: btn.label }))}
+      />
 
       {/* Create/Edit Form Modal */}
       {showForm && (

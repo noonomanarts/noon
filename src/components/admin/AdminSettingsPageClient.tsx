@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useState } from 'react';
 import { FaWhatsapp } from 'react-icons/fa6';
 import { FiDatabase, FiDollarSign, FiImage, FiMessageCircle, FiMessageSquare, FiPhoneCall, FiSettings, FiShield, FiTool } from 'react-icons/fi';
@@ -610,22 +611,22 @@ export default function AdminSettingsPageClient({
       {info ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">{info}</div> : null}
 
       <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="border-b border-zinc-200 px-4 dark:border-zinc-800">
-          <div className="flex min-w-max gap-2 overflow-x-auto">
-            {[
-              ['general', t.tabGeneral],
-              ['class-finance', t.tabClassFinance],
-              ['loyalty', t.tabLoyalty],
-              ['footer', t.tabFooter],
-              ['whatsapp', t.tabWhatsapp],
-              ['whatsapp-floating-button', t.tabWhatsappFloatingButton],
-              ['backup', t.tabBackup],
-            ].map(([tabId, label]) => (
-              <button key={tabId} type="button" onClick={() => setActiveTab(tabId as TabId)} className={`shrink-0 whitespace-nowrap rounded-t-lg px-4 py-3 text-sm font-medium transition ${activeTab === tabId ? 'border-b-2 border-[color:var(--noon-teal)] text-[color:var(--noon-teal)]' : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'}`}>
-                {label}
-              </button>
-            ))}
-          </div>
+        <div className="px-4 pt-2">
+          <AnimatedTabs
+            variant="underline"
+            fullWidth
+            value={activeTab}
+            onValueChange={setActiveTab}
+            items={[
+              { value: 'general', label: t.tabGeneral },
+              { value: 'class-finance', label: t.tabClassFinance },
+              { value: 'loyalty', label: t.tabLoyalty },
+              { value: 'footer', label: t.tabFooter },
+              { value: 'whatsapp', label: t.tabWhatsapp },
+              { value: 'whatsapp-floating-button', label: t.tabWhatsappFloatingButton },
+              { value: 'backup', label: t.tabBackup },
+            ]}
+          />
         </div>
 
         <div className="p-5">

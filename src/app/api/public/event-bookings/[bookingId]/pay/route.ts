@@ -95,6 +95,8 @@ export async function POST(request: NextRequest, props: Params) {
         `UPDATE event_bookings
          SET payment_method = 'ONLINE',
              payment_status = 'PENDING',
+             payment_gateway = 'AMWAL',
+             payment_reference = booking_number,
              updated_at = NOW()
          WHERE id = $1
          RETURNING id, booking_number, status, total_amount, currency, payment_status, payment_method, paid_at`,

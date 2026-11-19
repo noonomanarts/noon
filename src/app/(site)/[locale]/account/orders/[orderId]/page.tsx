@@ -108,6 +108,41 @@ function formatAmount(value: unknown) {
   return Number.isFinite(amount) ? formatPlainNumber(amount) : '-';
 }
 
+const STATUS_LABELS: Record<string, { en: string; ar: string }> = {
+  PENDING: { en: 'Pending', ar: 'معلق' },
+  CONFIRMED: { en: 'Confirmed', ar: 'مؤكد' },
+  PAID: { en: 'Paid', ar: 'مدفوع' },
+  PROCESSING: { en: 'Processing', ar: 'قيد التجهيز' },
+  READY_TO_SHIP: { en: 'Ready to ship', ar: 'جاهز للشحن' },
+  SHIPPED: { en: 'Shipped', ar: 'تم الشحن' },
+  DELIVERED: { en: 'Delivered', ar: 'تم التسليم' },
+  COMPLETED: { en: 'Completed', ar: 'مكتمل' },
+  CANCELLED: { en: 'Cancelled', ar: 'ملغي' },
+  NO_SHOW: { en: 'No show', ar: 'لم يحضر' },
+  PENDING_PAYMENT: { en: 'Pending payment', ar: 'بانتظار الدفع' },
+  NEW: { en: 'New', ar: 'جديد' },
+  IN_PROGRESS: { en: 'In progress', ar: 'قيد التنفيذ' },
+  PENDING_CLIENT_CONFIRMATION: { en: 'Awaiting your confirmation', ar: 'بانتظار تأكيدك' },
+  CLIENT_CONFIRMED: { en: 'Confirmed by you', ar: 'تم التأكيد' },
+};
+
+const PAYMENT_STATUS_LABELS: Record<string, { en: string; ar: string }> = {
+  PENDING: { en: 'Awaiting payment', ar: 'بانتظار الدفع' },
+  PAID: { en: 'Paid', ar: 'مدفوع' },
+  REFUNDED: { en: 'Refunded', ar: 'مسترجع' },
+  FAILED: { en: 'Payment failed', ar: 'فشل الدفع' },
+};
+
+function statusLabel(status: string | null | undefined, locale: string): string {
+  if (!status) return '';
+  return STATUS_LABELS[status]?.[locale === 'ar' ? 'ar' : 'en'] ?? status.replaceAll('_', ' ');
+}
+
+function paymentStatusLabel(status: string | null | undefined, locale: string): string {
+  if (!status) return '';
+  return PAYMENT_STATUS_LABELS[status]?.[locale === 'ar' ? 'ar' : 'en'] ?? status.replaceAll('_', ' ');
+}
+
 function getStatusClasses(status: string) {
   switch (status) {
     case 'COMPLETED':
@@ -213,7 +248,7 @@ export default async function AccountOrderDetailsPage({
               <p className="mt-1 text-sm text-[color:var(--text-muted)]">{t.orderNumber}: {classBooking.booking_number}</p>
             </div>
             <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${getStatusClasses(classBooking.status)}`}>
-              {classBooking.status}
+              {statusLabel(classBooking.status, locale)}
             </span>
           </div>
 
@@ -232,7 +267,7 @@ export default async function AccountOrderDetailsPage({
             </div>
             <div className="rounded-2xl bg-[color:var(--muted)] p-4 text-sm">
               <p className="text-[color:var(--text-subtle)]">{t.payment}</p>
-              <p className="mt-1 font-semibold text-[color:var(--text)]">{classBooking.payment_status} {classBooking.payment_method ? `• ${getPaymentMethodLabel(classBooking.payment_method, locale)}` : ''}</p>
+              <p className="mt-1 font-semibold text-[color:var(--text)]">{paymentStatusLabel(classBooking.payment_status, locale)} {classBooking.payment_method ? `• ${getPaymentMethodLabel(classBooking.payment_method, locale)}` : ''}</p>
             </div>
           </div>
 
@@ -294,7 +329,7 @@ export default async function AccountOrderDetailsPage({
               <p className="mt-1 text-sm text-[color:var(--text-muted)]">{t.orderNumber}: {eventBooking.booking_number}</p>
             </div>
             <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${getStatusClasses(eventBooking.status)}`}>
-              {eventBooking.status}
+              {statusLabel(eventBooking.status, locale)}
             </span>
           </div>
 
@@ -323,7 +358,7 @@ export default async function AccountOrderDetailsPage({
             </div>
             <div className="rounded-2xl bg-[color:var(--muted)] p-4 text-sm">
               <p className="text-[color:var(--text-subtle)]">{t.payment}</p>
-              <p className="mt-1 font-semibold text-[color:var(--text)]">{eventBooking.payment_status} {eventBooking.payment_method ? `• ${getPaymentMethodLabel(eventBooking.payment_method, locale)}` : ''}</p>
+              <p className="mt-1 font-semibold text-[color:var(--text)]">{paymentStatusLabel(eventBooking.payment_status, locale)} {eventBooking.payment_method ? `• ${getPaymentMethodLabel(eventBooking.payment_method, locale)}` : ''}</p>
             </div>
           </div>
 
@@ -362,7 +397,7 @@ export default async function AccountOrderDetailsPage({
             <p className="mt-1 text-sm text-[color:var(--text-muted)]">{t.orderNumber}: {shopOrder!.order_number}</p>
           </div>
           <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-semibold ${getStatusClasses(shopOrder!.status)}`}>
-            {shopOrder!.status}
+            {statusLabel(shopOrder!.status, locale)}
           </span>
         </div>
 

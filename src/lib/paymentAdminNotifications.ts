@@ -2,6 +2,7 @@ import { getUserById } from '@/lib/db/users';
 import { getAdminSettingsByKey } from '@/lib/db/adminSettings';
 import { enqueueNotification } from '@/lib/notifications/outbox';
 import { notifyUser } from '@/lib/notificationService';
+import { emitAdminEvent } from '@/lib/realtime/adminEvents';
 import {
   defaultPaymentAlertSettings,
   sanitizePaymentAlertSettings,
@@ -57,7 +58,11 @@ function buildMessage(input: PaymentAdminNotificationInput): PaymentAlertMessage
   const customerName = input.customerName?.trim() || 'A customer';
   const methodText = input.paymentMethod?.trim() ? ` via ${input.paymentMethod.trim()}` : '';
   const referenceText = `${sourceLabel} ${input.reference}`;
-  const url = input.adminPath?.trim() || '/admin/payments';
+  const basePath = input.adminPath?.trim() || '/admin/payments';
+  // Land on the exact payment instead of the top of an unfiltered list.
+  const url = basePath === '/admin/payments'
+    ? `/admin/payments?search=${encodeURIComponent(input.reference)}`
+    : basePath;
   const title = `Payment received: ${referenceText}`;
   const body = `${customerName} paid ${amountText} for ${referenceText}${methodText}.`;
   const html = `<p><strong>Payment received</strong></p><p>${escapeHtml(customerName)} paid <strong>${escapeHtml(amountText)}</strong> for ${escapeHtml(referenceText)}${methodText ? ` via ${escapeHtml(input.paymentMethod ?? '')}` : ''}.</p><p>Open in dashboard: ${escapeHtml(url)}</p>`;
@@ -140,6 +145,13 @@ async function sendChannelNotification(input: {
 }
 
 export async function sendPaymentAdminNotifications(input: PaymentAdminNotificationInput): Promise<void> {
+  // Refresh any open admin Payments page, whether or not alerts are enabled.
+  try {
+    emitAdminEvent('payments_updated', { source: input.source, reference: input.reference });
+  } catch (eventError) {
+    console.error('Failed to emit payments_updated event:', eventError);
+  }
+
   const settings = await getSettings();
   if (!settings.enabled || !settings.sources[input.source] || settings.recipients.length === 0) {
     return;

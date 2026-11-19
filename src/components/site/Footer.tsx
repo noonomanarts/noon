@@ -243,18 +243,21 @@ export default async function Footer({ locale }: { locale: Locale }) {
             </nav>
           </div>
 
-          <div dir="ltr" className="footer-soft-panel self-start bg-[color:var(--footer-panel)] p-3">
+          <div dir={isArabic ? "rtl" : "ltr"} className="footer-soft-panel self-start bg-[color:var(--footer-panel)] p-3">
             <div className="space-y-2">
               {contactItems.map((item) => {
                 const Icon = item.icon;
+                // Reading order in both languages: icon, what it is, then the value.
                 const content = (
                   <>
-                    <span className="min-w-0 flex-1 font-black">{item.label}</span>
+                    <span className="footer-soft-row inline-flex size-10 shrink-0 items-center justify-center border border-[color:var(--footer-border)]">
+                      <Icon className="size-5" aria-hidden="true" />
+                    </span>
                     <span className="whitespace-nowrap font-black text-[color:var(--footer-text)]">
                       {item.icon === FiMapPin ? t.location : item.icon === FiPhone ? t.phone : t.email}
                     </span>
-                    <span className="footer-soft-row inline-flex size-10 shrink-0 items-center justify-center border border-[color:var(--footer-border)]">
-                      <Icon className="size-5" />
+                    <span className="min-w-0 flex-1 truncate text-end font-black" dir={item.icon === FiMapPin ? undefined : "ltr"}>
+                      {item.label}
                     </span>
                   </>
                 );
@@ -266,7 +269,6 @@ export default async function Footer({ locale }: { locale: Locale }) {
                     target={item.external ? "_blank" : undefined}
                     rel={item.external ? "noopener noreferrer" : undefined}
                     className="footer-soft-row flex min-h-12 items-center gap-3 bg-[color:var(--footer-panel-hover)] px-3 text-sm font-bold text-[color:var(--footer-muted)] transition hover:text-[color:var(--footer-text)]"
-                    dir={item.href === phoneHref ? "ltr" : undefined}
                   >
                     {content}
                   </a>
@@ -371,7 +373,7 @@ export default async function Footer({ locale }: { locale: Locale }) {
 
         <div style={{ backgroundColor: headerColor, color: footerTextColor }}>
           <div className="mx-auto flex w-full max-w-7xl flex-col-reverse gap-2 px-6 py-4 text-center text-xs font-black sm:flex-row sm:items-center sm:justify-between sm:text-start lg:px-10 xl:px-12">
-            <p>{copyrightLabel}</p>
+            <p dir="auto">{copyrightLabel}</p>
             <p className="font-normal opacity-80">
               {isArabic ? "تصميم وتطوير " : "Designed & built by "}
               <a

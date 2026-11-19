@@ -423,7 +423,7 @@ export default function PrintLabelsClient({ locale, products }: Props) {
         ? new Date(`${value}T00:00:00`)
         : new Date(value);
     if (Number.isNaN(date.getTime())) return t.noDate;
-    return new Intl.DateTimeFormat(isArabic ? "ar" : "en", {
+    return new Intl.DateTimeFormat(isArabic ? "ar-u-nu-latn" : "en", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",

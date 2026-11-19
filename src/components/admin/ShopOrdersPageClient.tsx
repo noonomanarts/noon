@@ -97,7 +97,7 @@ export default function ShopOrdersPageClient({ locale }: { locale: Locale }) {
     orderNumber: isArabic ? 'رقم الطلب' : 'Order #',
     customer: isArabic ? 'العميل' : 'Customer',
     products: isArabic ? 'المنتجات' : 'Products',
-    amount: isArabic ? 'قيمة المنتجات' : 'Products Total',
+    amount: isArabic ? 'الإجمالي' : 'Total',
     shipping: isArabic ? 'الشحن' : 'Shipping',
     statusLabel: isArabic ? 'الحالة' : 'Status',
     createdAt: isArabic ? 'تاريخ الإنشاء' : 'Created at',
@@ -198,6 +198,16 @@ export default function ShopOrdersPageClient({ locale }: { locale: Locale }) {
     return `${shown.join('، ')} +${rest}`;
   };
 
+  const formatOrderDate = (value: string | Date) =>
+    new Date(value).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-GB', {
+      timeZone: 'Asia/Muscat',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
   const getInitial = (fullName: string | null | undefined) => {
     const trimmed = typeof fullName === 'string' ? fullName.trim() : '';
     if (!trimmed) return '?';
@@ -210,10 +220,11 @@ export default function ShopOrdersPageClient({ locale }: { locale: Locale }) {
         <h1 className="text-xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
         <Link
           href={`/${locale}/admin/shop/orders/new`}
-          className="rounded-lg bg-[color:var(--noon-teal)] px-3 py-1.5 text-xs font-semibold text-white shadow hover:opacity-90"
+          className="inline-flex h-10 items-center gap-2 rounded-lg bg-[color:var(--noon-teal)] px-4 text-sm font-semibold text-white hover:bg-[color:var(--noon-teal-strong)]"
         >
-          <span className="hidden sm:inline">+ {t.newOrder}</span>
-          <span className="sm:hidden">+ {isArabic ? 'طلب' : 'New'}</span>
+          <span aria-hidden="true">+</span>
+          <span className="hidden sm:inline">{t.newOrder}</span>
+          <span className="sm:hidden">{isArabic ? 'طلب' : 'New'}</span>
         </Link>
       </div>
 
@@ -248,76 +259,116 @@ export default function ShopOrdersPageClient({ locale }: { locale: Locale }) {
 
       <div className="space-y-4">
         {loading ? (
-          <div className="rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
-            Loading...
+          <div role="status" className="rounded-xl border border-zinc-200 bg-white p-10 text-center text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
+            {isArabic ? 'جاري تحميل الطلبات...' : 'Loading orders...'}
           </div>
         ) : orders.length === 0 ? (
           <div className="rounded-xl border border-zinc-200 bg-white p-6 text-sm text-zinc-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
             {t.noOrders}
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
-            <div className="min-w-[1140px]">
-              <div className="grid grid-cols-[170px_230px_1fr_210px_150px_190px_140px] items-center gap-4 border-b border-zinc-200 px-5 py-3 text-xs font-semibold text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
-                <span className="whitespace-nowrap">{t.orderNumber}</span>
-                <span className="whitespace-nowrap">{t.customer}</span>
-                <span className="whitespace-nowrap">{t.products}</span>
-                <span className="whitespace-nowrap">{t.amount}</span>
-                <span className="whitespace-nowrap">{t.statusLabel}</span>
-                <span className="whitespace-nowrap">{t.createdAt}</span>
-                <span className="whitespace-nowrap" />
-              </div>
-              <div className="divide-y divide-zinc-200 dark:divide-zinc-700">
-                {orders.map((order) => (
+          <>
+            {/* Small screens: one card per order, no sideways scrolling. */}
+            <ul className="space-y-3 lg:hidden">
+              {orders.map((order) => (
+                <li key={order.id}>
                   <Link
-                    key={order.id}
                     href={`/${locale}/admin/shop/orders/${order.id}`}
-                    className="grid grid-cols-[170px_230px_1fr_210px_150px_190px_140px] items-center gap-4 px-5 py-3 text-xs transition hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                    className="block rounded-xl border border-zinc-200 bg-white p-4 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900"
                   >
-                    <span className="truncate whitespace-nowrap font-semibold text-zinc-900 dark:text-zinc-100" title={`#${order.order_number}`}>
-                      #{order.order_number}
-                    </span>
-
-                    <span className="flex min-w-0 items-center gap-2 text-zinc-700 dark:text-zinc-300">
-                      {order.user_profile_image ? (
-                        <Image
-                          src={order.user_profile_image}
-                          alt={order.user_full_name}
-                          width={24}
-                          height={24}
-                          className="h-6 w-6 shrink-0 rounded-full object-cover"
-                        />
-                      ) : (
-                        <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-semibold text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">
-                          {getInitial(order.user_full_name)}
-                        </span>
-                      )}
-                      <span className="truncate whitespace-nowrap" title={order.user_full_name}>{order.user_full_name}</span>
-                    </span>
-
-                    <span className="truncate whitespace-nowrap text-zinc-700 dark:text-zinc-300" title={getProductsSummary(order)}>
-                      {getProductsSummary(order)}
-                    </span>
-
-                    <span className="truncate whitespace-nowrap text-zinc-700 dark:text-zinc-300" title={`${formatAmountWithCurrency(order.subtotal, order.currency)} • ${t.shipping}: ${formatAmountWithCurrency(order.shipping_fee, order.currency)}`}>
-                      <span className="font-semibold">{formatAmountWithCurrency(order.subtotal, order.currency)}</span>
-                      <span className="text-zinc-500 dark:text-zinc-400"> • {t.shipping}: {formatAmountWithCurrency(order.shipping_fee, order.currency)}</span>
-                    </span>
-
-                    <span className={`w-fit whitespace-nowrap rounded-full px-2.5 py-1 font-semibold ${statusClass[order.status]}`}>
-                      {statusLabelMap[order.status][locale]}
-                    </span>
-
-                    <span className="truncate whitespace-nowrap text-zinc-600 dark:text-zinc-400" title={new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}>
-                      {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
-                    </span>
-
-                    <span className="whitespace-nowrap font-medium text-[color:var(--noon-teal)]">{t.openDetails}</span>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100" dir="ltr">#{order.order_number}</p>
+                        <p className="mt-0.5 truncate text-sm text-zinc-700 dark:text-zinc-300">{order.user_full_name}</p>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass[order.status]}`}>
+                        {statusLabelMap[order.status][locale]}
+                      </span>
+                    </div>
+                    <p className="mt-2 truncate text-xs text-zinc-500 dark:text-zinc-400">{getProductsSummary(order)}</p>
+                    <div className="mt-2 flex items-center justify-between gap-3 text-xs">
+                      <span className="font-semibold text-zinc-900 dark:text-zinc-100" dir="ltr">
+                        {formatAmountWithCurrency(order.total_amount, order.currency)}
+                      </span>
+                      <span className="text-zinc-500 dark:text-zinc-400">{formatOrderDate(order.created_at)}</span>
+                    </div>
                   </Link>
-                ))}
-              </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden overflow-x-auto rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 lg:block">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr>
+                    <th scope="col" className="px-4 py-3">{t.orderNumber}</th>
+                    <th scope="col" className="px-4 py-3">{t.customer}</th>
+                    <th scope="col" className="px-4 py-3">{t.products}</th>
+                    <th scope="col" className="px-4 py-3">{t.amount}</th>
+                    <th scope="col" className="px-4 py-3">{t.statusLabel}</th>
+                    <th scope="col" className="px-4 py-3">{t.createdAt}</th>
+                    <th scope="col" className="px-4 py-3"><span className="sr-only">{t.openDetails}</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order) => (
+                    <tr key={order.id}>
+                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100" dir="ltr">
+                        #{order.order_number}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="flex items-center gap-2.5 text-zinc-700 dark:text-zinc-300">
+                          {order.user_profile_image ? (
+                            <Image
+                              src={order.user_profile_image}
+                              alt=""
+                              width={28}
+                              height={28}
+                              className="size-7 shrink-0 rounded-full object-cover"
+                            />
+                          ) : (
+                            <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-[11px] font-semibold text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200">
+                              {getInitial(order.user_full_name)}
+                            </span>
+                          )}
+                          <span className="max-w-[12rem] truncate" title={order.user_full_name}>{order.user_full_name}</span>
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-zinc-700 dark:text-zinc-300">
+                        <span className="block max-w-[16rem] truncate" title={getProductsSummary(order)}>
+                          {getProductsSummary(order)}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <span className="block font-semibold text-zinc-900 dark:text-zinc-100" dir="ltr">
+                          {formatAmountWithCurrency(order.total_amount, order.currency)}
+                        </span>
+                        <span className="block text-xs text-zinc-500 dark:text-zinc-400">
+                          {t.shipping}: {formatAmountWithCurrency(order.shipping_fee, order.currency)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusClass[order.status]}`}>
+                          {statusLabelMap[order.status][locale]}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-zinc-600 dark:text-zinc-400">
+                        {formatOrderDate(order.created_at)}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-end">
+                        <Link
+                          href={`/${locale}/admin/shop/orders/${order.id}`}
+                          className="inline-flex items-center rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                        >
+                          {t.openDetails}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          </>
         )}
       </div>
 

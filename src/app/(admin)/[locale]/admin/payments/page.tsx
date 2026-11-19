@@ -6,10 +6,13 @@ import AdminPaymentsPageClient from '@/components/admin/AdminPaymentsPageClient'
 
 export default async function AdminPaymentsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ search?: string; source?: string }>;
 }) {
   const { locale: rawLocale } = await params;
+  const query = await searchParams;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : 'en';
 
   const cookieStore = await cookies();
@@ -24,5 +27,11 @@ export default async function AdminPaymentsPage({
     redirect(`/${locale}/account`);
   }
 
-  return <AdminPaymentsPageClient locale={locale} />;
+  return (
+    <AdminPaymentsPageClient
+      locale={locale}
+      initialSearch={typeof query.search === 'string' ? query.search : ''}
+      initialSource={typeof query.source === 'string' ? query.source : 'ALL'}
+    />
+  );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useMemo, useState } from 'react';
 import {
   type EmailSettings,
@@ -291,21 +292,13 @@ export default function AdminEmailPageClient({
         </div>
       )}
 
-      <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-700">
-        {tabs.map((tabItem) => (
-          <button
-            key={tabItem.key}
-            onClick={() => setTab(tabItem.key)}
-            className={`px-4 py-2.5 text-sm font-medium transition-colors ${
-              tab === tabItem.key
-                ? 'border-b-2 border-[color:var(--noon-teal)] text-[color:var(--noon-teal)]'
-                : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100'
-            }`}
-          >
-            {tabItem.label}
-          </button>
-        ))}
-      </div>
+      <AnimatedTabs
+        variant="underline"
+        fullWidth
+        value={tab}
+        onValueChange={setTab}
+        items={tabs.map((tabItem) => ({ value: tabItem.key, label: tabItem.label }))}
+      />
 
       {/* SMTP Settings Tab */}
       {tab === 'settings' && (

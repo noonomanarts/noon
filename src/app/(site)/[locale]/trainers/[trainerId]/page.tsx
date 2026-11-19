@@ -606,7 +606,7 @@ export default async function TrainerProfilePage({
                       </div>
                       <span className="font-bold text-coral">{formatMoney(cls.price, cls.currency)}</span>
                     </div>
-                    <p className="text-sm font-semibold text-zinc-900 dark:text-white">{t.moreDetails} →</p>
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-white">{t.moreDetails} <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span></p>
                   </div>
                 </Link>
               ))}

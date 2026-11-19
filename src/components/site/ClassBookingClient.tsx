@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
 import { useAppFeedback } from '@/components/ui/AppFeedbackProvider';
 import type { Gender } from '@/lib/db/types';
-import { getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
+import { confirmAmwalPayment, getAmwalCheckoutErrorPayload, startAmwalCheckout } from '@/lib/amwalClient';
 
 const DISPLAY_TIMEZONE = 'Asia/Muscat';
 
@@ -162,6 +162,15 @@ export default function ClassBookingClient({
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Errors render far from the submit button; bring them into view so a failed
+  // tap never looks like "nothing happened".
+  const errorRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
   const [message, setMessage] = useState<string | null>(null);
   const [result, setResult] = useState<BookingResult | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<BookingPaymentMethod>('ONLINE');
@@ -744,17 +753,31 @@ export default function ClassBookingClient({
         await startAmwalCheckout({
           checkout: payload.checkout,
           onComplete: async (gatewayPayload) => {
-            const callbackResponse = await fetch('/api/public/class-bookings/payment/callback', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ reference, gatewayPayload }),
-            });
-            const callbackPayload = (await callbackResponse.json().catch(() => ({}))) as BookingSubmitPayload & {
+            const { ok, payload: callbackPayload } = await confirmAmwalPayment<BookingSubmitPayload & {
               paymentStatus?: string;
-            };
+              needsReview?: boolean;
+            }>('/api/public/class-bookings/payment/callback', { reference, gatewayPayload });
 
-            if (!callbackResponse.ok || callbackPayload.paymentStatus !== 'PAID' || !callbackPayload.booking) {
-              throw new Error(callbackPayload.error || (isArabic ? 'فشل تأكيد الدفع.' : 'Failed to confirm payment.'));
+            setMessage(null);
+
+            if (callbackPayload.needsReview) {
+              setError(
+                isArabic
+                  ? 'تم استلام دفعتك، لكن تعذّر تأكيد الحجز تلقائياً. سيتواصل معك فريقنا قريباً.'
+                  : callbackPayload.error || 'Your payment was received, but the booking could not be confirmed automatically. Our team will contact you shortly.'
+              );
+              return;
+            }
+
+            if (!ok || callbackPayload.paymentStatus !== 'PAID' || !callbackPayload.booking) {
+              setError(
+                callbackPayload.paymentStatus === 'PENDING'
+                  ? (isArabic
+                      ? 'الدفع قيد المعالجة. سنؤكد حجزك فور وصول تأكيد البنك.'
+                      : 'Your payment is still being processed. We will confirm your booking as soon as the bank confirms it.')
+                  : (isArabic ? 'فشل تأكيد الدفع.' : 'Payment was not completed.')
+              );
+              return;
             }
 
             setResult({
@@ -762,10 +785,20 @@ export default function ClassBookingClient({
               booking: callbackPayload.booking,
             });
           },
+          onConfirmError: () => {
+            setMessage(null);
+            setError(
+              isArabic
+                ? `تعذّر تسجيل الدفع بسبب مشكلة في الاتصال. إذا تم الخصم من بطاقتك فلا تدفع مرة أخرى؛ افتح «طلباتي» بعد قليل أو تواصل معنا واذكر المرجع ${reference}.`
+                : `We could not record your payment because of a connection problem. If your card was charged, do not pay again — check “My orders” in a moment or contact us with reference ${reference}.`
+            );
+          },
           onCancel: () => {
+            setMessage(null);
             setError(isArabic ? 'تم إلغاء الدفع.' : 'Payment was cancelled.');
           },
           onError: async (gatewayPayload) => {
+            setMessage(null);
             await fetch('/api/public/class-bookings/payment/callback', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -861,7 +894,7 @@ export default function ClassBookingClient({
         </div>
       )}
       {error && (
-        <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
+        <div ref={errorRef} role="alert" className="mt-4 scroll-mt-28 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
           {error}
         </div>
       )}

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import { MuscatLocationPicker } from '@/components/site/MuscatLocationPicker';
 import { formatAmountWithCurrency } from '@/lib/formatNumber';
@@ -134,6 +134,15 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Errors render far from the submit button; bring them into view so a failed
+  // tap never looks like "nothing happened".
+  const errorRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [error]);
   const [message, setMessage] = useState<string | null>(null);
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
@@ -487,7 +496,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">{t.title}</h1>
             <p className="mt-3 text-sm text-[color:var(--text-muted)]">{t.loginRequired}</p>
             <Link
-              href={`/${locale}/login`}
+              href={`/${locale}/login?next=${encodeURIComponent(`/${locale}/checkout`)}`}
               className="mt-5 inline-flex rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
             >
               {t.goToLogin}
@@ -530,10 +539,10 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                 {t.continueShopping}
               </Link>
               <Link
-                href={`/${locale}/cart`}
+                href={`/${locale}/account/orders`}
                 className="inline-flex rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
               >
-                {t.backToCart}
+                {isArabic ? 'عرض طلباتي' : 'View my orders'}
               </Link>
             </div>
           </div>
@@ -552,7 +561,20 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         <div className="mx-auto w-full max-w-3xl px-4 py-12">
           <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-7 text-center shadow-sm">
             <h1 className="text-2xl font-semibold tracking-tight text-[color:var(--text)]">{t.title}</h1>
-            <p className="mt-3 text-sm text-[color:var(--text-muted)]">{t.empty}</p>
+            {error ? (
+              <div role="alert" className="mt-3 space-y-3">
+                <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>
+                <button
+                  type="button"
+                  onClick={() => void loadData()}
+                  className="inline-flex rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-2 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--muted)]"
+                >
+                  {isArabic ? 'إعادة المحاولة' : 'Try again'}
+                </button>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-[color:var(--text-muted)]">{t.empty}</p>
+            )}
             <div className="mt-5 flex flex-wrap justify-center gap-3">
               <Link
                 href={`/${locale}/cart`}
@@ -604,7 +626,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
         ) : null}
 
         {error ? (
-          <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
+          <div ref={errorRef} role="alert" className="mt-4 scroll-mt-28 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-900/20 dark:text-rose-300">
             {error}
           </div>
         ) : null}
@@ -629,7 +651,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                   </div>
                 </div>
                 <label className="space-y-1 text-sm">
-                  <span className="text-[color:var(--text)]">{t.area}</span>
+                  <span className="text-[color:var(--text)]">{t.area}<span className="text-rose-600" aria-hidden="true"> *</span></span>
                   <input
                     value={form.area}
                     onChange={(event) => setForm((prev) => ({ ...prev, area: event.target.value }))}
@@ -637,7 +659,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                   />
                 </label>
                 <label className="space-y-1 text-sm sm:col-span-2">
-                  <span className="text-[color:var(--text)]">{t.streetAddress}</span>
+                  <span className="text-[color:var(--text)]">{t.streetAddress}<span className="text-rose-600" aria-hidden="true"> *</span></span>
                   <input
                     value={form.streetAddress}
                     onChange={(event) =>
@@ -660,7 +682,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                   />
                 </label>
                 <label className="space-y-1 text-sm">
-                  <span className="text-[color:var(--text)]">{t.recipientFullName}</span>
+                  <span className="text-[color:var(--text)]">{t.recipientFullName}<span className="text-rose-600" aria-hidden="true"> *</span></span>
                   <input
                     value={form.recipientFullName}
                     onChange={(event) =>
@@ -670,8 +692,12 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                   />
                 </label>
                 <label className="space-y-1 text-sm sm:col-span-2">
-                  <span className="text-[color:var(--text)]">{t.recipientPhone}</span>
+                  <span className="text-[color:var(--text)]">{t.recipientPhone}<span className="text-rose-600" aria-hidden="true"> *</span></span>
                   <input
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    dir="ltr"
                     value={form.recipientPhone}
                     onChange={(event) =>
                       setForm((prev) => ({ ...prev, recipientPhone: event.target.value }))
@@ -693,7 +719,7 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
             ) : null}
 
             <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-5 text-center shadow-sm">
-              <h3 className="text-base font-semibold text-[color:var(--text)]">{hasShopItems ? t.orderSummary : t.bookingsSummary}</h3>
+              <h3 className="text-base font-semibold text-[color:var(--text)]">{hasShopItems ? (isArabic ? 'محتويات الطلب' : 'Items in your order') : t.bookingsSummary}</h3>
               <div className="mt-3 space-y-2">
                 {(cart?.items ?? []).map((item) => {
                   const shopItem = hasRenderableProduct(item) ? item : null;
@@ -776,10 +802,10 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
                 ) : null}
               </div>
               ) : null}
-              {!isRequestOnlyCart && hasEnoughBalance ? (
+              {!isRequestOnlyCart ? (
               <div className="flex items-center justify-between">
                 <span>{t.walletBalance}</span>
-                <span className="font-semibold">
+                <span className={`font-semibold ${hasEnoughBalance ? '' : 'text-rose-700'}`}>
                   {formatAmountWithCurrency(walletBalance, currency)}
                 </span>
               </div>
@@ -819,10 +845,22 @@ export default function CheckoutPageClient({ locale }: { locale: Locale }) {
               </div>
             </div>
 
+            {!isRequestOnlyCart && !hasEnoughBalance ? (
+              <div role="alert" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-900">
+                <p>{t.insufficient}</p>
+                <Link
+                  href={`/${locale}/account/wallet`}
+                  className="mt-2 inline-flex font-semibold underline underline-offset-2"
+                >
+                  {t.topupInAccount}
+                </Link>
+              </div>
+            ) : null}
+
             <button
               type="button"
               onClick={() => void submitCheckout()}
-              disabled={processing || requiredMissing || isLocationMissing}
+              disabled={processing || (!isRequestOnlyCart && !hasEnoughBalance)}
               className="mt-5 inline-flex w-full items-center justify-center rounded-xl bg-[color:var(--primary)] px-4 py-2.5 text-sm font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {processing ? t.processing : isRequestOnlyCart ? t.submitRequests : hasEnoughBalance ? t.payWallet : t.payNow}

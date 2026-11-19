@@ -178,7 +178,7 @@ export default async function ShopPage({
                       style={{ backgroundColor: siteButtonColor, color: siteButtonTextColor }}
                     >
                       {t.visitWebsite}
-                      <FiArrowRight className="size-3.5" />
+                      <FiArrowRight className="rtl:rotate-180 size-3.5" />
                     </p>
                   </div>
                 </a>

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getUserById } from "@/lib/db/users";
@@ -8,15 +7,7 @@ import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu";
 import AdminNotificationCenter from "@/components/admin/AdminNotificationCenter";
 import MobileSidebar from "@/components/admin/MobileSidebar";
-import OverlayScrollArea from "@/components/site/OverlayScrollArea";
-import {
-  FiGrid,
-  FiPackage,
-  FiShoppingCart,
-  FiTruck,
-  FiPrinter,
-  FiBell,
-} from "react-icons/fi";
+import DashboardSidebar from "@/components/admin/DashboardSidebar";
 
 type WorkerIconName = "FiGrid" | "FiPackage" | "FiShoppingCart" | "FiTruck" | "FiPrinter" | "FiBell";
 
@@ -144,92 +135,19 @@ export default async function WorkerLayout({
     }),
   })).filter((section) => section.items.length > 0);
 
-  const iconComponents: Record<WorkerIconName, React.ReactNode> = {
-    FiGrid: <FiGrid className="h-5 w-5" />,
-    FiPackage: <FiPackage className="h-5 w-5" />,
-    FiShoppingCart: <FiShoppingCart className="h-5 w-5" />,
-    FiTruck: <FiTruck className="h-5 w-5" />,
-    FiPrinter: <FiPrinter className="h-5 w-5" />,
-    FiBell: <FiBell className="h-5 w-5" />,
-  };
-
   return (
     <div
-      className="flex min-h-dvh bg-zinc-50 dark:bg-zinc-950"
+      className="admin-panel flex min-h-dvh bg-zinc-100 dark:bg-zinc-950"
       dir={isRTL ? "rtl" : "ltr"}
     >
-      {/* Desktop Sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-e border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 lg:block">
-        <OverlayScrollArea className="h-full">
-          <div className="flex h-full flex-col">
-            {/* Logo */}
-            <div className="flex h-16 items-center border-b border-zinc-200 px-6 dark:border-zinc-800">
-              <Link
-                href={`/${locale}/worker`}
-                className="flex items-center gap-2"
-              >
-                <span className="text-lg font-bold text-zinc-900 dark:text-white">
-                  {t.panel}
-                </span>
-              </Link>
-            </div>
-
-            {/* Navigation */}
-            <nav className="flex-1 space-y-6 px-4 py-6">
-              {menuItems.map((section) => (
-                <div key={section.section}>
-                  <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
-                    {section.section}
-                  </p>
-                  <ul className="space-y-1">
-                    {section.items.map((item) => (
-                      <li key={item.href}>
-                        <Link
-                          href={item.href}
-                          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                        >
-                          <span className={item.iconColor}>
-                            {iconComponents[item.iconName]}
-                          </span>
-                          {item.label}
-                          {item.badgeCount !== undefined && item.badgeCount > 0 && (
-                            <span className="ms-auto rounded-full bg-rose-500 px-2 py-0.5 text-xs font-semibold text-white">
-                              {item.badgeCount}
-                            </span>
-                          )}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </nav>
-
-            {/* View Site Link */}
-            <div className="border-t border-zinc-200 px-4 py-4 dark:border-zinc-800">
-              <Link
-                href={`/${locale}`}
-                className="flex items-center gap-2 text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-                {t.viewSite}
-              </Link>
-            </div>
-          </div>
-        </OverlayScrollArea>
-      </aside>
+      <DashboardSidebar
+        locale={locale}
+        menuItems={menuItems}
+        title={t.panel}
+        homeHref={`/${locale}/worker`}
+        viewSiteLabel={t.viewSite}
+        storageKey="noon_worker_nav"
+      />
 
       {/* Main Content */}
       <div className="flex flex-1 flex-col">
@@ -262,6 +180,7 @@ export default async function WorkerLayout({
                   accountSettings: t.accountSettings,
                 }}
                 onLogoutAction={handleLogout}
+                storageKey="noon_worker_nav"
               />
             </div>
 
@@ -275,6 +194,7 @@ export default async function WorkerLayout({
                 userInitial={user.fullName.charAt(0)}
                 profileImage={user.profileImage ?? undefined}
                 locale={locale}
+                variant="avatar"
                 onLogout={handleLogout}
                 logoutLabel={t.logout}
                 profileLabel={t.profile}

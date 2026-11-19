@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 
@@ -251,22 +252,14 @@ export default function AdminTrainerSuggestionsPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 rounded-xl border border-zinc-200 bg-white p-2 dark:border-zinc-800 dark:bg-zinc-900">
-        {(['ALL', ...STATUS_OPTIONS] as StatusFilter[]).map((statusValue) => (
-          <button
-            key={statusValue}
-            type="button"
-            onClick={() => setFilter(statusValue)}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-              filter === statusValue
-                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                : 'text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
-            }`}
-          >
-            {t.statusLabels[statusValue]}
-          </button>
-        ))}
-      </div>
+      <AnimatedTabs
+        value={filter}
+        onValueChange={setFilter}
+        items={(['ALL', ...STATUS_OPTIONS] as StatusFilter[]).map((statusValue) => ({
+          value: statusValue,
+          label: t.statusLabels[statusValue],
+        }))}
+      />
 
       {loading ? (
         <div className="rounded-xl border border-zinc-200 bg-white p-8 text-center text-sm text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">

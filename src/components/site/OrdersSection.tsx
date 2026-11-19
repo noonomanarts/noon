@@ -47,7 +47,7 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
         return 'text-[color:var(--noon-purple)] bg-[color:var(--noon-purple-soft)]';
       case 'PENDING':
       case 'PENDING_PAYMENT':
-        return 'text-[color:var(--noon-yellow)] bg-[color:var(--noon-yellow-soft)]';
+        return 'text-amber-800 bg-[color:var(--noon-yellow-soft)]';
       case 'CANCELLED':
         return 'text-[color:var(--noon-coral)] bg-[color:var(--noon-coral-soft)]';
       default:
@@ -177,16 +177,15 @@ export function OrdersSection({ bookings, eventBookings, shopOrders, locale }: O
                 </div>
               )}
 
-              {order.type !== 'shop' && (
-                <div className="mt-3">
-                  <Link
-                    href={`/${locale}/account/orders/${order.id}`}
-                    className="text-sm font-medium text-[color:var(--primary)] hover:text-[color:var(--primary-hover)]"
-                  >
-                    {isArabic ? 'عرض التفاصيل' : 'View Details'} →
-                  </Link>
-                </div>
-              )}
+              <div className="mt-3">
+                <Link
+                  href={`/${locale}/account/orders/${order.id}`}
+                  className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-[color:var(--primary)] hover:text-[color:var(--primary-hover)]"
+                >
+                  {isArabic ? 'عرض التفاصيل' : 'View Details'}
+                  <span aria-hidden="true" className="inline-block rtl:rotate-180">→</span>
+                </Link>
+              </div>
             </div>
           ))}
 

@@ -4,6 +4,7 @@ import { pool } from '@/lib/db/pool';
 import { getUserById } from '@/lib/db/users';
 import { updateWalletTopupPaymentStatus } from '@/lib/db/wallet';
 import type { WalletTopupPaymentStatus } from '@/lib/db/types';
+import { isPaymentSandboxEnabled } from '@/lib/amwal';
 
 const allowedStatuses = new Set<WalletTopupPaymentStatus>(['PAID', 'FAILED', 'CANCELLED']);
 
@@ -20,6 +21,10 @@ async function getCurrentUser() {
 
 export async function GET(request: NextRequest) {
   try {
+    if (!isPaymentSandboxEnabled()) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -61,6 +66,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Without this gate any signed-in customer could mark their own top-up as
+    // PAID and credit their wallet without paying.
+    if (!isPaymentSandboxEnabled()) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

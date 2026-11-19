@@ -3,10 +3,14 @@ import { findManyClassesPaginated, createClass, findUniqueClass } from '@/lib/db
 import { verifyTrainer } from '@/lib/db/trainers';
 import { query } from '@/lib/db/pool';
 import { isQuarterHourDateTimeValue } from '@/lib/dateTime';
+import { requireAdminApi } from '@/lib/adminAuth';
 
 // GET: List all classes
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAdminApi();
+    if (auth.response) return auth.response;
+
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get('category');
     const status = searchParams.get('status');
@@ -71,6 +75,9 @@ export async function GET(request: NextRequest) {
 // POST: Create a new class
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAdminApi();
+    if (auth.response) return auth.response;
+
     const body = await request.json();
 
     const {

@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useEffect, useMemo, useState } from 'react';
 import { FiCheck } from 'react-icons/fi';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -229,24 +230,19 @@ export function AccountNotificationsPageClient({ locale }: AccountNotificationsP
       </div>
 
       <div className="overflow-hidden rounded-xl border border-[color:var(--border)]">
-        <div className="flex flex-wrap gap-2 border-b border-[color:var(--border)] p-4">
-          {NOTIFICATION_FILTERS.map((filterKey) => {
-            const isActive = activeFilter === filterKey;
-            return (
-              <button
-                key={filterKey}
-                onClick={() => setFilter(filterKey)}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  isActive
-                    ? 'bg-[color:var(--noon-purple)] text-white'
-                    : 'bg-[color:var(--muted)] text-[color:var(--text-muted)] hover:bg-[color:var(--border)]'
-                }`}
-              >
-                {t.filters[filterKey]} ({filterCounts[filterKey]})
-                {filterUnreadCounts[filterKey] > 0 ? ` • ${filterUnreadCounts[filterKey]} ${t.unreadShort}` : ''}
-              </button>
-            );
-          })}
+        <div className="border-b border-[color:var(--border)] p-4">
+          <AnimatedTabs
+            variant="solid"
+            size="sm"
+            value={activeFilter}
+            onValueChange={setFilter}
+            items={NOTIFICATION_FILTERS.map((filterKey) => ({
+              value: filterKey,
+              label: `${t.filters[filterKey]} (${filterCounts[filterKey]})${
+                filterUnreadCounts[filterKey] > 0 ? ` • ${filterUnreadCounts[filterKey]} ${t.unreadShort}` : ''
+              }`,
+            }))}
+          />
         </div>
 
         {loading ? (

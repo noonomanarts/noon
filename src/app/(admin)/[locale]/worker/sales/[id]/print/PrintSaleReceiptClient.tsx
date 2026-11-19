@@ -47,7 +47,7 @@ export default function PrintSaleReceiptClient({ locale, sale }: Props) {
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat(isArabic ? "ar" : "en", {
+    return new Intl.DateTimeFormat(isArabic ? "ar-u-nu-latn" : "en", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",

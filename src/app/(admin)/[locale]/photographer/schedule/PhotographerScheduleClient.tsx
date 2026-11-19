@@ -1,7 +1,8 @@
 "use client";
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useState, useMemo } from "react";
-import { FiCalendar, FiCamera, FiAward, FiUsers, FiClock, FiFilter } from "react-icons/fi";
+import { FiCalendar, FiCamera, FiAward, FiUsers, FiClock } from "react-icons/fi";
 import type { PhotographerScheduleItem } from "@/lib/db/photographer";
 
 type Props = {
@@ -127,27 +128,16 @@ export default function PhotographerScheduleClient({ locale, schedule }: Props) 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title}</h1>
-        <div className="flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-700 dark:bg-zinc-800">
-          <FiFilter className="mx-1.5 size-4 text-zinc-400" />
-          {filterButtons.map((btn) => (
-            <button
-              key={btn.key}
-              onClick={() => setFilter(btn.key)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-                filter === btn.key
-                  ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white"
-                  : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
-              }`}
-            >
-              {btn.label}
-              {btn.count > 0 && (
-                <span className="ml-1.5 inline-flex size-5 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-bold dark:bg-zinc-600">
-                  {btn.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <AnimatedTabs
+          size="sm"
+          value={filter}
+          onValueChange={setFilter}
+          items={filterButtons.map((btn) => ({
+            value: btn.key,
+            label: btn.label,
+            badge: btn.count > 0 ? btn.count : undefined,
+          }))}
+        />
       </div>
 
       {/* Schedule List */}

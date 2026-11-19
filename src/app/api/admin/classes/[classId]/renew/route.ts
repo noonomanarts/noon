@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdminApi } from '@/lib/adminAuth';
 
 import { createClass, findUniqueClass } from '@/lib/db/classes';
 import type { ClassAudienceGender } from '@/lib/db/types';
@@ -28,6 +29,9 @@ export async function POST(_request: NextRequest, props: Params) {
   const { classId } = await props.params;
 
   try {
+    const auth = await requireAdminApi();
+    if (auth.response) return auth.response;
+
     const source = await findUniqueClass({ id: classId });
     if (!source) {
       return NextResponse.json({ error: 'Class not found' }, { status: 404 });

@@ -51,7 +51,7 @@ export default async function ShopCategoryPage({
             href={`/${locale}/shop`}
             className="inline-flex items-center gap-2 border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:shadow-sm"
           >
-            <FiArrowLeft className="h-4 w-4" />
+            <FiArrowLeft className="rtl:rotate-180 h-4 w-4" />
             {t.backToShop}
           </Link>
         </div>

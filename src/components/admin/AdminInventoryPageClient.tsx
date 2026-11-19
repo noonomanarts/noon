@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Locale } from '@/lib/locale';
 import {
@@ -699,32 +700,16 @@ export default function AdminInventoryPageClient({ locale }: { locale: Locale })
         <div className="space-y-4">
 
           {/* Tab switcher */}
-          <div className="grid grid-cols-2 rounded-xl border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-800 dark:bg-zinc-900">
-            {(['purchase', 'addItem'] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveFormTab(tab)}
-                className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                  activeFormTab === tab
-                    ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100'
-                    : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200'
-                }`}
-              >
-                {tab === 'purchase' ? (
-                  <span className="flex items-center justify-center gap-1.5">
-                    <FiShoppingCart className="size-3.5" />
-                    {t.purchaseTitle}
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-1.5">
-                    <FiPlus className="size-3.5" />
-                    {t.addItemTitle}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+          <AnimatedTabs
+            fullWidth
+            size="sm"
+            value={activeFormTab}
+            onValueChange={setActiveFormTab}
+            items={[
+              { value: 'purchase', label: t.purchaseTitle, icon: <FiShoppingCart className="size-3.5" /> },
+              { value: 'addItem', label: t.addItemTitle, icon: <FiPlus className="size-3.5" /> },
+            ]}
+          />
 
           {/* Add Item form */}
           {activeFormTab === 'addItem' && (

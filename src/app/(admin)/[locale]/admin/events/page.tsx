@@ -321,6 +321,7 @@ export default function AdminEventsPage() {
                             }
                             className="rounded-lg p-2 text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
                             title={t.view}
+                            aria-label={t.view}
                           >
                             <MdVisibility className="h-5 w-5" />
                           </button>
@@ -330,6 +331,7 @@ export default function AdminEventsPage() {
                             }
                             className="rounded-lg p-2 text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
                             title={t.edit}
+                            aria-label={t.edit}
                           >
                             <MdEdit className="h-5 w-5" />
                           </button>
@@ -338,6 +340,7 @@ export default function AdminEventsPage() {
                               onClick={() => handleApprove(event.id)}
                               className="rounded-lg p-2 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-300"
                               title={t.approve}
+                            aria-label={t.approve}
                             >
                               <MdCheckCircle className="h-5 w-5" />
                             </button>
@@ -347,6 +350,7 @@ export default function AdminEventsPage() {
                             disabled={isPending}
                             className="rounded-lg p-2 text-zinc-600 transition-colors hover:bg-red-100 hover:text-red-600 disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-red-900/30 dark:hover:text-red-400"
                             title={t.delete}
+                            aria-label={t.delete}
                           >
                             <MdDelete className="h-5 w-5" />
                           </button>

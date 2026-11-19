@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/session';
+import { parseMoneyAmount } from '@/lib/adminAuth';
 import { requestWalletWithdrawal } from '@/lib/db/wallet';
 
 export async function POST(request: NextRequest) {
@@ -9,9 +10,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { amount, reason } = await request.json();
+    const body = (await request.json().catch(() => ({}))) as { amount?: unknown; reason?: string };
+    const amount = parseMoneyAmount(body.amount);
+    const reason = typeof body.reason === 'string' ? body.reason : undefined;
 
-    if (!amount || amount <= 0) {
+    if (amount === null) {
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
     }
 

@@ -63,7 +63,6 @@ export default function ShopProductCard({
         aria-label={`${t.openProduct}: ${name}`}
         className="relative block aspect-[3/4] overflow-hidden bg-[color:var(--muted)]"
       >
-        <div className="absolute inset-x-0 top-0 z-10 h-1 bg-gradient-to-r from-coral via-yellow to-teal" />
         {product.image ? (
           <Image
             src={product.image}

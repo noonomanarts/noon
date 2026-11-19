@@ -19,6 +19,17 @@ export default async function AccountLayout({
     redirect(`/${locale}/login`);
   }
 
+  const roleLabels: Record<string, [string, string]> = {
+    CUSTOMER: ['Customer', 'عميل'],
+    TRAINER: ['Trainer', 'مدرب'],
+    ADMIN: ['Admin', 'مدير'],
+    EMPLOYEE: ['Employee', 'موظف'],
+    SOCIAL_MEDIA_ADMIN: ['Social media admin', 'مدير السوشيال ميديا'],
+    WORKER: ['Staff', 'موظف المتجر'],
+    PHOTOGRAPHER: ['Photographer', 'مصور'],
+  };
+  const roleLabel = roleLabels[user.role]?.[locale === 'ar' ? 1 : 0] ?? user.role;
+
   return (
     <div className="route-sharp relative mx-auto w-full max-w-6xl px-4 py-10">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64">
@@ -51,7 +62,7 @@ export default async function AccountLayout({
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <span className="rounded-none bg-[color:var(--primary)]/15 px-3 py-1 font-semibold text-[color:var(--primary)]">
-              {user.role}
+              {roleLabel}
             </span>
             <span className="rounded-none bg-[color:var(--muted)] px-3 py-1 font-medium text-[color:var(--text-muted)]">
               {user.email}

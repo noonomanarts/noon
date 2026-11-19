@@ -27,7 +27,7 @@ async function hasWalletDecisionTimestampColumns(): Promise<boolean> {
   return walletDecisionColumnsCache;
 }
 
-async function ensureWalletTopupPaymentsTable(): Promise<void> {
+export async function ensureWalletTopupPaymentsTable(): Promise<void> {
   if (walletTopupPaymentsTableCache) {
     return;
   }
@@ -712,7 +712,8 @@ export async function cancelWithdrawalRequestByUser(userId: string, transactionI
        WHERE wt.id = $1
          AND wt.type = 'WITHDRAWAL_REQUEST'
          AND wt.status = 'PENDING'
-         AND w.user_id = $2`,
+         AND w.user_id = $2
+       FOR UPDATE OF wt`,
       [transactionId, userId]
     );
     if (!transactionResult.rows[0]) {
@@ -834,7 +835,7 @@ export async function approveWithdrawalRequest(transactionId: string, adminReaso
 
     // Get the transaction
     const transactionResult = await client.query(
-      'SELECT * FROM wallet_transactions WHERE id = $1 AND type = $2 AND status = $3',
+      'SELECT * FROM wallet_transactions WHERE id = $1 AND type = $2 AND status = $3 FOR UPDATE',
       [transactionId, 'WITHDRAWAL_REQUEST', 'PENDING']
     );
     if (!transactionResult.rows[0]) {
@@ -946,7 +947,7 @@ export async function rejectWithdrawalRequest(transactionId: string, adminReason
     await client.query('BEGIN');
 
     const transactionResult = await client.query(
-      'SELECT * FROM wallet_transactions WHERE id = $1 AND type = $2 AND status = $3',
+      'SELECT * FROM wallet_transactions WHERE id = $1 AND type = $2 AND status = $3 FOR UPDATE',
       [transactionId, 'WITHDRAWAL_REQUEST', 'PENDING']
     );
     if (!transactionResult.rows[0]) {
@@ -1782,6 +1783,12 @@ export async function updateWalletTopupPaymentStatus(data: {
     }
 
     await client.query('COMMIT');
+
+    try {
+      emitAdminEvent('payments_updated', { source: 'walletTopup', reference: updatedPayment.reference });
+    } catch (eventError) {
+      console.error('Failed to emit payments_updated event:', eventError);
+    }
 
     if (topupWhatsappPayload) {
       void sendUserTransactionWhatsApp({

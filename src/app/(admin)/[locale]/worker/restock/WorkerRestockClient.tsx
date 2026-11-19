@@ -131,7 +131,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat(isArabic ? "ar" : "en", {
+    return new Intl.DateTimeFormat(isArabic ? "ar-u-nu-latn" : "en", {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -345,7 +345,7 @@ export default function WorkerRestockClient({ locale, products, recentRestocks }
                   </p>
                   {restock.expiry_date ? (
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      {t.expiryDate}: {new Intl.DateTimeFormat(isArabic ? 'ar' : 'en', {
+                      {t.expiryDate}: {new Intl.DateTimeFormat(isArabic ? 'ar-u-nu-latn' : 'en', {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',

@@ -83,6 +83,15 @@ type OrderDraft = {
 
 const statusFlow: ShopOrderStatus[] = ['PAID', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
+const DATE_TIME_FORMAT: Intl.DateTimeFormatOptions = {
+  timeZone: 'Asia/Muscat',
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+};
+
 export default function ShopOrderDetailsPageClient({
   locale,
   initialOrder,
@@ -242,7 +251,7 @@ export default function ShopOrderDetailsPageClient({
           href={`/${locale}/admin/shop/orders`}
           className="inline-flex rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
-          ← {t.back}
+          <span aria-hidden="true" className="inline-block rtl:rotate-180">←</span> {t.back}
         </Link>
         <div className="flex items-center gap-2">
           <Link
@@ -258,7 +267,7 @@ export default function ShopOrderDetailsPageClient({
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title} #{order.order_number}</h1>
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{t.title} <bdi dir="ltr">#{order.order_number}</bdi></h1>
         {hasDeliveryLocation ? (
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{t.exactLocationRequired}</p>
         ) : null}
@@ -277,32 +286,32 @@ export default function ShopOrderDetailsPageClient({
 
       <article className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
         <div className="space-y-1">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {t.createdAt}: {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            {t.createdAt}: {new Date(order.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-GB', DATE_TIME_FORMAT)}
           </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            {t.paidAt}: {new Date(order.paid_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            {t.paidAt}: {new Date(order.paid_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-GB', DATE_TIME_FORMAT)}
           </p>
           {order.shipped_at && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {t.shippedAt}: {new Date(order.shipped_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {t.shippedAt}: {new Date(order.shipped_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-GB', DATE_TIME_FORMAT)}
             </p>
           )}
           {order.delivered_at && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {t.deliveredAt}: {new Date(order.delivered_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {t.deliveredAt}: {new Date(order.delivered_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-GB', DATE_TIME_FORMAT)}
             </p>
           )}
           {order.cancelled_at && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              {t.cancelledAt}: {new Date(order.cancelled_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              {t.cancelledAt}: {new Date(order.cancelled_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-GB', DATE_TIME_FORMAT)}
             </p>
           )}
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">{t.customer}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.customer}</p>
             <div className="flex items-start gap-3">
               {order.user_profile_image ? (
                 <Image
@@ -319,80 +328,86 @@ export default function ShopOrderDetailsPageClient({
               )}
               <div>
                 <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{order.user_full_name}</p>
-                <p className="text-xs text-zinc-600 dark:text-zinc-300">{order.user_email}</p>
-                <p className="text-xs text-zinc-600 dark:text-zinc-300">{order.user_phone_number}</p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-300"><bdi dir="ltr">{order.user_email}</bdi></p>
+                <p className="text-sm text-zinc-600 dark:text-zinc-300"><bdi dir="ltr">{order.user_phone_number}</bdi></p>
               </div>
             </div>
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">{t.recipient}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.recipient}</p>
             <p className="text-sm text-zinc-900 dark:text-zinc-100">{order.recipient_full_name}</p>
-            <p className="text-xs text-zinc-600 dark:text-zinc-300">{order.recipient_phone}</p>
+            <p className="text-sm text-zinc-600 dark:text-zinc-300"><bdi dir="ltr">{order.recipient_phone}</bdi></p>
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">{t.address}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.address}</p>
             {order.fulfillment_type === 'PICKUP' ? (
-              <p className="text-xs text-zinc-700 dark:text-zinc-300">
+              <p className="text-sm text-zinc-700 dark:text-zinc-300">
                 {isArabic ? 'استلام من نون' : 'Pickup from Noon'}
               </p>
             ) : (
               <>
-                <p className="text-xs text-zinc-700 dark:text-zinc-300">{order.city ?? ''} - {order.area ?? ''}</p>
-                <p className="text-xs text-zinc-700 dark:text-zinc-300">{order.street_address ?? ''}</p>
-                {order.postal_code && <p className="text-xs text-zinc-600 dark:text-zinc-300">{order.postal_code}</p>}
+                <p className="text-sm text-zinc-700 dark:text-zinc-300">{order.city ?? ''} - {order.area ?? ''}</p>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300">{order.street_address ?? ''}</p>
+                {order.postal_code && <p className="text-sm text-zinc-600 dark:text-zinc-300">{order.postal_code}</p>}
               </>
             )}
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">{t.payment}</p>
-            <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.paymentMethod}: {getPaymentMethodLabel(order.payment_method, locale)}</p>
-            <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.subtotal}: {formatAmountWithCurrency(order.subtotal, order.currency)}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.payment}</p>
+            <p className="text-sm text-zinc-700 dark:text-zinc-300">{t.paymentMethod}: {getPaymentMethodLabel(order.payment_method, locale)}</p>
+            <p className="text-sm text-zinc-700 dark:text-zinc-300">{t.subtotal}: {formatAmountWithCurrency(order.subtotal, order.currency)}</p>
             {order.discount_amount > 0 ? (
-              <p className="text-xs text-emerald-700 dark:text-emerald-300">{t.discount}: -{formatAmountWithCurrency(order.discount_amount, order.currency)}</p>
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">{t.discount}: -{formatAmountWithCurrency(order.discount_amount, order.currency)}</p>
             ) : null}
-            <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.shipping}: {formatAmountWithCurrency(order.shipping_fee, order.currency)}</p>
+            <p className="text-sm text-zinc-700 dark:text-zinc-300">{t.shipping}: {formatAmountWithCurrency(order.shipping_fee, order.currency)}</p>
             <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.total}: {formatAmountWithCurrency(order.total_amount, order.currency)}</p>
             {order.promo_code ? (
-              <p className="text-xs text-zinc-700 dark:text-zinc-300">{t.promoCode}: {order.promo_code}</p>
+              <p className="text-sm text-zinc-700 dark:text-zinc-300">{t.promoCode}: {order.promo_code}</p>
             ) : null}
           </div>
         </div>
 
         {order.wallet_transaction_id && (
-          <p className="mt-3 text-xs text-zinc-600 dark:text-zinc-300">
+          <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
             {t.walletTx}: <span className="font-mono">{order.wallet_transaction_id}</span>
           </p>
         )}
 
         {order.notes && (
-          <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+          <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
             <span className="font-semibold">{t.orderNotes}: </span>{order.notes}
           </div>
         )}
 
+        {!hasDeliveryLocation ? (
+          <p className="mt-4 rounded-lg border border-dashed border-zinc-300 px-4 py-3 text-sm text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+            <span className="font-semibold text-zinc-700 dark:text-zinc-300">{t.deliveryLocation}: </span>
+            {t.noLocation}
+          </p>
+        ) : (
         <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
           <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
-            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">{t.deliveryLocation}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t.deliveryLocation}</p>
             {hasDeliveryLocation ? (
               <>
                 <p className="mt-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.coordinates}</p>
-                <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300">
+                <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">
                   {order.delivery_latitude!.toFixed(6)}, {order.delivery_longitude!.toFixed(6)}
                 </p>
                 <a
                   href={googleMapsUrl!}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-4 inline-flex rounded-lg bg-[color:var(--noon-teal)] px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
+                  className="mt-4 inline-flex rounded-lg bg-[color:var(--noon-teal)] px-3 py-2 text-sm font-semibold text-white transition hover:opacity-90"
                 >
                   {t.openGoogleMaps}
                 </a>
               </>
             ) : (
-              <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-300">{t.noLocation}</p>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{t.noLocation}</p>
             )}
           </div>
 
@@ -412,15 +427,16 @@ export default function ShopOrderDetailsPageClient({
             )}
           </div>
         </div>
+        )}
 
-        <div className="mt-4 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t.statusLabel}</label>
+              <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">{t.statusLabel}</label>
               <select
                 value={draft.status}
                 onChange={(event) => setDraft((prev) => ({ ...prev, status: event.target.value as ShopOrderStatus }))}
-                className="w-full rounded-lg border border-zinc-300 px-2.5 py-2 text-xs focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
               >
                 {statusFlow.map((status) => (
                   <option key={status} value={status}>
@@ -431,33 +447,33 @@ export default function ShopOrderDetailsPageClient({
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t.tracking}</label>
+              <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">{t.tracking}</label>
               <input
                 value={draft.trackingNumber}
                 onChange={(event) => setDraft((prev) => ({ ...prev, trackingNumber: event.target.value }))}
                 placeholder={t.tracking}
-                className="w-full rounded-lg border border-zinc-300 px-2.5 py-2 text-xs focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
               />
             </div>
 
             <div className="space-y-1 md:col-span-2 xl:col-span-2">
-              <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t.adminNotes}</label>
+              <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">{t.adminNotes}</label>
               <input
                 value={draft.adminNotes}
                 onChange={(event) => setDraft((prev) => ({ ...prev, adminNotes: event.target.value }))}
                 placeholder={t.adminNotes}
-                className="w-full rounded-lg border border-zinc-300 px-2.5 py-2 text-xs focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
               />
             </div>
 
             {draft.status === 'CANCELLED' && (
               <div className="space-y-1 md:col-span-2 xl:col-span-4">
-                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t.cancellationReason}</label>
+                <label className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">{t.cancellationReason}</label>
                 <input
                   value={draft.cancellationReason}
                   onChange={(event) => setDraft((prev) => ({ ...prev, cancellationReason: event.target.value }))}
                   placeholder={t.cancellationReason}
-                  className="w-full rounded-lg border border-zinc-300 px-2.5 py-2 text-xs focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-[color:var(--noon-teal)] focus:outline-none focus:ring-2 focus:ring-[color:var(--noon-teal)]/20 dark:border-zinc-600 dark:bg-zinc-800 dark:text-white"
                 />
               </div>
             )}
@@ -467,19 +483,19 @@ export default function ShopOrderDetailsPageClient({
             type="button"
             onClick={() => void saveOrderUpdate()}
             disabled={saving}
-            className="mt-3 inline-flex rounded-lg bg-zinc-900 px-4 py-2 text-xs font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="mt-3 inline-flex rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             {saving ? t.saving : t.save}
           </button>
         </div>
 
         <div className="mt-4 rounded-lg border border-zinc-200 dark:border-zinc-700">
-          <div className="border-b border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+          <div className="border-b border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
             {t.orderItems} ({order.items.length})
           </div>
           <div className="divide-y divide-zinc-200 dark:divide-zinc-700">
             {order.items.map((item) => (
-              <div key={item.id} className="grid gap-2 px-3 py-3 text-xs md:grid-cols-[1fr_auto_auto_auto] md:items-center">
+              <div key={item.id} className="grid gap-2 px-3 py-3 text-sm md:grid-cols-[1fr_auto_auto_auto] md:items-center">
                 <div className="flex items-center gap-3">
                   {item.product_image ? (
                     <Image
@@ -508,15 +524,15 @@ export default function ShopOrderDetailsPageClient({
         </div>
 
         <div className="mt-4 rounded-lg border border-zinc-200 dark:border-zinc-700">
-          <div className="border-b border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
+          <div className="border-b border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-600 dark:border-zinc-700 dark:text-zinc-300">
             {t.history}
           </div>
           {order.history.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400">{t.noHistory}</p>
+            <p className="px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400">{t.noHistory}</p>
           ) : (
             <div className="divide-y divide-zinc-200 dark:divide-zinc-700">
               {order.history.slice(0, 6).map((entry) => (
-                <div key={entry.id} className="px-3 py-2 text-xs text-zinc-700 dark:text-zinc-300">
+                <div key={entry.id} className="px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300">
                   <p>
                     <span className="font-semibold">
                       {entry.previous_status ? statusLabelMap[entry.previous_status][locale] : '—'}
@@ -525,7 +541,7 @@ export default function ShopOrderDetailsPageClient({
                     <span className="font-semibold">{statusLabelMap[entry.next_status][locale]}</span>
                   </p>
                   {entry.note && <p className="mt-0.5 text-zinc-500 dark:text-zinc-400">{entry.note}</p>}
-                  <p className="mt-0.5 text-zinc-500 dark:text-zinc-400">{new Date(entry.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM', { timeZone: 'Asia/Muscat' })}</p>
+                  <p className="mt-0.5 text-zinc-500 dark:text-zinc-400">{new Date(entry.created_at).toLocaleString(locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-GB', DATE_TIME_FORMAT)}</p>
                 </div>
               ))}
             </div>

@@ -61,6 +61,7 @@ export default function CartLinkWithCount({
   return (
     <Link
       href={`/${locale}/cart`}
+      aria-label={count > 0 ? `${label} (${count > 99 ? '99+' : count})` : label}
       className={
         className ??
         "inline-flex h-11 items-center justify-center gap-1.5 rounded-none px-3 text-base font-extrabold text-white/95 transition hover:bg-white/14"
@@ -68,7 +69,7 @@ export default function CartLinkWithCount({
     >
       <span className="inline-flex items-center gap-2">
         <span className="relative inline-flex">
-          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M6 6h15l-1.5 9h-12z" />
             <path d="M6 6l-2-2H1" />
             <path d="M9 22a1 1 0 100-2 1 1 0 000 2zM18 22a1 1 0 100-2 1 1 0 000 2z" />

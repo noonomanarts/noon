@@ -226,10 +226,14 @@ export default async function ArtsCraftsClassesPage({
 
                         <Link
                           href={`/${locale}/classes/${cls.slug}`}
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[color:var(--primary)] px-3 py-2 text-xs font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)] sm:px-4 sm:py-2.5 sm:text-sm"
+                          className={`inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition sm:px-4 sm:py-2.5 sm:text-sm ${
+                            Math.max(0, (cls.seatsTotal ?? 0) - (cls.seatsBooked ?? 0)) <= 0
+                              ? "border border-[color:var(--border)] bg-[color:var(--muted)] text-[color:var(--text-muted)] hover:bg-[color:var(--surface)]"
+                              : "bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:bg-[color:var(--primary-hover)]"
+                          }`}
                         >
                           {Math.max(0, (cls.seatsTotal ?? 0) - (cls.seatsBooked ?? 0)) <= 0 ? t.fullyBooked : t.bookNow}
-                          <FiArrowRight className="size-4" />
+                          <FiArrowRight className="rtl:rotate-180 size-4" />
                         </Link>
                       </div>
                     </article>

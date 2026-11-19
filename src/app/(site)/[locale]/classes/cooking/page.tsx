@@ -160,10 +160,14 @@ function ClassCard({
           ) : (
             <Link
               href={`/${locale}/classes/${cls.slug}`}
-              className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-[color:var(--primary)] px-2.5 py-1.5 text-[10px] font-semibold leading-tight tracking-[0.01em] text-[color:var(--primary-foreground)] transition hover:brightness-95 sm:px-4 sm:py-3 sm:text-sm"
+              className={`inline-flex min-h-10 w-full items-center justify-center gap-1 rounded-lg px-2.5 py-2 text-xs font-semibold leading-tight tracking-[0.01em] transition sm:px-4 sm:py-3 sm:text-sm ${
+                isFullyBooked
+                  ? "border border-[color:var(--border)] bg-[color:var(--muted)] text-[color:var(--text-muted)] hover:bg-[color:var(--surface)]"
+                  : "bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:brightness-95"
+              }`}
             >
               {isFullyBooked ? t.fullyBooked : t.bookNow}
-              <FiArrowRight className="size-3 sm:size-3.5" />
+              <FiArrowRight className="rtl:rotate-180 size-3 sm:size-3.5" />
             </Link>
           )}
         </div>

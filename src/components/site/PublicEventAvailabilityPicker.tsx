@@ -215,6 +215,18 @@ export default function PublicEventAvailabilityPicker({
     );
   }, [locale]);
 
+  // One-letter names for phones: full Arabic day names do not fit a seventh of
+  // a phone screen and used to break letter by letter.
+  const weekDayNarrowHeaders = useMemo(() => {
+    return Array.from({ length: 7 }).map((_, index) =>
+      formatNoonDateTime(
+        `2025-01-${String(5 + index).padStart(2, '0')}T00:00:00`,
+        locale === 'ar' ? 'ar-OM-u-nu-latn' : 'en-OM',
+        { weekday: 'narrow' }
+      )
+    );
+  }, [locale]);
+
   const t = {
     title: isArabic ? 'التواريخ والأوقات المتاحة' : 'Available Dates & Times',
     subtitle: isArabic
@@ -349,8 +361,9 @@ export default function PublicEventAvailabilityPicker({
 
               <div className="grid grid-cols-7 border-b border-[color:var(--border)] bg-[color:var(--muted)]/60 text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--text-subtle)]">
                 {weekDayHeaders.map((dayName, index) => (
-                  <div key={`${index}-${dayName}`} className="px-1 py-2">
-                    {dayName}
+                  <div key={`${index}-${dayName}`} className="whitespace-nowrap px-1 py-2" title={dayName}>
+                    <span className="sm:hidden" aria-hidden="true">{weekDayNarrowHeaders[index]}</span>
+                    <span className="sr-only sm:not-sr-only">{dayName}</span>
                   </div>
                 ))}
               </div>

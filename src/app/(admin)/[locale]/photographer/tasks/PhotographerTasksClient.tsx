@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useState, useMemo, useCallback, useEffect } from "react";
 import {
   FiCheckSquare,
@@ -259,7 +260,7 @@ export default function PhotographerTasksClient({ locale, initialTasks, initialT
   }
 
   function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString(isRTL ? "ar" : "en-US", {
+    return new Date(iso).toLocaleDateString(isRTL ? "ar-u-nu-latn" : "en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -390,40 +391,14 @@ export default function PhotographerTasksClient({ locale, initialTasks, initialT
         </div>
 
         {/* Filter chips — horizontally scrollable on mobile */}
-        <div
-          role="tablist"
-          aria-label={t.title}
-          className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:overflow-visible sm:p-0 [&::-webkit-scrollbar]:hidden"
-          style={{ scrollbarWidth: "none" }}
-        >
-          {filterButtons.map((btn) => {
-            const active = filter === btn.key;
-            return (
-              <button
-                key={btn.key}
-                role="tab"
-                aria-selected={active}
-                onClick={() => setFilter(btn.key)}
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900/20 dark:focus-visible:ring-white/20 ${
-                  active
-                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"
-                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-                }`}
-              >
-                <span>{btn.label}</span>
-                <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                    active
-                      ? "bg-white/15 text-white dark:bg-zinc-900/15 dark:text-zinc-900"
-                      : "bg-white text-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                  }`}
-                >
-                  {btn.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <AnimatedTabs
+          variant="solid"
+          size="sm"
+          ariaLabel={t.title}
+          value={filter}
+          onValueChange={setFilter}
+          items={filterButtons.map((btn) => ({ value: btn.key, label: btn.label, badge: btn.count }))}
+        />
       </div>
 
       {/* Error banner */}

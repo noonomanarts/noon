@@ -106,8 +106,8 @@
 
 .inlineQuote {
   margin-top: 1.25rem;
-  border-inline-start: 3px solid color-mix(in oklab, var(--noon-coral) 65%, var(--border));
-  padding-inline-start: 1rem;
+  background: color-mix(in oklab, var(--noon-coral) 8%, var(--surface));
+  padding: 0.9rem 1.1rem;
   font-size: 1.02rem;
   line-height: 1.9;
   color: var(--text);

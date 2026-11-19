@@ -1,5 +1,6 @@
 'use client';
 
+import { AnimatedTabs } from '@/components/ui/AnimatedTabs';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   FiCode,
@@ -93,7 +94,7 @@ export const markdownToHtml = (source: string): string => {
     const quoteMatch = line.match(/^>\s?(.+)$/);
     if (quoteMatch) {
       closeLists();
-      html.push(`<blockquote class="my-2 border-s-4 border-zinc-300 ps-3 italic text-zinc-600 dark:border-zinc-600 dark:text-zinc-400">${parseInline(quoteMatch[1])}</blockquote>`);
+      html.push(`<blockquote class="my-2 rounded-md bg-zinc-100 px-3 py-2 italic text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">${parseInline(quoteMatch[1])}</blockquote>`);
       continue;
     }
 
@@ -255,32 +256,15 @@ export default function MarkdownEditor({
         {/* Tab bar + toolbar */}
         <div className="flex flex-wrap items-center gap-1 border-b border-zinc-200 bg-zinc-50 px-2 py-1.5 dark:border-zinc-700 dark:bg-zinc-900/60">
           {/* Write / Preview tabs */}
-          <div className="flex items-center rounded-lg border border-zinc-200 bg-white p-0.5 dark:border-zinc-700 dark:bg-zinc-800">
-            <button
-              type="button"
-              onClick={() => setTab('write')}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                tab === 'write'
-                  ? 'bg-[color:var(--noon-teal)] text-white shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-              }`}
-            >
-              <FiEdit3 className="size-3" />
-              Write
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab('preview')}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-all ${
-                tab === 'preview'
-                  ? 'bg-[color:var(--noon-teal)] text-white shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
-              }`}
-            >
-              <FiEye className="size-3" />
-              Preview
-            </button>
-          </div>
+          <AnimatedTabs
+            size="sm"
+            value={tab}
+            onValueChange={setTab}
+            items={[
+              { value: 'write', label: 'Write', icon: <FiEdit3 className="size-3" /> },
+              { value: 'preview', label: 'Preview', icon: <FiEye className="size-3" /> },
+            ]}
+          />
 
           {/* Divider */}
           <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
