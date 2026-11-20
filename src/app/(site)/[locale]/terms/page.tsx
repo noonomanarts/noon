@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { isLocale, type Locale } from "@/lib/locale";
 import { markdownToSafeHtml } from "@/lib/markdown";
 import { getPublicSitePageSettings } from "@/lib/sitePageSettings";
@@ -47,4 +49,20 @@ export default async function TermsPage({
       </section>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/terms",
+    title: { ar: "الشروط والأحكام", en: "Terms & Conditions" },
+    description: {
+      ar: "الشروط والأحكام الخاصة بالحجز والدفع والإلغاء في نون.",
+      en: "Terms and conditions for booking, payment and cancellation at Noon.",
+    },
+  });
 }

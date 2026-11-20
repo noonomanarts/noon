@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import Image from "next/image";
 import { FiExternalLink } from "react-icons/fi";
 
@@ -211,4 +213,20 @@ export default async function NoonRecommendsPage({
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/noon-recommends",
+    title: { ar: "توصيات نون", en: "Noon Recommends" },
+    description: {
+      ar: "أماكن ومنتجات يوصي بها فريق نون لمحبي الطبخ والفنون.",
+      en: "Places and products recommended by the Noon team for lovers of cooking and the arts.",
+    },
+  });
 }

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { isLocale, type Locale } from "@/lib/locale";
 import { findTrainers, findTrainerProfiles } from "@/lib/db/trainers";
 import Image from "next/image";
@@ -139,4 +141,20 @@ export default async function TrainersPage({
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/trainers",
+    title: { ar: "مدربونا", en: "Our Trainers" },
+    description: {
+      ar: "تعرّف على طهاة ومدربي نون المحترفين وخبراتهم والورش التي يقدمونها.",
+      en: "Meet Noon's professional chefs and trainers, their experience and the workshops they teach.",
+    },
+  });
 }

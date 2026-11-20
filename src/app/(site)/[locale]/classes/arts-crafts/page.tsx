@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { readSessionUserId } from '@/lib/sessionToken';
 import Image from "next/image";
 import Link from "next/link";
@@ -311,4 +313,20 @@ export default async function ArtsCraftsClassesPage({
       </section>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/classes/arts-crafts",
+    title: { ar: "ورش الفنون والحرف", en: "Arts & Crafts Workshops" },
+    description: {
+      ar: "ورش فنون وحرف يدوية في مسقط لكل المستويات: فخار، رسم وأعمال يدوية. اطّلع على المواعيد واحجز مقعدك.",
+      en: "Arts and crafts workshops in Muscat for every level: pottery, painting and handmade crafts. See the dates and book your seat.",
+    },
+  });
 }

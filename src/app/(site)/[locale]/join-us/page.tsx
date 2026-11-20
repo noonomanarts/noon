@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { isLocale, type Locale } from "@/lib/locale";
 import { getJoinUsFormsConfig } from "@/lib/db/joinUs";
@@ -69,4 +71,20 @@ export default async function JoinUsPage({
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/join-us",
+    title: { ar: "انضم إلينا", en: "Join Us" },
+    description: {
+      ar: "انضم إلى فريق نون كمدرب أو شريك وشارك خبرتك في الطبخ والفنون.",
+      en: "Join the Noon team as a trainer or partner and share your expertise in cooking and the arts.",
+    },
+  });
 }

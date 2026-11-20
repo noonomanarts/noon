@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -5,7 +7,7 @@ import { isLocale, type Locale } from "@/lib/locale";
 import { getHomeContent } from "@/lib/homeContent";
 import AnimatedCounter from "@/components/site/AnimatedCounter";
 import PartnersCarousel from "@/components/site/PartnersCarousel";
-import { resolveHeaderColor } from "@/lib/headerBranding";
+import { resolveHeaderColor, getAccessibleTextColor } from "@/lib/headerBranding";
 import { findManyClasses } from "@/lib/db/classes";
 import { countUsersByRole } from "@/lib/db/users";
 import { countEventBookings } from "@/lib/db/events";
@@ -485,7 +487,7 @@ export default async function HomePage({
                   className="inline-flex min-h-14 w-full items-center justify-center px-4 py-4 text-sm font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition active:scale-95 hover:brightness-95 sm:px-6 sm:text-base"
                   style={{
                     backgroundColor: heroUi.cookingColor,
-                    color: "#ffffff",
+                    color: getAccessibleTextColor(heroUi.cookingColor),
                   }}
                 >
                   {heroUi.cookingClasses}
@@ -495,7 +497,7 @@ export default async function HomePage({
                   className="inline-flex min-h-14 w-full items-center justify-center px-4 py-4 text-sm font-extrabold shadow-[0_14px_32px_-16px_rgba(0,0,0,0.85)] transition active:scale-95 hover:brightness-95 sm:px-6 sm:text-base"
                   style={{
                     backgroundColor: heroUi.artsColor,
-                    color: "#ffffff",
+                    color: getAccessibleTextColor(heroUi.artsColor),
                   }}
                 >
                   {heroUi.artClasses}
@@ -668,4 +670,21 @@ export default async function HomePage({
 
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "",
+    title: { ar: "نون | ورش الطبخ والفنون في مسقط", en: "Noon | Cooking & Arts Workshops in Muscat" },
+    description: {
+      ar: "نون استوديو في مسقط لورش الطبخ والفنون والحرف، الفعاليات الخاصة، أعياد الميلاد ومسابقات الطبخ. احجز مقعدك في الورشة القادمة.",
+      en: "Noon is a Muscat studio for cooking and arts & crafts workshops, private events, birthday parties and cooking competitions. Book your seat in the next workshop.",
+    },
+    absoluteTitle: true,
+  });
 }

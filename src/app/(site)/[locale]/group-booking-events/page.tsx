@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { isLocale, type Locale } from "@/lib/locale";
 import { IoTrophy, IoCalendar } from "react-icons/io5";
@@ -83,4 +85,20 @@ export default async function GroupBookingEventsPage({
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/group-booking-events",
+    title: { ar: "الفعاليات الجماعية", en: "Group Events" },
+    description: {
+      ar: "احجز فعالية لمجموعتك في نون: مسابقات طبخ، ورش خاصة وحفلات أعياد ميلاد في مسقط.",
+      en: "Book a group event at Noon: cooking competitions, private workshops and birthday parties in Muscat.",
+    },
+  });
 }

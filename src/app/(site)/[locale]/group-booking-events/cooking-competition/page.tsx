@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { FiCheckCircle, FiClock, FiUsers } from "react-icons/fi";
 import { GiCookingPot, GiChefToque } from "react-icons/gi";
 import { IoTrophyOutline } from "react-icons/io5";
@@ -58,7 +60,7 @@ export default async function CookingCompetitionPage({
       icon: FiUsers,
     },
     {
-      title: isArabic ? "توزيع المشاركين على الفرق وكشف صندوق المكونات" : "Team Draw",
+      title: isArabic ? "توزيع الفرق" : "Team Draw",
       desc: isArabic ? "توزيع المشاركين على الفرق وكشف صندوق المكونات." : "Participants are split into teams and receive mystery ingredients.",
       icon: GiChefToque,
     },
@@ -201,46 +203,57 @@ export default async function CookingCompetitionPage({
       </section>
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
-        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-8 text-center shadow-sm">
-          <h3 className="text-2xl font-semibold text-[color:var(--text)]">{t.readyTitle}</h3>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-[color:var(--text-muted)]">{t.readySubtitle}</p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-xs text-[color:var(--text-subtle)]">
-            <span className="inline-flex items-center gap-1">
-              <FiUsers className="size-3.5" />
-              {isArabic ? "8-40 مشارك" : "8-40 participants"}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <FiClock className="size-3.5" />
+        <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface)] p-6 text-center shadow-sm sm:p-10">
+          <h2 className="text-2xl font-semibold text-[color:var(--text)] sm:text-3xl">{t.readyTitle}</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-[color:var(--text-muted)]">{t.readySubtitle}</p>
+          <ul className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm font-medium text-[color:var(--text)] sm:gap-3">
+            <li className="inline-flex items-center gap-2 rounded-full bg-[color:var(--muted)] px-4 py-2">
+              <FiUsers className="size-4 text-[color:var(--text-muted)]" aria-hidden="true" />
+              {isArabic ? "من 6 إلى 40 مشاركاً" : "6 to 40 participants"}
+            </li>
+            <li className="inline-flex items-center gap-2 rounded-full bg-[color:var(--muted)] px-4 py-2">
+              <FiClock className="size-4 text-[color:var(--text-muted)]" aria-hidden="true" />
               {isArabic ? "3 ساعات" : "3 hours"}
-            </span>
-          </div>
+            </li>
+            <li className="inline-flex items-center gap-2 rounded-full bg-[color:var(--muted)] px-4 py-2">
+              {isArabic ? "ابتداءً من 16 ر.ع للشخص" : "From 16 OMR per person"}
+            </li>
+          </ul>
+          <a
+            href="#packages"
+            className="mt-7 inline-flex min-h-12 items-center justify-center rounded-xl bg-[color:var(--primary)] px-8 text-base font-semibold text-[color:var(--primary-foreground)] transition hover:bg-[color:var(--primary-hover)]"
+          >
+            {isArabic ? "اختر باقتك" : "Choose your package"}
+          </a>
         </div>
       </section>
 
       <section className="mx-auto mt-10 w-full max-w-6xl px-4">
-        <h2 className="text-center text-2xl font-semibold text-[color:var(--text)]">{t.processTitle}</h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {steps.map((item) => (
-            <article
+        <h2 className="text-center text-2xl font-semibold text-[color:var(--text)] sm:text-3xl">{t.processTitle}</h2>
+        <ol className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+          {steps.map((item, index) => (
+            <li
               key={item.title}
-              className="rounded-2xl border p-5 shadow-sm"
-              style={{
-                backgroundColor: processCardBackgroundColor,
-                borderColor: processCardBorderColor,
-              }}
+              className="relative rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 text-center shadow-sm sm:p-6"
             >
-              <div className="mb-3 flex justify-center">
-                <item.icon className="h-10 w-10 text-white" />
-              </div>
-              <h3 className="text-center text-base font-semibold text-white">{item.title}</h3>
-              <p className="mt-2 text-center text-sm leading-6 text-white/90">{item.desc}</p>
-            </article>
+              <span className="absolute start-3 top-3 text-xs font-bold tabular-nums text-[color:var(--text-subtle)] sm:start-4 sm:top-4 sm:text-sm">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span
+                className="mx-auto flex size-12 items-center justify-center rounded-2xl border sm:size-14"
+                style={{ backgroundColor: processCardBackgroundColor, borderColor: processCardBorderColor }}
+              >
+                <item.icon className="size-6 text-white sm:size-7" aria-hidden="true" />
+              </span>
+              <h3 className="mt-4 text-base font-semibold text-[color:var(--text)] sm:text-lg">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-[color:var(--text-muted)]">{item.desc}</p>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
-      <section className="mx-auto mt-10 w-full max-w-6xl px-4">
-        <h2 className="text-center text-2xl font-semibold text-[color:var(--text)]">{t.packageTitle}</h2>
+      <section id="packages" className="mx-auto mt-12 w-full max-w-6xl scroll-mt-24 px-4">
+        <h2 className="text-center text-2xl font-semibold text-[color:var(--text)] sm:text-3xl">{t.packageTitle}</h2>
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           {packageCards.map((pkg) => {
             const isStandardPackage = pkg.key === "standard";
@@ -275,13 +288,30 @@ export default async function CookingCompetitionPage({
                         key={`${pkg.key}-${detail.label}`}
                         className="flex items-start justify-between gap-3 border-b border-[color:var(--border)] pb-2 text-sm"
                       >
-                        <span className="font-semibold text-[color:var(--text)]">{detail.label}</span>
-                        <span className="text-right text-[color:var(--text-muted)]">{detail.value}</span>
+                        <span className="shrink-0 whitespace-nowrap font-semibold text-[color:var(--text)]">{detail.label}</span>
+                        <span className="text-end text-[color:var(--text-muted)]">{detail.value}</span>
                       </div>
                     ))}
                   </div>
 
-                  <details className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/35 px-3 py-2.5">
+                  <div>
+                    <h4 className="text-sm font-semibold text-[color:var(--text)]">
+                      {isArabic ? "أسعار الشخص حسب حجم المجموعة" : "Price per person by group size"}
+                    </h4>
+                    <dl className="mt-2 grid grid-cols-2 gap-2">
+                      {pkg.priceTiers.map((tier) => (
+                        <div
+                          key={`${pkg.key}-${tier.range}`}
+                          className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/40 px-3 py-2.5"
+                        >
+                          <dt className="text-xs text-[color:var(--text-muted)]">{tier.range}</dt>
+                          <dd className="mt-0.5 text-sm font-semibold text-[color:var(--text)]">{tier.price}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+
+                  <details open className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/35 px-4 py-3">
                     <summary className="cursor-pointer text-sm font-semibold text-[color:var(--text)]">
                       {isArabic ? "يشمل" : "Includes"}
                     </summary>
@@ -304,4 +334,20 @@ export default async function CookingCompetitionPage({
 
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/group-booking-events/cooking-competition",
+    title: { ar: "مسابقة الطبخ", en: "Cooking Competition" },
+    description: {
+      ar: "مسابقة طبخ للفرق والشركات والأصدقاء في نون بمسقط: اطبخوا، تنافسوا واستمتعوا بتجربة جماعية مميزة.",
+      en: "A cooking competition for teams, companies and friends at Noon in Muscat: cook, compete and enjoy a great group experience.",
+    },
+  });
 }

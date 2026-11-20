@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -105,4 +107,32 @@ export default async function ShopCategoryPage({
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; category: string }>;
+}): Promise<Metadata> {
+  const { locale, category } = await params;
+  const current = await getShopCategoryBySlug(category).catch(() => null);
+  if (!current) {
+    return buildPageMetadata(locale, {
+      path: `/shop/${category}`,
+      title: { ar: "التصنيف غير موجود", en: "Category not found" },
+      description: { ar: "", en: "" },
+      noindex: true,
+    });
+  }
+
+  const nameAr = current.name_ar || current.name_en;
+  const nameEn = current.name_en || current.name_ar;
+  return buildPageMetadata(locale, {
+    path: `/shop/${current.slug}`,
+    title: { ar: nameAr, en: nameEn },
+    description: {
+      ar: `تسوّق ${nameAr} من متجر نون، مع توصيل داخل مسقط.`,
+      en: `Shop ${nameEn} from the Noon shop, delivered within Muscat.`,
+    },
+  });
 }

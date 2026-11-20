@@ -1,24 +1,8 @@
+import { buildPageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 import { FiEdit3, FiSearch, FiThumbsUp } from "react-icons/fi";
 import WorkshopSuggestionsSection from "@/components/site/WorkshopSuggestionsSection";
 import { isLocale, type Locale } from "@/lib/locale";
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
-  const { locale: rawLocale } = await params;
-  const locale: Locale = isLocale(rawLocale) ? rawLocale : "en";
-  const isArabic = locale === "ar";
-
-  return {
-    title: isArabic ? "اقترح ورشة | نون" : "Suggest a Workshop | Noon",
-    description: isArabic
-      ? "شاركنا فكرتك لورشة جديدة أو صوّت على الأفكار المقترحة. أكثر الأفكار طلباً تتحول إلى ورش حقيقية."
-      : "Share your idea for a new workshop or vote on suggested ideas. The most requested ideas become real workshops.",
-  };
-}
 
 export default async function SuggestWorkshopPage({
   params,
@@ -102,4 +86,20 @@ export default async function SuggestWorkshopPage({
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/suggest-workshop",
+    title: { ar: "اقترح ورشة", en: "Suggest a Workshop" },
+    description: {
+      ar: "شاركنا فكرتك لورشة جديدة أو صوّت على الأفكار المقترحة. أكثر الأفكار طلباً تتحول إلى ورش حقيقية.",
+      en: "Share your idea for a new workshop or vote on suggested ideas. The most requested ideas become real workshops.",
+    },
+  });
 }

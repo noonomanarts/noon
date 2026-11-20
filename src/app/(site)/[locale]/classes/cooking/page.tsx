@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import { readSessionUserId } from '@/lib/sessionToken';
 import Image from "next/image";
 import Link from "next/link";
@@ -384,4 +386,20 @@ export default async function CookingClassesPage({
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/classes/cooking",
+    title: { ar: "ورش الطبخ", en: "Cooking Workshops" },
+    description: {
+      ar: "ورش طبخ عملية في مسقط مع طهاة محترفين: حلويات ومخبوزات، أطباق رئيسية ومطابخ عالمية. اطّلع على المواعيد واحجز الآن.",
+      en: "Hands-on cooking workshops in Muscat with professional chefs: desserts and baking, main dishes and world cuisines. See the dates and book now.",
+    },
+  });
 }

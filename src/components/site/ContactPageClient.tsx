@@ -28,9 +28,12 @@ function resolveEmailHref(value: string): string {
 export default function ContactPageClient({
   locale,
   settings,
+  mapEmbedSrc,
 }: {
   locale: Locale;
   settings: SitePageSettings;
+  /** Iframe-safe map URL resolved on the server ("" when it cannot be embedded). */
+  mapEmbedSrc: string;
 }) {
   const isArabic = locale === "ar";
   const [isPending, startTransition] = useTransition();
@@ -171,13 +174,14 @@ export default function ContactPageClient({
               {(isArabic ? settings.contactPage.officeHoursAr : settings.contactPage.officeHoursEn).trim()}
             </p>
 
-            {settings.contactPage.mapEmbedUrl.trim() ? (
-              <div className="mt-4 overflow-hidden rounded-xl border border-[color:var(--border)]">
+            {mapEmbedSrc ? (
+              <div className="mt-4 overflow-hidden rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]">
                 <iframe
-                  src={settings.contactPage.mapEmbedUrl}
+                  src={mapEmbedSrc}
                   title={t.mapFrameTitle}
-                  className="h-44 w-full"
+                  className="block h-64 w-full border-0 sm:h-72"
                   loading="lazy"
+                  allowFullScreen
                   referrerPolicy="no-referrer-when-downgrade"
                 />
               </div>
@@ -188,8 +192,9 @@ export default function ContactPageClient({
                 href={settings.contactPage.mapLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 inline-flex rounded-lg border border-[color:var(--border)] bg-[color:var(--muted)] px-3 py-2 text-xs font-semibold text-[color:var(--text)] transition hover:opacity-90"
+                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg border border-[color:var(--border)] bg-[color:var(--muted)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:opacity-90"
               >
+                <FiMapPin className="size-4" aria-hidden="true" />
                 {t.openMap}
               </a>
             ) : null}

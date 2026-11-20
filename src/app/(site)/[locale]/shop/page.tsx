@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { buildPageMetadata } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
 import { FiArrowLeft, FiArrowRight, FiBox } from "react-icons/fi";
@@ -195,4 +197,20 @@ export default async function ShopPage({
       </div>
     </div>
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return buildPageMetadata(locale, {
+    path: "/shop",
+    title: { ar: "المتجر", en: "Shop" },
+    description: {
+      ar: "تسوّق منتجات نون: مكونات مختارة، أدوات مطبخ وهدايا، مع توصيل داخل مسقط.",
+      en: "Shop Noon products: selected ingredients, kitchen tools and gifts, delivered within Muscat.",
+    },
+  });
 }
