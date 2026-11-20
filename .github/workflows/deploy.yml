@@ -17,6 +17,16 @@ jobs:
     timeout-minutes: 90
 
     steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Ensure login stays inside the locale route
+        run: |
+          if [ ! -f 'src/app/(site)/[locale]/login/page.tsx' ]; then
+            echo "::error::Localized login route missing: src/app/(site)/[locale]/login/page.tsx"
+            exit 1
+          fi
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -45,3 +55,20 @@ jobs:
             docker compose up -d --build
 
             echo "Deployment completed successfully."
+
+      - name: Check localized login pages after deployment
+        run: |
+          for locale in ar en; do
+            for attempt in $(seq 1 20); do
+              code="$(curl --silent --show-error --location --output /dev/null --write-out '%{http_code}' --max-time 12 "https://noonomanarts.com/${locale}/login" || true)"
+              if [ "$code" = "200" ]; then
+                echo "/${locale}/login returned HTTP 200"
+                break
+              fi
+              if [ "$attempt" -eq 20 ]; then
+                echo "::error::/${locale}/login did not become available (last status: ${code})"
+                exit 1
+              fi
+              sleep 5
+            done
+          done
